@@ -1,0 +1,484 @@
+﻿@page "/MainChat"
+
+@using EDUSphereSharedProject.ChatModels
+@using EDUSphereSharedProject.IdentitySharedModels
+@using EDUSphereSharedProject.IdentiyModels
+@using IgnisEducationSuite.Client.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <MudText Align="Align.Left" Typo="Typo.h6"><b><i>Ignis Chat</i></b></MudText>
+    </MudCardHeader>
+    <MudDivider />
+    <MudCardContent>
+        <div class="chat-wrapper">
+            <div class="chat-sidebar card">
+                <div class="chat-sidebar-single active top-profile">
+                    <div class="img">
+                        @if (LoggedInUser.ProfilePic != null)
+                        {
+                            <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(LoggedInUser.ProfilePic)}")" alt="image">
+                        }
+                        else
+                        {
+                            <img src="images/Avatar/Woman.png" alt="image">
+
+                        }
+                    </div>
+                    <div class="info">
+                        <h6 class="text-md mb-0">@LoggedInUser.FirstName @LoggedInUser.LastName</h6>
+                        @if (isConnected)
+                        {
+                            <p class="mb-0">Available</p>
+                        }
+                        else
+                        {
+                            <p class="mb-0">Offline</p>
+                        }
+                    </div>
+                    <div class="action">
+                        <div class="btn-group">
+                            <button type="button" class="text-secondary-light text-xl" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                                <iconify-icon icon="bi:three-dots"></iconify-icon>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-lg-end border">
+                                <li>
+                                    <a href="~/chatprofile" class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2">
+                                        <iconify-icon icon="fluent:person-32-regular"></iconify-icon>
+                                        Profile
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="~/chatprofile" class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2">
+                                        <iconify-icon icon="carbon:settings"></iconify-icon>
+                                        Settings
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div><!-- chat-sidebar-single end( Information Of Logged In User )-->
+                <div class="chat-search">
+                    <span class="icon">
+                        <iconify-icon icon="iconoir:search"></iconify-icon>
+                    </span>
+                    <MudAutocomplete T="string" Label="Find User" @bind-Value="SelectedUser" SearchFunc="@Search"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                </div>
+                <div class="chat-all-list">
+                    @foreach (var item in chats)
+                    {
+                        <div class="chat-sidebar-single active" @onclick="() => SelectChat(item)">
+                            <div class="img">
+                                @if (item.ProfilePic != null)
+                                {
+                                    <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.ProfilePic)}")" alt="image">
+                                }
+                                else
+                                {
+                                    <img src="images/Avatar/Woman.png" alt="image">
+
+                                }
+                            </div>
+                            <div class="info">
+                                <h6 class="text-sm mb-1">@item.Name</h6>
+                                <p class="mb-0 text-xs">@GetTeaser(item.LastMessage)</p>
+                            </div>
+                            <div class="action text-end">
+                                <p class="mb-0 text-neutral-400 text-xs lh-1">@item.LastMessageTimestamp.ToString("hh:mm tt")</p>
+                                <span class="w-16-px h-16-px text-xs rounded-circle bg-warning-main text-white d-inline-flex align-items-center justify-content-center">I</span>
+                            </div>
+                        </div>
+                    }
+                    <MudDivider />
+                    <MudSpacer />
+                    <MudFab Class="mb-3" StartIcon="@Icons.Material.Filled.ChatBubble" Color="Color.Info" DropShadow="false" OnClick="StartNewChat" Label="New Message"></MudFab>
+
+                </div>
+            </div>
+            <div class="chat-main card">
+                <div class="chat-sidebar-single active">
+                    <div class="img">
+                        @if (selectedChat.ProfilePic != null)
+                        {
+                            <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedChat.ProfilePic)}")" class="w-40-px h-40-px rounded-circle flex-shrink-0 me-12 overflow-hidden" alt="image">
+                        }
+                        else
+                        {
+                            <img src="images/Avatar/Woman.png" alt="image">
+                        }
+                    </div>
+                    <div class="info">
+                        @if(selectedChat.Name == null){
+                            <h6 class="text-md mb-0">Hello ;)</h6>
+                        }
+                        else{
+                        <h6 class="text-md mb-0">@selectedChat.Name</h6>
+                        }
+                    </div>
+                    <div class="action d-inline-flex align-items-center gap-3">
+                        <button type="button" class="text-xl text-primary-light">
+                            <iconify-icon icon="mi:call"></iconify-icon>
+                        </button>
+                        <button type="button" class="text-xl text-primary-light">
+                            <iconify-icon icon="fluent:video-32-regular"></iconify-icon>
+                        </button>
+                        <div class="btn-group">
+                            <button type="button" class="text-primary-light text-xl" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                                <iconify-icon icon="tabler:dots-vertical"></iconify-icon>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-lg-end border">
+                                <li>
+                                    <button class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2" type="button">
+                                        <iconify-icon icon="mdi:clear-circle-outline"></iconify-icon>
+                                        Clear All
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2" type="button">
+                                        <iconify-icon icon="ic:baseline-block"></iconify-icon>
+                                        Block
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div><!-- chat-sidebar-single end -->
+
+                <div class="chat-message-list">
+                    @if (messages.Any())
+                    {
+                        @foreach (var chatdetail in messages)
+                        {
+                            if (chatdetail.UserId != AppState.UserID)
+                            {
+                                <div class="chat-single-message left">
+                                    <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedChat.ProfilePic)}")" alt="image" class="avatar-lg object-fit-cover rounded-circle">
+                                    <div class="chat-message-content">
+                                        <p class="mb-3">@chatdetail.Content</p>
+                                        <p class="chat-time mb-0">
+                                            <span>@chatdetail.Timestamp.Value.ToString("hh:mm tt")</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="chat-single-message right">
+                                    <div class="chat-message-content">
+                                        <p class="mb-3">@chatdetail.Content</p>
+                                        <p class="chat-time mb-0">
+                                            <span>@chatdetail.Timestamp.Value.ToString("hh:mm tt")</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    }
+                    else
+                    {
+
+                        <MudPaper Height="600px" Width="100%" Square="true" >
+                            <MudAlert Severity="Severity.Success">No messages yet. Start a new conversation to get the ball rolling!</MudAlert>
+                        </MudPaper>
+                    }
+                    <form class="chat-message-box">
+                        <input type="text" @bind-value="@message" name="chatMessage" placeholder="Write message">
+                        <div class="chat-message-box-action">
+                            <button type="button" class="text-xl">
+                                <iconify-icon icon="ph:link"></iconify-icon>
+                            </button>
+                            <button type="button" class="text-xl">
+                                <iconify-icon icon="solar:gallery-linear"></iconify-icon>
+                            </button>
+                            <MudButton Variant="Variant.Filled" OnClick="SendMessage" Class="btn btn-sm btn-primary-600 radius-8 d-inline-flex align-items-center gap-1" EndIcon="@Icons.Material.Filled.Send">
+                                Send
+                            </MudButton>
+
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private HubConnection _hubConnection;
+    public bool isConnected;
+    private string message;
+    private string SelectedUser;
+    private List<Message> messages = new List<Message>();
+    private List<Chat> chats = new List<Chat>();
+    private Chat selectedChat = new();
+    private List<ApplicationUser> _users = new();
+    private ApplicationUser LoggedInUser = new();
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    protected override async Task OnInitializedAsync()
+    {
+        await GetUsers();
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
+            .Build();
+
+        _hubConnection.On<Message>("ReceiveMessage", async (receivedMessage) =>
+        {
+            if (receivedMessage != null)
+            {
+                if (receivedMessage.Content == null)
+                {
+                    await LoadMessages(AppState.UserID);
+                }
+                else
+                {
+                    messages.Add(receivedMessage);
+                    StateHasChanged();
+                }
+            }
+        });
+
+        try
+        {
+            await _hubConnection.StartAsync();
+            isConnected = _hubConnection.State == HubConnectionState.Connected;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Hub connection failed: {ex.Message}");
+            isConnected = false;
+        }
+        await LoadChats();
+    }
+
+
+
+    protected async Task GetUsers()
+    {
+        if (_users.Any())
+        {
+            return;
+        }
+        else
+        {
+            if (AppState.SchoolID != null)
+            {
+
+                var users = await Http.GetFromJsonAsync<List<ApplicationUser>>($"{Navigation.BaseUri}api/Admin/GetChatUsers/{AppState.SchoolID}");
+                if (users.Any())
+                {
+                    _users = users;
+                    LoggedInUser = _users.Where(x => x.Id == AppState.UserID).FirstOrDefault();
+                    StateHasChanged();
+                }
+                else
+                {
+                    _users = new();
+                }
+            }
+        }
+    }
+    private async Task LoadChats()
+    { // Load the list of chats (users and groups) from the server
+        var c = await Http.GetFromJsonAsync<List<Chat>>($"{Navigation.BaseUri}api/Messaging/getchats/{AppState.UserID}");
+        chats = c.ToList();
+
+    }
+    private async Task LoadMessages(string chatName)
+    {
+        // Load messages for the selected chat from the server
+        messages = await Http.GetFromJsonAsync<List<Message>>($"api/Messaging/getmessages/{chatName}");
+    }
+    private async Task SelectChat(Chat chat)
+    {
+        //Snackbar.Add("Opening Chat", Severity.Success);
+        selectedChat = chat;
+        messages.Clear();
+        await LoadMessages(AppState.UserID);
+    }
+
+    Task Send(string user, Message message, string method) => _hubConnection.SendAsync(method, user, message);
+    private async Task SendMessage()
+    {
+        if (selectedChat == null || string.IsNullOrWhiteSpace(selectedChat.Name))
+        {
+            Snackbar.Add("Please select a chat before sending a message.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var newMessage = new Message
+                {
+                    Content = message,
+                    UserId = AppState.UserID,
+                    Timestamp = DateTime.Now
+                };
+
+            if (selectedChat.IsGroup)
+            {
+                newMessage.GroupName = selectedChat.UserName;
+                await Send(selectedChat.Name, newMessage, "SendMessageToGroup");
+                //await _hubConnection.SendAsync("SendMessageToGroup", selectedChat.Name, newMessage);
+            }
+            else
+            {
+                if (selectedChat.id == null)
+                {
+                    selectedChat.id = _users.Where(x => x.UserName == selectedChat.Name).Select(x => x.Id).First();
+                }
+                newMessage.RecipientId = selectedChat.id;
+                await Send(selectedChat.id, newMessage, "SendMessageToUser");
+                //await _hubConnection.SendAsync("SendMessageToUser", selectedChat.Name, newMessage);
+            }
+
+            // Add the new message to the local list
+            messages.Add(newMessage);
+
+            // Clear the message input
+            message = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            // Handle or log the exception
+            Console.WriteLine($"Error sending message: {ex.Message}");
+        }
+    }
+
+
+    private string GetTeaser(string message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return string.Empty;
+        var words = message.Split(' ');
+        return words.Length > 3 ?
+        string.Join(" ", words.Take(3)) + "..." : message;
+    }
+    private async Task CreateNewGroup()
+    {
+        // Logic to create a new group
+        var newGroup = new ChatGroup { GroupName = "New Group" };
+        await Http.PostAsJsonAsync("api/Messaging/creategroup", newGroup);
+        chats.Add(new Chat { Name = newGroup.GroupName, IsGroup = true });
+        await SelectChat(new Chat { Name = newGroup.GroupName, IsGroup = true });
+    }
+    private async Task StartNewChat()
+    { // Prompt the user to select the name of the new chat from the list of users
+        var newChatUser = _users.Where(x => x.UserName == SelectedUser).FirstOrDefault();
+        if (newChatUser != null)
+        {
+            // Create a new chat
+            var newChat = new Chat
+                {
+                    id = newChatUser.Id,
+                    Name = newChatUser.UserName,
+                    UserName = $"{newChatUser.FirstName} {newChatUser.LastName}",
+                    IsGroup = false,
+                    ProfilePic = newChatUser.ProfilePic,
+                    LastMessage = string.Empty,
+                    LastMessageTimestamp = DateTime.Now
+                };
+            // Add the new chat to the list of chats
+            if (!chats.Contains(newChat))
+            {
+                chats.Add(newChat);
+
+
+            }
+            // Select the new chat
+            await SelectChat(newChat);
+        }
+    }
+    private async Task<IEnumerable<string>> Search(string value, CancellationToken token)
+    {
+        // In real life use an asynchronous function for fetching data from an api.
+        await Task.Delay(5, token);
+
+        // if text is null or empty, don't return values (drop-down will not open)
+        if (string.IsNullOrEmpty(value))
+            return new string[0];
+        return _users.Where(x => x.UserName.Contains(value, StringComparison.InvariantCultureIgnoreCase)).Select(x => x.UserName);
+    }
+
+}
+
+<!-- #Testin -->
+@* @using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<PageTitle>Index</PageTitle>
+
+<div class="form-group">
+    <label>
+        User:
+        <input @bind="userInput" />
+    </label>
+</div>
+<div class="form-group">
+    <label>
+        Message:
+        <input @bind="messageInput" size="50" />
+    </label>
+</div>
+<button @onclick="Send" disabled="@(!IsConnected)">Send</button>
+
+<hr>
+
+<ul id="messagesList">
+    @foreach (var message in messages)
+    {
+        <li>@message</li>
+    }
+</ul>
+
+@code {
+    private HubConnection? hubConnection;
+    private List<string> messages = new List<string>();
+    private string? userInput;
+    private string? messageInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
+            .Build();
+
+        hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        {
+            var encodedMsg = $"{user}: {message}";
+            messages.Add(encodedMsg);
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task Send()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("SendMessage", userInput, messageInput);
+        }
+    }
+
+    public bool IsConnected =>
+        hubConnection?.State == HubConnectionState.Connected;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+} *@
+
+
+<!-- #endregion -->

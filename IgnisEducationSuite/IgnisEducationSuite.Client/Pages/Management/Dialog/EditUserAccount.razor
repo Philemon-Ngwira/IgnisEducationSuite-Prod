@@ -1,0 +1,104 @@
+﻿@using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.UniversalModels
+@using System.Security.Cryptography;
+@using System.Text
+@inject HttpClient Http
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-3" Align="Align.Center" Typo="Typo.h4"><b>User Details</b></MudText>
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+
+
+        <MudGrid>
+            <MudItem xs="12" Class="mb-3">
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">User Account Detaails</MudAlert>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.UserName" Label="UserName"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Email"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudCheckBox @bind-Value="newUser.AccountActive" Label="@checkBoxLabel"></MudCheckBox>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false">
+            <MudButton Color="Color.Primary" OnClick="ConfirmChanges" Variant="Variant.Outlined">Confirm Changes</MudButton>
+            <MudButton Color="Color.Warning" Variant="Variant.Outlined" OnClick="ResetPassword">Reset Password</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Outlined" OnClick="Close">Close</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance _mudDialogInstance { get; set; }
+    protected bool isLoading = false;
+    [Parameter] public ApplicationUser newUser { get; set; } = new();
+    protected bool DisableuserAccount = false;
+    protected PasswordGenerator passwordGenerator = new();
+    protected string checkBoxLabel = "Disable User Account";
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    [Inject] ClientEmailService _emailService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; }
+    protected async Task ConfirmChanges()
+    {
+
+    }
+    protected async Task ResetPassword()
+    {
+        isLoading = true;
+        PasswordResetModel model = new();
+        model.UserID = newUser.Id;
+        model.Password = passwordGenerator.GenerateOneTimePassword();
+
+        var result = await Http.PutAsJsonAsync($"{_navigationManager.BaseUri}api/Admin/resetPassword", model);
+        if (result.IsSuccessStatusCode)
+        {
+            //Mail one time password
+            //Mail User//
+            EmailRequest email = new()
+                {
+                    To = newUser.Email,
+                    Reciepient = newUser.UserName,
+                    Password = model.Password
+                };
+            var emailsent = await _emailService.SendPasswordResetEmailAsync(email, _navigationManager.BaseUri);
+            if (emailsent == "Password reset email sent successfully!")
+            {
+                isLoading = false;
+                Snackbar.Add(emailsent, Severity.Success);
+                isLoading = false;
+                Snackbar.Add("Passowrd successfully Reset and One time passowrd has been mailed to the user.", Severity.Success);
+                _mudDialogInstance.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                isLoading = false;
+                Snackbar.Add("Passowrd successfully Reset and One time passowrd has been mailed to the user.", Severity.Success);
+                _mudDialogInstance.Close(DialogResult.Ok(true));
+            }
+            //Close Dialog
+            
+        }
+    }
+  
+    protected void Close()
+    {
+        _mudDialogInstance.Close(DialogResult.Cancel());
+    }
+}

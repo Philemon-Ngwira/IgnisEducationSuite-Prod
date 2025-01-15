@@ -1,0 +1,449 @@
+﻿@page "/AsssignmentManagement"
+@using System.Text.RegularExpressions
+@using EDUSphereSharedProject.Models
+@inject ChatClientService ChatClientService
+@inject HttpClient Http
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader Class="mb-3">
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Assignment Management</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+
+    <MudCardContent Class="mb-3">
+        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Title" Variant="Variant.Filled">Define Assignment</MudAlert>
+        <MudGrid Class="mb-3">
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" T="string" @bind-Value="newAssignment.Title" Label="Assignment Title" Margin="Margin.Dense"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" T="string" @bind-Value="newAssignment.Description" Label="Assignment Description" Margin="Margin.Dense"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeconverter" SearchFunc="@Search"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker Label="Due date" Variant=" Variant.Outlined" Margin="Margin.Dense" @bind-Date="newAssignment.DueDate" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Button" OnClick="FinalizeDefiningHeader">Finish And Assign Details</MudButton>
+            </MudItem>
+        </MudGrid>
+
+    </MudCardContent>
+    @if (assignmentHeaderDefined)
+    {
+        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+        <MudCardContent>
+            <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Details" Variant="Variant.Filled">Define Assignment Question</MudAlert>
+            <MudSelect Variant="Variant.Outlined" Margin="Margin.Dense" T="AssignmentMode" Label="Assignment Status" @bind-Value="SelectedStatus">
+                @foreach (var status in Enum.GetValues<AssignmentMode>())
+                {
+                    <MudSelectItem Value="status">
+                        @status
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            @if (SelectedStatus == AssignmentMode.UseChatGPT)
+            {
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Enter Prompt" T="string" @bind-Value="GPTQuery"></MudTextField>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Button" OnClick="SendMessage">
+                    Generate
+                </MudButton>
+                <br />
+                @if (assignmentQuestionsCollected)
+                {
+                    <MudDataGrid T="AssignmentQuestion" Items="@assignmentQuestions" ReadOnly="false" EditMode="@(DataGridEditMode.Cell)"
+                                 StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                                 Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
+                        <Columns>
+                            <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
+                            <PropertyColumn Property="x => x.QuestionText" />
+                            <PropertyColumn Property="x => x.MaxMarks" />
+                        </Columns>
+                    </MudDataGrid>
+                }
+            }
+            else if (SelectedStatus == AssignmentMode.UseFileUpload)
+            {
+                <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Details" Variant="Variant.Filled">Please upload <b>MS Word</b> File Containing Questions</MudAlert>
+
+                <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.CloudUpload">
+                            Upload Lesson
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+                <MudPaper Width="100%">
+                    @if (assignmentQuestionsCollected)
+                    {
+                        <MudDataGrid T="AssignmentQuestion" Items="@assignmentQuestions" ReadOnly="false" EditMode="@(DataGridEditMode.Cell)"
+                                     StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                                     Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
+                            <Columns>
+                                <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
+                                <PropertyColumn Property="x => x.QuestionText" />
+                                <PropertyColumn Property="x => x.MaxMarks" />
+                            </Columns>
+                        </MudDataGrid>
+                    }
+                </MudPaper>
+            }
+            else
+            {
+                <MudGrid>
+                    <MudItem xs="12" md="9">
+                        <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Enter Question" T="string" @bind-Value="newAssignmentQuestion.QuestionText"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Enter Question Score" T="int?" @bind-Value="newAssignmentQuestion.MaxMarks"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Button" Color="Color.Success">Add Question</MudButton>
+                    </MudItem>
+                </MudGrid>
+            }
+
+        </MudCardContent>
+        <MudCardActions>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Disabled="assignmentQuestions.Count == 0" OnClick="SaveAssignment" ButtonType="ButtonType.Button" Color="Color.Success">Save Assignment</MudButton>
+            </MudItem>
+        </MudCardActions>
+    }
+
+</MudCard>
+<style>
+    /* Container for overall layout alignment */
+    .upload-container {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        gap: 1rem;
+        max-width: 100%;
+        margin: 2rem auto;
+    }
+
+    /* File input styling */
+    input[type="file"] {
+        display: block;
+        font-family: Arial, sans-serif;
+        background-color: #4CAF50;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+        input[type="file"]:hover {
+            background-color: #45a049;
+        }
+
+        input[type="file"]::file-selector-button {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+
+            input[type="file"]::file-selector-button:hover {
+                background-color: #45a049;
+            }
+
+    /* Textarea styling */
+    textarea {
+        width: 100%;
+        height: 150px;
+        padding: 1rem;
+        font-size: 1rem;
+        font-family: Arial, sans-serif;
+        color: #333;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        resize: vertical;
+        transition: border-color 0.3s;
+    }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+    /* Button styling */
+    button {
+        font-family: Arial, sans-serif;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        font-size: 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s, transform 0.2s;
+    }
+
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+</style>
+@code {
+    protected string GPTQuery = string.Empty;
+    protected string ResponseMessage = string.Empty;
+    protected bool assignmentHeaderDefined = false;
+    protected Assignment newAssignment = new();
+    protected AssignmentQuestion newAssignmentQuestion = new();
+    protected QuestionParser questionParser = new();
+    protected List<Class> classes = new();
+    protected List<Teacher> teachers = new();
+    protected List<AssignmentQuestion> assignmentQuestions = new();
+    protected Class selectedClass = new();
+    protected Teacher teacher = new();
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    protected bool assignmentQuestionsCollected = false;
+    private List<string> _events = new();
+    private AssignmentMode SelectedStatus { get; set; } = AssignmentMode.EnterQuestionsManually;
+    protected bool isLoading = false;
+    protected string UserID = string.Empty;
+    public enum AssignmentMode
+    {
+        UseChatGPT,
+        UseFileUpload,
+        EnterQuestionsManually
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await GetTeachers();
+        await GetClasses();
+        isLoading = false;
+    }
+
+    #region Get From Database
+    protected async Task GetClasses()
+    {
+        var result = _genericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{teacher.SchoolID}", true);
+        var classesdata = service.Data.ToList();
+        foreach (var item in classesdata)
+        {
+            var authstate = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authstate.User;
+
+            item.Teacher = teacher;
+            if (item.Teacher.EmailAddress == user.Identity.Name)
+            {
+                classes.Add(item);
+            }
+
+        }
+
+    }
+    protected async Task GetTeachers()
+    {
+      
+            UserID = AppState.UserID;
+        
+        if (UserID != string.Empty || UserID != null)
+        {
+            var result = _genericService.GetService<Teacher>();
+            var service = await result.GetAllAsync($"api/Dynamic/GetTeacherByUserID/{UserID}", true);
+            teachers = service.Data.ToList();
+            if (teachers.Any())
+            {
+                teacher = teachers.FirstOrDefault();
+            }
+        }
+
+    }
+    #endregion
+
+    #region Auto Complete
+    private async Task<IEnumerable<Class>> Search(string value, CancellationToken token)
+    {
+
+        if (string.IsNullOrEmpty(value))
+            return new List<Class>();
+        return classes.Where(x => x.ClassName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    #endregion
+
+    #region To String Func
+
+    protected Func<Class, string> ClassTypeconverter = p => p?.ClassName + " " + (p?.Teacher.FirstName + " " + p?.Teacher.LastName);
+    #endregion
+
+    private async Task SendMessage()
+    {
+        isLoading = true;
+        if (!string.IsNullOrEmpty(GPTQuery))
+        {
+            ResponseMessage = await ChatClientService.GetChatResponseAsync("api/Chat/AskChatGPT", GPTQuery);
+            GPTQuery = string.Empty;
+
+            assignmentQuestions = GenerateQuestions(ResponseMessage);
+            assignmentQuestionsCollected = true;
+        }
+        isLoading = false;
+    }
+    public List<AssignmentQuestion> GenerateQuestions(string query)
+    {
+
+        return questionParser.ParseQuestionsFromResponse(query);
+    }
+    protected async Task SaveAssignment()
+    {
+        isLoading = true;
+        if (assignmentQuestions.Any())
+        {
+            bool hasUnsetprop = HasUnsetProperty(assignmentQuestions, item => item.MaxMarks == null);
+            if (!hasUnsetprop)
+            {
+                #region Save Header
+                newAssignment.AssignmentID = Guid.NewGuid();
+                newAssignment.ClassID = selectedClass.ClassID;
+                newAssignment.TotalMarks = assignmentQuestions.Sum(x => x.MaxMarks);
+                newAssignment.TeacherID = selectedClass.TeacherID;
+
+                var service = _genericService.GetService<Assignment>();
+                var result = await service.PostAsync("api/Dynamic/PostEntity", "assignment", newAssignment);
+                if (result.IsSuccess)
+                {
+                    Snackbar.Add("Phase one done please wait while we complete the process");
+
+                }
+                else
+                {
+                    Snackbar.Add("Phase one Failed, please try again", Severity.Error);
+                    return;
+
+                }
+                #endregion
+                #region Save Details
+                foreach (var item in assignmentQuestions)
+                {
+                    item.AssignmentID = newAssignment.AssignmentID;
+                    item.QuestionID = Guid.NewGuid();
+                }
+
+                var service1 = _genericService.GetService<List<AssignmentQuestion>>();
+                var result1 = await service1.PostAsync("api/Dynamic/PostEntities", "assignmentQuestions", assignmentQuestions);
+                if (result1.IsSuccess)
+                {
+                    Snackbar.Add("Assignment Saved Succesfully", Severity.Success);
+                    assignmentQuestions.Clear();
+                    newAssignment = new();
+                    ResponseMessage = string.Empty;
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Assignment saving failed please try again", Severity.Error);
+                    return;
+                }
+                #endregion
+            }
+            else
+            {
+                Snackbar.Add("Some Marks to some questions not set, Please set all marks and try again", Severity.Error);
+                return;
+            }
+        }
+        else
+        {
+            Snackbar.Add("Error Saving, No Assignment Questions Found. Please add questions and try again", Severity.Error);
+            return;
+        }
+        isLoading = false;
+
+    }
+
+    protected void FinalizeDefiningHeader()
+    {
+        assignmentHeaderDefined = true;
+    }
+
+    #region Upload
+    private async Task OnFileUpload(IBrowserFile file)
+    {
+
+        var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(file.OpenReadStream()), "file", file.Name);
+        var absoluteUri = new Uri(new Uri(_navigationManager.BaseUri), "api/upload/uploadWord");
+        var response = await Http.PostAsync(absoluteUri, content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            assignmentQuestions = await response.Content.ReadFromJsonAsync<List<AssignmentQuestion>>();
+            assignmentQuestionsCollected = true;
+        }
+        else
+        {
+            Console.WriteLine("Error uploading file.");
+        }
+    }
+    #endregion
+
+    #region Datagrid
+    void StartedEditingItem(AssignmentQuestion item)
+    {
+        _events.Insert(0, $"Event = StartedEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+    }
+
+    void CanceledEditingItem(AssignmentQuestion item)
+    {
+        _events.Insert(0, $"Event = CanceledEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+    }
+
+    void CommittedItemChanges(AssignmentQuestion item)
+    {
+
+        _events.Insert(0, $"Event = CommittedItemChanges, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+    }
+    #endregion
+
+    #region Null value Checker
+    protected static bool HasUnsetProperty<T>(List<T> items, Func<T, bool> propertyCheck)
+    {
+        // Returns true if any item has the property unset based on the provided check function
+        return items.Any(item => propertyCheck(item));
+    }
+    #endregion
+
+
+}

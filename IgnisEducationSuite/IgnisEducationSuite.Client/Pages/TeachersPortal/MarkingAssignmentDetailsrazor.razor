@@ -1,0 +1,104 @@
+﻿@page "/MarkingAssignmentDetails"
+@using EDUSphereSharedProject.Models
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Assignment Details</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+
+
+    <MudCardContent>
+        <MudAlert Severity="Severity.Normal" Variant=Variant.Filled Icon="@Icons.Material.Filled.Person2">Student Information</MudAlert>
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.subtitle1">First Name: <b>@student.FirstName</b></MudText>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.subtitle1">Last Name: <b>@student.LastName</b></MudText>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudText Typo="Typo.subtitle1">Student ID <b>@student.StudentNumber</b></MudText>
+            </MudItem>
+        </MudGrid>
+        <MudAlert Severity="Severity.Normal" Variant=Variant.Filled Icon="@Icons.Material.Filled.Info">Question and Answers</MudAlert>
+
+        @foreach (var item in studentAssignmentAnswers)
+        {
+            <MudGrid Class="mb-3">
+                <MudItem xs="12">
+                    <MudGrid>
+                        <MudItem xs="12" md="10">
+                            <MudText Typo="Typo.body1">Q @item.Question.QuestionNumber: @item.Question.QuestionText (@item.Question.MaxMarks)</MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="1">
+                                <MudCheckBox @bind-Value="item.isCorrect" T="bool?" Disabled="item.isWrong.Value" Color="Color.Success" Dense="true" Label="Correct"></MudCheckBox>
+                            </MudItem>
+                            <MudItem xs="12" md="1">
+                                <MudCheckBox @bind-Value="item.isWrong" T="bool?" Disabled="item.isCorrect.Value" Color="Color.Error" Dense="true" CheckedIcon="@Icons.Material.Filled.Cancel" Label="Wrong"></MudCheckBox>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2"><b><i>Answer: @item.AnswerText</i></b></MudText>
+                        </MudItem>
+
+                    </MudGrid>
+                </MudItem>
+            </MudGrid>
+
+        }
+
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.DoneAll" Color="Color.Success">Finish</MudButton>
+    </MudCardActions>
+</MudCard>
+@code {
+    protected Student student = new();
+    protected List<StudentAssignmentAnswer> studentAssignmentAnswers = new();
+    protected List<AssignmentQuestion> Questions = new();
+    [Inject] LessonService LessonService { get; set; } = default!;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    protected bool isLoading = false;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await GetStudentDetails();
+        await GetAssignmentQuestions(LessonService.assignmentID);
+        isLoading = false;
+    }
+
+    protected async Task GetStudentDetails()
+    {
+        var result = _genericService.GetService<Student>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"student"}", true);
+        var students = service.Data.ToList();
+        if (students.Any())
+        {
+            student = students.Where(x => x.StudentID == LessonService.studentID).FirstOrDefault();
+        }
+    }
+    protected async Task GetAssignmentQuestions(Guid id)
+    {
+        var service = _genericService.GetService<AssignmentQuestion>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetAssignmentQuestions/{id}", true);
+        Questions = result.Data.ToList();
+        studentAssignmentAnswers = LessonService.studentAssignmentAnswers;
+        foreach (var item in studentAssignmentAnswers)
+        {
+            item.Question = Questions.Where(x => x.QuestionID == item.QuestionID).FirstOrDefault();
+        }
+    }
+}

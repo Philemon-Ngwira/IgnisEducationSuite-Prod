@@ -1,0 +1,29 @@
+﻿<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-3" Typo="Typo.h6"><b>Confirmation Message:</b></MudText>
+        <MudText Class="mb-3">
+            @Message
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup Variant="Variant.Filled" OverrideStyles="false">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="CloseDialog">Close</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Confirm">Confirm</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]public MudDialogInstance MudDialog { get; set; } = default!;
+    protected string Message = "Are you sure you want to submit attendance for all students in the list? Once submitted, the attendance cannot be modified.";
+
+    protected void CloseDialog()
+    {
+        MudDialog.Close();
+    }
+
+    protected void Confirm()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

@@ -1,0 +1,139 @@
+﻿@page "/ClientManagement"
+@using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.Management.Dialog
+@inherits AppBaseComponent
+@inject AppState appState
+@if (appState.UserRole == "SuperAdmin")
+{
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Align="Align.Center" Typo="Typo.h4"><b>Client Registration</b></MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudAlert Variant="Variant.Filled">Register School</MudAlert>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" @bind-Value="@newSchool.SchoolName" T="string" Label="Enter School Name" Placeholder="School Name" Margin="Margin.Dense"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                        <ActivatorContent>
+                            <MudFab Color="Color.Secondary"
+                                    StartIcon="@Icons.Material.Filled.Image"
+                                    Label="Load School Logo" />
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddSchool" DropShadow="true">Add School</MudButton>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudDataGrid Items="schools" Filterable="false" SortMode="@SortMode.None" Groupable="false" QuickFilter="_quickFilter">
+                        <ToolBarContent>
+                            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" AdornmentIcon="@Icons.Material.Filled.Search" Label="Search Student" @bind-Value="searchString"></MudTextField>
+                        </ToolBarContent>
+                        <Columns>
+                            @if (schools.Any())
+                            {
+                                <PropertyColumn Property="x => x.SchoolName" />
+                                <TemplateColumn CellClass="d-flex justify-end">
+                                    <CellTemplate>
+                                        <MudStack Row>
+                                     <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="()=>ManageSchoolDetailsAsync(context.Item)" Color="@Color.Primary">Manage</MudButton>
+                                 </MudStack>
+                             </CellTemplate>
+                         </TemplateColumn>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">No Schools found</MudAlert>
+                            }
+                        </Columns>
+                    </MudDataGrid>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+}
+@code {
+    protected School newSchool = new();
+    protected List<School> schools = new();
+    protected string searchString = string.Empty;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    protected override async Task OnInitializedAsync()
+    {
+        await GetSchools();
+    }
+    protected async Task GetSchools()
+    {
+        var service = _genericService.GetService<School>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetEntity/{"school"}", true);
+        if (result.IsSuccess)
+        {
+            schools = result.Data.ToList();
+        }
+    }
+    protected async Task AddSchool()
+    {
+        newSchool.SchoolID = Guid.NewGuid();
+        var service = _genericService.GetService<School>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "school", newSchool);
+        if (result.IsSuccess)
+        {
+            schools.Add(newSchool);
+            newSchool = new();
+            Snackbar.Add("School Added Successfully, Dont Forget to activate License", Severity.Success);
+
+        }
+        else
+        {
+            Snackbar.Add("Error Saving School", Severity.Error);
+
+        }
+    }
+    private async Task UploadFiles(IBrowserFile file)
+    {
+
+        if (file == null || newSchool == null)
+            throw new ArgumentNullException(nameof(file), "File or model cannot be null");
+
+        using (var memoryStream = new MemoryStream())
+        {
+            await file.OpenReadStream().CopyToAsync(memoryStream);
+            newSchool.SchoolLogo = memoryStream.ToArray();
+        }
+    }
+    private async Task ManageSchoolDetailsAsync(School school)
+    {
+        var parameters = new DialogParameters<ManageSchoolDetails> { { x => x.school, school }, };
+        var DialogOpt = new DialogOptions { MaxWidth = MaxWidth.Large };
+        var dialog = await DialogService.ShowAsync<ManageSchoolDetails>("", parameters, DialogOpt);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var data = result.Data;
+            if(data is string)
+            {
+                Snackbar.Add((string)data, Severity.Success);
+                await GetSchools();
+                StateHasChanged();
+            }
+        }
+    }
+    private Func<School, bool> _quickFilter => x =>
+      {
+          if (string.IsNullOrWhiteSpace(searchString))
+              return true;
+
+          if (x.SchoolName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+              return true;
+
+          return false;
+      };
+}

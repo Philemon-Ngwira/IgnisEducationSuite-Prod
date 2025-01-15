@@ -1,0 +1,200 @@
+﻿@using EDUSphereSharedProject.Models
+
+<MudDialog>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudText Align="Align.Left" Typo="Typo.h6">Ignis Education Suite</MudText>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText Align="Align.Right">Phone :+260760581058</MudText>
+                <MudText Align="Align.Right">Email :philtiara.enterprises@gmail.com</MudText>
+                <MudText Align="Align.Right">Website :www.philtiaraenterprises.com</MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudAlert NoIcon="true">
+                    <MudSpacer />
+                    <MudText Typo="Typo.h2"><b>REPORT CARD</b></MudText>
+                    <MudSpacer />
+                </MudAlert>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText Align="Align.Left"><b>Name: @newReportCard.Student.FirstName @student.LastName</b></MudText>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText Align="Align.Left"><b>Grade: @newReportCard.Student.GradeLevel</b></MudText>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText Align="Align.Left"><b>StudentID: @newReportCard.Student.StudentNumber</b></MudText>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDateRangePicker @bind-DateRange="@_dateRangeTerm" Margin="Margin.Dense" Clearable="true"
+                                    PlaceholderStart="Term Start Date" PlaceholderEnd="Term End Date" />
+            </MudItem>
+            <MudItem xs="12" Class="mb-3">
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.School">Classes</MudAlert>
+                <MudDivider Class="mb-3" />
+                <MudDataGrid T="ReportCardDetail" Items="reporCardDetails" ReadOnly="false" EditMode="DataGridEditMode.Cell"
+                             StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                             Bordered="true" Dense="true" EditTrigger="@(_editTriggerRowClick ? DataGridEditTrigger.OnRowClick : DataGridEditTrigger.Manual)">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Class.ClassName" Title="Class" Editable="false" />
+                        <PropertyColumn Property="x => x.Class.Teacher.LastName" Title="Teacher" Editable="false" />
+                        <PropertyColumn Property="x => x.Score" />
+                        <PropertyColumn Property="x => x.Grade" Title="Grading"></PropertyColumn>
+                    </Columns>
+                </MudDataGrid>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup Class="mn-3" OverrideStyles=false>
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Close" Color="Color.Error" OnClick="CloseDialog">Close</MudButton>
+            <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" Color="Color.Success" OnClick="SubmitReportCard">Submit Report Card</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] public MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Student student { get; set; } = new();
+    [Parameter] public List<Class> Classes { get; set; } = new();
+    [Parameter] public List<GradingScale> GradingScales { get; set; } = new();
+    protected ReportCard newReportCard = new();
+    private DateRange _dateRangeTerm { get; set; }
+    protected List<ReportCardDetail> reporCardDetails = new();
+    protected bool _editTriggerRowClick = false;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    protected bool isLoading = false;
+
+    protected override void OnParametersSet()
+    {
+        newReportCard.ReportCardID = Guid.NewGuid();
+        newReportCard.Student = student;
+        foreach (var item in Classes)
+        {
+            ReportCardDetail newReportCardDetail = new()
+                {
+                    ReportCardDetailID = Guid.NewGuid(),
+                    ReportCardID = newReportCard.ReportCardID,
+                    ClassID = item.ClassID,
+                    Score = 0,
+                    Class = item
+                };
+            reporCardDetails.Add(newReportCardDetail);
+        }
+    }
+
+
+    private void CloseDialog() => MudDialog.Cancel();
+
+    private async void SubmitReportCard()
+    {
+        isLoading = true;
+        //Save Header
+        var service = _genericService.GetService<ReportCard>();
+        //Assign all unassigned Values
+        newReportCard.IssuedDate = DateTime.Today;
+        newReportCard.StudentID = newReportCard.Student.StudentID;
+        newReportCard.Student = null;
+        newReportCard.TermStartDate = _dateRangeTerm.Start;
+        newReportCard.TermEndDate = _dateRangeTerm.End;
+        newReportCard.GradeLevel = student.GradeLevel;
+        List<double> subjectGPAs = new();
+        subjectGPAs = reporCardDetails.Select(x => ((double)x.GPA.Value)).ToList();
+        newReportCard.GPA = (decimal?)CalculateFinalGPA(subjectGPAs);
+        var savedHeader = await service.PostAsync("api/Dynamic/PostEntity", "reportcard", newReportCard);
+        if (savedHeader.IsSuccess)
+        {
+            //Save Details
+            foreach (var item in reporCardDetails)
+            {
+                item.Class = null;
+            }
+            var serviceDetails = _genericService.GetService<List<ReportCardDetail>>();
+            var result = await serviceDetails.PostAsync("api/Dynamic/PostEntities", "reportcarddetail", reporCardDetails);
+            if (result.IsSuccess)
+            {
+                isLoading = false;
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+        isLoading = false;
+    }
+    public (string Grade, double? GPA) GetGradeAndCalculateGPA(
+     ReportCardDetail reportCardDetail,
+     List<GradingScale> gradingScales,
+     double? minGPA = 0.0,
+     double? maxGPA = 4.0)
+    {
+        // Find the grading scale range where the score falls
+        var grade = gradingScales
+            .FirstOrDefault(gs => reportCardDetail.Score >= gs.LoweScore && reportCardDetail.Score <= gs.UpperScore);
+
+        // If no matching grade is found, throw an exception
+        if (grade == null)
+        {
+            Console.WriteLine($"Score {reportCardDetail.Score} does not fall within any defined grading scale.");
+            throw new ArgumentException($"Score {reportCardDetail.Score} does not fall within any defined grading scale.");
+        }
+
+        
+
+        // Round the GPA to two decimal places
+        return (grade.Description, (double)grade.GPA.Value);
+    }
+
+
+    #region DataGrid
+    // events
+    void StartedEditingItem(ReportCardDetail item)
+    {
+    }
+
+    void CanceledEditingItem(ReportCardDetail item)
+    {
+    }
+
+    void CommittedItemChanges(ReportCardDetail item)
+    {
+        // Call GetGradeAndCalculateGPA once and store the result
+        var gradeAndGPA = GetGradeAndCalculateGPA(item, GradingScales);
+
+        // Assign Grade and GPA from the result
+        item.Grade = gradeAndGPA.Grade;
+        item.GPA = gradeAndGPA.GPA;
+
+        // Trigger state change to update UI
+        StateHasChanged();
+    }
+
+    public double CalculateFinalGPA(List<double> subjectGPAs)
+    {
+        if (subjectGPAs == null || subjectGPAs.Count == 0)
+        {
+            throw new ArgumentException("No GPAs provided to calculate the final GPA.");
+        }
+
+        // Calculate the average GPA
+        double totalGPA = subjectGPAs.Sum();
+        double finalGPA = totalGPA / subjectGPAs.Count;
+
+        // Round to two decimal places and return
+        return Math.Round(finalGPA, 2);
+    }
+
+    #endregion
+}

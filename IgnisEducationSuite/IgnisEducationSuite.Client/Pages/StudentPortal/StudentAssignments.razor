@@ -1,0 +1,155 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@inject LessonService LessonService
+@inherits AppBaseComponent
+@page "/StudentAssignments"
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4">Assignments</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+
+
+    <MudCardContent>
+        @if (_studentAssignments.Any())
+        {
+            <MudTable Items="_studentAssignments" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetStudentAssignmentsResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Available Assignments</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh><b>Title</b></MudTh>
+                    <MudTh><b>Subject</b></MudTh>
+                    <MudTh><b>Total Marks</b></MudTh>
+                    <MudTh><b>Due Date</b></MudTh>
+                    <MudTh><b>Status</b></MudTh>
+                    <MudTh><b>Action</b></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Title">@context.Title</MudTd>
+                        <MudTd DataLabel="Subject">@context.ClassName</MudTd>
+                        <MudTd DataLabel="Total Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="Due Date">@context.DueDate</MudTd>
+                        <MudTd DataLabel="Status">
+                            @if (context.Overdue == 1)
+                        {
+                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Error">Overdue</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">Pending</MudChip>
+                        }
+                    </MudTd>
+
+                    <MudTd DataLabel="Action">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="()=>NavigateToDetails(context)" />
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No Assignments Found</MudAlert>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    protected List<GetStudentAssignmentsResult> _studentAssignments = new();
+    protected string searchString = string.Empty;
+    protected string UserID = string.Empty;
+    protected GetStudentAssignmentsResult selectedItem = new();
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] AppState _appState { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    protected bool isLoading = false;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+
+        UserID = _appState.UserID;
+
+        if (UserID != string.Empty || UserID != null)
+        {
+            await GetAssignments();
+        }
+        isLoading = false;
+    }
+    #region Get From Database
+    protected async Task GetAssignments()
+    {
+        var service = _genericService.GetService<GetStudentAssignmentsResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetAssignment/{UserID}", true);
+        if (result.IsSuccess)
+        {
+            _studentAssignments = result.Data.ToList();
+        }
+        else
+        {
+            Snackbar.Add("Error Fetching Assignments", Severity.Error);
+            return;
+        }
+    }
+    protected async Task GetAssignmentQuestions(Guid id)
+    {
+        var service = _genericService.GetService<AssignmentQuestion>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetAssignmentQuestions/{id}", true);
+        if (result.IsSuccess)
+        {
+            LessonService.assignmentQuestions = result.Data.ToList();
+
+        }
+        else
+        {
+            Snackbar.Add("Failed to Assignment Details, Please refresh and try again", Severity.Error);
+        }
+    }
+    #endregion
+
+    #region Filter Functions
+    private bool FilterFunc1(GetStudentAssignmentsResult element) => FilterFunc(element, searchString);
+
+    private bool FilterFunc(GetStudentAssignmentsResult element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.ClassName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.Title.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+    #endregion
+
+    protected async Task NavigateToDetails(GetStudentAssignmentsResult selectedAssignment)
+    {
+        isLoading = true;
+        await GetAssignmentQuestions(selectedAssignment.AssignmentID);
+        LessonService.studentID = selectedAssignment.StudentID;
+        isLoading = false;
+        _navigationManager.NavigateTo("/AssignmentDetails");
+
+    }
+
+
+}

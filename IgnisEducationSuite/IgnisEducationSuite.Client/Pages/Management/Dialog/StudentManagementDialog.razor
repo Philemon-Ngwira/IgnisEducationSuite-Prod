@@ -1,0 +1,182 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+<MudDialog>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+
+
+        <MudText Class="mb-3" Align="Align.Center" Typo="Typo.h4"><b>Manage Student Details</b></MudText>
+        <MudGrid>
+            <MudItem xs="12">
+                @if (selectedStudent.ProfilePic == null)
+                {
+                    @if (selectedStudent.Gender == "Male")
+                    {
+                        <MudImage Height="250" Src="images/Avatar/Man.png"></MudImage>
+                    }
+                    else
+                    {
+                        <MudImage Height="250" Src="images/Avatar/Woman.png"></MudImage>
+
+                    }
+                }
+                else
+                {
+
+                    <MudImage Class="profile-pic" Width="100" Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedStudent.ProfilePic)}")"></MudImage>
+
+
+
+                }
+
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText> First Name:<b>@selectedStudent.FirstName</b></MudText>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudText>Last Name: <b>@selectedStudent.LastName</b></MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudText>Grade: <b>@selectedStudent.GradeLevel</b></MudText>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                @if (selectedStudent.StudentNumber == null)
+                {
+
+                    <MudText>Student ID: <b>Non Found</b></MudText>
+
+                }
+                else
+                {
+
+                    <MudText>Student ID: <b>@selectedStudent.StudentNumber</b></MudText>
+
+                }
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudNumericField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Change Grade Level" @bind-Value="selectedStudent.GradeLevel"></MudNumericField>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect Variant="Variant.Outlined" Margin="Margin.Dense" T="Class" ToStringFunc="ClassTypeconverter" Label="Assign Classes to Student" MultiSelection="true" @bind-Value="value" @bind-SelectedValues="options">
+                    @foreach (var c in classes)
+                    {
+                        <MudSelectItem T="Class" Value="@c">@c.ClassName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudButtonGroup OverrideStyles="false" FullWidth=true>
+                    <MudButton FullWidth="true" Class="form-control" Variant="Variant.Filled" Color="Color.Error" OnClick="CloseDialog">Close</MudButton>
+                    <MudButton FullWidth="true" Class="form-control" Variant="Variant.Filled" OnClick="ConfirmChanges" Color="Color.Success">Confirm Changes</MudButton>
+                </MudButtonGroup>
+            </MudItem>
+            <MudItem xs="12">
+                <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">Assigned Classes</MudAlert>>
+
+                <MudTable Items="@newstudentClasses" Hover="true" Breakpoint="Breakpoint.Sm" LoadingProgressColor="Color.Info">
+                    <HeaderContent>
+                        <MudTh>ID</MudTh>
+                        <MudTh>ClassName</MudTh>
+                        <MudTh>Teacher</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="ID">@context.ClassID</MudTd>
+                            <MudTd DataLabel="ClassName">@context.ClassName</MudTd>
+                            <MudTd DataLabel="Teacher">@context.Teacher</MudTd>
+                            <MudTd DataLabel="Action">
+                                <MudButton Variant="Variant.Filled" Color="Color.Error" EndIcon="@Icons.Material.Filled.Delete">Un-Assign Class</MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudItem>
+            </MudGrid>
+        </DialogContent>
+    </MudDialog>
+    <style>
+        /* Profile Picture Styles */
+        .profile-pic {
+            border-radius: 10px; /* Rounded corners */
+            border: 3px solid #ccc; /* Gray border */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            object-fit: cover; /* Ensures the image scales nicely within the square */
+            display: block; /* Useful if nested inside flex or grid */
+        }
+
+            /* Add hover effect */
+            .profile-pic:hover {
+                box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow on hover */
+                transition: box-shadow 0.3s ease; /* Smooth shadow change */
+            }
+
+    </style>
+    @code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    protected bool isLoading = false;
+    [Parameter] public Student selectedStudent { get; set; } = new();
+    [Parameter] public List<Class> classes { get; set; } = new();
+    private IEnumerable<Class> options { get; set; } = new HashSet<Class>();
+    private Class value { get; set; }
+    [Parameter] public List<GetStudentClassInfoResult> newstudentClasses { get; set; } = new();
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    protected async Task ConfirmChanges()
+    {
+        isLoading = true;
+        //Save Changes
+        //Save Assigned Classes
+        var serviceA = _genericService.GetService<List<StudentClass>>();
+        List<StudentClass> studentClassesToAdd = new();
+        if (options.Any())
+        {
+            foreach (var item in options)
+            {
+                StudentClass studentClass = new()
+                    {
+                        StudentClassID = Guid.NewGuid(),
+                        StudentID = selectedStudent.StudentID,
+                        ClassID = item.ClassID
+                    };
+                studentClassesToAdd.Add(studentClass);
+            }
+
+
+            var savedClasses = await serviceA.PostAsync("api/Dynamic/PostEntities", "studentclasses", studentClassesToAdd);
+            if (savedClasses.IsSuccess)
+            {
+                Snackbar.Add("Classes assigned to student", Severity.Success);
+            }
+        }
+        // Save remaining Changes
+        var serviceB = _genericService.GetService<Student>();
+        var finalresult = await serviceB.UpdateAsync("api/Dynamic/UpdateEntity", "student", selectedStudent);
+        if (finalresult.IsSuccess)
+        {
+            isLoading = false;
+            Snackbar.Add("All Details Successfully Updated", Severity.Success);
+            MudDialog.Close(DialogResult.Ok("Successful"));
+        }
+
+    }
+    private void CloseDialog() => MudDialog.Close();
+
+
+    #region To String Func
+
+    protected Func<Class, string> ClassTypeconverter = p => p?.ClassName;
+    #endregion
+}

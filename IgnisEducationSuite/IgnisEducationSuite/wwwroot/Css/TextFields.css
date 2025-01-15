@@ -1,0 +1,39 @@
+﻿/* General styling for MudTextField */
+.custom-textfield .mud-input-root {
+    width: 100%;
+    padding: 10px 15px;
+    border: 2px solid #ccc; /* Neutral border */
+    border-radius: 8px; /* Rounded corners */
+    background-color: #f9f9f9; /* Light background */
+    font-size: 16px;
+    color: #333; /* Primary text color */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Placeholder text styling */
+.custom-textfield .mud-input-slot input::placeholder {
+    color: #999;
+    opacity: 1;
+    transition: color 0.3s ease;
+}
+
+/* Hover effect */
+.custom-textfield .mud-input-root:hover {
+    border-color: #8a2be2; /* Accent color for hover */
+}
+
+/* Focus effect */
+.custom-textfield .mud-input-root:focus-within {
+    border-color: #4b0082; /* Stronger accent on focus */
+    box-shadow: 0 0 5px rgba(75, 0, 130, 0.3); /* Soft glow effect */
+}
+
+/* Spacing between fields */
+.field-group {
+    margin-bottom: 15px; /* Space between fields */
+}
+
+/* Accessibility: Focused element outline */
+.custom-textfield .mud-input-root:focus-visible {
+    outline: 2px solid rgba(75, 0, 130, 0.5); /* High-contrast outline */
+}

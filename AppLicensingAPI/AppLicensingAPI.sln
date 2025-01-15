@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppLicensingAPI", "AppLicensingAPI\AppLicensingAPI.csproj", "{55920266-9380-42A5-9D48-07041B046EDE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{55920266-9380-42A5-9D48-07041B046EDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55920266-9380-42A5-9D48-07041B046EDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55920266-9380-42A5-9D48-07041B046EDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55920266-9380-42A5-9D48-07041B046EDE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {63BB5D58-545B-4954-8514-50632069F1DF}
+	EndGlobalSection
+EndGlobal

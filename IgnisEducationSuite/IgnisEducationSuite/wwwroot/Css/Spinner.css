@@ -1,0 +1,97 @@
+﻿/* Container for the loader overlay with a glass-like effect */
+#loader-overlay {
+    position: fixed; /* Fixes the overlay to cover the entire screen */
+    top: 0;
+    left: 0;
+    width: 100%; /* Full screen width */
+    height: 100%; /* Full screen height */
+    background: rgba(41, 16, 74, 0.7); /* Semi-transparent background with the primary color */
+    /* Applying the 'frosted glass' effect */
+    backdrop-filter: blur(10px); /* Blurs the background behind the overlay */
+    -webkit-backdrop-filter: blur(10px); /* Required for Safari support */
+
+    display: flex; /* Flexbox to center the spinner and text */
+    align-items: center; /* Vertically center the content */
+    justify-content: center; /* Horizontally center the content */
+    z-index: 9999; /* Ensure the loader is above other content */
+}
+
+/* Loader container to hold the spinner and text */
+.loader-container {
+    text-align: center;
+    color: #FFE3D8; /* Accent-light color for text */
+    font-family: 'League Spartan', sans-serif; /* Font from Tailwind config */
+}
+
+/* Spinner animation */
+.spinner {
+    width: 64px;
+    height: 64px;
+    border: 6px solid transparent; /* Transparent border to create space */
+    border-top: 6px solid #E3B6B1; /* Accent color for the spinning part */
+    border-radius: 50%; /* Circular spinner */
+    /* Adding spinning and glowing animations */
+    animation: spin 1s linear infinite, glow 1.5s ease-in-out infinite alternate;
+    margin: 0 auto; /* Centers the spinner */
+}
+
+/* Spin animation to rotate the spinner */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg); /* Complete rotation */
+    }
+}
+
+/* Glowing effect animation for the spinner */
+@keyframes glow {
+    0% {
+        box-shadow: 0 0 10px #E3B6B1, 0 0 20px #E3B6B1; /* Soft glow at the start */
+    }
+
+    100% {
+        box-shadow: 0 0 20px #FFE3D8, 0 0 40px #FFE3D8; /* Brighter glow at the end */
+    }
+}
+
+/* Loader icon (e.g., spinning emoji or icon) */
+.loader-icon {
+    font-size: 2rem; /* Adjust size */
+    margin-top: 1rem; /* Space between the spinner and icon */
+    animation: pulse 1s infinite ease-in-out; /* Pulsing effect */
+}
+
+/* Pulsing animation for the icon to give a breathing effect */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.8;
+        transform: scale(1); /* Normal size */
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.1); /* Slightly larger at the middle of the pulse */
+    }
+}
+
+/* Loading text styling */
+.loading-text {
+    margin-top: 1rem; /* Space between the spinner and text */
+    font-size: 1.2rem; /* Font size */
+    font-weight: 600; /* Semi-bold text */
+    animation: bounce 1.5s infinite; /* Bouncing animation for the text */
+}
+
+/* Bouncing effect for the loading text */
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0); /* No vertical movement */
+    }
+
+    50% {
+        transform: translateY(-10px); /* Move text up slightly */
+    }
+}

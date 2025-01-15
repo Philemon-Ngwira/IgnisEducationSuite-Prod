@@ -1,0 +1,217 @@
+﻿@page "/LessonDetails"
+@using System.Text.Json
+@using EDUSphereSharedProject.Models
+@inject NavigationManager NavigationManager
+@inject LessonService LessonService
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>@Lesson.Title</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+
+
+    <div class="lesson-content">
+        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+        <MudCardContent>
+
+            <MudGrid>
+                <MudItem xs="12" md="6">By: <b>@salutation @Lesson.Teacher.LastName</b></MudItem>
+                <MudItem xs="12" md="6">Date released: <b>@Lesson.DatePosted.Value.ToShortDateString()</b></MudItem>
+                <MudItem xs="12">
+                    @if (Lesson.LessonCompleted == 1)
+                    {
+                        <MudChip T="string" Variant="Variant.Text" Color="Color.Success">Completed</MudChip>
+                        <MudDivider ></MudDivider>
+                        <MudChip T="string" Disabled="true" Variant="Variant.Text" Color="Color.Success">Completed</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Variant="Variant.Text" Color="Color.Warning">Pending</MudChip>
+                        <MudDivider></MudDivider>
+                        <MudChip T="string" Disabled="true" Variant="Variant.Text" Color="Color.Warning">Pending</MudChip>
+                    }
+                </MudItem>
+            </MudGrid>
+
+            @((MarkupString)LessonFormatter.FormatLessonContent(Lesson.Content))
+
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.DoneAll" OnClick="MarkLessonAsComplete" Color="Color.Success">Mark as complete</MudButton>
+            <MudRating @bind-SelectedValue="Rating"  HoveredValueChanged="HandleHoveredValueChanged" />
+            <MudText Typo="Typo.subtitle2" Class="deep-purple-text mt-2">@LabelText</MudText>
+            </MudCardActions>
+        </div>
+    </MudCard>
+    <style>
+        .lesson-content {
+            margin-bottom: 20px;
+        }
+
+            .lesson-content h3, .lesson-content h4 {
+                color: #0078d7;
+            }
+
+            .lesson-content p {
+                margin-bottom: 10px;
+            }
+
+            .lesson-content ul {
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+
+
+
+        /* A4 Paper Size Simulation */
+        .lesson-content {
+            width: 210mm; /* A4 width */
+            height: 297mm; /* A4 height */
+            margin: 0 auto; /* Center the content */
+            padding: 20mm; /* Padding around the content */
+            box-sizing: border-box; /* Include padding and border in the width and height */
+            font-family: 'Times New Roman', serif; /* Common font for A4 documents */
+            font-size: 12pt; /* Standard font size for reading */
+            line-height: 1.5; /* Proper line height for readability */
+            background: #fff; /* White background (like a paper) */
+            border: 1px solid #ddd; /* Light border to simulate paper edges */
+            overflow-y: auto; /* Enable vertical scrolling for overflow content */
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+        }
+
+    </style>
+
+
+    @code {
+    bool hovered = false;
+    protected int Rating = 0;
+    private int? activeVal;
+    protected Lesson Lesson = new();
+    protected Student loggedInStudent = new();
+    protected StudentCompletedLesson completedLesson = new();
+    protected string salutation = string.Empty;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    protected bool isLoading = false;
+    protected override void OnInitialized()
+    {
+        isLoading = true;
+        Lesson = LessonService.CurrentLesson;
+        if (Lesson.Teacher.Gender == "Male")
+        {
+            salutation = "Mr.";
+
+        }
+        else
+        {
+            salutation = "Ms.";
+        }
+        isLoading = false;
+    }
+
+
+    protected async Task MarkLessonAsComplete()
+    {
+        isLoading = true;
+        completedLesson.StudentID = Lesson.StudentID;
+        completedLesson.LessonID = Lesson.LessonID;
+
+        completedLesson.StudentLessonCompletionID = Guid.NewGuid();
+        var ser = _genericService.GetService<StudentCompletedLesson>();
+        var result = await ser.PostAsync("api/Dynamic/PostEntity", "studentcompletedlesson", completedLesson);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Lesson Marked as completed");
+        }
+        //Update Rating
+
+        await UpdateLessonRating();
+        isLoading = false;
+    }
+    protected async Task UpdateLessonRating()
+    {
+        UpdatedRating();
+        Lesson.Teacher = null;
+        Lesson.Class = null;
+
+        var service = _genericService.GetService<Lesson>();
+        var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "lesson", Lesson);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Completed Successfully", Severity.Success);
+        }
+
+    }
+
+
+    private void HandleHoveredValueChanged(int? val) => activeVal = val;
+
+    private void UpdatedRating()
+    {
+        if (Rating != 0)
+        {
+            //  Current rating and the number of ratings.
+            int currentRating = Lesson.Rating.Value;
+            int numberOfRatings = (Lesson.NumberOfRatings == null) ? 0 : Lesson.NumberOfRatings.Value;
+
+            // Calculate the new average rating.
+            int totalRating = currentRating * numberOfRatings + Rating;
+            int newNumberOfRatings = 0;
+
+            newNumberOfRatings = numberOfRatings + 1;
+
+            // Calculate the new average (integer division)
+            int newAverageRating = totalRating / newNumberOfRatings;
+
+            // If necessary, handle rounding (depending on how you want to round the average)
+            // Example: if you want to round up or down:
+            int remainder = totalRating % newNumberOfRatings;
+            if (remainder * 2 >= newNumberOfRatings) // Round up if more than half
+            {
+                newAverageRating++;
+            }
+            Lesson.Rating = newAverageRating;
+            if (Lesson.NumberOfRatings == null)
+            {
+                Lesson.NumberOfRatings = 0;
+                Lesson.NumberOfRatings = Lesson.NumberOfRatings + 1;
+            }
+        }
+        else
+        {
+            if (Lesson.NumberOfRatings == null)
+            {
+                Lesson.NumberOfRatings = 0;
+            }
+            else
+            {
+                Lesson.NumberOfRatings = Lesson.NumberOfRatings;
+            }
+        }
+
+      
+    }
+    private string LabelText => (activeVal ?? Rating) switch
+    {
+        1 => "Very bad",
+        2 => "Bad",
+        3 => "Sufficient",
+        4 => "Good",
+        5 => "Awesome!",
+        _ => "Rate the lesson!"
+    };
+}

@@ -1,0 +1,171 @@
+﻿@page "/UserManagement"
+@using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@using IgnisEducationSuite.Client.Pages.Management.Dialog
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inherits AppBaseComponent
+@inject AppState appState
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>User Management</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+
+
+    <MudAlert Class="mb-3" Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true">Current System Users</MudAlert>
+    <MudTabs Elevation="4" Rounded="true" Centered="true" Color="@Color.Primary">
+
+        @foreach (var item in userRoles)
+        {
+            <MudTabPanel Text="@item.Key">
+                <MudDataGrid Items="@item.Value">
+                    <ToolBarContent>
+                        <MudButton Size="@Size.Small" OnClick="() => CreateUserAsync(item.Key)" Variant="@Variant.Filled" Color="@Color.Primary">Create New User</MudButton>
+
+                    </ToolBarContent>
+                    <Columns>
+                        <PropertyColumn Property="x => x.UserName" Title="User Name" />
+                        <PropertyColumn Property="x => x.Email" />
+                        <PropertyColumn Property="x => x.Id" Title="UserId" />
+                        <PropertyColumn Property="x => x.requiresPasswordReset" />
+                        <PropertyColumn Property="x => x.AccountActive" Title="Account Status" />
+                        <TemplateColumn CellClass="d-flex justify-end">
+                            <CellTemplate>
+                                <MudStack Row>
+                                 <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary" OnClick="()=>EditUserAsync(context.Item)">Edit</MudButton>
+                                 <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Error">Remove</MudButton>
+                             </MudStack>
+                         </CellTemplate>
+                     </TemplateColumn>
+                 </Columns>
+
+             </MudDataGrid>
+
+         </MudTabPanel>
+
+        }
+    </MudTabs>
+
+</MudCard>
+
+@code {
+    protected bool isLoading = false;
+    [Inject] NavigationManager _navigationManager { get; set; }
+    [Inject] GenericServiceFactory _genericService { get; set; }
+    [Inject] ISnackbar Snackbar { get; set; }
+    private Dictionary<string, List<ApplicationUser>> userRoles;
+    private string newUserName;
+    private string newUserPassword;
+    private string newUserRole;
+    protected List<Gender> genders = new();
+    protected List<string> Roles = new();
+    protected string UserID = string.Empty;
+    protected ClientAdmin loggedInAdmin = new();
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+
+        await GetAdminData();
+        await GetUsersWithRoles();
+        await GetGenders();
+        isLoading = false;
+    }
+   
+    protected async Task GetUsersWithRoles()
+    {
+        userRoles = await Http.GetFromJsonAsync<Dictionary<string, List<ApplicationUser>>>($"{_navigationManager.BaseUri}api/Admin/getUsersByRole/{loggedInAdmin.SchoolID}");
+        if (userRoles.Any())
+        {
+            Roles = userRoles.Select(x => x.Key).ToList();
+        }
+    }
+    protected async Task GetGenders()
+    {
+        var result = _genericService.GetService<Gender>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"genders"}", true);
+        genders = service.Data.ToList();
+
+    }
+    protected async Task GetAdminData()
+    {
+      
+            UserID = appState.UserID;
+        
+        if (UserID != string.Empty || UserID != null)
+        {
+            var service = _genericService.GetService<ClientAdmin>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetAdminByUserID/{UserID}", true);
+            if (result.IsSuccess)
+            {
+                loggedInAdmin = result.Data.FirstOrDefault();
+            }
+        }
+    }
+    protected async Task<IEnumerable<CountryDTO>> GetCountries()
+    {
+        var service = _genericService.GetService<CountryDTO>();
+        var result = await service.GetAllAsync("api/CountriesAndCities/GetAllCountries", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        else
+        {
+            Snackbar.Add("Failed to Collect Countries", Severity.Error);
+            return new List<CountryDTO>();
+        }
+    }
+    private async Task CreateUserAsync(string Role)
+    {
+        var countries = await GetCountries();
+        var parameters = new DialogParameters<CreateUserDialog> { { x => x.Role, Role }, { genders => genders.genders, genders }, { c => c.countries, countries },{ a=>a.LoggedAdmin , loggedInAdmin} };
+        var DialogOpt = new DialogOptions { MaxWidth = MaxWidth.Large };
+        var dialog = await DialogService.ShowAsync<CreateUserDialog>("", parameters, DialogOpt);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+
+        }
+    }
+    private async Task EditUserAsync(ApplicationUser user)
+    {
+        var parameters = new DialogParameters<EditUserAccount> { { x => x.newUser, user } };
+        var DialogOpt = new DialogOptions { MaxWidth = MaxWidth.Large };
+        var dialog = await DialogService.ShowAsync<EditUserAccount>("", parameters, DialogOpt);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var dt = result.Data;
+            if (dt is string)
+            {
+                var message = (string)dt;
+                if (message == "Successful")
+                {
+                    isLoading = true;
+                    await GetUsersWithRoles();
+                    StateHasChanged();
+                    isLoading = false;
+                }
+            }
+        }
+    }
+}

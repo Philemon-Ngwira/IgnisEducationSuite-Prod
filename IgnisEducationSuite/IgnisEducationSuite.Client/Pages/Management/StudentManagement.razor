@@ -1,0 +1,253 @@
+﻿@page "/StudentManagement"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@using IgnisEducationSuite.Client.Pages.Management.Dialog
+@inject IDialogService DialogService
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Student Management</b></MudText>
+        </CardHeaderContent>
+
+
+    </MudCardHeader>
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+
+
+    <MudCardContent>
+        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Person" Variant="Variant.Filled">Create New Student Profile</MudAlert>
+        <MudGrid Class="mb-3">
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newStudent.FirstName" Label="First Name">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newStudent.LastName" Label="Last Name">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="int?" @bind-Value="newStudent.GradeLevel" Label="Grade">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newStudent.GradeSection" Label="Grade Section" Placeholder="Enter Section e.g For 10A Enter 'A'">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newStudent.Gender">
+                    @foreach (var item in genders)
+                    {
+                        <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newStudent.Address" Label="Address">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Submit" Color="Color.Primary" OnClick="AddStudent">Add Student</MudButton>
+            </MudItem>
+        </MudGrid>
+        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.People" Variant="Variant.Filled">All Available Students</MudAlert>
+        <MudDataGrid Items="Students" Filterable="false" SortMode="@SortMode.None" Groupable="false" QuickFilter="_quickFilter">
+            <ToolBarContent>
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" AdornmentIcon="@Icons.Material.Filled.Search" Label="Search Student" @bind-Value="searchString"></MudTextField>
+            </ToolBarContent>
+            <Columns>
+                @if (Students.Any())
+                {
+                    <PropertyColumn Property="x => x.StudentNumber" />
+                    <PropertyColumn Property="x => x.FirstName" />
+                    <PropertyColumn Property="x => x.LastName" />
+                    <PropertyColumn Property="x => x.Gender" Title="Gender" />
+                    <PropertyColumn Property="x => x.Address" />
+                    <PropertyColumn Property="x => x.GradeLevel" />
+                    <TemplateColumn CellClass="d-flex justify-end">
+                        <CellTemplate>
+                            <MudStack Row>
+                             <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="()=>ManageStudentDetailsAsync(context.Item)" Color="@Color.Primary">Manage</MudButton>
+                         </MudStack>
+                     </CellTemplate>
+                 </TemplateColumn>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">No Students found</MudAlert>
+                }
+            </Columns>
+        </MudDataGrid>
+    </MudCardContent>
+
+</MudCard>
+@code {
+    protected Student newStudent = new();
+    protected ClientAdmin clientAdmin = new();
+    protected List<Student> Students = new();
+    protected List<Gender> genders = new();
+    protected List<Class> classes = new();
+    protected List<GetStudentClassInfoResult> Studentclasses = new();
+    protected List<Teacher> teachers = new();
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] AppState _appState { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    protected bool isLoading = false;
+    protected string searchString = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await GetLoggedInAdmin();
+        await GetStudent();
+        await GetTeachers();
+        await GetClasses();
+        await GetGenders();
+
+        isLoading = false;
+    }
+
+
+    #region Calls to get data From DB
+    protected async Task GetClasses()
+    {
+        var result = _genericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{clientAdmin.SchoolID}", true);
+        var classesdata = service.Data.ToList();
+        foreach (var item in classesdata)
+        {
+            item.Teacher = teachers.Where(x => x.TeacherID == item.TeacherID).FirstOrDefault();
+            if (item.SChoolID == clientAdmin.SchoolID)
+            {
+                classes.Add(item);
+            }
+        }
+
+    }
+    protected async Task GetTeachers()
+    {
+        var result = _genericService.GetService<Teacher>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetTeachersBySchoolID/{clientAdmin.SchoolID}", true);
+        teachers = service.Data.ToList();
+
+    }
+    protected async Task GetGenders()
+    {
+        var result = _genericService.GetService<Gender>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"genders"}", true);
+        genders = service.Data.ToList();
+
+    }
+    protected async Task GetStudent()
+    {
+        var result = _genericService.GetService<Student>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetStudentsBySchoolID/{clientAdmin.SchoolID}", true);
+        Students = service.Data.ToList();
+
+    }
+    protected async Task GetLoggedInAdmin()
+    {
+        string UserID = string.Empty;
+
+        UserID = _appState.UserID;
+
+        if (UserID != string.Empty || UserID != null)
+        {
+            var service = _genericService.GetService<ClientAdmin>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetAdminByUserID/{UserID}", true);
+            if (result.IsSuccess)
+            {
+                clientAdmin = result.Data.FirstOrDefault();
+            }
+        }
+    }
+    protected async Task AddStudent()
+    {
+        isLoading = true;
+        newStudent.StudentID = Guid.NewGuid();
+
+        var result = _genericService.GetService<Student>();
+        var service = await result.PostAsync("api/Dynamic/PostEntity", "student", newStudent);
+        if (service.IsSuccess)
+        {
+            Students.Add(newStudent);
+            newStudent = new();
+            Snackbar.Add("Student Added Successfully", Severity.Success);
+        }
+        isLoading = false;
+    }
+
+    protected async Task<IEnumerable<GetStudentClassInfoResult>> GetStudentClasses(Guid StudentId)
+    {
+
+        var service = _genericService.GetService<GetStudentClassInfoResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentClassInfo/{StudentId}", true);
+        return result.Data.ToList();
+
+
+    }
+    #endregion
+
+    private async Task ManageStudentDetailsAsync(Student student)
+    {
+
+        var studentClasses = await GetStudentClasses(student.StudentID);
+        var classesToSend = classes
+     .Where(x => x.Grade == student.GradeLevel
+                 && !studentClasses.Any(s => s.ClassID == x.ClassID))
+     .ToList();
+
+        var parameters = new DialogParameters<StudentManagementDialog> { { x => x.selectedStudent, student }, { x => x.classes, classesToSend }, { s => s.newstudentClasses, studentClasses } };
+        var DialogOpt = new DialogOptions { MaxWidth = MaxWidth.Large };
+        var dialog = await DialogService.ShowAsync<StudentManagementDialog>("", parameters, DialogOpt);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var dt = result.Data;
+            if (dt is string)
+            {
+                var message = (string)dt;
+                if (message == "Successful")
+                {
+                    isLoading = true;
+                    await GetStudent();
+                    StateHasChanged();
+                    isLoading = false;
+
+                }
+            }
+        }
+    }
+
+    private Func<Student, bool> _quickFilter => x =>
+       {
+           if (string.IsNullOrWhiteSpace(searchString))
+               return true;
+
+           if (x.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+               return true;
+
+           if (x.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+               return true;
+
+           if ($"{x.StudentNumber} ".Contains(searchString))
+               return true;
+
+           return false;
+       };
+}

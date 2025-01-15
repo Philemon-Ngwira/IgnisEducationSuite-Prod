@@ -1,0 +1,74 @@
+﻿@page "/ManageSchoolAdmins"
+@using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@using System.Security.Cryptography
+@using System.Text
+
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Client Admin Management</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newUser.UserName" Label="Enter UserName" Placeholder="Username" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newUser.Email" Label="Enter Email" Placeholder="example@gmail.com" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newUser.FirstName" Label="Enter FirstName" Placeholder="First Name" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newUser.LastName" Label="Enter FirstName" Placeholder="Last Name" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newUser.Gender">
+                    @foreach (var item in genders)
+                    {
+                        <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
+                    }
+                </MudSelect>
+
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newUser.ContactNo" Label="Enter Contact #" Placeholder="+260 123456789" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter" Margin="Margin.Dense" T="CountryDTO" Label="Countries" Value="Country" Placeholder="Select Country" SearchFunc="@SearchCountry"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter" Margin="Margin.Dense" T="CityDTO" Label="Cities" Disabled="Country.CountryName == null" SearchFunc="@SearchCity"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudAutocomplete Variant="Variant.Outlined" @bind-Value="school" ToStringFunc="SchoolTypeconverter" Margin="Margin.Dense" T="School" Label="Schools" SearchFunc="@SearchSchool"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                    <ActivatorContent>
+                        <MudFab Color="Color.Secondary"
+                                StartIcon="@Icons.Material.Filled.Image"
+                                Label="Upload Profile Pic" />
+                    </ActivatorContent>
+                </MudFileUpload>
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAdmin" DropShadow="true">Add School Admin</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+

@@ -1,0 +1,172 @@
+﻿@page "/ClassManagement"
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Class Management</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    <MudCardContent>
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+
+
+        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Class" Variant="Variant.Filled">Create New Class</MudAlert>
+        <MudGrid Class="mb-3">
+            <MudItem xs="12" md="6">
+                <MudTextField T="string" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.ClassName" Label="Enter Class Name" ></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudNumericField T="int?" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.Grade" Label="Enter Grade Level"></MudNumericField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField T="string" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.GradeSection" Label="Enter Grade Section" Placeholder="Enter Section e.g For 10A Enter 'A'"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudAutocomplete T="Teacher" Label="Assign Teacher" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="TeacherTypeconverter" @bind-Value="newClass.Teacher" SearchFunc="@Search2"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+            </MudItem>
+             <MudItem xs="12">
+                 <MudButton  Variant="Variant.Filled" Color="Color.Primary" OnClick="AddNewClass" >Add Class</MudButton>
+             </MudItem>
+        </MudGrid>
+        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Class" Variant="Variant.Filled">Available classes</MudAlert>
+
+        <MudDataGrid Items="classes" Filterable="false"  SortMode="@SortMode.Multiple" Groupable="false">
+            <Columns>
+                @if (classes.Any())
+                {
+                    <PropertyColumn Property="x => x.Teacher.FirstName" />
+                    <PropertyColumn Property="x => x.Teacher.LastName" />
+                    <PropertyColumn Property="x => x.ClassName" />
+                    <PropertyColumn Property="x => x.Grade"  />
+                    <TemplateColumn CellClass="d-flex justify-end">
+                        <CellTemplate>
+                            <MudStack Row>
+                             <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Manage</MudButton>
+                         </MudStack>
+                     </CellTemplate>
+                 </TemplateColumn>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">No classes found</MudAlert>
+                }
+            </Columns>
+        </MudDataGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    protected bool isLoading = false;
+    protected Class newClass = new();
+    protected Teacher teacherSelected = new();
+    protected ClientAdmin loggedInAdmin = new();
+    protected List<Class> classes = new();
+    protected List<Teacher> teachers = new();
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] AppState _appState { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await GetLoggedInAdmin();
+        await GetTeachers();
+        await GetClasses();
+      
+
+        isLoading = false;
+    }
+    #region Get From Database
+    protected async Task GetTeachers()
+    {
+        var result = _genericService.GetService<Teacher>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetTeachersBySchoolID/{loggedInAdmin.SchoolID}", true);
+        teachers = service.Data.ToList();
+
+    }
+    protected async Task GetClasses()
+    {
+        var result = _genericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{loggedInAdmin.SchoolID}", true);
+        classes = service.Data.ToList();
+
+        foreach (var item in classes)
+        {
+            item.Teacher = teachers.Where(x => x.TeacherID == item.TeacherID).FirstOrDefault();
+        }
+
+    }
+    protected async Task GetLoggedInAdmin()
+    {
+        string UserID = string.Empty;
+       
+            UserID = _appState.UserID;
+        
+        if (UserID != string.Empty || UserID != null)
+        {
+            var service = _genericService.GetService<ClientAdmin>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetAdminByUserID/{UserID}", true);
+            if (result.IsSuccess)
+            {
+                loggedInAdmin = result.Data.FirstOrDefault();
+            }
+        }
+    }
+    #endregion
+    protected async Task AddNewClass()
+    {
+
+        newClass.ClassID = Guid.NewGuid();
+        if (newClass.Teacher != null)
+        {
+            newClass.TeacherID = newClass.Teacher.TeacherID;
+            teacherSelected = newClass.Teacher;
+            newClass.Teacher = null;
+        }
+        newClass.SChoolID = loggedInAdmin.SchoolID;
+        var service = _genericService.GetService<Class>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "class", newClass);
+        if (result.IsSuccess)
+        {
+            newClass.Teacher = teacherSelected;
+            classes.Add(newClass);
+            newClass = new();
+            Snackbar.Add("Class Added Successfully", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Something went wrong Error EDUx000002", Severity.Error);
+            return;
+        }
+    }
+    private async Task<IEnumerable<Teacher>> Search2(string value, CancellationToken token)
+    {
+       
+        if (string.IsNullOrEmpty(value))
+            return new List<Teacher>();
+        return teachers.Where(x => x.FirstName.Contains(value, StringComparison.InvariantCultureIgnoreCase) || x.LastName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    #region To String Func
+
+    protected Func<Teacher, string> TeacherTypeconverter = p => p?.FirstName+ " "+p?.LastName;
+    #endregion
+}

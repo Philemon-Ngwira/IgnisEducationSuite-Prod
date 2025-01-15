@@ -1,0 +1,97 @@
+﻿@using IgnisEducationSuite.Client.Services
+@inherits LayoutComponentBase
+
+@inject AppState appState
+@inject RolesAndLicensingService _rolesAndLicensing
+
+<MudThemeProvider Theme="@theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar>
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h6" Style="color: white;">Ignis Education Suite</MudText>
+    </MudAppBar>
+    <MudDrawer Elevation="2" @bind-Open="@_drawerOpen">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    [Inject] AuthenticationStateProvider _authenticationStateProvider { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    private bool _drawerOpen = false;
+    private Theme theme = new();
+    public string UserRole { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Subscribe to AppState changes
+        appState.OnChange += StateHasChanged;
+
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated ?? false)
+        {
+            if (string.IsNullOrEmpty(UserRole))
+            {
+                UserRole = await GetUserRole(user.Identity.Name);
+            }
+
+            if (!appState.IsInitialized)
+            {
+                try
+                {
+                    var userID = await GetUserID(user.Identity.Name);
+                    var schoolID = await GetSchoolID(userID);
+                    var licenseIsActive = await GetLicenseStatus(schoolID);
+                    appState.UpdateDetails(userID, schoolID, licenseIsActive, UserRole);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error initializing app state: {ex.Message}");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine("User is not authenticated.");
+        }
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    protected async Task<string> GetUserRole(string usernameOrEmail)
+    {
+        return await _rolesAndLicensing.GetUserRole(_navigationManager.BaseUri, usernameOrEmail);
+    }
+
+    protected async Task<string> GetUserID(string usernameOrEmail)
+    {
+        return await _rolesAndLicensing.GetUserID(_navigationManager.BaseUri, usernameOrEmail);
+    }
+
+    protected async Task<string> GetSchoolID(string userID)
+    {
+        return await _rolesAndLicensing.GetSchoolId(_navigationManager.BaseUri, userID);
+    }
+
+    protected async Task<bool> GetLicenseStatus(string schoolID)
+    {
+        return await _rolesAndLicensing.GetLicenseStatus(_navigationManager.BaseUri, schoolID);
+    }
+
+    public void Dispose()
+    {
+        appState.OnChange -= StateHasChanged;
+    }
+}

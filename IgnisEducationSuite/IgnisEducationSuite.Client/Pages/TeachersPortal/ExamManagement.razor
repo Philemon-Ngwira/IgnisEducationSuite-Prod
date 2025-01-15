@@ -1,0 +1,521 @@
+﻿@page "/ExamQuizTestManagement"
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>EXAM,QUIZ,TEST MANAGEMENT</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+        <MudTabs Class="mb-3" Elevation="4" Rounded="true" Centered="true" Color="@Color.Primary">
+            <MudTabPanel Text="Exams">
+                <MudGrid Class="mb-3">
+                    <MudItem Class="mb-3" xs="12">
+                        <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Filled">Exam Information</MudAlert>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="@examQuizTestHeader.Title" Label="Exam Title" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Enter Exam Title"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField Lines="3" @bind-Value="@examQuizTestHeader.Description" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Exam Description" Placeholder="Enter a Description can even be instructions"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="@examQuizTestHeader.TotalMarks" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Exam Total Mark" Placeholder="Enter Total marks "></MudNumericField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Exam Date" @bind-Date="_date" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeconverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var item in vw_Classes)
+                            {
+                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.Grade @item.ClassName</MudSelectItem>
+
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="() => CreateTestExamQuiz(1)" Color="Color.Primary">Create New Exam</MudButton>
+                    </MudItem>
+                </MudGrid>
+                @if (examCreated)
+                {
+                    <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">Enter Exam Question</MudAlert>
+                    <MudCheckBox Label="Use Chat GPT?" Value="UseGPT" T="bool" ValueChanged="GenerateAssignmentQuestionsUsingGPT"></MudCheckBox>
+                    @if (UseGPT)
+                    {
+                        <MudTextField Class="mb-3" @bind-Value="@GPTQuery" Label="GPT Query" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Ask ChatGPT"></MudTextField>
+
+                        <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="SendMessage" Color="Color.Primary">Generate Questions</MudButton>
+
+
+                    }
+                    <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">Upload Question Document</MudAlert>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                                Upload Question
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled">Manually Enter Questions</MudAlert>
+                    <MudGrid>
+                        <MudItem xs="12" md="10">
+                            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@examQuizTestQuestion.QuestionText" T="string" Label="Question Text" Placeholder="Enter Question Text"></MudTextField>
+                        </MudItem>
+                        <MudItem xs="12" md="2">
+                            <MudNumericField Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@examQuizTestQuestion.Marks" T="int" Label="Question Score" Placeholder="Enter Question Score"></MudNumericField>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudButton Variant="Variant.Filled" OnClick="AddQuestionManually" Color="Color.Success" EndIcon="@Icons.Material.Filled.SaveAlt">
+                                Add Question
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                    <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">Edit Questions</MudAlert>
+                    @if (questions.Any())
+                    {
+                        <MudDataGrid T="ExamQuizTestQuestion" ReadOnly="false" Items="@questions" EditMode="DataGridEditMode.Cell"
+                                     StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                                     Bordered="true" Dense="true" EditTrigger="DataGridEditTrigger.OnRowClick">
+                            <Columns>
+                                <PropertyColumn Property="x => x.QuestionText" Title="Question" />
+                                <PropertyColumn Property="x => x.Marks" />
+                            </Columns>
+                        </MudDataGrid>
+                        <MudButton Variant="Variant.Filled" OnClick="SaveAssignment" Color="Color.Success" EndIcon="@Icons.Material.Filled.SaveAlt">
+                            Save Assignment
+                        </MudButton>
+                    }
+                }
+            </MudTabPanel>
+            <MudTabPanel Text="Tests">
+                <MudGrid Class="mb-3">
+                    <MudItem Class="mb-3" xs="12">
+                        <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Filled">Test Information</MudAlert>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="@examQuizTestHeader.Title" Label="Test Title" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Enter Test Title"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField Lines="3" @bind-Value="@examQuizTestHeader.Description" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Test Description" Placeholder="Enter a Description can even be instructions"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="@examQuizTestHeader.TotalMarks" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Test Total Mark" Placeholder="Enter Total marks "></MudNumericField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Test Date" @bind-Date="_date" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeconverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var item in vw_Classes)
+                            {
+                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.Grade @item.ClassName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="() => CreateTestExamQuiz(2)" Color="Color.Secondary">Create New Test</MudButton>
+                    </MudItem>
+                </MudGrid>
+                @if (testCreated)
+                {
+                    <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">Enter Test Questions</MudAlert>
+                    <MudCheckBox Label="Use Chat GPT?" Value="UseGPT" T="bool" ValueChanged="GenerateAssignmentQuestionsUsingGPT"></MudCheckBox>
+                    @if (UseGPT)
+                    {
+                        <MudTextField Class="mb-3" @bind-Value="@GPTQuery" Label="GPT Query" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Ask ChatGPT"></MudTextField>
+
+                        <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="SendMessage" Color="Color.Primary">Generate Questions</MudButton>
+
+
+                    }
+                    <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">Upload Question Document</MudAlert>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                                Upload Lesson
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled">Manually Enter Questions</MudAlert>
+                    <MudGrid>
+                        <MudItem xs="12" md="10">
+                            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@examQuizTestQuestion.QuestionText" T="string" Label="Question Text" Placeholder="Enter Question Text"></MudTextField>
+                        </MudItem>
+                        <MudItem xs="12" md="2">
+                            <MudNumericField Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@examQuizTestQuestion.Marks" T="int" Label="Question Score" Placeholder="Enter Question Score"></MudNumericField>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudButton Variant="Variant.Filled" OnClick="AddQuestionManually" Color="Color.Success" EndIcon="@Icons.Material.Filled.SaveAlt">
+                                Add Question
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                    <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled">Edit Questions</MudAlert>
+                    @if (questions.Any())
+                    {
+                        <MudDataGrid T="ExamQuizTestQuestion" ReadOnly="false" Items="@questions" EditMode="@(DataGridEditMode.Cell)"
+                                     StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                                     Bordered="true" Dense="true" EditTrigger="@( DataGridEditTrigger.OnRowClick)">
+                            <Columns>
+                                <PropertyColumn Property="x => x.QuestionText" Title="Question" />
+                                <PropertyColumn Property="x => x.Marks" />
+                            </Columns>
+                        </MudDataGrid>
+                        <MudButton Variant="Variant.Filled" OnClick="SaveAssignment" Color="Color.Success" EndIcon="@Icons.Material.Filled.SaveAlt">
+                            Save Assignment
+                        </MudButton>
+                    }
+                }
+            </MudTabPanel>
+            <MudTabPanel Text="Quizzes">
+                <MudGrid Class="mb-3" >
+                    <MudItem Class="mb-3" xs="12">
+                        <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Filled">Quiz Information</MudAlert>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="@examQuizTestHeader.Title" Label="Quiz Title" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Enter Quiz Title"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField Lines="3" @bind-Value="@examQuizTestHeader.Description" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Quiz Description" Placeholder="Enter a Description can even be instructions"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="@examQuizTestHeader.TotalMarks" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Quiz Total Mark" Placeholder="Enter Total marks "></MudNumericField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Quiz Date" @bind-Date="_date" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeconverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var item in vw_Classes)
+                            {
+                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.Grade @item.ClassName</MudSelectItem>
+
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="() => CreateTestExamQuiz(3)" Color="Color.Success">Create New Quiz</MudButton>
+                    </MudItem>
+                </MudGrid>
+                @if (quizCreated)
+                {
+                    <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">Enter Quiz Question</MudAlert>
+                    <MudCheckBox Label="Use Chat GPT?" Value="UseGPT" T="bool" ValueChanged="GenerateAssignmentQuestionsUsingGPT"></MudCheckBox>
+                    @if (UseGPT)
+                    {
+                        <MudTextField Class="mb-3" @bind-Value="@GPTQuery" Label="GPT Query" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Ask ChatGPT"></MudTextField>
+
+                        <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="SendMessage" Color="Color.Primary">Generate Questions</MudButton>
+
+
+                    }
+                    <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled">Upload Question Document</MudAlert>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                                Upload Lesson
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled">Manually Enter Questions</MudAlert>
+                    <MudGrid>
+                        <MudItem xs="12" md="10">
+                            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@examQuizTestQuestion.QuestionText" T="string" Label="Question Text" Placeholder="Enter Question Text"></MudTextField>
+                        </MudItem>
+                        <MudItem xs="12" md="2">
+                            <MudNumericField Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@examQuizTestQuestion.Marks" T="int" Label="Question Score" Placeholder="Enter Question Score"></MudNumericField>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudButton Variant="Variant.Filled" OnClick="AddQuestionManually" Color="Color.Success" EndIcon="@Icons.Material.Filled.SaveAlt">
+                                Add Question
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                    <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled">Edit Questions</MudAlert>
+                    @if (questions.Any())
+                    {
+                        <MudDataGrid T="ExamQuizTestQuestion" ReadOnly="false" Items="@questions" EditMode="@(DataGridEditMode.Cell)"
+                                     StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                                     Bordered="true" Dense="true" EditTrigger="@( DataGridEditTrigger.OnRowClick)">
+                            <Columns>
+                                <PropertyColumn Property="x => x.QuestionText" Title="Question" />
+                                <PropertyColumn Property="x => x.Marks" />
+                            </Columns>
+                        </MudDataGrid>
+                        <MudButton Variant="Variant.Filled" OnClick="SaveAssignment" Color="Color.Success" EndIcon="@Icons.Material.Filled.SaveAlt">
+                            Save Assignment
+                        </MudButton>
+                    }
+                }
+            </MudTabPanel>
+            <MudTabPanel Text="Available Exams,Tests,Quiz">
+
+            </MudTabPanel>
+        </MudTabs>
+    </MudCardContent>
+</MudCard>
+@code {
+    protected bool isLoading = false;
+    protected ExamQuizTestHeader examQuizTestHeader = new();
+    protected ExamQuizTestQuestion examQuizTestQuestion = new();
+    protected QuestionParser questionParser = new();
+    private DateTime? _date = DateTime.Today;
+    protected List<vw_ClassTeacherDetail> vw_Classes = new();
+    protected List<ExamQuizTestQuestion> questions = new();
+    protected string UserID = string.Empty;
+    protected vw_ClassTeacherDetail vw_Class = new();
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] ChatClientService ChatClientService { get; set; } = default!;
+    [Inject] HttpClient Http { get; set; } = default!;
+    protected bool examCreated = false;
+    protected bool testCreated = false;
+    protected bool quizCreated = false;
+    protected bool UseGPT = false;
+    protected string GPTQuery;
+    protected string responseMessage = string.Empty;
+    private List<string> _events = new();
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await GetClassTeacherDetails();
+        isLoading = false;
+    }
+
+    protected async Task GetClassTeacherDetails()
+    {
+
+      
+            UserID = AppState.UserID;
+        
+        if (UserID != string.Empty || UserID != null)
+        {
+            var service = _genericService.GetService<vw_ClassTeacherDetail>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetEntity/{"classteacherdetails"}", true);
+
+            if (result.IsSuccess)
+            {
+                vw_Classes = result.Data.Where(x => x.UserID == UserID).ToList();
+            }
+        }
+
+    }
+    protected void CreateTestExamQuiz(int type)
+    {
+        bool cantContinue = false;
+        if (vw_Class.TeacherID != null)
+        {
+            examQuizTestHeader.TeacherID = vw_Class.TeacherID.Value;
+            examQuizTestHeader.ClassID = vw_Class.ClassID;
+        }
+        examQuizTestHeader.EndDate = examQuizTestHeader.StartDate;
+        examQuizTestHeader.CreatedDate = DateTime.Today;
+        switch (type)
+        {
+            case 1: //Exam Entered
+                examQuizTestHeader.ExamType = "Exam";
+                cantContinue = checknullValues.HasNullNonVirtualProperties<ExamQuizTestHeader>(examQuizTestHeader);
+                if (cantContinue)
+                {
+                    examCreated = false;
+                    Snackbar.Add("Fill in all information to continue", Severity.Error);
+                    return;
+                }
+                else
+                {
+                    examCreated = true;
+                }
+                break;
+            case 2: //Test Entered
+                examQuizTestHeader.ExamType = "Test";
+                cantContinue = checknullValues.HasNullNonVirtualProperties<ExamQuizTestHeader>(examQuizTestHeader);
+                if (cantContinue)
+                {
+                    testCreated = false;
+                    Snackbar.Add("Fill in all information to continue", Severity.Error);
+                    return;
+                }
+                else
+                {
+                    testCreated = true;
+                }
+                break;
+            case 3: //Quiz Entered
+                examQuizTestHeader.ExamType = "Quiz";
+                cantContinue = checknullValues.HasNullNonVirtualProperties<ExamQuizTestHeader>(examQuizTestHeader);
+                if (cantContinue)
+                {
+                    quizCreated = false;
+                    Snackbar.Add("Fill in all information to continue", Severity.Error);
+                    return;
+                }
+                else
+                {
+                    quizCreated = true;
+                }
+                break;
+        }
+    }
+    protected async Task GenerateAssignmentQuestionsUsingGPT(bool useGPT)
+    {
+        this.UseGPT = useGPT;
+
+    }
+
+    protected async Task SaveAssignment()
+    {
+        //Save Header
+        isLoading = true;
+        examQuizTestHeader.ExamQuizID = Guid.NewGuid();
+        examQuizTestHeader.StartDate = _date.Value;
+        examQuizTestHeader.EndDate = examQuizTestHeader.StartDate;
+        var serviceHeader = _genericService.GetService<ExamQuizTestHeader>();
+        var headerResult = await serviceHeader.PostAsync("api/Dynamic/PostEntity", "examquiztestheader", examQuizTestHeader);
+        if (headerResult.IsSuccess)
+        {
+            Snackbar.Add("Phase one completed Successfully, Please wait while we complete the final phase");
+            await SaveDetails(headerResult.Data.ExamQuizID);
+        }
+        else
+        {
+            Snackbar.Add("An Error Occured while saving the assignment, please check your network and try again");
+            return;
+        }
+        isLoading = false;
+        //Save Detail
+
+    }
+    protected async Task SaveDetails(Guid headerID)
+    {
+        List<ExamQuizTestQuestion> finalList = new();
+        foreach (var item in questions)
+        {
+            if (item.QuestionText == null || item.Marks == 0)
+            {
+                return;
+            }
+            else
+            {
+                item.ExamQuizID = headerID;
+                item.QuestionID = Guid.NewGuid();
+                item.QuestionType = "ShortAnswer";
+                finalList.Add(item);
+            }
+        }
+        if (finalList.Count != questions.Count)
+        {
+            Snackbar.Add("Please fill in all required question details", Severity.Error);
+            return;
+        }
+        else
+        {
+
+            var service = _genericService.GetService<List<ExamQuizTestQuestion>>();
+            var result = await service.PostAsync("api/Dynamic/PostEntities", "examquestion", finalList);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("assignment Saved Successfully", Severity.Success);
+                questions.Clear();
+                examQuizTestHeader = new();
+                examQuizTestQuestion = new();
+                StateHasChanged();
+
+            }
+        }
+    }
+    protected void AddQuestionManually()
+    {
+        if (examQuizTestQuestion.QuestionText != null & examQuizTestQuestion.Marks != null)
+        {
+            questions.Add(examQuizTestQuestion);
+            examQuizTestQuestion = new();
+            StateHasChanged();
+            Snackbar.Add("Question Added Successfully", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Fill in both Question and Marks to add question", Severity.Error);
+            return;
+        }
+    }
+
+    private async Task OnFileUpload(IBrowserFile file)
+    {
+
+        var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(file.OpenReadStream()), "file", file.Name);
+        var absoluteUri = new Uri(new Uri(_navigationManager.BaseUri), "api/upload/uploadWord");
+        var response = await Http.PostAsync(absoluteUri, content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            questions = await response.Content.ReadFromJsonAsync<List<ExamQuizTestQuestion>>();
+        }
+        else
+        {
+            Console.WriteLine("Error uploading file.");
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        isLoading = true;
+        if (!string.IsNullOrEmpty(GPTQuery))
+        {
+            responseMessage = await ChatClientService.GetChatResponseAsync("api/Chat/AskChatGPT", GPTQuery);
+            GPTQuery = string.Empty;
+
+            questions = GenerateQuestions(responseMessage);
+        }
+        isLoading = false;
+    }
+    public List<ExamQuizTestQuestion> GenerateQuestions(string query)
+    {
+
+        return questionParser.ParseExamQuestionsFromResponse(query);
+    }
+
+    void StartedEditingItem(ExamQuizTestQuestion item)
+    {
+        _events.Insert(0, $"Event = StartedEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+    }
+
+    void CanceledEditingItem(ExamQuizTestQuestion item)
+    {
+        _events.Insert(0, $"Event = CanceledEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+    }
+
+    void CommittedItemChanges(ExamQuizTestQuestion item)
+    {
+        _events.Insert(0, $"Event = CommittedItemChanges, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+    }
+
+    #region To String Func
+
+    protected Func<vw_ClassTeacherDetail, string> ClassTypeconverter = p => p?.ClassName + " " + (p?.Grade);
+    #endregion
+}

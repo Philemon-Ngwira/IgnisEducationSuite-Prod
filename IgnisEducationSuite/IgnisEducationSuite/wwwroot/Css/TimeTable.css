@@ -1,0 +1,69 @@
+﻿/* General Table Styling */
+.timetable {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-family: 'Arial', sans-serif;
+    font-size: 16px;
+    text-align: center;
+    overflow-x: auto;
+}
+
+    /* Table Header */
+    .timetable thead th {
+        background-color: #6A0DAD; /* Vibrant purple */
+        color: white;
+        font-weight: bold;
+        padding: 10px;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        text-transform: uppercase;
+    }
+
+    /* Table Rows - Alternating Colors */
+    .timetable tbody tr:nth-child(odd) {
+        background-color: #F3E5F5; /* Light purple */
+    }
+
+    .timetable tbody tr:nth-child(even) {
+        background-color: #FFFFFF; /* White */
+    }
+
+    /* Cells with Data */
+    .timetable tbody td {
+        padding: 10px;
+        border: 1px solid #D1C4E9; /* Soft purple for borders */
+        font-weight: normal;
+    }
+
+        /* Placeholder for Empty Cells */
+        .timetable tbody td.empty {
+            background-color: #F8F8F8; /* Light gray */
+            color: #9E9E9E; /* Darker gray text */
+            font-style: italic;
+        }
+
+        /* Time Column Styling */
+        .timetable tbody td.time {
+            font-weight: bold;
+            background-color: #EDE7F6; /* Slightly darker purple */
+            color: #4A148C; /* Dark purple */
+        }
+
+    /* Day Columns */
+    .timetable thead th:nth-child(n+2) {
+        background-color: #7E57C2; /* Uniform purple for weekdays/weekends */
+    }
+
+/* Responsiveness */
+@media (max-width: 768px) {
+    .timetable {
+        font-size: 14px; /* Reduce font size */
+    }
+
+        .timetable thead th,
+        .timetable tbody td {
+            padding: 8px; /* Adjust padding for smaller screens */
+        }
+}

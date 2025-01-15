@@ -1,0 +1,69 @@
+﻿@page "/ExamAnswers"
+@using EDUSphereSharedProject.Models
+
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Answers</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+        @foreach (var item in answers)
+        {
+            <MudGrid Class="mb-3">
+                <MudItem xs="12">
+                    <MudGrid>
+                        <MudItem xs="12" md="10">
+                            <MudText Typo="Typo.body1">Q: @item.Question.QuestionText (@item.Question.Marks)</MudText>
+                            </MudItem>
+                            <MudItem xs="12" md="1">
+                                <MudCheckBox @bind-Value="item.isCorrect" T="bool?" Disabled="item.isWrong.Value" Color="Color.Success" Dense="true" Label="Correct"></MudCheckBox>
+                            </MudItem>
+                            <MudItem xs="12" md="1">
+                                <MudCheckBox @bind-Value="item.isWrong" T="bool?" Disabled="item.isCorrect.Value" Color="Color.Error" Dense="true" CheckedIcon="@Icons.Material.Filled.Cancel" Label="Wrong"></MudCheckBox>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2"><b><i>Answer: @item.AnswerText</i></b></MudText>
+                        </MudItem>
+
+                    </MudGrid>
+                </MudItem>
+            </MudGrid>
+        }
+        <MudButton Color="Color.Success" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Checklist">Complete Marking</MudButton>
+
+    </MudCardContent>
+    <MudSpacer />
+  <MudCardActions>
+      <MudText></MudText>
+      <MudSpacer />
+      <MudText></MudText>
+  </MudCardActions>
+</MudCard>
+
+@code {
+    protected bool isLoading = false;
+    protected List<StudentExamQuizAndTestAnswer> answers = new();
+    [Inject] LessonService LessonService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await Task.Delay(1000);
+        answers = LessonService.studentExamAnswers;
+        isLoading = false;
+    }
+}

@@ -1,0 +1,256 @@
+﻿@page "/ExamMarking"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@inherits AppBaseComponent
+
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Mark Exams Tests and Quizzes</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+        <MudTabs Elevation="4" Rounded="true" Centered="true" Color="@Color.Primary">
+            <MudTabPanel Text="Exams">
+
+                <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
+                          Items="@studentExams.Where(x=>x.ExamType == "Exam")"
+                          GroupBy="@_groupDefinition"
+                          GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
+                          GroupFooterClass="mb-4"
+                          Dense="true"
+                          @ref="_tableRef">
+                    <ColGroup>
+                        <col style="width: 60px;" />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                    </ColGroup>
+                    <HeaderContent>
+                        <MudTh>FirstName</MudTh>
+                        <MudTh>LastName</MudTh>
+                        <MudTh>Score</MudTh>
+                        <MudTh>Class</MudTh>
+                        <MudTh>Exam Marks</MudTh>
+                        <MudTh>Grade</MudTh>
+                        <MudTh>SubmissionDate</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <GroupHeaderTemplate>
+                        <MudTh Class="mud-table-cell-custom-group" colspan="8">@($"{context.GroupName}: {context.Key}") </MudTh>
+                    </GroupHeaderTemplate>
+                    <RowTemplate>
+                        <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                        <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                        <MudTd DataLabel="Score">@context.Grade</MudTd>
+                        <MudTd DataLabel="Class">@context.ClassName</MudTd>
+                        <MudTd DataLabel="Exam Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="SubmissionDate">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Action"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="()=>NavigateToDetails(context)" /></MudTd>
+                    </RowTemplate>
+                    <GroupFooterTemplate>
+                        <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="9">Total Submitted Assignments: @context.Items.Count())</MudTh>
+                    </GroupFooterTemplate>
+                </MudTable>
+            </MudTabPanel>
+            <MudTabPanel Text="Tests">
+
+                <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
+                          Items="@studentExams.Where(x=>x.ExamType == "Test")"
+                          GroupBy="@_groupDefinition"
+                          GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
+                          GroupFooterClass="mb-4"
+                          Dense="true"
+                          @ref="_tableRef">
+                    <ColGroup>
+                        <col style="width: 60px;" />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                    </ColGroup>
+                    <HeaderContent>
+                        <MudTh>FirstName</MudTh>
+                        <MudTh>LastName</MudTh>
+                        <MudTh>Score</MudTh>
+                        <MudTh>Class</MudTh>
+                        <MudTh>Exam Marks</MudTh>
+                        <MudTh>Grade</MudTh>
+                        <MudTh>SubmissionDate</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <GroupHeaderTemplate>
+                        <MudTh Class="mud-table-cell-custom-group" colspan="8">@($"{context.GroupName}: {context.Key}") </MudTh>
+                    </GroupHeaderTemplate>
+                    <RowTemplate>
+                        <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                        <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                        <MudTd DataLabel="Score">@context.Grade</MudTd>
+                        <MudTd DataLabel="Class">@context.ClassName</MudTd>
+                        <MudTd DataLabel="Exam Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="SubmissionDate">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Action"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="()=>NavigateToDetails(context)" /></MudTd>
+                    </RowTemplate>
+                    <GroupFooterTemplate>
+                        <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="9">Total Submitted Assignments: @context.Items.Count())</MudTh>
+                    </GroupFooterTemplate>
+                </MudTable>
+            </MudTabPanel>
+            <MudTabPanel Text="Quizzes">
+
+                <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
+                          Items="@studentExams.Where(x=>x.ExamType == "Quiz")"
+                          GroupBy="@_groupDefinition"
+                          GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
+                          GroupFooterClass="mb-4"
+                          Dense="true"
+                          @ref="_tableRef">
+                    <ColGroup>
+                        <col style="width: 60px;" />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                        <col />
+                    </ColGroup>
+                    <HeaderContent>
+                        <MudTh>FirstName</MudTh>
+                        <MudTh>LastName</MudTh>
+                        <MudTh>Score</MudTh>
+                        <MudTh>Class</MudTh>
+                        <MudTh>Exam Marks</MudTh>
+                        <MudTh>Grade</MudTh>
+                        <MudTh>SubmissionDate</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <GroupHeaderTemplate>
+                        <MudTh Class="mud-table-cell-custom-group" colspan="8">@($"{context.GroupName}: {context.Key}") </MudTh>
+                    </GroupHeaderTemplate>
+                    <RowTemplate>
+                        <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                        <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                        <MudTd DataLabel="Score">@context.Grade</MudTd>
+                        <MudTd DataLabel="Class">@context.ClassName</MudTd>
+                        <MudTd DataLabel="Exam Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="Grade">Grade:@context.GradeLevel</MudTd>
+                        <MudTd DataLabel="SubmissionDate">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Action"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="()=>NavigateToDetails(context)" /></MudTd>
+                    </RowTemplate>
+                    <GroupFooterTemplate>
+                        <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="9">Total Submitted Assignments: @context.Items.Count())</MudTh>
+                    </GroupFooterTemplate>
+                </MudTable>
+            </MudTabPanel>
+        </MudTabs>
+      </MudCardContent>
+</MudCard>
+@code {
+    protected bool isLoading = false;
+    protected List<GetStudentExamDetailsByTeacherResult> studentExams = new();
+
+    ///Injects///
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    [Inject] LessonService LS { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    ///Strings Numbers And bools///
+    protected string UserID = string.Empty;
+    private MudTable<GetStudentExamDetailsByTeacherResult> _tableRef;
+    private TableGroupDefinition<GetStudentExamDetailsByTeacherResult> _groupDefinition = new()
+        {
+            GroupName = "Class",
+            Indentation = false,
+            Expandable = true,
+            IsInitiallyExpanded = false,
+            Selector = (e) => e.ClassName
+        };
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+
+        UserID = AppState.UserID;
+
+        if (UserID != string.Empty || UserID != null)
+        {
+            await GetStudentExams();
+        }
+        isLoading = false;
+    }
+
+    #region Get Data
+    protected async Task GetStudentExams()
+    {
+        var service = _genericService.GetService<GetStudentExamDetailsByTeacherResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentExamDetails/{UserID}", true);
+        if (result.IsSuccess)
+        {
+            studentExams = result.Data.ToList();
+        }
+    }
+    #endregion
+    protected async Task<List<StudentExamQuizAndTestAnswer>> GetStudentExamQuizAndTestAnswers(GetStudentExamDetailsByTeacherResult exam)
+    {
+        var service = _genericService.GetService<StudentExamQuizAndTestAnswer>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentExamAnswers/{exam.StudentExamID}", true);
+        if (result.IsSuccess)
+        {
+
+            return result.Data.ToList();
+        }
+        else
+        {
+            Snackbar.Add("Falied to Fetch Students Answers");
+            return new List<StudentExamQuizAndTestAnswer>();
+        }
+    }
+    protected async Task<List<ExamQuizTestQuestion>> GetExamQuizTestQuestionsAsync(Guid ExamID)
+    {
+        var service = _genericService.GetService<ExamQuizTestQuestion>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetExamTestQuizQuestions/{ExamID}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        else
+        {
+            Snackbar.Add("Falied to Fetch Students Answers");
+            return new List<ExamQuizTestQuestion>();
+        }
+    }
+    protected async Task NavigateToDetails(GetStudentExamDetailsByTeacherResult selectedExam)
+    {
+        LS.studentExamAnswers = await GetStudentExamQuizAndTestAnswers(selectedExam);
+        var questions = await GetExamQuizTestQuestionsAsync(selectedExam.ExamQuizID);
+
+        if (LS.studentExamAnswers.Any() & questions.Any())
+        {
+            foreach (var item in LS.studentExamAnswers)
+            {
+                item.Question = questions.Where(x => x.QuestionID == item.QuestionID).FirstOrDefault();
+            }
+            _navigationManager.NavigateTo("/ExamAnswers");
+        }
+        else
+        {
+            return;
+        }
+    }
+
+}

@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-IgnisEducationSuite-ea923352-74fe-47a1-8da7-ed86e0259712</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\IgnisEducationSuite.Client\Pages\Management\Dialog\ManageTeacherDetails.razor.cs" Link="ManageTeacherDetails.razor.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\AppLicensingAPI\AppLicensingAPI\AppLicensingAPI.csproj" />
+    <ProjectReference Include="..\..\EduSphereDomain\EduSphereDomain.csproj" />
+    <ProjectReference Include="..\..\EDUSphereSharedProject\EDUSphereSharedProject.csproj" />
+    <ProjectReference Include="..\IgnisEducationSuite.Client\IgnisEducationSuite.Client.csproj" />
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="DinkToPdf" Version="1.0.8" />
+    <PackageReference Include="MailKit" Version="4.9.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.11" />
+    <PackageReference Include="MudBlazor" Version="7.15.0" />
+    <PackageReference Include="OpenAI" Version="2.1.0" />
+    <PackageReference Include="PdfPig" Version="0.1.9" />
+    <PackageReference Include="RESTCountries.NET" Version="3.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\images\notification\mBf6PT1EuIeXUtmR\" />
+  </ItemGroup>
+
+</Project>

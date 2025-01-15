@@ -1,0 +1,167 @@
+﻿@page "/StudentAttendance"
+@using EDUSphereSharedProject.Models.StoreProModels
+@using IgnisEducationSuite.Client.Pages.TeachersPortal.Dialogs
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Student Attendance</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudGrid>
+            <MudItem xs="12" md="9">
+                <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Enter Attendace Date" @bind-Date="_date" />
+            </MudItem>
+            <MudItem xs="3">
+                <MudButton OnClick="GetTimeSheets" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Search">Get Attendance Schedule</MudButton>
+            </MudItem>
+            <MudDivider />
+            <MudItem xs="12">
+                @if (isLoading)
+                {
+                    <div id="loader-overlay" class="loader-overlay">
+                        <div class="loader-container">
+                            <!-- Spinner -->
+                            <div class="spinner"></div>
+                            <!-- Loader Icon -->
+                            <div class="loader-icon">🔄</div>
+                            <!-- Loading Text -->
+                            <p class="loading-text">Loading, please wait...</p>
+                        </div>
+                    </div>
+                }
+
+
+                <MudTable Items="getAttendances" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetAttendanceByTeacherAndDateResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Student Attendance</MudText>
+                        <MudSpacer />
+                        <MudButton Color="Color.Primary" OnClick="UpdateAttendance" Variant="Variant.Filled">Submit Attendance</MudButton>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>First Name</MudTh>
+                        <MudTh>Last Name</MudTh>
+                        <MudTh>Class Name</MudTh>
+                        <MudTh>Attendance Status</MudTh>
+                        <MudTh>Late ?</MudTh>
+                        <MudTh>Date</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                            <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                            <MudTd DataLabel="Class Name">@context.ClassName</MudTd>
+                            <MudTd DataLabel="Attendance Status"><MudCheckBox @bind-Value="context.AttendanceStatus" Label="Attendance Status"></MudCheckBox></MudTd>
+                            <MudTd DataLabel="Late Status"><MudCheckBox @bind-Value="context.LateStatus" Label="Lateness Status"></MudCheckBox></MudTd>
+                            <MudTd DataLabel="Late Status">@context.AttendanceDate.Value.ToShortDateString()</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudItem>
+
+
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    @code {
+    protected bool isLoading = false;
+    private DateTime? _date = DateTime.Today;
+    protected string UserID = string.Empty;
+    protected List<GetAttendanceByTeacherAndDateResult> getAttendances = new();
+    protected GetAttendanceByTeacherAndDateResult selectedItem = new();
+    protected string searchString = string.Empty;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    protected async Task GetTimeSheets()
+    {
+        isLoading = true;
+       
+            UserID = AppState.UserID;
+        
+        if (UserID != string.Empty || UserID != null)
+        {
+            string formattedDate = _date.Value.ToString("yyyy-MM-ddTHH:mm:ss");
+            var service = _genericService.GetService<GetAttendanceByTeacherAndDateResult>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetStudentAttendance/{UserID}/{formattedDate}", true);
+            if (result.IsSuccess)
+            {
+                getAttendances = result.Data.ToList();
+                isLoading = false;
+            }
+        }
+        isLoading = false;
+    }
+
+    protected async Task UpdateAttendance()
+    {
+        var parameters = new DialogParameters<AttendacnceConfirmattionDialog> { };
+
+        var dialog = await DialogService.ShowAsync<AttendacnceConfirmattionDialog>("");
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = result.Data;
+            if (data is bool)
+            {
+                bool returned = (bool)data;
+                if (returned)
+                {
+                    await CompleteAttendanceMarking();
+                }
+            }
+        }
+    }
+    protected async Task CompleteAttendanceMarking()
+    {
+        List<EDUSphereSharedProject.Models.StudentAttendance> attendances = new();
+        foreach (var item in getAttendances)
+        {
+
+            EDUSphereSharedProject.Models.StudentAttendance studentAttendance = new()
+                {
+                    StudentAttendanceID = item.StudentAttendanceID,
+                    StudentScheduleID = item.StudentScheduleID,
+                    AttendanceStatus = item.AttendanceStatus,
+                    LateStatus = item.LateStatus,
+                    AttendanceDate = item.AttendanceDate,
+                    CreatedDate = item.CreatedDate,
+                    Marked = true
+                };
+            attendances.Add(studentAttendance);
+
+        }
+
+
+        var service = _genericService.GetService<List<EDUSphereSharedProject.Models.StudentAttendance>>();
+        var result = await service.UpdateAsync("api/Dynamic/UpdateEntities", "studentattendance", attendances);
+        if (result.IsSuccess)
+        {
+            getAttendances.Clear();
+            attendances.Clear();
+            StateHasChanged();
+            Snackbar.Add("Attendance Successfully Marked", Severity.Success);
+
+        }
+    }
+    private bool FilterFunc1(GetAttendanceByTeacherAndDateResult element) => FilterFunc(element, searchString);
+
+    private bool FilterFunc(GetAttendanceByTeacherAndDateResult element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+}

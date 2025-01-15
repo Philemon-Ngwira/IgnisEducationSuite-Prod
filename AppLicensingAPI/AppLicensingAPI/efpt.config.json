@@ -1,0 +1,49 @@
+﻿{
+   "CodeGenerationMode": 3,
+   "ContextClassName": "LicensingAPIContext",
+   "ContextNamespace": null,
+   "DefaultDacpacSchema": null,
+   "FilterSchemas": false,
+   "IncludeConnectionString": false,
+   "ModelNamespace": null,
+   "OutputContextPath": null,
+   "OutputPath": "MessagingModuleModels",
+   "PreserveCasingWithRegex": true,
+   "ProjectRootNamespace": "AppLicensingAPI",
+   "Schemas": null,
+   "SelectedHandlebarsLanguage": 0,
+   "SelectedToBeGenerated": 0,
+   "Tables": [
+      {
+         "Name": "[dbo].[ChatGroups]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatMessages]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[GroupMembers]",
+         "ObjectType": 0
+      }
+   ],
+   "UiHint": "phoenix\\sqlexpress.PhoenixEdusphere.dbo",
+   "UncountableWords": null,
+   "UseBoolPropertiesWithoutDefaultSql": false,
+   "UseDatabaseNames": false,
+   "UseDateOnlyTimeOnly": false,
+   "UseDbContextSplitting": false,
+   "UseFluentApiOnly": true,
+   "UseHandleBars": false,
+   "UseHierarchyId": false,
+   "UseInflector": false,
+   "UseLegacyPluralizer": false,
+   "UseManyToManyEntity": false,
+   "UseNoDefaultConstructor": false,
+   "UseNoObjectFilter": false,
+   "UseNodaTime": false,
+   "UseNullableReferences": false,
+   "UseSchemaFolders": false,
+   "UseSpatial": false,
+   "UseT4": false
+}

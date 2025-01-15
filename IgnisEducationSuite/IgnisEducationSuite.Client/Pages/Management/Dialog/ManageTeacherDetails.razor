@@ -1,0 +1,85 @@
+﻿@using EDUSphereSharedProject.Models
+<MudDialog>
+    <DialogContent>
+        <MudText Align="Align.Center" Typo="Typo.h4"><b>Teacher Details</b></MudText>
+        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">Information</MudAlert>
+        <MudGrid>
+            <MudItem xs="12">
+                @if (teacher.ProfilePic == null)
+                {
+                    @if (teacher.Gender == "Male")
+                    {
+                        <MudImage Height="250" Src="images/Avatar/Man.png"></MudImage>
+                    }
+                    else
+                    {
+                        <MudImage Height="250" Src="images/Avatar/Woman.png"></MudImage>
+
+                    }
+                }
+                else
+                {
+
+                    <MudImage Class="profile-pic" Width="100" Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(teacher.ProfilePic)}")"></MudImage>
+
+
+
+                }
+
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="@teacher.FirstName" Label="First Name" Margin="Margin.Dense" Variant="Variant.Outlined"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="@teacher.LastName" Label="Last Name" Margin="Margin.Dense" Variant="Variant.Outlined"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="@teacher.Gender" Label="Gender" Margin="Margin.Dense" Variant="Variant.Outlined"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="@teacher.ContactNo" Label="Contact Number" Margin="Margin.Dense" Variant="Variant.Outlined"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="@teacher.EmailAddress" Label="Email Address" Margin="Margin.Dense" Variant="Variant.Outlined"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="@teacher.DateEngaged" Label="Engagment Date" Margin="Margin.Dense" Variant="Variant.Outlined"></MudTextField>
+            </MudItem>
+        </MudGrid>
+        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">Subjects Assigned</MudAlert>
+        <MudTable Items="@teachersSubjects" Hover="true" Breakpoint="Breakpoint.Sm" LoadingProgressColor="Color.Info">
+            <HeaderContent>
+                <MudTh>SubjectID</MudTh>
+                <MudTh>Subject</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nr">@context.ClassID</MudTd>
+                    <MudTd DataLabel="Sign">@context.ClassName</MudTd>
+                </RowTemplate>
+            </MudTable>
+        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">Assign Subjects</MudAlert>
+        <MudTable @ref="_table" T="Class" Items="@subjects" MultiSelection="true" SelectionChangeable="true" Hover="true"
+                  @bind-SelectedItems="selectedItems" SelectOnRowClick="true">
+                  <ToolBarContent>
+                      <MudButton OnClick="FinalizeSubjectSelection" Variant="Variant.Filled" Color="Color.Success" Disabled="!selectedItems.Any()">Finalize Subject Selection</MudButton>
+                  </ToolBarContent>
+            <HeaderContent>
+                <MudTh>SubjectID</MudTh>
+                <MudTh>Subject</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nr">@context.ClassID</MudTd>
+                    <MudTd DataLabel="Sign">@context.ClassName</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                </PagerContent>
+                <FooterContent>
+                    <MudTd colspan="5">Select All</MudTd>
+                </FooterContent>
+            </MudTable>
+    </DialogContent>
+</MudDialog>
+
+    

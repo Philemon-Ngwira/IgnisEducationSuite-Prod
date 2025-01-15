@@ -1,0 +1,46 @@
+﻿
+@page "/AssignmentDetails"
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4">Assignment Details</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+
+
+    <MudCardContent>
+        <MudAlert Severity="Severity.Normal" NoIcon="true" Variant="Variant.Filled">Please answer all questions below before submitting</MudAlert>
+        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+        <MudGrid>
+            @foreach (var item in assignmentQuestions)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.body1">Q @item.QuestionNumber @item.QuestionText</MudText>
+                </MudItem>
+                <MudItem xs="12">
+                    <!-- Find or create the corresponding answer item based on QuestionID -->
+                    <MudTextField @bind-Value="GetOrCreateAnswer(item.QuestionID).AnswerText" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Enter your answer here" />
+                </MudItem>
+            }
+        </MudGrid>
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Send" OnClick="SaveAssignment">Finish And Submit</MudButton>
+    </MudCardActions>
+</MudCard>
+
+

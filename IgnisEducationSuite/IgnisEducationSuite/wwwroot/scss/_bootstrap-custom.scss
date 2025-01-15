@@ -1,0 +1,131 @@
+//
+// Bootstrap-custom.scss
+//
+
+/*********************************/
+/*         Bootstrap-custom      */
+/*===============================*/
+.container {
+    @media (min-width: 1400px) {
+        max-width: 1140px !important;
+    }
+}
+
+.row > * {
+    position: relative;
+}
+
+@each $heading,
+$size in $heading-font-sizes {
+    #{$heading}, .#{$heading} {
+        font-size: $size !important;
+    }
+}
+
+.fw-semibold {
+    font-weight: 500 !important;
+}
+
+//Buttons
+@each $name,
+$value in $colors {
+    .btn-#{$name} {
+        background-color: #{$value} !important;
+        border: 1px solid #{$value} !important;
+        color: $white !important;
+        box-shadow: 0 3px 5px 0 rgba($value, 0.1);
+        &:hover, &:focus, &:active, &.active, &.focus{
+            background-color: darken($value, 10%) !important;
+            border-color: darken($value, 10%) !important;
+            color: $white !important;
+        }
+    }
+}
+.btn {
+    padding: 8px 20px;
+    outline: none;
+    text-decoration: none;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    transition: all 0.3s;
+    border-radius: 6px;
+    &:focus {
+        box-shadow: none !important;
+    }
+}
+
+button:not(:disabled) {
+    outline: none;
+}
+
+.shadow {
+    box-shadow: $shadow !important;
+}
+
+@each $name,
+$value in $colors {
+    .bg-#{$name} {
+        background-color: #{$value} !important;
+    }
+    .bg-soft-#{$name} {
+        background-color: rgba($value, 0.05) !important;
+        color: #{$value} !important;
+    }
+    .bg-blur-#{$name} {
+        backdrop-filter: blur(12px);
+        background-color: rgba($value, 0.8);
+    }
+    .text-#{$name} {
+        color: #{$value} !important;
+    }
+    a {
+        &.text-#{$name} {
+            &:hover,
+            &:focus {
+                color: darken($value, 5%) !important;
+            }
+        }
+    }
+}
+
+//Form
+.form-label,
+.form-check-label {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-control {
+    border: 1px solid $gray-200;
+    font-size: 14px;
+    line-height: 26px;
+    border-radius: 6px;
+    color: $dark !important;
+    text-align: left;
+    &:focus {
+        border-color: $primary;
+        box-shadow: none;
+    }
+    &[readonly] {
+        background-color: $white;
+    }
+    &:disabled {
+        background-color: $gray-300;
+    }
+    &::placeholder{
+        color: $dark;
+    }
+}
+
+.form-check-input {
+    border: 1px solid $gray-200;
+    background-color: $white;
+    &:focus {
+        border-color: $primary;
+        box-shadow: none;
+    }
+    &.form-check-input:checked {
+        background-color: $primary;
+        border-color: $primary;
+    }
+}

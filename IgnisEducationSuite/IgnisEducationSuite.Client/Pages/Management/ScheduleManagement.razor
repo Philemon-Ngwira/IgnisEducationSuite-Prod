@@ -1,0 +1,516 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@using EDUSphereSharedProject.UniversalModels
+@page "/ClassSchedules"
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Class Schedules</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+
+        <MudTabs @ref="mudTabs" Outlined="true">
+            <MudTabPanel @ref="panel01" Text="Create New Schedule" Icon="@Icons.Material.Filled.Build">
+                <MudAlert Class="mb-3" Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true">Upload Excel Class Schedule</MudAlert>
+                <MudFileUpload T="IBrowserFile" FilesChanged="HandleFileUpload" Class="mb-3">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary">
+                            Upload Class Excel Schedule
+                        </MudButton>
+                    </ActivatorContent>
+                    <SelectedTemplate>
+                        @if (context != null)
+                        {
+                            <MudText>@context.Name</MudText>
+                        }
+                        else
+                        {
+                            <MudText>No File</MudText>
+                        }
+                    </SelectedTemplate>
+                </MudFileUpload>
+
+                <MudPaper Class="mb-3">
+                    @if (groupedSchedules != null)
+                    {
+                        <MudAlert Variant="Variant.Filled" Severity="Severity.Normal">Grade : @GradeLevel Term TimeTable</MudAlert>
+                        <table class="timetable">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    @foreach (var day in daysofTheWeek)
+                                    {
+                                        <th>@day.DayName</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var group in groupedSchedules)
+                                {
+                                    <tr>
+                                        <td class="time">@($"{group.Key.StartTime:hh\\:mm}") - @($"{group.Key.EndTime:hh\\:mm}")</td>
+                                        @foreach (var day in dayOrder)
+                                        {
+                                            <td class="@((group.Any(cs => cs.DayOfTheWeek.DayName == day) ? "" : "empty"))">
+                                                @{
+                                                    var schedule = group.FirstOrDefault(cs => cs.DayOfTheWeek.DayName == day);
+                                                    if (schedule != null)
+                                                    {
+                                                        <span>@schedule.Class.ClassName</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>No Classes</span>
+                                                    }
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+
+                        </table>
+                    }
+                    else
+                    {
+                        <MudAlert Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true" Class="mb-3">No Schedule Created. Upload Schedule Above</MudAlert>
+                    }
+                    <MudDateRangePicker Variant="Variant.Outlined" @bind-DateRange="@_dateRange" Margin="Margin.Dense" ReadOnly="@(!_editable)" Clearable="@_clearable"
+                                        PlaceholderStart="Schedule Start Date" PlaceholderEnd="Schedule End Date" />
+                    <MudButton Disabled="groupedSchedules == null" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" Color="Color.Primary" OnClick="AssignSchedule">Save Class TimeTable</MudButton>
+                </MudPaper>
+            </MudTabPanel>
+            <MudTabPanel @ref="panel02" Text="Assign Available Schedule" Icon="@Icons.Material.Filled.Assignment">
+                <MudAlert Severity="Severity.Normal" Class="mb-3" NoIcon="true" Variant="Variant.Filled">Class Schedule assignment</MudAlert>
+                <MudGrid Class="mb-3">
+                    <MudItem xs="12" md="4">
+                        <MudNumericField Variant="Variant.Outlined" @bind-Value="GradeInt" Margin="Margin.Dense" Placeholder="e.g:11" Label="Enter Grade"></MudNumericField>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudTextField Variant="Variant.Outlined" @bind-Value="GradeLevel" Margin="Margin.Dense" Placeholder="e.g: A " Label="Enter Grade Section"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudButton OnClick="GetActiveSchedulesPerClass" Variant="Variant.Filled" Disabled="GradeInt == 0" Color="Color.Primary">
+                            Get Active Schedules For Grade:
+                            @if (GradeInt == 0)
+                            {
+                                @NoGradeLevel
+                            }
+                            else
+                            {
+                                @GradeInt @GradeLevel
+                            }
+                        </MudButton>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Normal" Class="mb-3" NoIcon="true" Variant="Variant.Filled">
+                            Grade:
+                            @if (GradeInt == 0)
+                            {
+                                @NoGradeLevel
+                            }
+                            else
+                            {
+                                @GradeInt @GradeLevel
+                            }
+                            Class Schedule
+                        </MudAlert>
+                    </MudItem>
+                    <MudItem xs="12" Class="mb-3">
+                        @if (groupedSchedules != null)
+                        {
+                            <table class="timetable">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        @foreach (var day in daysofTheWeek)
+                                        {
+                                            <th>@day.DayName</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var group in groupedSchedules)
+                                    {
+                                        <tr>
+                                            <td class="time">@($"{group.Key.StartTime:hh\\:mm}") - @($"{group.Key.EndTime:hh\\:mm}")</td>
+                                            @foreach (var day in dayOrder)
+                                            {
+                                                <td class="@((group.Any(cs => cs.DayOfTheWeek.DayName == day) ? "" : "empty"))">
+                                                    @{
+                                                        var schedule = group.FirstOrDefault(cs => cs.DayOfTheWeek.DayName == day);
+                                                        if (schedule != null)
+                                                        {
+                                                            <span>@schedule.Class.ClassName</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>No Classes</span>
+                                                        }
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+
+                            </table>
+                        }
+                        else
+                        {
+
+                        }
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="AssignScheduleToUnAssignedStudents">Assign Class Schedule to Students</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+        </MudTabs>
+
+
+    </MudCardContent>
+
+
+</MudCard>
+
+@code {
+    protected bool isLoading = false;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    [Inject] HttpClient Http { get; set; } = default!;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] AppState _appState { get; set; } = default!;
+    protected ClientAdmin loggedInAdmin = new();
+    protected List<ScheduleMappingClass> schedules = new();
+    protected List<ClassSchedule> classSchedules = new();
+    protected List<StudentClassSchedule> classSchedulestoSave = new();
+    protected List<Class> classes = new();
+    protected List<GetActiveClassScheduleResult> activeClassSchedules = new();
+    protected List<TimeSlot> timeSlots = new();
+    protected List<DayofTheWeek> daysofTheWeek = new();
+    protected List<GetStudentsInGradeResult> StudentsInGrade = new();
+    protected List<GetStudentsInGradeWithoutScheduleResult> StudentsInGradeWithoutSchedule = new();
+    private IEnumerable<IGrouping<TimeSlot, ClassSchedule>> groupedSchedules;
+    protected int GradeInt = 0;
+    protected string GradeLevel = string.Empty;
+    protected string NoGradeLevel = "N/A";
+    protected MudTabs mudTabs = new();
+    private bool _editable = true;
+    private bool _clearable = true;
+    private DateRange _dateRange { get; set; }
+    MudTabPanel panel01;
+    MudTabPanel panel02;
+    private readonly List<string> dayOrder = new List<string>
+
+{
+    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+};
+    protected string UserID = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await GetClasses();
+        await GetTimeSlots();
+        await GetDaysOfWeek();
+        await GetAdminData();
+        isLoading = false;
+    }
+
+
+    #region Get from Database
+    protected async Task GetAdminData()
+    {
+
+        UserID = _appState.UserID;
+
+        if (UserID != string.Empty || UserID != null)
+        {
+            var service = _genericService.GetService<ClientAdmin>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetAdminByUserID/{UserID}", true);
+            if (result.IsSuccess)
+            {
+                loggedInAdmin = result.Data.FirstOrDefault();
+            }
+        }
+    }
+    protected async Task GetClasses()
+    {
+        var result = _genericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"class"}", true);
+        classes = service.Data.ToList();
+
+
+    }
+    protected async Task GetStudentsForSchedule()
+    {
+        var service = _genericService.GetService<GetStudentsInGradeResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInGrade/{GradeInt}/{loggedInAdmin.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            StudentsInGrade = result.Data.ToList();
+        }
+    }
+    protected async Task GetUnassignedStudentsForSchedule()
+    {
+        var service = _genericService.GetService<GetStudentsInGradeWithoutScheduleResult>();
+        if (GradeLevel == string.Empty)
+        {
+            GradeLevel = "null";
+        }
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInGradeWithoutSchedule/{GradeInt}/{loggedInAdmin.SchoolID}/{GradeLevel}", true);
+        if (result.IsSuccess)
+        {
+            StudentsInGradeWithoutSchedule = result.Data.ToList();
+        }
+    }
+    protected async Task GetTimeSlots()
+    {
+        var result = _genericService.GetService<TimeSlot>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"timeslot"}", true);
+        timeSlots = service.Data.ToList();
+    }
+    protected async Task GetDaysOfWeek()
+    {
+        var result = _genericService.GetService<DayofTheWeek>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"days"}", true);
+        daysofTheWeek = service.Data.ToList();
+    }
+    protected async Task GetActiveSchedulesPerClass()
+    {
+        isLoading = true;
+        var service = _genericService.GetService<GetActiveClassScheduleResult>();
+        if (GradeLevel == string.Empty)
+        {
+            GradeLevel = "null";
+        }
+        var result = await service.GetAllAsync($"api/Dynamic/GetActiveScheduleByGrade/{GradeInt}/{GradeLevel}/{loggedInAdmin.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            activeClassSchedules = result.Data.ToList();
+            OrganizeTableData();
+            isLoading = false;
+        }
+        else
+        {
+            isLoading = false;
+            Snackbar.Add("Failed to retrieve Schedules please check your connection and try again", Severity.Error);
+        }
+    }
+    #endregion
+
+
+    #region Tab 1
+    private async Task HandleFileUpload(IBrowserFile file)
+    {
+        isLoading = true;
+        if (classes.Any())
+        {
+            if (file != null)
+            {
+                using var content = new MultipartFormDataContent();
+                content.Add(new StreamContent(file.OpenReadStream()), "file", file.Name);
+
+                var absoluteUri = new Uri(new Uri(_navigationManager.BaseUri), "api/Upload/uploadSchedules");
+                var response = await Http.PostAsync(absoluteUri, content);
+                if (response.IsSuccessStatusCode)
+                {
+                    schedules = await response.Content.ReadFromJsonAsync<List<ScheduleMappingClass>>();
+                    CreateSchedules(schedules);
+                    groupedSchedules = classSchedules
+                     .OrderBy(cs => dayOrder.IndexOf(cs.DayOfTheWeek.DayName)) // Order by day
+                     .ThenBy(cs => cs.TimeSlot.StartTime)                     // Then by time
+                     .GroupBy(cs => cs.TimeSlot)                              // Group by TimeSlot
+                     .OrderBy(g => g.Key.StartTime);                          // Order groups by StartTime
+
+                    var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
+                               .ToDictionary(x => x.day, x => x.index);
+
+                    var orderedDays = daysofTheWeek.OrderBy(x => dayOrderDict[x.DayName]).ToList();
+                    daysofTheWeek = orderedDays;
+                    GradeLevel = $"{schedules.Select(x => x.GradeLevel).FirstOrDefault()}{schedules.Select(x => x.GradeSection).FirstOrDefault()}";
+                    GradeInt = schedules.Select(x => x.GradeLevel).FirstOrDefault();
+                    StateHasChanged();
+                }
+            }
+        }
+        else
+        {
+            Snackbar.Add("Cannot Create Schedule without Classes, Please add all classes first", Severity.Error);
+            return;
+        }
+        isLoading = false;
+    }
+
+    protected IEnumerable<ClassSchedule> CreateSchedules(List<ScheduleMappingClass> schedules)
+    {
+        foreach (var item in schedules)
+        {
+            ClassSchedule newClassSchedule = new()
+                {
+                    ClassScheduleID = Guid.NewGuid(),
+                    Class = classes.Where(x => x.Grade == item.GradeLevel && x.ClassName.ToUpper().Contains(item.Class.ToUpper())).FirstOrDefault(),
+                    DayOfTheWeek = daysofTheWeek.Where(x => x.DayName.Contains(item.Day)).FirstOrDefault(),
+                    TimeSlot = timeSlots.Where(x => x.StartTime == TimeSpan.Parse(item.StartTime) && x.EndTime == TimeSpan.Parse(item.EndTime)).FirstOrDefault(),
+
+                };
+
+            classSchedules.Add(newClassSchedule);
+        }
+        return classSchedules;
+    }
+
+    protected async Task AssignSchedule()
+    {
+        isLoading = true;
+        await GetStudentsForSchedule();
+
+        foreach (var student in StudentsInGrade)
+        {
+            foreach (var schedule in classSchedules)
+            {
+                schedule.StartDate = _dateRange.Start;
+                schedule.EndDate = _dateRange.End;
+                schedule.IsActive = true;
+                schedule.SchoolID = loggedInAdmin.SchoolID;
+                // Create a new StudentClassSchedule for each student and schedule pair
+                StudentClassSchedule newSchedule = new()
+                    {
+                        StudentClassScheduleID = Guid.NewGuid(),
+                        StudentID = student.StudentID,
+                        ScheduleID = schedule.ClassScheduleID
+                    };
+
+                // Add to the list
+                classSchedulestoSave.Add(newSchedule);
+            }
+        }
+
+        //save Schedules and assign
+        var serviceOne = _genericService.GetService<List<ClassSchedule>>();
+        foreach (var item in classSchedules)
+        {
+            item.DayOfTheWeekID = item.DayOfTheWeek.DayID;
+            item.DayOfTheWeek = null;
+            item.ClassID = item.Class.ClassID;
+            item.Class = null;
+            item.TimeSlotID = item.TimeSlot.TimeslotID;
+            item.TimeSlot = null;
+        }
+        var result = await serviceOne.PostAsync("api/Dynamic/PostEntities", "classschedule", classSchedules);
+        if (result.IsSuccess)
+        {
+            //Save Assigned Schedules
+            var ServiceTwo = _genericService.GetService<List<StudentClassSchedule>>();
+            var resultFinal = await ServiceTwo.PostAsync("api/Dynamic/PostEntities", "studentclassschedule", classSchedulestoSave);
+
+            if (resultFinal.IsSuccess)
+            {
+                isLoading = false;
+                classSchedulestoSave.Clear();
+                classSchedules.Clear();
+                Snackbar.Add($"Successfully Saved And TimeTable assigned to all students of Grade: {GradeLevel}", Severity.Success);
+            }
+            else
+            {
+                isLoading = false;
+                classSchedulestoSave.Clear();
+                Snackbar.Add($"Failed to Save And Assign Timetable to all students of Grade: {GradeLevel}", Severity.Error);
+            }
+        }
+        else
+        {
+            isLoading = false;
+            classSchedulestoSave.Clear();
+            Snackbar.Add($"Failed to Save And Assign Timetable to all students of Grade: {GradeLevel}", Severity.Error);
+        }
+
+    }
+    #endregion
+
+    #region Tab 2
+    protected void OrganizeTableData()
+    {
+        List<ClassSchedule> classSchedules = new();
+        foreach (var item in activeClassSchedules)
+        {
+            ClassSchedule classSchedule = new()
+                {
+                    ClassScheduleID = item.ClassScheduleID,
+                    ClassID = item.ClassID,
+                    DayOfTheWeekID = item.DayOfTheWeekID,
+                    TimeSlotID = item.TimeSlotID,
+                    Class = classes.Where(x => x.ClassID == item.ClassID).FirstOrDefault(),
+                    DayOfTheWeek = daysofTheWeek.Where(x => x.DayID == item.DayOfTheWeekID).FirstOrDefault(),
+                    TimeSlot = timeSlots.Where(x => x.TimeslotID == item.TimeSlotID).FirstOrDefault()
+                };
+            classSchedules.Add(classSchedule);
+        }
+        this.classSchedules = classSchedules;
+        groupedSchedules = classSchedules
+                 .OrderBy(cs => dayOrder.IndexOf(cs.DayOfTheWeek.DayName)) // Order by day
+                 .ThenBy(cs => cs.TimeSlot.StartTime)                     // Then by time
+                 .GroupBy(cs => cs.TimeSlot)                              // Group by TimeSlot
+                 .OrderBy(g => g.Key.StartTime);                          // Order groups by StartTime
+
+        var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
+                   .ToDictionary(x => x.day, x => x.index);
+
+        var orderedDays = daysofTheWeek.OrderBy(x => dayOrderDict[x.DayName]).ToList();
+        daysofTheWeek = orderedDays;
+        StateHasChanged();
+    }
+
+    protected async Task AssignScheduleToUnAssignedStudents()
+    {
+        isLoading = true;
+        await GetUnassignedStudentsForSchedule();
+        foreach (var student in StudentsInGradeWithoutSchedule)
+        {
+            foreach (var schedule in classSchedules)
+            {
+                StudentClassSchedule newSchedule = new()
+                    {
+                        StudentClassScheduleID = Guid.NewGuid(),
+                        StudentID = student.StudentID,
+                        ScheduleID = schedule.ClassScheduleID
+                    };
+
+                // Add to the list
+                classSchedulestoSave.Add(newSchedule);
+            }
+        }
+        var ServiceTwo = _genericService.GetService<List<StudentClassSchedule>>();
+        var resultFinal = await ServiceTwo.PostAsync("api/Dynamic/PostEntities", "studentclassschedule", classSchedulestoSave);
+
+        if (resultFinal.IsSuccess)
+        {
+            isLoading = false;
+            classSchedulestoSave.Clear();
+            classSchedules.Clear();
+            Snackbar.Add($"Successfully Saved And TimeTable assigned to  students of Grade: {GradeInt}{GradeLevel}", Severity.Success);
+        }
+        else
+        {
+            isLoading = false;
+            classSchedulestoSave.Clear();
+            Snackbar.Add($"Failed to Save And Assign Timetable to students of Grade: {GradeInt}{GradeLevel}", Severity.Error);
+        }
+    }
+    #endregion
+}

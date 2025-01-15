@@ -1,0 +1,463 @@
+﻿@page "/LessonManagement"
+
+@inject ChatClientService ChatClientService
+@inject HttpClient Http
+@inherits AppBaseComponent
+
+@using Blazored.TextEditor
+@using EDUSphereSharedProject.Models
+@inject ISnackbar SnackBar
+<MudCard>
+    <MudCardHeader Class="mb-3">
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h5"><b>Lesson Management</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+
+
+    <MudCardContent Class="mb-3">
+        <MudCheckBox Label="Use ChatGPT" @bind-Value="useGPT"></MudCheckBox>
+        @if (useGPT)
+        {
+            <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Ask Chat GPT To create Lesson On Topic" @bind-Value="@Query"></MudTextField>
+            <MudButton OnClick="SendMessage" Variant="Variant.Filled" Color="Color.Primary">Ask ChatGPT</MudButton>
+            <br />
+            <BlazoredTextEditor @ref="@richTextEditor">
+                <ToolbarContent>
+                    @((MarkupString)toolbar)
+                </ToolbarContent>
+                <EditorContent>
+                    @((MarkupString)body)
+                </EditorContent>
+            </BlazoredTextEditor>
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Add A title" @bind-Value="@newLesson.Title"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+            <MudButtonGroup OverrideStyles="false">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow=true StartIcon="@Icons.Material.Filled.Done" OnClick="FinishEditing">Finish Editing</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="string.IsNullOrEmpty(ResponseMessage)" OnClick="SaveLesson" DropShadow=true StartIcon="@Icons.Material.Filled.Save">Save Lesson</MudButton>
+            </MudButtonGroup>
+
+        }
+        else
+        {
+
+            <div class="upload-container">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Title" Variant="Variant.Filled">Enter Lesson Topic</MudAlert>
+
+                        <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newLesson.Title" Label="Lesson Topic">
+                        </MudTextField>
+
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="true" CoerceValue="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                    </MudItem>
+                </MudGrid>
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Input" Variant="Variant.Filled">Upload Lesson Contents from PDF</MudAlert>
+
+                    </MudItem>
+                </MudGrid>
+
+                <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChange">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.CloudUpload">
+                            Upload Lesson
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Input" Variant="Variant.Filled">Manually Type Lesson</MudAlert>
+                        <br />
+                        <BlazoredTextEditor @ref="@richTextEditor">
+                            <ToolbarContent>
+                                @((MarkupString)toolbar)
+                            </ToolbarContent>
+                            <EditorContent>
+                                @((MarkupString)body)
+                            </EditorContent>
+                        </BlazoredTextEditor>
+
+                    </MudItem>
+                </MudGrid>
+
+
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow=true StartIcon="@Icons.Material.Filled.Done" OnClick="FinishEditing">Finish Editing</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="responseisEmpty" DropShadow=true StartIcon="@Icons.Material.Filled.Save" OnClick="SaveLesson">Save Lesson</MudButton>
+        }
+
+
+    </MudCardContent>
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    <MudCardContent Class="mb-3">
+        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.List" Variant="Variant.Filled">Current Available Lessons</MudAlert>
+        <MudDataGrid Items="@teacherLessons" Filterable="false" SortMode="@SortMode.None" Groupable="false">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6"><b>Your Lessons</b></MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Title" />
+                <PropertyColumn Property="x => x.DatePosted.Value.ToShortDateString()" />
+                <TemplateColumn CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudStack Row>
+                            <MudRating Size="@Size.Small" SelectedValue="@context.Item.Rating.Value" />
+                            <MudSpacer/>
+                            <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Manage</MudButton>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudCardContent>
+</MudCard>
+<style>
+    /* Container for overall layout alignment */
+    .upload-container {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        gap: 1rem;
+        max-width: 100%;
+        margin: 2rem auto;
+    }
+
+    /* File input styling */
+    input[type="file"] {
+        display: block;
+        font-family: Arial, sans-serif;
+        background-color: #4CAF50;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+        input[type="file"]:hover {
+            background-color: #45a049;
+        }
+
+        input[type="file"]::file-selector-button {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+
+            input[type="file"]::file-selector-button:hover {
+                background-color: #45a049;
+            }
+
+    /* Textarea styling */
+    textarea {
+        width: 100%;
+        height: 150px;
+        padding: 1rem;
+        font-size: 1rem;
+        font-family: Arial, sans-serif;
+        color: #333;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        resize: vertical;
+        transition: border-color 0.3s;
+    }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+    /* Button styling */
+    button {
+        font-family: Arial, sans-serif;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        font-size: 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s, transform 0.2s;
+    }
+
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+
+</style>
+@code {
+    protected List<Lesson> teacherLessons = new();
+    protected string Query = string.Empty;
+    private string _searchString = string.Empty;
+    private string ResponseMessage { get; set; } = "Waiting for response...";
+    protected Lesson newLesson = new();
+    protected Teacher teacher = new();
+    protected bool useGPT = false;
+    protected bool responseisEmpty = true;
+    protected Class selectedClass = new();
+    protected List<Class> classes = new();
+    protected List<Teacher> teachers = new();
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    private BlazoredTextEditor richTextEditor;
+    string toolbar = """"...markup here..."""";
+    string body = string.Empty;
+    protected bool isLoading = false;
+    protected string UserID = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        InitializeToolbar();
+        await GetTeachers();
+        await GetClasses();
+        await GetTeacherLessons();
+        StateHasChanged();
+        isLoading = false;
+    }
+
+    protected void InitializeToolbar()
+    {
+
+        toolbar = """"
+            <select class="ql-header">
+                <option selected=""></option>
+                <option value="1"></option>
+                <option value="2"></option>
+                <option value="3"></option>
+                <option value="4"></option>
+                <option value="5"></option>
+            </select>
+            <span class="ql-formats">
+                <button class="ql-bold"></button>
+                <button class="ql-italic"></button>
+                <button class="ql-underline"></button>
+                <button class="ql-strike"></button>
+            </span>
+            <span class="ql-formats">
+                <select class="ql-color"></select>
+                <select class="ql-background"></select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-list" value="ordered"></button>
+                <button class="ql-list" value="bullet"></button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-link"></button>
+            </span>
+            """";
+    }
+    #region Get From Database
+    protected async Task GetClasses()
+    {
+        var result = _genericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{teacher.SchoolID}", true);
+        var classesdata = service.Data.ToList();
+        foreach (var item in classesdata)
+        {
+            var authstate = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authstate.User;
+
+            item.Teacher = teacher;
+            if (item.Teacher.EmailAddress == user.Identity.Name)
+            {
+                classes.Add(item);
+            }
+        }
+
+    }
+    protected async Task GetTeacherLessons()
+    {
+        var service = _genericService.GetService<Lesson>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetTeacherLessons/{teacher.TeacherID}", false);
+        if (result.IsSuccess)
+        {
+            teacherLessons = result.Data.ToList();
+        }
+    }
+    protected async Task GetTeachers()
+    {
+        
+            UserID = AppState.UserID;
+        
+        if (UserID != string.Empty || UserID != null)
+        {
+            var result = _genericService.GetService<Teacher>();
+            var service = await result.GetAllAsync($"api/Dynamic/GetTeacherByUserID/{UserID}", true);
+            teachers = service.Data.ToList();
+            if (teachers.Any())
+            {
+                teacher = teachers.FirstOrDefault();
+            }
+        }
+
+    }
+    #endregion
+
+    private async Task OnFileChange(IBrowserFile file)
+    {
+        isLoading = true;
+        var content = new MultipartFormDataContent();
+        content.Add(new StreamContent(file.OpenReadStream()), "file", file.Name);
+        var absoluteUri = new Uri(new Uri(_navigationManager.BaseUri), "api/Upload/uploadLesson");
+        var response = await Http.PostAsync(absoluteUri, content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var returned = await response.Content.ReadAsStringAsync();
+            body = $"<p>{returned}</p>";
+            await this.richTextEditor.LoadHTMLContent(body);
+            StateHasChanged();
+            // Extracted text
+        }
+        else
+        {
+            body = "Error reading file.";
+        }
+        isLoading = false;
+    }
+    private async Task SendMessage()
+    {
+        isLoading = true;
+        if (!string.IsNullOrEmpty(Query))
+        {
+            ResponseMessage = await ChatClientService.GetChatResponseAsync("api/Chat/AskChatGPT", Query);
+            if (ResponseMessage != null)
+            {
+                responseisEmpty = false;
+                body = ResponseMessage;
+                await richTextEditor.LoadHTMLContent(body);
+            }
+            Query = string.Empty;
+        }
+        isLoading = false;
+    }
+
+    protected async Task SaveLesson()
+    {
+        isLoading = true;
+        if (!string.IsNullOrEmpty(newLesson.Title))
+        {
+            if (!string.IsNullOrEmpty(ResponseMessage) && selectedClass.ClassName != null)
+            {
+                if (string.IsNullOrEmpty(newLesson.Content))
+                {
+                    newLesson.Content = ResponseMessage;
+                }
+                newLesson.TeacherID = selectedClass.TeacherID;
+                newLesson.ClassID = selectedClass.ClassID;
+                newLesson.DatePosted = DateTime.Today;
+                newLesson.Rating = 0;
+                newLesson.LessonID = Guid.NewGuid();
+                var service = _genericService.GetService<Lesson>();
+                var result = await service.PostAsync("api/Dynamic/PostEntity", "lesson", newLesson);
+
+                if (result.IsSuccess)
+                {
+                    isLoading = false;
+                    SnackBar.Add("Lesson Added Successfully", Severity.Success);
+                    newLesson.Class = classes.Where(x => x.ClassID == newLesson.ClassID).FirstOrDefault();
+                    newLesson.Teacher = teachers.Where(x => x.TeacherID == newLesson.TeacherID).FirstOrDefault();
+                    teacherLessons.Add(newLesson);
+                    newLesson = new();
+                    selectedClass = new();
+                    ResponseMessage = "Waiting for response...";
+                    responseisEmpty = true;
+                    StateHasChanged();
+                }
+            }
+            else
+            {
+                isLoading = false;
+                SnackBar.Add("Lesson Body Missing", Severity.Error);
+
+                return;
+            }
+        }
+        else
+        {
+            isLoading = false;
+            SnackBar.Add("Title Missing, Please add Lesson Title", Severity.Error);
+
+            return;
+        }
+        isLoading = false;
+    }
+    protected async Task FinishEditing()
+    {
+        ResponseMessage = await richTextEditor.GetHTML();
+        responseisEmpty = false;
+        StateHasChanged();
+    }
+    #region Auto Complete
+    private async Task<IEnumerable<Class>> Search(string value, CancellationToken token)
+    {
+
+        if (string.IsNullOrEmpty(value))
+            return new List<Class>();
+        return classes.Where(x => x.ClassName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    #endregion
+
+    #region To String Func
+    protected Func<Class, string> ClassTypeConverter = p =>
+    {
+    if (p == null)
+    {
+        return "Unknown Class";
+    }
+
+    var className = p.ClassName ?? "Unknown Class";
+    var teacherFirstName = p.Teacher?.FirstName ?? "Unknown";
+    var teacherLastName = p.Teacher?.LastName ?? "Teacher";
+
+    return $"{className} {teacherFirstName} {teacherLastName}";
+    };
+
+    #endregion
+}
+ 

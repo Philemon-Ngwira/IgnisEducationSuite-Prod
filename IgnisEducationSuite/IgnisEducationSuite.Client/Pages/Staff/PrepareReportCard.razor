@@ -1,0 +1,143 @@
+﻿@page "/ReportCardManagement"
+@using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.Staff.Dialogs
+@inject IDialogService DialogService
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Report Card Management</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+
+
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Book">Prepare Report Cards</MudAlert>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudNumericField @bind-Value="GradeLevel" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Enter Grade to get Students" Label="Grade"></MudNumericField>
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Search" Color="Color.Primary" OnClick="GetStudents">Get Students</MudButton>
+            </MudItem>
+            <MudItem xs="12" Class="mb-3">
+                <MudDataGrid Items="@students" Filterable="false" SortMode="@SortMode.None" Groupable="false">
+                    <Columns>
+                        <PropertyColumn Property="x => x.FirstName" />
+                        <PropertyColumn Property="x => x.LastName" />
+                        <PropertyColumn Property="x => x.GradeLevel" Title="Grade" />
+                        <PropertyColumn Property="x => x.Gender" />
+                        <PropertyColumn Property="x => x.StudentNumber" />
+                        <TemplateColumn CellClass="d-flex justify-end">
+                            <CellTemplate>
+                                <MudStack Row>
+                                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary" OnClick="()=>OpenDetailsDialogAsync(context.Item)">Prepare Report Card</MudButton>
+                                </MudStack>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+
+</MudCard>
+@code {
+    protected bool isLoading = false;
+    protected int GradeLevel;
+    protected List<Teacher> teachers = new();
+    protected List<Student> students = new();
+    protected List<GradingScale> gradingScales = new();
+    protected List<Class> classes = new();
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await GetTeachers();
+        await GetClasses();
+        await GetScoreGrading();
+        isLoading = false;
+    }
+
+    protected async Task GetTeachers()
+    {
+        var result = _genericService.GetService<Teacher>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"teacher"}", true);
+        teachers = service.Data.ToList();
+
+    }
+    protected async Task GetClasses()
+    {
+
+        var result = _genericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"class"}", true);
+        classes = service.Data.ToList();
+
+        foreach (var item in classes)
+        {
+            item.Teacher = teachers.Where(x => x.TeacherID == item.TeacherID).FirstOrDefault();
+        }
+
+    }
+    protected async Task GetStudents()
+    {
+        isLoading = true;
+        var service = _genericService.GetService<Student>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsOfClassDetail/{GradeLevel}", true);
+        if (result.IsSuccess)
+        {
+            students = result.Data.ToList();
+            isLoading = false;
+        }
+        isLoading = false;
+    }
+    protected async Task GetScoreGrading()
+    {
+        var service = _genericService.GetService<GradingScale>();
+        bool shouldrecall = gradingScales.Any();
+        var result = await service.GetAllAsync($"api/Dynamic/GetEntity/{"gradingscale"}", !shouldrecall);
+        if (result.IsSuccess)
+        {
+            gradingScales = result.Data.ToList();
+        }
+    }
+  
+
+    #region Dialog
+    private async Task OpenDetailsDialogAsync(Student student)
+    {
+        var parameters = new DialogParameters<CreateStudentReportCardDialog> { { x => x.student, student }, { c => c.Classes, classes },{ g => g.GradingScales , gradingScales} };
+        var opt = new DialogOptions { MaxWidth = MaxWidth.Medium, CloseButton = true, NoHeader = true, Position = DialogPosition.Center };
+        var dialog = await DialogService.ShowAsync<CreateStudentReportCardDialog>("", parameters,opt);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = result.Data;
+            if(data is bool)
+            {
+                bool returned = (bool)data;
+                if (returned)
+                {
+                    Snackbar.Add($"Report Card for {student.FirstName} {student.LastName} has been generated successfully", Severity.Success);
+                }
+            }
+        }
+    }
+    #endregion
+}

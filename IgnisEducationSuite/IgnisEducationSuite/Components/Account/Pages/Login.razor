@@ -1,0 +1,281 @@
+﻿@page "/Account/Login"
+
+@using System.ComponentModel.DataAnnotations
+@using IgnisEducationSuite.Client.Services
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using IgnisEducationSuite.Data
+@using Microsoft.AspNetCore.WebUtilities
+@using System.Text
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject AppState _appState
+@inject UserManager<ApplicationUser> userManager
+
+@inject RolesAndLicensingService _rolesAndLicensing
+@* <PageTitle>Log in</PageTitle>
+
+<h1>Log in</h1>
+<div class="row">
+    <div class="col-md-4">
+        <section>
+            <StatusMessage Message="@errorMessage" />
+            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator />
+                <h2>Use a local account to log in.</h2>
+                <hr />
+                <ValidationSummary class="text-danger" role="alert" />
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Input.userName" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                    <label for="email" class="form-label">Email</label>
+                    <ValidationMessage For="() => Input.userName" class="text-danger" />
+                </div>
+                <div class="form-floating mb-3">
+                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <label for="password" class="form-label">Password</label>
+                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                </div>
+                <div class="checkbox mb-3">
+                    <label class="form-label">
+                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
+                        Remember me
+                    </label>
+                </div>
+                <div>
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                </div>
+                <div>
+                    <p>
+                        <a href="Account/ForgotPassword">Forgot your password?</a>
+                    </p>
+                    <p>
+                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
+                    </p>
+                    <p>
+                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
+                    </p>
+                </div>
+            </EditForm>
+        </section>
+    </div>
+    <div class="col-md-6 col-md-offset-2">
+        <section>
+            <h3>Use another service to log in.</h3>
+            <hr />
+            <ExternalLoginPicker />
+        </section>
+    </div>
+</div> *@
+<!doctype html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <title>Ignis Education Suite Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Premium Bootstrap 5 Landing Page Template">
+    <meta name="keywords" content="Saas, Software, multi-uses, HTML, Clean, Modern">
+    <meta name="author" content="Shreethemes">
+    <meta name="email" content="support@shreethemes.in">
+    <meta name="website" content="https://shreethemes.in">
+    <meta name="Version" content="v4.7.0">
+    <!-- favicon -->
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <!-- Css -->
+    <link href="css/bootstrap.min.css" id="bootstrap-style" class="theme-opt" rel="stylesheet" type="text/css">
+    <link href="css/materialdesignicons.min.css" rel="stylesheet" type="text/css" />
+    <link href="css/style.min.css" id="color-opt" class="theme-opt" rel="stylesheet" type="text/css">
+
+</head>
+
+<body>
+
+    <section class="bg-home d-flex align-items-center position-relative" style="background: url('images/IgnisBG.jpg') center;">
+        <div class="bg-overlay"></div>
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card form-signin border-0 p-4 rounded shadow">
+                        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                            <div class="text-center mb-4">
+                                <a href="index.html" class="text-primary h4 text-uppercase">PHILTIARA ENTERPRISES</a>
+                            </div>
+                            <h5 class="card-title">Please sign in</h5>
+
+                            <div class="form-floating mb-2">
+                                <InputText @bind-Value="Input.userName" class="form-control" autocomplete="username" aria-required="true" placeholder="username" />
+                                <label for="email" class="form-label">Username</label>
+                                <ValidationMessage For="() => Input.userName" class="text-danger" />
+
+                            </div>
+                            <div class="form-floating mb-3">
+                                <InputText type="password" id="floatingPassword" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                                <label for="password" class="form-label">Password</label>
+                                <ValidationMessage For="() => Input.Password" class="text-danger" />
+
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" />
+                                        <label class="form-check-label" for="flexCheckDefault">Remember me</label>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <p class="forgot-pass mb-0">Forgot Password?, Contact Your System Admin For a Password Reset</p>
+                            <button class="btn btn-primary w-100" type="submit">Sign in</button>
+                            <!--end col-->
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- JAVASCRIPT -->
+    <script src="libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
+@code {
+    private string? errorMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+    // public async Task LoginUser()
+    // {
+    //     var result = await SignInManager.PasswordSignInAsync(Input.userName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
+    //     if (result.Succeeded)
+    //     {
+    //         var user = await userManager.FindByNameAsync(Input.userName);
+
+    //         if (user != null)
+    //         {
+    //             if (user.AccountActive && user.requiresPasswordReset)
+    //             {
+    //                 // Generate password reset token
+    //                 var code = await userManager.GeneratePasswordResetTokenAsync(user);
+    //                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+    //                 NavigationManager.NavigateTo($"Account/ResetPassword?code={code}");
+    //             }
+    //             else if (!user.AccountActive)
+    //             {
+    //                 errorMessage = "Error: Account has been disabled, please contact your System Administrator";
+    //             }
+    //             else
+    //             {
+    //                 // Update the app state on the correct thread
+    //                 await Dispatcher.CreateDefault().InvokeAsync(async () =>
+    //                 {
+    //                     var userLicense = await _rolesAndLicensing.GetLicenseStatus(NavigationManager.BaseUri, user.SchoolID.ToString());
+    //                     var UserRole = await userManager.GetRolesAsync(user);
+
+    //                     _appState.UpdateDetails(user.Id, user.SchoolID.ToString(), userLicense, UserRole.FirstOrDefault());
+    //                 });
+
+    //                 Logger.LogInformation("User logged in.");
+    //                 NavigationManager.NavigateTo(ReturnUrl);
+    //             }
+    //         }
+    //         else
+    //         {
+    //             errorMessage = "Error: No Account Found";
+    //         }
+    //     }
+    //     else if (result.RequiresTwoFactor)
+    //     {
+    //         NavigationManager.NavigateTo($"Account/LoginWith2fa?returnUrl={ReturnUrl}&rememberMe={Input.RememberMe}");
+    //     }
+    //     else if (result.IsLockedOut)
+    //     {
+    //         Logger.LogWarning("User account locked out.");
+    //         NavigationManager.NavigateTo("Account/Lockout");
+    //     }
+    //     else
+    //     {
+    //         errorMessage = "Error: Invalid login attempt.";
+    //     }
+    // }
+
+
+    public async Task LoginUser()
+    {
+        var result = await SignInManager.PasswordSignInAsync(Input.userName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            var user = await userManager.FindByNameAsync(Input.userName);
+
+            if (user != null)
+            {
+                if (user.AccountActive && user.requiresPasswordReset)
+                {
+                    // Generate password reset token
+                    var code = await userManager.GeneratePasswordResetTokenAsync(user);
+                    code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+
+                    // Redirect to the password reset page with the token
+                    NavigationManager.NavigateTo($"Account/ResetPassword?code={code}");
+                }
+                else if (!user.AccountActive)
+                {
+                    errorMessage = "Error: Account has been disabked please contact your System Administrator";
+                }
+                else
+                {
+                    Logger.LogInformation("User logged in.");
+                    RedirectManager.RedirectTo(ReturnUrl);
+                }
+            }
+            else
+            {
+                errorMessage = "Error: No Account Found";
+            }
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        public string userName { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        public bool RememberMe { get; set; }
+    }
+}

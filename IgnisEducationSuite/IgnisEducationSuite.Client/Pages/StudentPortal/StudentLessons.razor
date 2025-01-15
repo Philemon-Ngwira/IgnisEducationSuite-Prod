@@ -1,0 +1,117 @@
+﻿@page "/StudentLessons"
+@using System.Text.Json
+@using EDUSphereSharedProject.Models
+@inject LessonService LessonService
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Lessons</b></MudText>
+        </CardHeaderContent>
+
+    </MudCardHeader>
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+
+    <MudCardContent>
+        <MudGrid>
+            @foreach (var item in availableLessons)
+            {
+                <MudItem xs="12" md="6">
+                    <MudCard>
+                        <MudCardHeader>
+                            <CardHeaderAvatar>
+                                <MudAvatar Color="Color.Secondary">@item.Teacher.ProfilePic</MudAvatar>
+                                </CardHeaderAvatar>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.body1"><b>@item.Title</b></MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardMedia Image="@item.imageUrl" Height="250" />
+                            <MudCardContent>
+                                <MudText Typo="Typo.body2">@item.Teacher.FirstName @item.Teacher.LastName</MudText>
+                            </MudCardContent>
+                            <MudCardActions>
+                                <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Star">Rate Lessson</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="()=>NavigateToDetails(item)" StartIcon="@Icons.Material.Filled.More">View Lesson</MudButton>
+                                
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+            }
+
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    protected Lesson selectedLesson = new();
+    protected List<Lesson> availableLessons = new();
+    protected List<Teacher> teachers = new();
+    [Inject] ImageService _imageService { get; set; } = default!;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] AppState _appState { get; set; } = default!;
+    string UserID = string.Empty;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    protected bool isLoading = false;
+    protected Guid SchoolID = Guid.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+       
+            UserID = _appState.UserID;
+        
+        if (UserID != string.Empty || UserID != null)
+        {
+            
+            await GetStudentClasses();
+        }
+        isLoading = false;
+    }
+
+    protected async Task GetStudentClasses()
+    {
+        var service = _genericService.GetService<Lesson>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentLessons/{UserID}", true);
+        if (result.IsSuccess)
+        {
+            availableLessons = result.Data.ToList();
+            SchoolID = availableLessons.Select(x => x.SchoolID).FirstOrDefault();
+            foreach (var item in availableLessons)
+            {
+                item.imageUrl = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
+                await GetTeachers();
+                item.Teacher = teachers.Where(x => x.TeacherID == item.TeacherID).FirstOrDefault();
+            }
+        }
+        else
+        {
+            Snackbar.Add("Error Collecting Lessons, Please refresh your page and try again", Severity.Error);
+        }
+    }
+    protected async Task GetTeachers()
+    {
+        var service = _genericService.GetService<Teacher>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetTeachersBySchoolID/{SchoolID}", true);
+        teachers = result.Data.ToList();
+    }
+    protected void NavigateToDetails(Lesson selectedLesson)
+    {
+        LessonService.CurrentLesson = selectedLesson;
+        _navigationManager.NavigateTo("/LessonDetails");
+
+    }
+
+}

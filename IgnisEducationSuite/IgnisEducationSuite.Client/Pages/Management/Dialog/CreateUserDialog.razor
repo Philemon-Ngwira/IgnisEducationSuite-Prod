@@ -1,0 +1,507 @@
+﻿@using System;
+@using System.Security.Cryptography;
+@using System.Text;
+@using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inject HttpClient Http
+@inject NavigationManager navigationManager
+@inject GenericServiceFactory genericService
+@inject ISnackbar Snackbar
+@inject StudentNumberGenerator StudentNumberGenerator
+
+<MudDialog>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <!-- HTML Structure -->
+            <div id="loader-overlay" class="fixed inset-0 bg-primary/80 backdrop-blur-md flex items-center justify-center z-50">
+                <div class="loader-container text-center">
+                    <!-- Spinner with glowing and spinning effects -->
+                    <div class="spinner relative w-16 h-16 rounded-full border-4 border-transparent border-t-accent animate-spin">
+                        <div class="absolute inset-0 rounded-full animate-pulse glow"></div>
+                    </div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon text-4xl mt-6 animate-pulse text-accent-light">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text text-accent-light mt-4 text-lg font-semibold animate-bounce">
+                        Loading, please wait...
+                    </p>
+                </div>
+            </div>
+        }
+
+        <MudGrid>
+            <MudItem xs="12" Class="mb-3">
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">User Account Detaails</MudAlert>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.UserName" Label="UserName"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Email"></MudTextField>
+            </MudItem>
+
+            <MudItem xs="12" Class="mb-3">
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">User Information</MudAlert>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.FirstName" Label="FirstName"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.LastName" Label="LastName"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter" Margin="Margin.Dense" T="CountryDTO" Label="Countries" Value="Country" Placeholder="Select Country" SearchFunc="@SearchCountry"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter" Margin="Margin.Dense" T="CityDTO" Label="Cities" Disabled="Country.CountryName == null" SearchFunc="@SearchCity"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+            </MudItem>
+            @if (Role == "Student")
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="int" @bind-Value="newUser.GradeLevel" Label="Grade Level"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.GradeSection" Placeholder="Enter Grade Section e.g for 10A enter 'A'" Label="Grade Section"></MudTextField>
+                </MudItem>
+            }
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newUser.Gender">
+                    @foreach (var item in genders)
+                    {
+                        <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
+                    }
+                </MudSelect>
+
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Address" Label="Address"></MudTextField>
+            </MudItem>
+            @if (Role == "Teacher")
+            {
+                <MudItem xs="12" md="6">
+                    <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Engagement Date" @bind-Date="newUser.DateEngaged" />
+                </MudItem>
+            }
+            @if (Role == "Teacher" || Role == "Student" || Role == "Student")
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="IDPrefix" Disabled="string.IsNullOrEmpty(PrefixLabel)" Label="@PrefixLabel"></MudTextField>
+                </MudItem>
+            }
+            @if (Role == "Parent")
+            {
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete Variant="Variant.Outlined" @bind-Value="selectedStudent" Placeholder="Search Student" ToStringFunc="StudentTypeconverter" Margin="Margin.Dense" T="Student" Label="Students" SearchFunc="@SearchStudent"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                </MudItem>
+            }
+
+
+            @if (Role == "Parent" || Role == "Teacher")
+            {
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.ContactNo" Label="Contact Number"></MudTextField>
+                </MudItem>
+            }
+            <MudItem xs="12" md="6">
+                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                    <ActivatorContent>
+                        <MudFab Color="Color.Secondary"
+                                StartIcon="@Icons.Material.Filled.Image"
+                                Label="Load Profile Picture" />
+                    </ActivatorContent>
+                </MudFileUpload>
+            </MudItem>
+        </MudGrid>
+
+
+
+
+
+
+
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false">
+            <MudButton Color="Color.Primary" OnClick="CreateNewUser" Variant="Variant.Outlined">Add New User</MudButton>
+            <MudButton Color="Color.Warning" Variant="Variant.Outlined" OnClick="Clear">Clear</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Outlined" OnClick="CloseDialog">Close</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] public MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string Role { get; set; } = string.Empty;
+    [Parameter] public List<CountryDTO> countries { get; set; } = new();
+    [Parameter] public List<Gender> genders { get; set; } = new();
+    [Parameter] public ClientAdmin LoggedAdmin { get; set; } = new();
+    protected List<CityDTO> Cities = new();
+    protected UniversalUser newUser = new();
+    protected string IDPrefix = string.Empty;
+    protected string PrefixLabel = string.Empty;
+    protected CountryDTO Country = new();
+    protected CityDTO City = new();
+    [Inject] AuthenticationStateProvider _authenticationStateProvider { get; set; } = default!;
+    [Inject] ClientEmailService _emailService { get; set; } = default!;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    IList<IBrowserFile> _files = new List<IBrowserFile>();
+    protected bool isLoading = false;
+    protected List<Student> students = new();
+    protected Student selectedStudent = new();
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        if (Role == "Student")
+        {
+            PrefixLabel = "StudentNumber Prefix";
+        }
+        else if (Role == "Teacher" || Role == "Staff")
+        {
+            PrefixLabel = "EmployeeNumber Prefix";
+        }
+        else
+        {
+            await GetStudent();
+            PrefixLabel = "";
+        }
+        await Task.Delay(1000);
+        isLoading = false;
+    }
+    protected async Task GetStudent()
+    {
+        var result = _genericService.GetService<Student>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"student"}", true);
+        students = service.Data.ToList();
+
+    }
+    protected async Task GetCities(CountryDTO selectedCountry)
+    {
+        Country = selectedCountry;
+        var service = _genericService.GetService<CityDTO>();
+        var result = await service.GetAllAsync($"api/CountriesAndCities/GetCities/{selectedCountry.CountryCode}", true);
+        if (result.IsSuccess)
+        {
+            Cities = result.Data.ToList();
+        }
+    }
+
+    private async Task UploadFiles(IBrowserFile file)
+    {
+
+        if (file == null || newUser == null)
+            throw new ArgumentNullException(nameof(file), "File or model cannot be null");
+
+        using (var memoryStream = new MemoryStream())
+        {
+            await file.OpenReadStream().CopyToAsync(memoryStream);
+            newUser.profilePic = memoryStream.ToArray();
+        }
+    }
+
+    public static string GenerateOneTimePassword(int length = 16)
+    {
+        const string validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_-+=<>?";
+        const string numbers = "1234567890";
+
+        // Ensure that the OTP length is at least 8 characters
+        if (length < 8)
+        {
+            length = 8;
+        }
+
+        using (var rng = new RNGCryptoServiceProvider())
+        {
+            while (true) // Continue generating until we get a valid OTP
+            {
+                byte[] randomBytes = new byte[length];
+                rng.GetBytes(randomBytes);
+
+                StringBuilder otp = new StringBuilder(length);
+
+                // Build the OTP string by selecting characters from the validChars string
+                foreach (var randomByte in randomBytes)
+                {
+                    otp.Append(validChars[randomByte % validChars.Length]);
+                }
+
+                string generatedOtp = otp.ToString();
+
+                // Check if the generated OTP contains at least one number
+                if (generatedOtp.Any(c => numbers.Contains(c)))
+                {
+                    return generatedOtp;
+                }
+            }
+        }
+    }
+    public async Task<string> GetLoggedInuser()
+    {
+        var auth = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+        var CreatedBy = user.Identity.Name;
+
+        return CreatedBy;
+    }
+    protected async Task CreateNewUser()
+    {
+        isLoading = true;
+        StateHasChanged();
+        //Generate One time password
+        newUser.Password = GenerateOneTimePassword();
+        newUser.Role = Role;
+        CreateUserModel createUserModel = new()
+            {
+                UserName = newUser.UserName,
+                Password = newUser.Password,
+                Email = newUser.Email,
+                Role = newUser.Role,
+                SchoolID = LoggedAdmin.SchoolID.Value,
+                UserID = "N/A",
+                ProfilePic = newUser.profilePic,
+                FirstName = newUser.FirstName,
+                LastName = newUser.LastName
+            };
+        //Create Identity User
+        var result = await Http.PostAsJsonAsync($"{navigationManager.BaseUri}api/Admin/createUser", createUserModel);
+        if (result.IsSuccessStatusCode)
+        {
+            var newlyAddeduser = await result.Content.ReadFromJsonAsync<ApplicationUser>();
+            newUser.UserID = newlyAddeduser.Id;
+
+            //Create UserBasedOnRoll
+            if (newUser.Role == "Teacher")
+            {
+                Teacher newteacher = new()
+                    {
+                        TeacherID = Guid.NewGuid(),
+                        FirstName = newUser.FirstName,
+                        LastName = newUser.LastName,
+                        ContactNo = newUser.ContactNo,
+                        Gender = newUser.Gender,
+                        EmailAddress = newUser.Email,
+                        DateEngaged = newUser.DateEngaged,
+                        ProfilePic = newUser.profilePic,
+                        CreatedBy = await GetLoggedInuser(),
+                        CreatedDate = DateTime.Now,
+                        UserID = newUser.UserID,
+                        SchoolID = LoggedAdmin.SchoolID,
+                        Nationality = Country.CountryName,
+                        City = City.CityName
+
+
+
+                    };
+                var service = genericService.GetService<Teacher>();
+                var savedTeacher = await service.PostAsync("api/Dynamic/PostEntity", "teacher", newteacher);
+                if (savedTeacher.IsSuccess)
+                {
+                    //Mail User//
+                    EmailRequest email = new()
+                        {
+                            To = savedTeacher.Data.EmailAddress,
+                            Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
+                            Password = newUser.Password,
+                            UserName = newUser.UserName,
+                            isFirstMail = true
+                            
+                        };
+                    var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
+
+                    isLoading = false;
+                    if (emailsent == "Password reset email sent successfully!")
+                    {
+                        Snackbar.Add("New teacher One time password mailed successfully", Severity.Success);
+                    }
+                    Snackbar.Add("New teacher successfully added, please visit teacher management to finish up set up", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok("successful"));
+                }
+                else
+                {
+                    Snackbar.Add("Error: Saving Teacher Failed", Severity.Error);
+                    return;
+                }
+            }
+            else if (newUser.Role == "Student")
+            {
+                Student newStudent = new()
+                    {
+                        StudentID = Guid.NewGuid(),
+                        FirstName = newUser.FirstName,
+                        LastName = newUser.LastName,
+                        Gender = newUser.Gender,
+                        Address = newUser.Address,
+                        Country = Country.CountryName,
+                        City = City.CityName,
+                        GradeLevel = newUser.GradeLevel,
+                        StudentNumber = await StudentNumberGenerator.GenerateStudentIdAsync(IDPrefix, navigationManager.BaseUri),
+                        ProfilePic = newUser.profilePic,
+                        UserID = newUser.UserID,
+                        DateOnBoarded = DateTime.Now,
+                        SchoolID = LoggedAdmin.SchoolID,
+                        GradeSection = newUser.GradeSection
+
+
+                    };
+                var service = genericService.GetService<Student>();
+                var savedTeacher = await service.PostAsync("api/Dynamic/PostEntity", "student", newStudent);
+                if (savedTeacher.IsSuccess)
+                {
+                    //Mail User//
+                    EmailRequest email = new()
+                        {
+                            To = newUser.Email,
+                            Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
+                            Password = newUser.Password,
+                            UserName = newUser.UserName,
+                            isFirstMail = true
+                        };
+                    var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
+
+                    isLoading = false;
+                    if (emailsent == "Password reset email sent successfully!")
+                    {
+                        Snackbar.Add("New student One time password mailed successfully", Severity.Success);
+                    }
+                    Snackbar.Add("New student successfully added, please visit student management to finish up set up", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok("successful"));
+                }
+                else
+                {
+
+                    Snackbar.Add("Error: Saving student Failed", Severity.Error);
+                    return;
+                }
+            }
+
+            else if (newUser.Role == "Parent")
+            {
+                if (selectedStudent.FirstName == null)
+                {
+                    Snackbar.Add("Parent Must Have child, select child from students", Severity.Error);
+                    return;
+                }
+                else
+                {
+                    Parent newParent = new()
+                        {
+                            ParentID = Guid.NewGuid(),
+                            FirstName = newUser.FirstName,
+                            LastName = newUser.LastName,
+                            Email = newUser.Email,
+                            UserId = newUser.UserID,
+                            Address = newUser.Address,
+                            Country = newUser.Country,
+                            City = newUser.City,
+                            PhoneNumber = newUser.ContactNo,
+                            ProfilePic = newUser.profilePic,
+                            SchoolID = LoggedAdmin.SchoolID
+                        };
+
+                    var service = genericService.GetService<Parent>();
+                    var savedTeacher = await service.PostAsync("api/Dynamic/PostEntity", "parent", newParent);
+                    if (savedTeacher.IsSuccess)
+                    {
+                        //Update Student//
+                        selectedStudent.Parent = savedTeacher.Data;
+                        selectedStudent.ParentID = selectedStudent.Parent.ParentID;
+                        var updateService = _genericService.GetService<Student>();
+                        var updatedStudent = await updateService.UpdateAsync("api/Dynamic/UpdateEntity", "student", selectedStudent);
+                        if (updatedStudent.IsSuccess)
+                        {
+                            //Mail User//
+                            EmailRequest email = new()
+                                {
+                                    To = savedTeacher.Data.Email,
+                                    Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
+                                    Password = newUser.Password,
+                                        UserName = newUser.UserName,
+                                    isFirstMail = true
+                                };
+                            var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
+
+                            isLoading = false;
+                            if (emailsent == "Password reset email sent successfully!")
+                            {
+                                Snackbar.Add("New parent One time password mailed successfully", Severity.Success);
+                            }
+                            Snackbar.Add("New parent successfully added, please visit parent management to finish up set up", Severity.Success);
+                            MudDialog.Close(DialogResult.Ok("successful"));
+                        }
+                    }
+                    else
+                    {
+                        isLoading = false;
+                        Snackbar.Add("Error: Saving parent Failed", Severity.Error);
+                        return;
+                    }
+                }
+            }
+
+        }
+        else
+        {
+            Snackbar.Add("Error: Saving  Failed", Severity.Error);
+            return;
+        }
+    }
+
+
+    private async Task<IEnumerable<CountryDTO>> SearchCountry(string value, CancellationToken token)
+    {
+        await Task.Delay(5, token);
+
+        if (string.IsNullOrEmpty(value))
+            return new List<CountryDTO>();
+        return countries.Where(x => x.CountryName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    private async Task<IEnumerable<CityDTO>> SearchCity(string value, CancellationToken token)
+    {
+
+        await Task.Delay(5, token);
+
+
+        if (string.IsNullOrEmpty(value))
+            return new List<CityDTO>();
+        return Cities.Where(x => x.CityName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    private async Task<IEnumerable<Student>> SearchStudent(string value, CancellationToken token)
+    {
+
+        await Task.Delay(5, token);
+
+
+        if (string.IsNullOrEmpty(value))
+            return new List<Student>();
+        return students.Where(x => x.FirstName.Contains(value, StringComparison.InvariantCultureIgnoreCase) || x.LastName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    #region To String Func
+
+    protected Func<CountryDTO, string> CountryTypeconverter = p => p?.CountryCode + ":" + p?.CountryName;
+    protected Func<CityDTO, string> CityTypeconverter = p => p?.CityName;
+    protected Func<Student, string> StudentTypeconverter = p => p?.FirstName + " " + p?.LastName;
+    #endregion
+
+    private void CloseDialog()
+    {
+        MudDialog.Cancel();
+    }
+    private void Clear()
+    {
+        newUser = new();
+        Country = new();
+        City = new();
+        Snackbar.Add("All Values Reset Successfully", Severity.Success);
+        StateHasChanged();
+    }
+}

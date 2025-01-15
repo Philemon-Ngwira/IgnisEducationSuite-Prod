@@ -1,0 +1,65 @@
+﻿@using EDUSphereSharedProject.Models
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-6" Align="Align.Center" Typo="Typo.h4"><b>Manage @school.SchoolName</b></MudText>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudImage Class="profile-pic" Width="100" Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(school.SchoolLogo)}")"></MudImage>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="school.SchoolName"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                    <ActivatorContent>
+                        <MudFab Color="Color.Secondary"
+                                StartIcon="@Icons.Material.Filled.Image"
+                                Label="Change School Logo" />
+                    </ActivatorContent>
+                </MudFileUpload>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" OnClick="CloseDialog">Close</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.GeneratingTokens" OnClick="GenerateLicense">Generate and Activate License</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.SaveAlt" OnClick="UpdateDetails">Update</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public School school { get; set; } = new();
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    private async Task UploadFiles(IBrowserFile file)
+    {
+
+        if (file == null || school == null)
+            throw new ArgumentNullException(nameof(file), "File or model cannot be null");
+
+        using (var memoryStream = new MemoryStream())
+        {
+            await file.OpenReadStream().CopyToAsync(memoryStream);
+            school.SchoolLogo = memoryStream.ToArray();
+        }
+    }
+
+    private void CloseDialog() => MudDialog.Close();
+    private async Task GenerateLicense()
+    {
+
+    }
+    private async Task UpdateDetails()
+    {
+        var service = _genericService.GetService<School>();
+        var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "school", school);
+        if (result.IsSuccess)
+        {
+            string Message = "Details Updated Successfully";
+            MudDialog.Close(DialogResult.Ok(Message));
+        }
+    }
+}
