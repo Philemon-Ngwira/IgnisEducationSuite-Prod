@@ -1,13 +1,13 @@
 ﻿{
    "CodeGenerationMode": 3,
-   "ContextClassName": "MessagingContext",
+   "ContextClassName": "AchievementContext",
    "ContextNamespace": null,
    "DefaultDacpacSchema": null,
    "FilterSchemas": false,
    "IncludeConnectionString": false,
    "ModelNamespace": null,
-   "OutputContextPath": "MessagingData",
-   "OutputPath": "Models",
+   "OutputContextPath": "AchievementData",
+   "OutputPath": "",
    "PreserveCasingWithRegex": true,
    "ProjectRootNamespace": "EduSphereDomain",
    "Schemas": null,
@@ -15,19 +15,23 @@
    "SelectedToBeGenerated": 1,
    "Tables": [
       {
-         "Name": "[dbo].[AspNetUsers]",
+         "Name": "[dbo].[Activities]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[ChatGroups]",
+         "Name": "[dbo].[BadgeLevels]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[ChatMessages]",
+         "Name": "[dbo].[Badges]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[GroupMembers]",
+         "Name": "[dbo].[UserActivities]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[UserBadges]",
          "ObjectType": 0
       }
    ],

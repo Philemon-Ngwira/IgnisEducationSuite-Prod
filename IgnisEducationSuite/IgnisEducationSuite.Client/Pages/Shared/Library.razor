@@ -1,0 +1,144 @@
+﻿@page "/Library"
+@using EDUSphereSharedProject.Models
+@inject ImageService _imageService
+@inject NavigationManager _navigationManager
+@inject GenericServiceFactory _genericService
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Library</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+    <MudCardContent>
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">School Material</MudAlert>
+        <div class="library-page">
+            <div class="library-grid">
+                @foreach (var item in courses)
+                {
+                    <div class="library-card" title="Click to view details">
+                        @if (item.CourseImage != null)
+                        {
+                            <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.CourseImage)}")" alt="Course Cover" class="course-cover">
+                        }
+                        else
+                        {
+                            <img src="@item.ImgUrl" alt="Course Cover" class="course-cover">
+                        }
+                        <div class="card-header">
+                            <h6 class="course-name">@item.CourseName</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="course-grade">Grade: @item.Grade</p>
+                            <p class="course-creator">Created by: @item.CreatedBy</p>
+                            <p class="course-creator">Created Date: @item.DateCreated.Value.ToShortDateString()</p>
+                        </div>
+                        <div class="card-footer">
+                            <button class="details-button" @onclick="() => NavigateToCourseDetails(item)">View Details</button>
+                        </div>
+                    </div>
+                }
+
+                <!-- Add more cards here -->
+            </div>
+        </div>
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">Ignis Edusphere</MudAlert>
+        <MudTextField T="string" @bind-Value="searchString" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Search" Placeholder="Search book"></MudTextField>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary">Search</MudButton>
+
+    </MudCardContent>
+</MudCard>
+
+
+
+
+
+
+@code {
+    protected bool isLoading = false;
+    protected List<Course> courses = new();
+    protected string searchString = string.Empty;
+    [Inject] LessonService lessonService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await GetCCourses();
+        isLoading = false;
+    }
+
+    protected async Task GetCCourses()
+    {
+        try
+        {
+            var service = _genericService.GetService<Course>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetCoursesBySchool/{AppState.SchoolID}", true);
+            if (result.IsSuccess)
+            {
+                courses = result.Data.ToList();
+                foreach (var item in courses)
+                {
+                    if (item.CourseImage is null)
+                    {
+                        item.ImgUrl = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+            throw;
+        }
+
+    }
+    protected async Task<IEnumerable<Lesson>> GetLessonsBySchool()
+    {
+        var service = _genericService.GetService<Lesson>();
+        var lessons = await service.GetAllAsync($"api/Dynamic/GetLessonsBySchool/{AppState.SchoolID}", true);
+        if (lessons.IsSuccess)
+        {
+            return lessons.Data.ToList();
+        }
+        Snackbar.Add("Failed to collect details please refresh your page and try again", Severity.Error);
+        return new List<Lesson>();
+    }
+    protected async Task NavigateToCourseDetails(Course course)
+    {
+        lessonService.Course = course;
+        var service = _genericService.GetService<CourseDetail>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetCourseDetailsByCourseID/{course.CourseID}", true);
+        var lessons = await GetLessonsBySchool();
+        if (lessons.Any())
+        {
+            if (result.IsSuccess)
+            {
+                lessonService.courseDetails = result.Data.ToList();
+                foreach (var item in lessonService.courseDetails)
+                {
+                    item.Lesson = lessons.Where(x => x.LessonID == item.LessonID).FirstOrDefault();
+                }
+            }
+            _navigationManager.NavigateTo("/LibraryDetails");
+        }
+        else
+        {
+            return;
+        }
+    }
+}

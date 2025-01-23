@@ -1,0 +1,83 @@
+﻿body {
+    font-family: Arial, sans-serif;
+}
+
+#achievement-popup {
+    position: fixed;
+    z-index: 1000;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%; /* Adjusted width */
+    max-width: 800px; /* Increased max-width */
+    background-color: white;
+    border: 3px solid #5A2D82; /* Deep purple */
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    text-align: left;
+    animation: fadeIn 0.5s;
+}
+
+.popup-content {
+    display: flex;
+    align-items: center;
+    padding: 30px; /* Increased padding */
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: #5A2D82; /* Deep purple */
+    font-size: 30px;
+    cursor: pointer;
+}
+
+.badge-image {
+    width: 80px;
+    height: 80px;
+    margin-right: 20px;
+}
+
+.text-content {
+    flex: 1;
+}
+
+.achievement-name {
+    font-size: 24px;
+    color: #5A2D82; /* Deep purple */
+}
+
+.achievement-description {
+    font-size: 16px;
+    color: #333;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes bounceIn {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-30px);
+    }
+
+    60% {
+        transform: translateY(-15px);
+    }
+}
+
+/* Use .popup.bounce instead of .popup for bounce effect */
+.popup.bounce {
+    animation: bounceIn 1s;
+}

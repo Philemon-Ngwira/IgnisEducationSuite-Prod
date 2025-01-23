@@ -43,6 +43,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetAttendanceTrendForPastSevenDaysResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetCitiesByCountryNameResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetClassLessonSummaryBySchoolResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetLessonCountBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetLessonsBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetMissedClassesForPastWeekResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetReportCardDetailsResult>().HasNoKey().ToView(null);
@@ -340,6 +341,33 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetClassLessonSummaryBySchoolResult>("EXEC @returnValue = [dbo].[GetClassLessonSummaryBySchool] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetLessonCountBySchoolResult>> GetLessonCountBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Size = -1,
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.VarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetLessonCountBySchoolResult>("EXEC @returnValue = [dbo].[GetLessonCountBySchool] @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

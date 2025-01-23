@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Include="..\IgnisEducationSuite.Client\Pages\Management\Dialog\ManageTeacherDetails.razor.cs" Link="ManageTeacherDetails.razor.cs" />
+
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="wwwroot\AchievementImages\LessonBadges\" />
     <Folder Include="wwwroot\images\notification\mBf6PT1EuIeXUtmR\" />
   </ItemGroup>
 

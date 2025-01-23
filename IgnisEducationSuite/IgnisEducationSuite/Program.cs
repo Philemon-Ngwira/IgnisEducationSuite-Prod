@@ -3,7 +3,6 @@ using DinkToPdf;
 using EduSphereDomain.Data;
 using EduSphereDomain.MessagingData;
 using EduSphereDomain.Repositories;
-using IgnisEducationSuite.Client.Pages;
 using IgnisEducationSuite.Client.Services;
 using IgnisEducationSuite.Components;
 using IgnisEducationSuite.Components.Account;
@@ -15,8 +14,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using IgnisEducationSuite.Hubs;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Caching.Memory;
+using EduSphereDomain.AchievementsData;
+using IgnisEducationSuite.Client.Pages.Achievements.Interfaces;
+using IgnisEducationSuite.Client.Pages.Achievements.Services;
+using IgnisEducationSuite.Client.Pages.Achievements;
 
 namespace IgnisEducationSuite
 {
@@ -32,7 +33,7 @@ namespace IgnisEducationSuite
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents()
                 .AddInteractiveWebAssemblyComponents();
-
+            builder.Services.AddServerSideBlazor().AddCircuitOptions(options => { options.DetailedErrors = true; });
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityUserAccessor>();
             builder.Services.AddScoped<IdentityRedirectManager>();
@@ -61,6 +62,7 @@ namespace IgnisEducationSuite
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<PhoenixEdusphereContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<MessagingContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<AchivementContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
@@ -81,6 +83,12 @@ namespace IgnisEducationSuite
             #endregion
             //--------------------------------------------------------------
             #region Custom Services
+            builder.Services.AddScoped<IBadgeService, BadgeService>();
+            builder.Services.AddScoped<IUserActivityService, UserActivityService>();
+            builder.Services.AddScoped<IActivityService, ActivityService>();
+            builder.Services.AddScoped<IBadgeCriteriaService, BadgeCriteriaService>();
+            builder.Services.AddScoped<AchievementDecider>();
+            builder.Services.AddScoped<ChatGPTService>();
             builder.Services.AddScoped<ChatClientService>();
             builder.Services.AddScoped<EmailService>();
             builder.Services.AddScoped<PDFService>();

@@ -32,23 +32,25 @@
                     <MudCard>
                         <MudCardHeader>
                             <CardHeaderAvatar>
-                                <MudAvatar Color="Color.Secondary">@item.Teacher.ProfilePic</MudAvatar>
-                                </CardHeaderAvatar>
-                                <CardHeaderContent>
-                                    <MudText Typo="Typo.body1"><b>@item.Title</b></MudText>
-                                </CardHeaderContent>
-                            </MudCardHeader>
-                            <MudCardMedia Image="@item.imageUrl" Height="250" />
-                            <MudCardContent>
-                                <MudText Typo="Typo.body2">@item.Teacher.FirstName @item.Teacher.LastName</MudText>
-                            </MudCardContent>
-                            <MudCardActions>
-                                <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Star">Rate Lessson</MudButton>
-                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="()=>NavigateToDetails(item)" StartIcon="@Icons.Material.Filled.More">View Lesson</MudButton>
-                                
-                            </MudCardActions>
-                        </MudCard>
-                    </MudItem>
+                                <MudAvatar Color="Color.Secondary">
+                                    <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.Teacher.ProfilePic)}")"></MudImage>
+                                </MudAvatar>
+                            </CardHeaderAvatar>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.body1"><b>@item.Title</b></MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardMedia Image="@item.imageUrl" Height="250" />
+                        <MudCardContent>
+                            <MudText Typo="Typo.body2">@item.Teacher.FirstName @item.Teacher.LastName</MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Star">Rate Lessson</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="()=>NavigateToDetails(item)" StartIcon="@Icons.Material.Filled.More">View Lesson</MudButton>
+
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
             }
 
         </MudGrid>
@@ -70,12 +72,12 @@
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-       
-            UserID = _appState.UserID;
-        
+
+        UserID = _appState.UserID;
+
         if (UserID != string.Empty || UserID != null)
         {
-            
+
             await GetStudentClasses();
         }
         isLoading = false;
@@ -88,7 +90,7 @@
         if (result.IsSuccess)
         {
             availableLessons = result.Data.ToList();
-            SchoolID = availableLessons.Select(x => x.SchoolID).FirstOrDefault();
+            SchoolID = Guid.Parse (AppState.SchoolID);
             foreach (var item in availableLessons)
             {
                 item.imageUrl = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
@@ -107,8 +109,10 @@
         var result = await service.GetAllAsync($"api/Dynamic/GetTeachersBySchoolID/{SchoolID}", true);
         teachers = result.Data.ToList();
     }
-    protected void NavigateToDetails(Lesson selectedLesson)
+    protected async void NavigateToDetails(Lesson selectedLesson)
     {
+        await GetTeachers();
+        selectedLesson.Teacher = teachers.Where(x => x.TeacherID == selectedLesson.TeacherID).FirstOrDefault();
         LessonService.CurrentLesson = selectedLesson;
         _navigationManager.NavigateTo("/LessonDetails");
 

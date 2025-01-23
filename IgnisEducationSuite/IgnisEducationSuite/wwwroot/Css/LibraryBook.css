@@ -1,0 +1,126 @@
+﻿/* General Page Styling */
+body {
+    background-color: #FFE3D8; /* Background from your palette */
+    font-family: 'Arial', sans-serif;
+    color: #150016; /* Text Primary */
+    margin: 0;
+    padding: 0;
+}
+
+/* Library Page Styling */
+.library-page {
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.library-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid for smaller cards */
+    width: 100%;
+    max-width: 1200px;
+}
+
+/* Library Card Styling */
+.library-card {
+    background-color: #FFFFFF; /* White background */
+    border: 1px solid #29104A; /* Primary border */
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), /* Subtle elevation */
+    inset 0 -2px 4px rgba(0, 0, 0, 0.05); /* Inner shadow for depth */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-width: 250px; /* Max width resembling a textbook */
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    background-image: linear-gradient( to right, #FFFFFF, #F7F7F7 85% ); /* Slight gradient for the "cover" */
+}
+
+    .library-card:hover {
+        transform: scale(1.05); /* Slight hover scale */
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2), inset 0 -2px 6px rgba(0, 0, 0, 0.1); /* Deeper shadow on hover */
+    }
+
+    /* Book Spine Effect */
+    .library-card:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 12px; /* Book spine width */
+        height: 100%;
+        background: linear-gradient(to right, #29104A, rgba(41, 16, 74, 0.8));
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1); /* Shadow for the spine */
+        z-index: 1;
+    }
+
+/* Cover Image */
+.course-cover {
+    width: 100%;
+    height: 150px; /* Fixed height for uniform appearance */
+    object-fit: cover; /* Ensure the image scales correctly */
+    border-bottom: 1px solid #29104A; /* Separate image from the content */
+}
+
+/* Card Header */
+.card-header {
+    background-color: #29104A; /* Primary color */
+    color: #FFFFFF; /* White text */
+    padding: 0.5rem 1rem;
+    text-align: center;
+    z-index: 2; /* Ensure it layers over the spine */
+}
+
+    .card-header .course-name {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color:aliceblue
+    }
+
+/* Card Body */
+.card-body {
+    padding: 1rem;
+    flex-grow: 1;
+}
+
+    .card-body p {
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+        color: #150016; /* Text Primary */
+    }
+
+/* Card Footer */
+.card-footer {
+    padding: 1rem;
+    text-align: center;
+}
+
+.details-button {
+    background-color: #29104A; /* Primary color */
+    color: #FFFFFF; /* White text */
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem; /* Smaller button text */
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+    .details-button:hover {
+        background-color: #3F51B5; /* Info color */
+    }
+
+/* Responsive Adjustments */
+@media (max-width: 600px) {
+    .library-grid {
+        grid-template-columns: 1fr; /* Single column on small screens */
+    }
+
+    .library-card {
+        max-width: 100%; /* Full width on small screens */
+    }
+}

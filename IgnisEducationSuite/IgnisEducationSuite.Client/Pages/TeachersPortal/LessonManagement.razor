@@ -133,13 +133,13 @@
             </ToolBarContent>
             <Columns>
                 <PropertyColumn Property="x => x.Title" />
-                <PropertyColumn Property="x => x.DatePosted.Value.ToShortDateString()" />
+                <PropertyColumn Property="x => x.DatePosted.Value.ToShortDateString()" Title="Created Date" />
                 <TemplateColumn CellClass="d-flex justify-end">
                     <CellTemplate>
                         <MudStack Row>
                             <MudRating Size="@Size.Small" SelectedValue="@context.Item.Rating.Value" />
-                            <MudSpacer/>
-                            <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Manage</MudButton>
+                            <MudSpacer />
+                            <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Error" OnClick="() => TaskRemoveLesson(context.Item)">Remove</MudButton>
                         </MudStack>
                     </CellTemplate>
                 </TemplateColumn>
@@ -321,9 +321,9 @@
     }
     protected async Task GetTeachers()
     {
-        
-            UserID = AppState.UserID;
-        
+
+        UserID = AppState.UserID;
+
         if (UserID != string.Empty || UserID != null)
         {
             var result = _genericService.GetService<Teacher>();
@@ -427,6 +427,25 @@
         }
         isLoading = false;
     }
+    protected async Task TaskRemoveLesson(Lesson lesson)
+    {
+
+        lesson.Active = false;
+        lesson.Class = null;
+        lesson.Teacher = null;
+        var service = _genericService.GetService<Lesson>();
+        var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "lesson", lesson);
+        if (result.IsSuccess)
+        {
+            var tLs = new List<Lesson>();
+            tLs.AddRange(teacherLessons);
+            tLs.Remove(lesson);
+            teacherLessons = tLs;
+            SnackBar.Add("Lesson Successfully Removed", Severity.Success);
+            StateHasChanged();
+        }
+    }
+
     protected async Task FinishEditing()
     {
         ResponseMessage = await richTextEditor.GetHTML();
@@ -446,18 +465,17 @@
     #region To String Func
     protected Func<Class, string> ClassTypeConverter = p =>
     {
-    if (p == null)
-    {
-        return "Unknown Class";
-    }
+        if (p == null)
+        {
+            return "Unknown Class";
+        }
 
-    var className = p.ClassName ?? "Unknown Class";
-    var teacherFirstName = p.Teacher?.FirstName ?? "Unknown";
-    var teacherLastName = p.Teacher?.LastName ?? "Teacher";
+        var className = p.ClassName ?? "Unknown Class";
+        var teacherFirstName = p.Teacher?.FirstName ?? "Unknown";
+        var teacherLastName = p.Teacher?.LastName ?? "Teacher";
 
-    return $"{className} {teacherFirstName} {teacherLastName}";
+        return $"{className} {teacherFirstName} {teacherLastName}";
     };
 
     #endregion
 }
- 

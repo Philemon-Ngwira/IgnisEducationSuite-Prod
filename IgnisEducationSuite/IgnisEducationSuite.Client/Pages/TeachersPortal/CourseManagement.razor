@@ -1,0 +1,294 @@
+﻿@page "/CourseManagement"
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Course Management</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+    <MudSwitch @bind-Value="HideHint" Label="Hide/Show Hint?"></MudSwitch>
+    @if (!HideHint)
+    {
+        <MudAlert Severity="Severity.Info">
+            Welcome to the Course Management Page!
+            This is where you can create new courses and organize lessons within them to provide students with a structured learning experience. If a course already exists, you can use this page to add additional lessons to it.
+
+            Please note that all courses created or updated here will automatically be added to the school library, making them accessible to all students through the system.
+        </MudAlert>
+    }
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    <MudAlert Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">Create New Course</MudAlert>
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudTextField T="Guid" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.CourseID" Label="Course ID" Disabled="true"></MudTextField>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.CourseName" Label="Course Name" Placeholder="Enter Course Name"></MudTextField>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField T="int?" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.Grade" Label="Course Grade" Placeholder="Enter Grade E.g. 8,9,10"></MudTextField>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
+            ResetValueOnEmptyText="true"
+            CoerceText="true" CoerceValue="true"
+            AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                <ActivatorContent>
+                    <MudFab Color="Color.Secondary"
+                    StartIcon="@Icons.Material.Filled.Image"
+                    Label="Upload Course Display Image" />
+                </ActivatorContent>
+            </MudFileUpload>
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.NavigateNext" OnClick="SaveCourseHeader">Finish and Continue</MudButton>
+        </MudItem>
+    </MudGrid>
+    @if (FinishedCreatingCourse)
+    {
+        <MudAlert Class="mb-3" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">Add Lessons To Course</MudAlert>
+        <MudDataGrid T="Lesson" MultiSelection="true" Items="@lessons" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter"
+        Hideable="true" SelectedItemsChanged="@SelectedItemsChanged">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Your Lessons</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="FinishSavingLessons">Finish</MudButton>
+                <MudSpacer />
+                <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <Columns>
+                <SelectColumn T="Lesson" />
+                <PropertyColumn Property="x => x.LessonID" Title="Lesson ID" Sortable="false" Filterable="false" />
+                <PropertyColumn Property="x => x.Title" />
+                <PropertyColumn Property="x => x.Active" />
+                <PropertyColumn Property="x => x.DatePosted" />
+                <TemplateColumn CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudStack Row>
+                            <MudRating Size="@Size.Small" SelectedValue="@context.Item.Rating.Value" />
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="Lesson" />
+            </PagerContent>
+        </MudDataGrid>
+    }
+</MudCard>
+
+@code {
+    protected bool isLoading = false;
+    protected bool HideHint = false;
+    protected bool FinishedCreatingCourse = false;
+    protected List<Lesson> lessons = new();
+    protected List<CourseDetail> courselessons = new();
+    protected List<Class> classes = new();
+    protected CourseDetail courseDetail = new();
+    protected Teacher teacher = new();
+    protected Class selectedClass = new();
+    protected string searchString = string.Empty;
+    [Inject] GenericServiceFactory genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    protected Course newCourse = new()
+        {
+            CourseID = Guid.NewGuid()
+        };
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await GetTeachers();
+        await GetClasses();
+        isLoading = false;
+    }
+
+    protected async Task GetTeacherLessons()
+    {
+        var service = genericService.GetService<Lesson>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetTeacherLessons/{teacher.TeacherID}", false);
+        if (result.IsSuccess)
+        {
+            lessons = result.Data.ToList();
+        }
+    }
+
+    protected async Task GetTeachers()
+    {
+
+        var UserID = AppState.UserID;
+
+        if (UserID != string.Empty || UserID != null)
+        {
+            var result = genericService.GetService<Teacher>();
+            var service = await result.GetAllAsync($"api/Dynamic/GetTeacherByUserID/{UserID}", true);
+            var teachers = service.Data.ToList();
+            if (teachers.Any())
+            {
+                teacher = teachers.FirstOrDefault();
+            }
+        }
+
+    }
+    void SelectedItemsChanged(HashSet<Lesson> items)
+    {
+        foreach (var item in items)
+        {
+            courseDetail = new()
+                {
+                    CourseDetailID = Guid.NewGuid(),
+                    CourseID = newCourse.CourseID,
+                    LessonID = item.LessonID,
+                    DateAdded = DateTime.Now
+                };
+            if (!courselessons.Contains(courseDetail))
+            {
+                courselessons.Add(courseDetail);
+            }
+            else
+            {
+                Snackbar.Add($"Cant Add Lesson: {item.Title} because its already been added", Severity.Warning);
+            }
+
+        }
+        // _events.Insert(0, $"Event = SelectedItemsChanged, Data = {System.Text.Json.JsonSerializer.Serialize(items)}");
+    }
+    protected async Task GetClasses()
+    {
+        var result = genericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{teacher.SchoolID}", true);
+        var classesdata = service.Data.ToList();
+        foreach (var item in classesdata)
+        {
+
+
+            item.Teacher = teacher;
+            if (item.Teacher.TeacherID == teacher.TeacherID)
+            {
+                classes.Add(item);
+            }
+        }
+
+    }
+    protected async Task SaveCourseHeader()
+    {
+        isLoading = true;
+        newCourse.ClassID = selectedClass.ClassID;
+        newCourse.TeacherID = teacher.TeacherID;
+        newCourse.CreatedBy = $"{teacher.FirstName} {teacher.LastName}";
+        newCourse.SchoolID = teacher.SchoolID;
+        newCourse.DateCreated = DateTime.Now;
+        var service = genericService.GetService<Course>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "course", newCourse);
+        if (result.IsSuccess)
+        {
+            await GetTeacherLessons();
+            Snackbar.Add("Course Successfully Created", Severity.Success);
+            FinishedCreatingCourse = true;
+            isLoading = false;
+        }
+        else
+        {
+            isLoading = false;
+            Snackbar.Add("Error: Failed Saving Course please refresh your page and try again", Severity.Error);
+
+            return;
+        }
+    }
+    protected async Task FinishSavingLessons()
+    { 
+        var service = genericService.GetService<List<CourseDetail>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "coursedetail", courselessons);
+        if (result.IsSuccess)
+        {
+            newCourse = new(){
+                CourseID = Guid.NewGuid()
+            };
+            courselessons.Clear();
+            Snackbar.Add("Course Lessons Successfully Added", Severity.Success);
+            FinishedCreatingCourse = false;
+            isLoading = false;
+        }
+        else
+        {
+            isLoading = false;
+            Snackbar.Add("Error: Failed Saving Lessons please refresh your page and try again", Severity.Error);
+
+            return;
+        }
+    }
+    private Func<Lesson, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (x.Title.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    };
+
+    protected Func<Class, string> ClassTypeConverter = p =>
+      {
+          if (p == null)
+          {
+              return "Unknown Class";
+          }
+
+          var className = p.ClassName ?? "Unknown Class";
+          var teacherFirstName = p.Teacher?.FirstName ?? "Unknown";
+          var teacherLastName = p.Teacher?.LastName ?? "Teacher";
+
+          return $"{className} {teacherFirstName} {teacherLastName}";
+      };
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        if (file == null || newCourse == null)
+            throw new ArgumentNullException(nameof(file), "File or model cannot be null");
+
+        using (var memoryStream = new MemoryStream())
+        {
+            await file.OpenReadStream().CopyToAsync(memoryStream);
+
+            // Check if the byte array size exceeds 500 KB
+            if (memoryStream.Length > 500 * 1024)
+            {
+                Snackbar.Add("File too large", Severity.Error);
+
+                throw new InvalidOperationException("File size exceeds the 500 KB limit.");
+            }
+            else
+                newCourse.CourseImage = memoryStream.ToArray();
+            Snackbar.Add("Image Uploaded Succesfullt", Severity.Success);
+        }
+    }
+    #region Auto Complete
+    private async Task<IEnumerable<Class>> Search(string value, CancellationToken token)
+    {
+
+        if (string.IsNullOrEmpty(value))
+            return new List<Class>();
+        return classes.Where(x => x.ClassName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    #endregion
+}

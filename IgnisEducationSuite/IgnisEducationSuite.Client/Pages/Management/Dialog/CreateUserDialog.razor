@@ -198,14 +198,23 @@
 
     private async Task UploadFiles(IBrowserFile file)
     {
-
         if (file == null || newUser == null)
             throw new ArgumentNullException(nameof(file), "File or model cannot be null");
 
         using (var memoryStream = new MemoryStream())
         {
             await file.OpenReadStream().CopyToAsync(memoryStream);
-            newUser.profilePic = memoryStream.ToArray();
+
+            // Check if the byte array size exceeds 500 KB
+            if (memoryStream.Length > 500 * 1024)
+            {
+                Snackbar.Add("File too large", Severity.Error);
+
+                throw new InvalidOperationException("File size exceeds the 500 KB limit.");
+            }
+            else
+                newUser.profilePic = memoryStream.ToArray();
+            Snackbar.Add("Image Uploaded Succesfullt", Severity.Success);
         }
     }
 

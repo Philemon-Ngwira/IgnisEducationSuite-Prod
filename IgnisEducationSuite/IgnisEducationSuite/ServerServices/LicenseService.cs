@@ -23,7 +23,7 @@ namespace IgnisEducationSuite.ServerServices
             // Add the token to the Authorization header
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            var response = await _httpClient.PostAsJsonAsync("api/license/activate", request);
+            var response = await _httpClient.PostAsJsonAsync("https://philtiaraenterpriseslicensingapi.azurewebsites.net/api/license/activate", request);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadAsStringAsync();
@@ -44,7 +44,7 @@ namespace IgnisEducationSuite.ServerServices
             }
             else
             {
-                var path = $"https://localhost:7207/api/license/validate?ClientID={ClientID}";
+                var path = $"https://philtiaraenterpriseslicensingapi.azurewebsites.net/api/license/validate?ClientID={ClientID}";
                 var response = await _httpClient.GetAsync(path);
 
                 if (response.IsSuccessStatusCode)
@@ -71,7 +71,7 @@ namespace IgnisEducationSuite.ServerServices
 
         public async Task<string> TerminateLicenseAsync(TerminateLicenseRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/license/terminate", request);
+            var response = await _httpClient.PostAsJsonAsync("https://philtiaraenterpriseslicensingapi.azurewebsites.net/api/license/terminate", request);
 
             if (response.IsSuccessStatusCode)
             {

@@ -71,8 +71,6 @@ body {
     background-color: #29104A; /* Primary color */
     color: #FFE3D8; /* Light color for contrast */
     padding: 1rem 2rem;
-    position: fixed;
-    bottom: 0;
     width: 100%;
     box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
     z-index: 100;
@@ -96,6 +94,7 @@ body {
     font-size: 0.9rem;
     text-align: right;
 }
+
 @media (max-width: 768px) {
     .footer-content {
         flex-direction: column;
@@ -105,6 +104,25 @@ body {
     .footer-version {
         margin-top: 0.5rem;
     }
+}
+
+/* Flexbox Layout Fix for Footer Position */
+html, body {
+    height: 100%; /* Ensure the body fills the viewport height */
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Ensure the container spans the full viewport */
+}
+
+.content-container {
+    flex: 1; /* Allows content to expand while keeping the footer at the bottom */
+    padding: 1rem;
 }
 
 /* Animation Keyframes */
@@ -117,3 +135,5 @@ body {
         transform: rotate(360deg);
     }
 }
+
+

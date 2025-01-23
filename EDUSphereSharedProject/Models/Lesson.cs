@@ -24,7 +24,11 @@ public partial class Lesson
 
     public int? NumberOfRatings { get; set; }
 
+    public bool? Active { get; set; }
+
     public virtual Class Class { get; set; }
+
+    public virtual ICollection<CourseDetail> CourseDetails { get; set; } = new List<CourseDetail>();
 
     public virtual ICollection<StudentCompletedLesson> StudentCompletedLessons { get; set; } = new List<StudentCompletedLesson>();
 

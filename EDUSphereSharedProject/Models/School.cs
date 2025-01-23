@@ -17,6 +17,8 @@ public partial class School
 
     public virtual ICollection<ClientAdmin> ClientAdmins { get; set; } = new List<ClientAdmin>();
 
+    public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
+
     public virtual ICollection<Parent> Parents { get; set; } = new List<Parent>();
 
     public virtual ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();

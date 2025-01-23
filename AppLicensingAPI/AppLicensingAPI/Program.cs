@@ -20,7 +20,7 @@ namespace AppLicensingAPI
                 Console.WriteLine($"JWT_SECRET is set: {jwtSecretKey}");
             }
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-            var MessagingConnectionString = builder.Configuration.GetConnectionString("MessagingConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+           // var MessagingConnectionString = builder.Configuration.GetConnectionString("MessagingConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<LicensingAPIContext>(options =>
               options.UseSqlServer(connectionString));
             builder.Services.AddControllers();

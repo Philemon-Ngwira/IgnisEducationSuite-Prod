@@ -1,0 +1,51 @@
+﻿@using EDUSphereSharedProject.AchievementModels
+<MudDialog Options="dialogOptions">
+    <DialogContent>
+        <div id="achievement-popup" class="popup">
+            <img src="@badge.image_url" alt="Badge Image" class="badge-image">
+            <h3 class="achievement-name">Achievement Unlocked!</h3>
+            <p class="achievement-description">You have earned the <b>@badge.BadgeName</b> @badge.BadgeDescription</p>
+            <MudButton OnClick="Close" Color="Color.Primary" Variant="Variant.Filled">Close</MudButton>
+        </div>
+    </DialogContent>
+</MudDialog>
+<style>
+
+
+    .popup-content {
+        display: flex;
+        flex-direction: column; /* Arrange elements in column */
+        align-items: center; /* Center align items */
+        padding: 20px; /* Reduced padding to fit content */
+        overflow: hidden; /* Prevent scrolling */
+    }
+
+    .badge-image {
+        width: 150px; /* Increased width */
+        height: 150px; /* Increased height */
+        margin-bottom: 20px; /* Added margin below badge */
+    }
+
+    .achievement-name {
+        font-size: 24px;
+        color: #5A2D82; /* Deep purple */
+        margin-bottom: 10px; /* Added margin below title */
+    }
+
+    .achievement-description {
+        font-size: 16px;
+        color: #333;
+        margin-top: 10px; /* Added margin above description */
+    }
+
+</style>
+@code {
+    [CascadingParameter] public MudDialogInstance MudDialog { get; set; }
+    [Parameter] public Badge badge { get; set; } = new();
+    DialogOptions dialogOptions = new DialogOptions()
+        {
+            MaxWidth = MaxWidth.Medium,
+            NoHeader = true
+        };
+    public void Close() => MudDialog.Close();
+}

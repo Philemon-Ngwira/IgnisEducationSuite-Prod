@@ -1,9 +1,11 @@
-﻿@using IgnisEducationSuite.Client.Services
+﻿@using EDUSphereSharedProject.AchievementModels
+@using IgnisEducationSuite.Client.Services
 @inherits LayoutComponentBase
-
 @inject AppState appState
 @inject RolesAndLicensingService _rolesAndLicensing
-
+@inject AuthenticationStateProvider _authenticationStateProvider
+@inject NavigationManager _navigationManager
+@inject GenericServiceFactory _genericService
 <MudThemeProvider Theme="@theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
@@ -11,30 +13,45 @@
 
 <MudLayout>
     <MudAppBar>
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(() => DrawerToggle())" />
         <MudText Typo="Typo.h6" Style="color: white;">Ignis Education Suite</MudText>
     </MudAppBar>
     <MudDrawer Elevation="2" @bind-Open="@_drawerOpen">
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
-        @Body
+      
+            @Body
+        
     </MudMainContent>
 </MudLayout>
 
 @code {
-    [Inject] AuthenticationStateProvider _authenticationStateProvider { get; set; } = default!;
-    [Inject] NavigationManager _navigationManager { get; set; } = default!;
     private bool _drawerOpen = false;
     private Theme theme = new();
-    public string UserRole { get; set; }
+    public string UserRole { get; set; } = string.Empty;
+    private bool isLoading = true;
+
+    protected override void OnInitialized()
+    {
+        appState.OnChange += StateHasChanged;
+        _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        // Subscribe to AppState changes
-        appState.OnChange += StateHasChanged;
-
         var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        await HandleAuthenticationState(authState);
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        var authState = await task;
+        await HandleAuthenticationState(authState);
+    }
+
+    private async Task HandleAuthenticationState(AuthenticationState authState)
+    {
         var user = authState.User;
 
         if (user.Identity?.IsAuthenticated ?? false)
@@ -55,37 +72,61 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error initializing app state: {ex.Message}");
+                    Console.WriteLine($"Error initializing AppState: {ex.Message}");
                 }
             }
         }
-        else
-        {
-            Console.WriteLine("User is not authenticated.");
-        }
+
+        isLoading = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
     }
-
-    protected async Task<string> GetUserRole(string usernameOrEmail)
+    private async Task<List<Badge>> GetBadges()
+    {
+        var service = _genericService.GetService<Badge>();
+        var result = await service.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
+        return result.Data.ToList();
+    }
+    private async Task<List<UserActivity>> GetUserActivitiesDone(string UserRole, string UserID)
+    {
+        if (UserRole == "Student")
+        {
+            var service = _genericService.GetService<UserActivity>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
+            if (result.IsSuccess)
+            {
+                return result.Data.ToList();
+            }
+            else
+            {
+                return new List<UserActivity>();
+            }
+        }
+        else
+        {
+            return new List<UserActivity>();
+        }
+    }
+    private async Task<string> GetUserRole(string usernameOrEmail)
     {
         return await _rolesAndLicensing.GetUserRole(_navigationManager.BaseUri, usernameOrEmail);
     }
 
-    protected async Task<string> GetUserID(string usernameOrEmail)
+    private async Task<string> GetUserID(string usernameOrEmail)
     {
         return await _rolesAndLicensing.GetUserID(_navigationManager.BaseUri, usernameOrEmail);
     }
 
-    protected async Task<string> GetSchoolID(string userID)
+    private async Task<string> GetSchoolID(string userID)
     {
         return await _rolesAndLicensing.GetSchoolId(_navigationManager.BaseUri, userID);
     }
 
-    protected async Task<bool> GetLicenseStatus(string schoolID)
+    private async Task<bool> GetLicenseStatus(string schoolID)
     {
         return await _rolesAndLicensing.GetLicenseStatus(_navigationManager.BaseUri, schoolID);
     }
@@ -93,5 +134,6 @@
     public void Dispose()
     {
         appState.OnChange -= StateHasChanged;
+        _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 }

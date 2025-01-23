@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using EDUSphereSharedProject.Models;
 using Microsoft.AspNetCore.Authorization;
+using EDUSphereSharedProject.AchievementModels;
 
 namespace IgnisEducationSuite.Controllers
 {
@@ -25,6 +26,57 @@ namespace IgnisEducationSuite.Controllers
         }
 
         #region Non Generic
+        [HttpGet("GetSystemActivities")]
+        public async Task<IActionResult> GetActivities()
+        {
+            var result = await _repository.GetSystemActivities();
+            return Ok(result);
+        }
+
+        [HttpPost("SaveNewUserBadge")]
+        public async Task<IActionResult> SaveNewUserBadge(UserBadge userBadge)
+        {
+            var result = await _repository.SaveUserBadge(userBadge);
+            return Ok(result);
+        }
+        [HttpPost("SaveNewUserActivity")]
+        public async Task<IActionResult> SaveUserActivity(UserActivity userActivity)
+        {
+            var result = await _repository.SaveUserActivity(userActivity);
+            return Ok(result);
+        }
+        [HttpGet("GetLessonCountBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetLessonCountBySchool(string SchoolID)
+        {
+            var result = await _repository.GetLessonCountBySchool(SchoolID);
+            return Ok(result);
+        }
+
+
+        [HttpGet("GetAllSystemBadges")]
+        public async Task<IActionResult> GetSystemBadges()
+        {
+            var result = await _repository.GetSystemBadges();
+            return Ok(result);
+        }
+        [HttpGet("GetAllUserActivities/{UserID}")]
+        public async Task<IActionResult> GetUserActivities(string UserID)
+        {
+            var result = await _repository.GetUserActivities(UserID);
+            return Ok(result);
+        }
+        [HttpGet("GetCourseDetailsByCourseID/{CourseID}")]
+        public async Task<IActionResult> GetCourseDetailsByID(Guid CourseID)
+        {
+            var result = await _repository.GetCourseDetailsByID(CourseID);
+            return Ok(result);
+        }
+        [HttpGet("GetCoursesBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetCoursesBySchool(Guid SchoolID)
+        {
+            var result = await _repository.GetCoursesBySchool(SchoolID);
+            return Ok(result);
+        }
         [HttpGet("GetTeacherSubjectsByID/{id}")]
         public async Task<IActionResult> GetSubjectsByTeacherID(Guid id)
         {
@@ -233,19 +285,19 @@ namespace IgnisEducationSuite.Controllers
             return Ok(result);
         }
         [HttpGet("GetTeacherByUserID/{UserID}")]
-        public async Task<IActionResult>GetTeachersByUserID(string UserID)
+        public async Task<IActionResult> GetTeachersByUserID(string UserID)
         {
             var result = await _repository.GetTeachersByUser(UserID);
             return Ok(result);
         }
         [HttpGet("GetLessonsBySchool/{SchoolID}")]
-        public async Task <IActionResult> GetLessonsBySchoolID(string SchoolID)
+        public async Task<IActionResult> GetLessonsBySchoolID(string SchoolID)
         {
             var result = await _repository.GetLessonsBySchool(SchoolID);
             return Ok(result);
         }
         [HttpGet("GetStudentGrowthBySchool/{SchoolID}")]
-        public async Task <IActionResult> GetStudentGrowthBySchoolID(string SchoolID)
+        public async Task<IActionResult> GetStudentGrowthBySchoolID(string SchoolID)
         {
             var result = await _repository.GetStudentGrowth(SchoolID);
             return Ok(result);
@@ -265,7 +317,7 @@ namespace IgnisEducationSuite.Controllers
         [HttpGet("GetTeacherLessons/{TeacherID}")]
         public async Task<IActionResult> GetTeacherLessons(Guid TeacherID)
         {
-            var result  =await _repository.GetTeacherLessonsAsync(TeacherID);
+            var result = await _repository.GetTeacherLessonsAsync(TeacherID);
             return Ok(result);
         }
         #endregion
@@ -437,6 +489,8 @@ namespace IgnisEducationSuite.Controllers
                 "studentexamsheader" => GetRepository<StudentExamsTestsAndQuiz>(),
                 "school" => GetRepository<School>(),
                 "clientadmin" => GetRepository<ClientAdmin>(),
+                "course" => GetRepository<Course>(),
+                "coursedetail" => GetRepository<CourseDetail>(),
 
                 // Add more entities here as needed
                 _ => null
@@ -481,6 +535,8 @@ namespace IgnisEducationSuite.Controllers
                 "studentexamsheader" => JsonSerializer.Deserialize<StudentExamsTestsAndQuiz>(obj.ToString()),
                 "school" => JsonSerializer.Deserialize<School>(obj.ToString()),
                 "clientadmin" => JsonSerializer.Deserialize<ClientAdmin>(obj.ToString()),
+                "course" => JsonSerializer.Deserialize<Course>(obj.ToString()),
+                "coursedetail" => JsonSerializer.Deserialize<CourseDetail>(obj.ToString()),
 
 
                 // Add more entity conversions here as needed

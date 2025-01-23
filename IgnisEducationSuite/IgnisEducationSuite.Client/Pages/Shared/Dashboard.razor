@@ -1,0 +1,1624 @@
+﻿@page "/"
+@using ChartJs.Blazor
+@using ChartJs.Blazor.BarChart
+@using ChartJs.Blazor.Common
+@using ChartJs.Blazor.Common.Axes
+@using ChartJs.Blazor.PieChart
+@using EDUSphereSharedProject.AchievementModels
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@using IgnisEducationSuite.Client.Pages.Achievements
+@using IgnisEducationSuite.Client.Services
+@inject IDialogService DialogService
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader Class="mb-3">
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Dashboard</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudCardContent Class="mb-3">
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+        <AuthorizeView>
+            <Authorized>
+                @if (AppState.IsInitialized)
+                {
+                    @if (!AppState.LicenseIsActive)
+                    {
+
+                        <div class="license-warning-container">
+                            <div class="license-warning">
+                                <p>Your license is not active.</p>
+                                <p>Please contact support or renew your license to continue using this application.</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+
+                        @if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
+                        {
+                            <MudAlert Variant="Variant.Filled" Class="mb-3" Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person2">Your Role is Student</MudAlert>
+                            <MudDivider Class="border border-secondary border-2 opacity-50 mb-3 "></MudDivider>
+
+                            <div class="row gy-4 mb-24">
+                                <!-- ======================= First Row Cards Start =================== -->
+                                <div class="col-xxl-6">
+                                    <div class="card radius-8 border-0 p-20">
+                                        <div class="row gy-4">
+                                            <div class="col-xxl-4">
+                                                <div class="card p-3 radius-8 shadow-none bg-gradient-dark-start-1 mb-12">
+                                                    <div class="card-body p-0">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-0">
+                                                            <div class="d-flex align-items-center gap-2 mb-12">
+                                                                <span class="mb-0 w-48-px h-48-px bg-base text-pink text-2xl flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                                                                    <i class="ri-group-fill"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="mb-0 fw-medium text-secondary-light text-lg">Total Students</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-8">
+                                                            <h5 class="fw-semibold mb-0">@studentDetails.TotalStudents</h5>
+                                                            <p class="text-sm mb-0 d-flex align-items-center gap-8">
+                                                                <span class="text-white px-1 rounded-2 fw-medium bg-success-main text-sm">+@studentDetails.NewStudentsCurrentMonth</span>
+                                                                This Month
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="card p-3 radius-8 shadow-none bg-gradient-dark-start-2 mb-12">
+                                                    <div class="card-body p-0">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-0">
+                                                            <div class="d-flex align-items-center gap-2 mb-12">
+                                                                <span class="mb-0 w-48-px h-48-px bg-base text-purple text-2xl flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                                                                    <i class="ri-youtube-fill"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="mb-0 fw-medium text-secondary-light text-lg">Total Courses</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-8">
+                                                            <h5 class="fw-semibold mb-0">@lesson.TotalLessons</h5>
+                                                            <p class="text-sm mb-0 d-flex align-items-center gap-8">
+                                                                <span class="text-white px-1 rounded-2 fw-medium bg-success-main text-sm">+ @lesson.LessonsAddedThisMonth</span>
+                                                                This Month
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="card p-3 radius-8 shadow-none bg-gradient-dark-start-3 mb-0">
+                                                    <div class="card-body p-0">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-0">
+                                                            <div class="d-flex align-items-center gap-2 mb-12">
+                                                                <span class="mb-0 w-48-px h-48-px bg-base text-info text-2xl flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                                                                    <i class="ri-money-dollar-circle-fill"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="mb-0 fw-medium text-secondary-light text-lg">Student Perdentage Increase </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-8">
+                                                            <h5 class="fw-semibold mb-0">@studentDetails.PercentageIncreaseInStudents%</h5>
+                                                            <p class="text-sm mb-0 d-flex align-items-center gap-8">
+                                                                <span class="text-white px-1 rounded-2 fw-medium bg-success-main text-sm"></span>
+                                                                Difference
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-xxl-8">
+                                                <div class="card-body p-0">
+                                                    <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                        <h6 class="mb-2 fw-bold text-lg">
+                                                            Perfomances
+                                                        </h6>
+
+                                                    </div>
+                                                    <ul class="d-flex flex-wrap align-items-center justify-content-center mt-3 gap-3">
+                                                    </ul>
+                                                    <div class="mt-40">
+                                                        <div id="performanceChart" class="apexcharts-tooltip-style-1">
+                                                            @if (StudentPerformanceChartConfig == null)
+                                                            {
+                                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No Data found to visualize</MudAlert>
+                                                            }
+                                                            else
+                                                            {
+                                                                <Chart Config="StudentPerformanceChartConfig" />
+                                                            }
+                                                            @* <MudChart ChartType="ChartType.StackedBar" ChartSeries="@StudentPerfomanceSeries" @bind-SelectedIndex="Index" LegendPosition="@LegendPosition" XAxisLabels="@XAxisLabels" Width="100%" Height="350px"></MudChart> *@
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xxl-3 col-md-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                @if (AppState.UserRole == "Parent")
+                                                {
+                                                    <h6 class="mb-2 fw-bold text-lg mb-0">Student Attendance Trends</h6>
+
+                                                }
+                                                else
+                                                {
+                                                    <h6 class="mb-2 fw-bold text-lg mb-0">Current Pending Lessons</h6>
+                                                    <a href="StudentLessons" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
+                                                        Pending Lessons
+                                                        <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
+                                                    </a>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            @if (AppState.UserRole == "Parent")
+                                            {
+                                                @if (attendancesTrends.Any())
+                                                {
+                                                    @foreach (var item in attendancesTrends)
+                                                    {
+                                                        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                                                            <div class="d-flex align-items-center gap-12">
+                                                                <div class="flex-grow-1">
+                                                                    <h6 class="text-md mb-0 fw-normal">@item.FirstName @item.LastName: <b><i></i>@item.TotalPresent Total Present</b></h6>
+                                                                    <span class="text-sm text-secondary-light fw-normal">Period: Past 7 Days</span>
+                                                                    <span class="text-sm text-secondary-light fw-normal">
+                                                                        Attendance Percentage @item.AttendancePercentage%
+                                                                    </span>
+                                                                    <span class="text-sm text-secondary-light fw-normal">
+                                                                        Total Number Classes Missed @item.TotalAbsent
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+
+
+                                                }
+                                                else
+                                                {
+                                                    <MudAlert Severity="Severity.Success">Nothing to see here ;)</MudAlert>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                @if (uncompletedLessons.Any())
+                                                {
+                                                    @foreach (var item in uncompletedLessons)
+                                                    {
+                                                        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                                                            <div class="d-flex align-items-center gap-12">
+                                                                <div class="flex-grow-1">
+                                                                    <h6 class="text-md mb-0 fw-normal">@item.ClassName: <b><i></i>@item.Title</b></h6>
+                                                                    <span class="text-sm text-secondary-light fw-normal">Date Posted: @item.DatePosted.Value.ToShortDateString()</span>
+                                                                    <span class="text-sm text-secondary-light fw-normal">
+                                                                        <MudRating SelectedValue="@item.Rating.Value" />
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <a href="StudentLessons" class="w-24-px h-24-px bg-primary-50 text-primary-600 d-flex justify-content-center align-items-center text-lg bg-hover-primary-100 radius-4">
+                                                                <i class="ri-arrow-right-s-line"></i>
+                                                            </a>
+                                                        </div>
+                                                    }
+
+
+                                                }
+                                                else
+                                                {
+                                                    <MudAlert Severity="Severity.Success">Congrats, you are all Caught up :)</MudAlert>
+
+                                                }
+                                            }
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xxl-3 col-md-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                @if (AppState.UserRole == "Student")
+                                                {
+                                                    <h6 class="mb-2 fw-bold text-lg mb-0">Attendance</h6>
+                                                    <a href="StudentLessons" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
+                                                        Class Attendance
+                                                        <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <h6 class="mb-2 fw-bold text-lg mb-0">Missed Classes Last 7 Days</h6>
+
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            @if (AppState.UserRole == "Student")
+                                            {
+                                                @if (attendances.Any())
+                                                {
+                                                    @foreach (var item in attendances)
+                                                    {
+                                                        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                                                            <div class="d-flex align-items-center gap-12">
+                                                                <div class="flex-grow-1">
+                                                                    <h6 class="text-md mb-0 fw-normal">@item.AttendanceDate.Value.ToShortDateString(): @item.ClassName</h6>
+                                                                    <span class="text-sm text-secondary-light fw-normal">
+                                                                        Attendance:
+                                                                        @if (item.AttendanceStatus == true)
+                                                                        {
+
+                                                                            <MudChip T="string" Variant="Variant.Text" Color="Color.Success">Attended</MudChip>
+                                                                        }
+                                                                        else
+                                                                        {
+
+                                                                            <MudChip T="string" Variant="Variant.Text" Color="Color.Error">Absent</MudChip>
+                                                                        }
+
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <a href="StudentLessons" class="w-24-px h-24-px bg-primary-50 text-primary-600 d-flex justify-content-center align-items-center text-lg bg-hover-primary-100 radius-4">
+                                                                <i class="ri-arrow-right-s-line"></i>
+                                                            </a>
+                                                        </div>
+                                                    }
+
+
+                                                }
+                                                else
+                                                {
+                                                    <MudAlert Severity="Severity.Success">Congrats, you are all Caught up :)</MudAlert>
+
+                                                }
+                                            }
+                                            else
+                                            {
+                                                @if (missedClasses.Any())
+                                                {
+                                                    @foreach (var item in missedClasses)
+                                                    {
+                                                        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+                                                            <div class="d-flex align-items-center gap-12">
+                                                                <div class="flex-grow-1">
+                                                                    <h6 class="text-md mb-0 fw-normal">@item.AttendanceDate.Value.ToShortDateString(): @item.ClassName</h6>
+                                                                    <span class="text-sm text-secondary-light fw-normal">
+                                                                        @item.FirstName @item.LastName
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+
+
+                                                }
+                                                else
+                                                {
+                                                    <MudAlert Severity="Severity.Success">Congrats, you are all Caught up :)</MudAlert>
+
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <!--==========================Second Row===============================-->
+                                <div class="col-xxl-12 col-md-12">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                <h6 class="mb-2 fw-bold text-lg mb-0">Recent Test Results</h6>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            @if (Currentschedules.Any())
+                                            {
+                                                <table class="timetable">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Time</th>
+                                                            @foreach (var day in daysofTheWeek)
+                                                            {
+                                                                <th>@day.DayName</th>
+                                                            }
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var group in groupedSchedules)
+                                                        {
+                                                            <tr>
+                                                                <td class="time">@($"{group.Key.StartTime:hh\\:mm}") - @($"{group.Key.EndTime:hh\\:mm}")</td>
+                                                                @foreach (var day in dayOrder)
+                                                                {
+                                                                    <td class="@((group.Any(cs => cs.DayName == day) ? "" : "empty"))">
+                                                                        @{
+                                                                            var schedule = group.FirstOrDefault(cs => cs.DayName == day);
+                                                                            if (schedule != null)
+                                                                            {
+                                                                                <span>@schedule.ClassName</span>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <span>No Classes</span>
+                                                                            }
+                                                                        }
+                                                                    </td>
+                                                                }
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+
+                                                </table>
+                                            }
+                                            else
+                                            {
+
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (AppState.UserRole == "Teacher" || AppState.UserRole == "Admin" || AppState.UserRole == "Staff")
+                        {
+                            <div class="row gy-4 mb-24">
+                                <!-- ======================= First Row Cards Start =================== -->
+                                <div class="col-xxl-8">
+                                    <div class="card radius-8 border-0 p-20">
+                                        <div class="row gy-4">
+                                            <div class="col-xxl-4">
+                                                <div class="card p-3 radius-8 shadow-none bg-gradient-dark-start-1 mb-12">
+                                                    <div class="card-body p-0">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-0">
+                                                            <div class="d-flex align-items-center gap-2 mb-12">
+                                                                <span class="mb-0 w-48-px h-48-px bg-base text-pink text-2xl flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                                                                    <i class="ri-group-fill"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="mb-0 fw-medium text-secondary-light text-lg">Total Students</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-8">
+                                                            <h5 class="fw-semibold mb-0">@studentDetails.TotalStudents</h5>
+                                                            <p class="text-sm mb-0 d-flex align-items-center gap-8">
+                                                                <span class="text-white px-1 rounded-2 fw-medium bg-success-main text-sm">+@studentDetails.NewStudentsCurrentMonth</span>
+                                                                This Month
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="card p-3 radius-8 shadow-none bg-gradient-dark-start-2 mb-12">
+                                                    <div class="card-body p-0">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-0">
+                                                            <div class="d-flex align-items-center gap-2 mb-12">
+                                                                <span class="mb-0 w-48-px h-48-px bg-base text-purple text-2xl flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                                                                    <i class="ri-youtube-fill"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="mb-0 fw-medium text-secondary-light text-lg">Total Courses</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-8">
+                                                            <h5 class="fw-semibold mb-0">@lesson.TotalLessons</h5>
+                                                            <p class="text-sm mb-0 d-flex align-items-center gap-8">
+                                                                <span class="text-white px-1 rounded-2 fw-medium bg-success-main text-sm">+ @lesson.LessonsAddedThisMonth</span>
+                                                                This Month
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="card p-3 radius-8 shadow-none bg-gradient-dark-start-3 mb-0">
+                                                    <div class="card-body p-0">
+                                                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-0">
+                                                            <div class="d-flex align-items-center gap-2 mb-12">
+                                                                <span class="mb-0 w-48-px h-48-px bg-base text-info text-2xl flex-shrink-0 d-flex justify-content-center align-items-center rounded-circle h6">
+                                                                    <i class="ri-money-dollar-circle-fill"></i>
+                                                                </span>
+                                                                <div>
+                                                                    <span class="mb-0 fw-medium text-secondary-light text-lg">Student Perdentage Increase </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-8">
+                                                            <h5 class="fw-semibold mb-0">@studentDetails.PercentageIncreaseInStudents%</h5>
+                                                            <p class="text-sm mb-0 d-flex align-items-center gap-8">
+                                                                <span class="text-white px-1 rounded-2 fw-medium bg-success-main text-sm"></span>
+                                                                Difference
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-xxl-8">
+                                                <div class="card-body p-0">
+                                                    <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                        <h6 class="mb-2 fw-bold text-lg">
+                                                            Student Country Demographic
+                                                        </h6>
+
+                                                    </div>
+                                                    <div class="mt-40">
+                                                        <div id="enrollmentChart" class="apexcharts-tooltip-style-1">
+                                                            @if (StudentCountryChartConfig == null)
+                                                            {
+                                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No Data found to visualize</MudAlert>
+                                                            }
+                                                            else
+                                                            {
+                                                                <Chart Config="@StudentCountryChartConfig"></Chart>
+                                                            }
+                                                            @* <MudChart ChartType="ChartType.StackedBar" ChartSeries="@StudentCountryDemographic" @bind-SelectedIndex="Index" LegendPosition="@LegendPosition" XAxisLabels="@CountryNames" Width="100%" Height="550px"></MudChart> *@
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xxl-4">
+                                    <div class="card-body p-0">
+                                        <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                            <h6 class="mb-2 fw-bold text-lg">
+                                                Student City Demographic
+                                            </h6>
+
+                                        </div>
+                                        <div class="mt-40">
+                                            <div id="enrollmentChart" class="apexcharts-tooltip-style-1">
+                                                @if (StudentCityChartConfig == null)
+                                                {
+                                                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No Data found to visualize</MudAlert>
+                                                }
+                                                else
+                                                {
+                                                    <Chart Config="@StudentCityChartConfig"></Chart>
+                                                }
+                                                @* <MudChart ChartType="ChartType.Pie" InputData="@StudentCityDemographic" @bind-SelectedIndex="Index" InputLabels="@CityNames" Width="300px" Height="500px" /> *@
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <!-- ======================= First Row Cards End =================== -->
+                                <!-- ================== Second Row Cards Start ======================= -->
+                                <!-- Top Categories Card Start -->
+                                <div class="col-xxl-4 col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                <h6 class="mb-2 fw-bold text-lg mb-0">Top Lessons</h6>
+                                                <a href="javascript:void(0)" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
+                                                    View All
+                                                    <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            @if (HighRatedLessons.Any())
+                                            {
+                                                @foreach (var item in HighRatedLessons)
+                                                {
+                                                    <div class="d-flex align-items-center justify-content-between gap-3 mb-24">
+                                                        <div class="d-flex align-items-center gap-12">
+                                                            <div class="w-40-px h-40-px radius-8 flex-shrink-0 bg-info-50 d-flex justify-content-center align-items-center">
+                                                                @if (item.ProfilePic != null)
+                                                                {
+                                                                    <img src=$"data:image/jpeg;base64,{Convert.ToBase64String(@item.ProfilePic)}"; alt="" class="w-40-px h-40-px rounded-circle flex-shrink-0 me-12 overflow-hidden">
+                                                                }
+                                                                else
+                                                                {
+                                                                    @if (item.Gender == "Male")
+                                                                    {
+                                                                        <img src="images/avatar/Man.png" ; alt="" class="w-40-px h-40-px rounded-circle flex-shrink-0 me-12 overflow-hidden">
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <img src="images/avatar/Woman.png" ; alt="" class="w-40-px h-40-px rounded-circle flex-shrink-0 me-12 overflow-hidden">
+                                                                    }
+                                                                }
+                                                            </div>
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="text-md mb-0 fw-normal">@item.ClassName @item.TeacherName</h6>
+                                                                <span class="text-sm text-secondary-light fw-normal">@item.TotalLessons Courses</span>
+                                                            </div>
+                                                        </div>
+                                                        <a href="#" class="w-24-px h-24-px bg-primary-50 text-primary-600 d-flex justify-content-center align-items-center text-lg bg-hover-primary-100 radius-4">
+                                                            <i class="ri-arrow-right-s-line"></i>
+                                                        </a>
+                                                    </div>
+                                                }
+                                            }
+                                            else
+                                            {
+
+                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No data found, Please wait for ratings to be submitted</MudAlert>
+
+                                            }
+
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Top Categories Card End -->
+                                <!-- Instructor Card Start -->
+                                <div class="col-xxl-4 col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                <h6 class="mb-2 fw-bold text-lg mb-0">Top Instructors</h6>
+                                                <a href="javascript:void(0)" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
+                                                    View All
+                                                    <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            @if (_top5Teachers.Any())
+                                            {
+                                                @foreach (var item in _top5Teachers)
+                                                {
+                                                    <div class="d-flex align-items-center justify-content-between gap-3 mb-24">
+                                                        <div class="d-flex align-items-center">
+                                                            @if (item.ProfilePic != null)
+                                                            {
+                                                                <img src=$"data:image /jpeg;base64,{Convert.ToBase64String(@item.ProfilePic)}" alt="" class="w-40-px h-40-px rounded-circle flex-shrink-0 me-12 overflow-hidden">
+                                                            }
+                                                            else
+                                                            {
+                                                                @if (item.Gender == "Male")
+                                                                {
+                                                                    <img src="images/avatar/Man.png" alt="" class="w-40-px h-40-px rounded-circle flex-shrink-0 me-12 overflow-hidden">
+                                                                }
+                                                                else
+                                                                {
+                                                                    <img src="images/avatar/Woman.png" alt="" class="w-40-px h-40-px rounded-circle flex-shrink-0 me-12 overflow-hidden">
+                                                                }
+                                                            }
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="text-md mb-0 fw-medium">@item.FirstName @item.LastName</h6>
+                                                                <span class="text-sm text-secondary-light fw-medium">Average Rating: @item.AverageRating</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="">
+                                                            <div class="d-flex align-items-center gap-6 mb-1">
+                                                                @for (int i = 0; i < (item.AverageRating); i++)
+                                                                {
+                                                                    <span class="text-lg text-warning-600 d-flex line-height-1"><i class="ri-star-fill"></i></span>
+                                                                }
+
+                                                            </div>
+                                                            <span class="text-primary-light text-sm d-block text-end">@item.TotalHighRatedLessons Lessons Rated 4 and above</span>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No data found</MudAlert>
+                                            }
+
+
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Instructor Card End -->
+                                <!-- Student Progress Card Start -->
+                                <div class="col-xxl-4 col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                <h6 class="mb-2 fw-bold text-lg mb-0">Best Perfoming Students</h6>
+                                                <a href="javascript:void(0)" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
+                                                    View All
+                                                    <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center justify-content-between gap-3 mb-24">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="~/images/home-six/student-img1.png" alt="" class="w-40-px h-40-px radius-8 flex-shrink-0 me-12 overflow-hidden">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="text-md mb-0 fw-medium">Theresa Webb</h6>
+                                                        <span class="text-sm text-secondary-light fw-medium">UI/UX Design Course</span>
+                                                    </div>
+                                                </div>
+                                                <div class="">
+                                                    <span class="text-primary-light text-sm d-block text-end">
+                                                        <svg class="radial-progress" data-percentage="33" viewBox="0 0 80 80">
+                                                            <circle class="incomplete" cx="40" cy="40" r="35"></circle>
+                                                            <circle class="complete" cx="40" cy="40" r="35" style="stroke-dashoffset: 39.58406743523136;"></circle>
+                                                            <text class="percentage" x="50%" y="57%" transform="matrix(0, 1, -1, 0, 80, 0)">33</text>
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center justify-content-between gap-3 mb-24">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="~/images/home-six/student-img2.png" alt="" class="w-40-px h-40-px radius-8 flex-shrink-0 me-12 overflow-hidden">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="text-md mb-0 fw-medium">Robert Fox</h6>
+                                                        <span class="text-sm text-secondary-light fw-medium">Graphic Design Course</span>
+                                                    </div>
+                                                </div>
+                                                <div class="">
+                                                    <span class="text-primary-light text-sm d-block text-end">
+                                                        <svg class="radial-progress" data-percentage="70" viewBox="0 0 80 80">
+                                                            <circle class="incomplete" cx="40" cy="40" r="35"></circle>
+                                                            <circle class="complete" cx="40" cy="40" r="35" style="stroke-dashoffset: 39.58406743523136;"></circle>
+                                                            <text class="percentage" x="50%" y="57%" transform="matrix(0, 1, -1, 0, 80, 0)">70</text>
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center justify-content-between gap-3 mb-24">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="~/images/home-six/student-img3.png" alt="" class="w-40-px h-40-px radius-8 flex-shrink-0 me-12 overflow-hidden">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="text-md mb-0 fw-medium">Guy Hawkins</h6>
+                                                        <span class="text-sm text-secondary-light fw-medium">Web developer Course</span>
+                                                    </div>
+                                                </div>
+                                                <div class="">
+                                                    <span class="text-primary-light text-sm d-block text-end">
+                                                        <svg class="radial-progress" data-percentage="80" viewBox="0 0 80 80">
+                                                            <circle class="incomplete" cx="40" cy="40" r="35"></circle>
+                                                            <circle class="complete" cx="40" cy="40" r="35" style="stroke-dashoffset: 39.58406743523136;"></circle>
+                                                            <text class="percentage" x="50%" y="57%" transform="matrix(0, 1, -1, 0, 80, 0)">80</text>
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center justify-content-between gap-3 mb-24">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="~/images/home-six/student-img4.png" alt="" class="w-40-px h-40-px radius-8 flex-shrink-0 me-12 overflow-hidden">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="text-md mb-0 fw-medium">Cody Fisher</h6>
+                                                        <span class="text-sm text-secondary-light fw-medium">UI/UX Design Course</span>
+                                                    </div>
+                                                </div>
+                                                <div class="">
+                                                    <span class="text-primary-light text-sm d-block text-end">
+                                                        <svg class="radial-progress" data-percentage="20" viewBox="0 0 80 80">
+                                                            <circle class="incomplete" cx="40" cy="40" r="35"></circle>
+                                                            <circle class="complete" cx="40" cy="40" r="35" style="stroke-dashoffset: 39.58406743523136;"></circle>
+                                                            <text class="percentage" x="50%" y="57%" transform="matrix(0, 1, -1, 0, 80, 0)">20</text>
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center justify-content-between gap-3 mb-24">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="~/images/home-six/student-img5.png" alt="" class="w-40-px h-40-px radius-8 flex-shrink-0 me-12 overflow-hidden">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="text-md mb-0 fw-medium">Jacob Jones</h6>
+                                                        <span class="text-sm text-secondary-light fw-medium">UI/UX Design Course</span>
+                                                    </div>
+                                                </div>
+                                                <div class="">
+                                                    <span class="text-primary-light text-sm d-block text-end">
+                                                        <svg class="radial-progress" data-percentage="40" viewBox="0 0 80 80">
+                                                            <circle class="incomplete" cx="40" cy="40" r="35"></circle>
+                                                            <circle class="complete" cx="40" cy="40" r="35" style="stroke-dashoffset: 39.58406743523136;"></circle>
+                                                            <text class="percentage" x="50%" y="57%" transform="matrix(0, 1, -1, 0, 80, 0)">40</text>
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-center justify-content-between gap-3 mb-0">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="~/images/home-six/student-img6.png" alt="" class="w-40-px h-40-px radius-8 flex-shrink-0 me-12 overflow-hidden">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="text-md mb-0 fw-medium">Darlene Robertson</h6>
+                                                        <span class="text-sm text-secondary-light fw-medium">UI/UX Design Course</span>
+                                                    </div>
+                                                </div>
+                                                <div class="">
+                                                    <span class="text-primary-light text-sm d-block text-end">
+                                                        <svg class="radial-progress" data-percentage="24" viewBox="0 0 80 80">
+                                                            <circle class="incomplete" cx="40" cy="40" r="35"></circle>
+                                                            <circle class="complete" cx="40" cy="40" r="35" style="stroke-dashoffset: 39.58406743523136;"></circle>
+                                                            <text class="percentage" x="50%" y="57%" transform="matrix(0, 1, -1, 0, 80, 0)">24</text>
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Student Progress Card End -->
+
+                            </div>
+                        }
+                    }
+                }
+
+            </Authorized>
+            <NotAuthorized>
+                <div class="unauthorized-container">
+                    <div class="animation-container">
+                        <!-- Animation or icon can go here -->
+                        <div class="circle"></div>
+                        <div class="lock-icon">🔒</div>
+                    </div>
+                    <h1>You Are Not Authorized</h1>
+                    <p>It seems like you don't have the required permissions to access this page. Please login with your account to get access.</p>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+
+
+
+    </MudCardContent>
+</MudCard>
+@code {
+    private bool isLoading = false;
+    private bool isAuthenticated = false;
+    private BarConfig StudentPerformanceChartConfig { get; set; }
+    private BarConfig StudentCountryChartConfig { get; set; }
+    private PieConfig StudentCityChartConfig { get; set; }
+    private int Index = -1; //default value cannot be 0 -> first selectedindex is 0.
+    protected List<vw_TopPerformingTeacher> teacherPerfomances = new();
+    protected List<vw_ClassLessonSummary> HighRatedLessons = new();
+    protected GetLessonCountBySchoolResult lesson = new();
+    protected List<TimeSlot> timeSlots = new();
+    protected List<GetStudentPerformanceForCurrentYearResult> YearlyStudentPerfomance = new();
+    protected List<GetStudentUnCompletedLessonsResult> uncompletedLessons = new();
+    protected List<GetStudentClassScheduleResult> Currentschedules = new();
+    protected List<GetStudentAttendanceByUserIDAndEventDateResult> attendances = new();
+    protected List<GetAttendanceTrendForPastSevenDaysResult> attendancesTrends = new();
+    protected List<GetMissedClassesForPastWeekResult> missedClasses = new();
+    protected List<GetStudentDemographicsCountryResult> StudentDemographicsCountries = new();
+    protected List<GetStudentDemographicsResult> StudentDemographicsCity = new();
+    protected List<GetTop5TeachersByHighRatedLessonsResult> _top5Teachers = new();
+    [Inject] ISnackbar Snackbar { get; set; }
+    private readonly List<string> dayOrder = new List<string>
+
+{
+    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+};
+    protected vw_StudentGrowth studentDetails = new();
+    // bool isstudent = false;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    private Position LegendPosition = Position.Bottom;
+    public string[] XAxisLabels;
+    public string[] CountryNames;
+    public string[] CityNames;
+    public List<ChartSeries> StudentPerfomanceSeries = new List<ChartSeries>();
+    public List<ChartSeries> StudentCountryDemographic = new List<ChartSeries>();
+    public double[] StudentCityDemographic;
+    protected string StudentID = string.Empty;
+    protected int GradeLevel = 0;
+    private IEnumerable<IGrouping<TimeSlot, GetStudentClassScheduleResult>> groupedSchedules;
+    protected List<DayofTheWeek> daysofTheWeek = new();
+    [Inject] AuthenticationStateProvider _authenticationStateProvider { get; set; } = default!;
+    protected string SchoolID = string.Empty;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        DialogService.Show<OpeningPage>("");
+
+        try
+        {
+            // Step 1: Check authentication state
+            var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated != true)
+            {
+                Console.WriteLine("User is not authenticated. Initialization aborted.");
+                isLoading = false;
+                return; // Exit early if the user is not authenticated
+            }
+
+            // Step 2: Attempt to initialize AppState (with retry logic)
+            int maxTries = 5;
+            int currentTry = 0;
+
+            while (!AppState.IsInitialized && currentTry < maxTries)
+            {
+                Console.WriteLine($"Retry {currentTry + 1}: Waiting for AppState to initialize...");
+                await Task.Delay(500);
+                currentTry++;
+            }
+
+            if (!AppState.IsInitialized)
+            {
+                Console.WriteLine("AppState failed to initialize within the maximum number of tries.");
+                isLoading = false;
+                throw new Exception("AppState failed to initialize within the maximum number of tries.");
+            }
+
+            // Step 3: Load user-specific data after AppState is initialized
+            SchoolID = AppState.SchoolID;
+
+            Console.WriteLine("Starting GetAllLessons...");
+            await GetAllLessons();
+            Console.WriteLine("Completed GetAllLessons...");
+
+            Console.WriteLine("Starting GetStudentDetails...");
+            await GetStudentDetails();
+            Console.WriteLine("Completed GetStudentDetails...");
+
+            var otherTasks = new[]
+            {
+            GetTopLessons(),
+            GetStudentDemoGraphicCountry(),
+            GetStudentDemographicCity(),
+            GetTopTeachers()
+        };
+
+            Console.WriteLine("Starting parallel tasks...");
+            await Task.WhenAll(otherTasks);
+            Console.WriteLine("Completed parallel tasks.");
+
+            if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
+            {
+                await GetTimeSlots();
+                await GetDaysOfWeek();
+                await GetStudentPerfomanceData();
+                await GetUnCompletedClasses();
+                await GetClassSchedule();
+                await GetAttendances();
+            }
+            AppState.OnChange += async () => await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during initialization: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    protected async Task LoadInfomation()
+    {
+
+        await InvokeAsync(StateHasChanged); // Show loading state
+
+
+        if (!AppState.IsInitialized)
+        {
+            Console.WriteLine("AppState failed to initialize after retries.");
+            isLoading = false;
+            await InvokeAsync(StateHasChanged); // Notify UI of failure
+            return;
+        }
+
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            SchoolID = AppState.SchoolID;
+
+            try
+            {
+                // Load common data sequentially for reliability
+                await GetAllLessons();
+                await GetStudentDetails();
+
+                // Load additional data in parallel
+                var otherTasks = new[]
+                {
+                    GetTopLessons(),
+                    GetStudentDemoGraphicCountry(),
+                    GetStudentDemographicCity(),
+                    GetTopTeachers()
+                };
+                await Task.WhenAll(otherTasks);
+
+                if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
+                {
+                    await GetTimeSlots();
+                    await GetDaysOfWeek();
+                    await GetStudentPerfomanceData();
+                    await GetUnCompletedClasses();
+                    await GetClassSchedule();
+                    await GetAttendances();
+                    await GetBadges();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error during initialization: {ex.Message}");
+            }
+            finally
+            {
+                isLoading = false;
+                await InvokeAsync(StateHasChanged); // Always ensure UI refresh
+            }
+        }
+        else
+        {
+            isAuthenticated = false;
+            isLoading = false;
+            await InvokeAsync(StateHasChanged); // Notify UI of unauthenticated state
+        }
+    }
+    protected async Task GetTopTeachers()
+    {
+        var service = _genericService.GetService<GetTop5TeachersByHighRatedLessonsResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetTopTeachers/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            _top5Teachers = result.Data.ToList();
+        }
+    }
+    protected async Task GetStudentDetails()
+    {
+        var service = _genericService.GetService<vw_StudentGrowth>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentGrowthBySchool/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            studentDetails = result.Data.FirstOrDefault();
+            if (studentDetails == null)
+            {
+                studentDetails = new();
+            }
+
+            studentDetails.PercentageIncreaseInStudents = (int)studentDetails.PercentageIncreaseInStudents;
+            StateHasChanged();
+        }
+    }
+    protected async Task GetAllLessons()
+    {
+        try
+        {
+            var service = _genericService.GetService<GetLessonCountBySchoolResult>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetLessonCountBySchool/{AppState.SchoolID}", true);
+            if (result.IsSuccess)
+            {
+                if (result.Data.Any())
+                {
+                    lesson = result.Data.FirstOrDefault();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+            throw;
+        }
+
+    }
+
+    protected async Task GetTopLessons()
+    {
+        var service = _genericService.GetService<vw_ClassLessonSummary>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetLessonSummaryBySchool/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            HighRatedLessons = result.Data.ToList();
+
+        }
+    }
+    protected async Task GetStudentDemoGraphicCountry()
+    {
+        try
+        {
+            var service = _genericService.GetService<GetStudentDemographicsCountryResult>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetStudentDemoCountry/{AppState.SchoolID}", true);
+            if (result.IsSuccess)
+            {
+                StudentDemographicsCountries = result.Data.ToList();
+                OrganizeCountryDemographicData();
+                StateHasChanged();
+            }
+            else
+            {
+                Console.Error.WriteLine("Failed to fetch student demographics by country");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in GetStudentDemoGraphicCountry: {ex.Message}");
+        }
+    }
+    protected async Task GetStudentDemographicCity()
+    {
+        try
+        {
+            var service = _genericService.GetService<GetStudentDemographicsResult>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetStudentDemoCity/{AppState.SchoolID}", true);
+            if (result.IsSuccess)
+            {
+                StudentDemographicsCity = result.Data.ToList();
+                OrganizeCityDemographicData(); StateHasChanged();
+            }
+            else
+            {
+                Console.Error.WriteLine("Failed to fetch student demographics by city.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in GetStudentDemographicCity: {ex.Message}");
+        }
+    }
+    #region Student
+
+
+
+    protected async Task GetAttendanceTrends()
+    {
+        var service = _genericService.GetService<GetAttendanceTrendForPastSevenDaysResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetAttendanceTrends/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            attendancesTrends = result.Data.ToList();
+        }
+    }
+    protected async Task GetMissedClassesPastSevenDaya()
+    {
+        var service = _genericService.GetService<GetMissedClassesForPastWeekResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetMissedClasses/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            missedClasses = result.Data.ToList();
+        }
+    }
+
+    protected async Task GetBadges()
+    {
+        var service = _genericService.GetService<Badge>();
+        var result = await service.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
+        if (result.IsSuccess)
+        {
+            AppState.Badges = result.Data.ToList();
+            AppState.UserActivities = await GetUserActivitiesDone(AppState.UserRole, AppState.UserID);
+        }
+    }
+    private async Task<List<UserActivity>> GetUserActivitiesDone(string UserRole, string UserID)
+    {
+        if (UserRole == "Student")
+        {
+            var service = _genericService.GetService<UserActivity>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
+            if (result.IsSuccess)
+            {
+                return result.Data.ToList();
+            }
+            else
+            {
+                return new List<UserActivity>();
+            }
+        }
+        else
+        {
+            return new List<UserActivity>();
+        }
+    }
+    protected async Task GetTimeSlots()
+    {
+        try
+        {
+            var result = _genericService.GetService<TimeSlot>();
+            var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"timeslot"}", true);
+            if (service.IsSuccess)
+            {
+                if (service.Data != null)
+                {
+                    timeSlots = service.Data.ToList();
+                }
+                else
+                {
+                    timeSlots = new();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in GettingTimeSlots: {ex.Message}");
+            throw;
+        }
+
+    }
+    protected async Task GetDaysOfWeek()
+    {
+        try
+        {
+            var result = _genericService.GetService<DayofTheWeek>();
+            var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"days"}", true);
+            if (service.IsSuccess)
+            {
+                if (service.Data != null)
+                {
+                    daysofTheWeek = service.Data.ToList();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in GettingDaysOfTheWeek: {ex.Message}");
+            throw;
+        }
+
+    }
+
+    private void OrganizeCountryDemographicData()
+    {
+        try
+        {
+            if (StudentDemographicsCountries.Any())
+            {
+                CountryNames = StudentDemographicsCountries.Select(x => x.Country).ToArray();
+                //Prepare the datasets
+                var currentMonthDataset = new BarDataset<double>
+                    {
+                        Label = "Current Total",
+                        BackgroundColor = "rgba(41, 16, 74, .7)", // Light Blue
+                    };
+                var data = StudentDemographicsCountries.Select(x => x.StudentCount ?? 0.0m).Select(v => (double)v).ToArray();
+                // Add data to datasets
+                foreach (var record in data)
+                {
+                    currentMonthDataset.Add(record);
+                }
+                //Configure chart
+                StudentCountryChartConfig = new BarConfig
+                    {
+                        Options = new BarOptions
+                        {
+                            Responsive = true,
+                            Title = new OptionsTitle
+                            {
+                                Display = true,
+                                Text = "Student Demographic By Country"
+                            },
+                            Scales = new BarScales
+                            {
+                                XAxes = new List<CartesianAxis>
+                               {
+                                   new CategoryAxis
+                                   {
+                                       ScaleLabel = new ScaleLabel
+                                       {
+                                           LabelString = "Countries"
+                                       }
+                                   }
+                               },
+                                YAxes = new List<CartesianAxis>
+                               {
+                                   new LinearCartesianAxis
+                                   {
+                                       ScaleLabel = new ScaleLabel
+                                       {
+                                           LabelString = "Total Number"
+                                       }
+                                   }
+                               }
+                            }
+                        },
+                    };
+                StudentCountryChartConfig.Data.Datasets.Add(currentMonthDataset);
+                foreach (var item in CountryNames)
+                {
+                    StudentCountryChartConfig.Data.Labels.Add(item);
+                }
+            }
+        }
+        catch (Exception ex) { Console.Error.WriteLine($"Exception in OrganizeCountryDemographicData: {ex.Message}"); }
+    }
+
+    private void OrganizeCityDemographicData()
+    {
+        try
+        {
+            if (StudentDemographicsCity.Any())
+            {
+                CityNames = StudentDemographicsCity.Select(x => x.City).ToArray();
+                StudentCityDemographic = GetCityDemographicData();
+                var colors = GetColors(StudentDemographicsCity.Count);
+                var currentMonthDataset = new PieDataset<double>
+                    {
+                        BackgroundColor = colors.ToArray(),
+                    };
+                // Add data to datasets
+                foreach (var record in StudentDemographicsCity)
+                {
+                    currentMonthDataset.Add((double)record.StudentCount);
+                }
+                // Configure chart
+                StudentCityChartConfig = new PieConfig
+                    {
+                        Options = new PieOptions
+                        {
+                            Responsive = true,
+                            Title = new OptionsTitle
+                            {
+                                Display = true,
+                                Text = "Student Count by City"
+                            },
+                        },
+                    };
+                StudentCityChartConfig.Data.Datasets.Add(currentMonthDataset);
+                foreach (var item in CityNames)
+                {
+                    StudentCityChartConfig.Data.Labels.Add(item);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in OrganizeCityDemographicData: {ex.Message}");
+        }
+    }
+    protected async Task GetStudentPerfomanceData()
+    {
+        if (StudentID == string.Empty)
+        {
+            StudentID = AppState.UserID;
+            if (!string.IsNullOrEmpty(StudentID))
+            {
+                var service = _genericService.GetService<GetStudentPerformanceForCurrentYearResult>();
+                try
+                {
+                    if (AppState.UserRole == "Parent")
+                    {
+                        var result = await service.GetAllAsync($"api/Dynamic/GetStudentPerfomanceDataParent/{AppState.SchoolID}", true);
+                        if (result.IsSuccess)
+                        {
+                            YearlyStudentPerfomance = result.Data.ToList();
+                            if (YearlyStudentPerfomance.Any())
+                            {
+                                OrganizeStudentPerformanceDataParent();
+                            }
+                            else
+                            {
+                                SetDefaultChart();
+                            }
+                        }
+                        await GetMissedClassesPastSevenDaya();
+                        await GetAttendanceTrends();
+                    }
+                    else
+                    {
+                        var result = await service.GetAllAsync($"api/Dynamic/GetStudentPerfomanceData/{AppState.SchoolID}", true);
+                        if (result.IsSuccess)
+                        {
+                            YearlyStudentPerfomance = result.Data.ToList();
+                            if (YearlyStudentPerfomance.Any())
+                            {
+                                OrganizeStudentPerformanceData();
+                            }
+                            else
+                            {
+                                SetDefaultChart();
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Exception in GetStudentPerfomanceData: {ex.Message}");
+                }
+            }
+            else
+            {
+                SetDefaultChart();
+            }
+        }
+        else
+        {
+            SetDefaultChart();
+        }
+    }
+    private void OrganizeStudentPerformanceDataParent()
+    {
+        try
+        {
+            // Prepare the datasets
+            var currentMonthDataset = new BarDataset<double>
+                {
+                    Label = "Current Monthly Average '%'",
+                    BackgroundColor = "rgba(54, 162, 235, 0.6)" // Light Blue
+                };
+
+            foreach (var record in YearlyStudentPerfomance)
+            {
+                currentMonthDataset.Add((double)record.AverageMonthlyScore);
+            }
+
+            // Configure chart
+            StudentPerformanceChartConfig = new BarConfig
+                {
+                    Options = new BarOptions
+                    {
+                        Responsive = true,
+                        Title = new OptionsTitle
+                        {
+                            Display = true,
+                            Text = "Student Performance by Month"
+                        },
+                        Scales = new BarScales
+                        {
+                            XAxes = new List<CartesianAxis>
+                    {
+                        new CategoryAxis
+                        {
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = "Months"
+                            }
+                        }
+                    },
+                            YAxes = new List<CartesianAxis>
+                    {
+                        new LinearCartesianAxis
+                        {
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = "Performance"
+                            }
+                        }
+                    }
+                        }
+                    }
+                };
+
+            List<string> months = new();
+            foreach (var item in YearlyStudentPerfomance)
+            {
+                string monthName = $"{item.MonthName}:{item.FirstName}";
+                months.Add(monthName);
+            }
+
+            XAxisLabels = months.ToArray();
+            StudentPerformanceChartConfig.Data.Datasets.Add(currentMonthDataset);
+
+            foreach (var item in XAxisLabels)
+            {
+                StudentPerformanceChartConfig.Data.Labels.Add(item);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in OrganizeStudentPerformanceDataParent: {ex.Message}");
+        }
+    }
+
+    private void OrganizeStudentPerformanceData()
+    {
+        try
+        {
+            // Prepare the datasets
+            var currentMonthDataset = new BarDataset<double>
+                {
+                    Label = "Current Month Average",
+                    BackgroundColor = "rgba(54, 162, 235, 0.6)" // Light Blue
+                };
+
+            foreach (var record in YearlyStudentPerfomance)
+            {
+                currentMonthDataset.Add((double)record.AverageMonthlyScore);
+            }
+
+            // Configure chart
+            StudentPerformanceChartConfig = new BarConfig
+                {
+                    Options = new BarOptions
+                    {
+                        Responsive = true,
+                        Title = new OptionsTitle
+                        {
+                            Display = true,
+                            Text = "Student Performance by Month"
+                        },
+                        Scales = new BarScales
+                        {
+                            XAxes = new List<CartesianAxis>
+                    {
+                        new CategoryAxis
+                        {
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = "Months"
+                            }
+                        }
+                    },
+                            YAxes = new List<CartesianAxis>
+                    {
+                        new LinearCartesianAxis
+                        {
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = "Performance"
+                            }
+                        }
+                    }
+                        }
+                    }
+                };
+
+            XAxisLabels = YearlyStudentPerfomance.Select(x => x.MonthName).ToArray();
+            StudentPerformanceChartConfig.Data.Datasets.Add(currentMonthDataset);
+
+            foreach (var item in XAxisLabels)
+            {
+                StudentPerformanceChartConfig.Data.Labels.Add(item);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Exception in OrganizeStudentPerformanceData: {ex.Message}");
+        }
+    }
+
+
+    private void SetDefaultChart()
+    {
+        var defaultMonths = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+        var currentMonthDataset = new BarDataset<double>
+            {
+                Label = "Current Month Average",
+                BackgroundColor = "rgba(54, 162, 235, 0.6)", // Light Blue
+            };
+
+        var previousMonthDataset = new BarDataset<double>
+            {
+                Label = "Previous Month Average",
+                BackgroundColor = "rgba(255, 99, 132, 0.6)", // Light Red
+            };
+
+        // Populate datasets with zeros
+        for (int i = 0; i < defaultMonths.Length; i++)
+        {
+            currentMonthDataset.Data.Append(0);
+            previousMonthDataset.Data.Append(0);
+        }
+
+        StudentPerformanceChartConfig = new BarConfig
+            {
+                Options = new BarOptions
+                {
+                    Responsive = true,
+                    Title = new OptionsTitle { Display = true, Text = "Student Performance (No Data Available)" }
+                },
+
+            };
+    }
+    protected async Task GetUnCompletedClasses()
+    {
+        var service = _genericService.GetService<GetStudentUnCompletedLessonsResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentPendingClasses/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            uncompletedLessons = result.Data.ToList();
+        }
+    }
+    protected async Task GetAttendances()
+    {
+        if (StudentID != string.Empty)
+        {
+            var service = _genericService.GetService<GetStudentAttendanceByUserIDAndEventDateResult>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetStudentAttendances/{AppState.SchoolID}", true);
+            if (result.IsSuccess)
+            {
+                attendances = result.Data.OrderBy(x => x.AttendanceDate).ToList();
+            }
+        }
+    }
+    protected async Task GetClassSchedule()
+    {
+        var service = _genericService.GetService<GetStudentClassScheduleResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetActiveStudentTimeTable/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            Currentschedules = result.Data.ToList();
+            foreach (var item in Currentschedules)
+            {
+                item.TimeSlot = timeSlots.Where(x => x.TimeslotID == item.TimeslotID).FirstOrDefault();
+            }
+            groupedSchedules = Currentschedules
+                .OrderBy(cs => dayOrder.IndexOf(cs.DayName)) // Order by day
+                .ThenBy(cs => cs.StartTime)                     // Then by time
+                .GroupBy(cs => cs.TimeSlot)                              // Group by TimeSlot
+                .OrderBy(g => g.Key.StartTime);                          // Order groups by StartTime
+
+            var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
+                       .ToDictionary(x => x.day, x => x.index);
+
+            var orderedDays = daysofTheWeek.OrderBy(x => dayOrderDict[x.DayName]).ToList();
+            daysofTheWeek = orderedDays;
+            GradeLevel = Currentschedules.Select(x => x.Grade.Value).FirstOrDefault();
+        }
+    }
+    #endregion
+    #region Chart Visualization
+    public List<ChartSeries> GetStudentPerfomanceChartSeries()
+    {
+        // Extract data for the current and previous month
+        // Convert CurrentMonthAverage (decimal?) to double
+        var currentMonthData = YearlyStudentPerfomance.Select(item => item.AverageMonthlyScore ?? 0.0m) // Replace nulls with 0
+                                   .Select(value => (double)value) // Convert decimal to double
+                                   .ToArray();
+
+
+
+        // Create ChartSeries list
+        return new List<ChartSeries>
+    {
+        new ChartSeries { Name = "CurrentMonthPerfomance", Data = currentMonthData }
+    };
+    }
+
+    public List<ChartSeries> GetCountryDemographicData()
+    {
+        var data = StudentDemographicsCountries.Select(x => x.StudentCount ?? 0.0m)
+                                               .Select(v => (double)v).ToArray();
+        return new List<ChartSeries>
+    {
+        new ChartSeries { Name = "Student's By Country", Data = data }
+    };
+    }
+    public double[] GetCityDemographicData()
+    {
+        var data = StudentDemographicsCity.Select(x => x.StudentCount ?? 0.0m)
+                                               .Select(v => (double)v).ToArray();
+        return data;
+    }
+    #endregion
+
+
+    #region Chart Theming
+    private string[] colorPalette = new string[]
+    {
+    "rgba(41, 16, 74, 0.7)", // Dark Purple
+    "rgba(75, 192, 192, 0.7)", // Light Blue
+    "rgba(153, 102, 255, 0.7)", // Purple
+    "rgba(255, 159, 64, 0.7)", // Orange
+    "rgba(54, 162, 235, 0.7)", // Blue
+    "rgba(255, 99, 132, 0.7)" // Red
+    };
+
+    private List<string> GetColors(int count)
+    {
+        List<string> colors = new List<string>();
+        for (int i = 0; i < count; i++)
+        {
+            colors.Add(colorPalette[i % colorPalette.Length]);
+        }
+        return colors;
+    }
+
+
+    #endregion
+}

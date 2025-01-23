@@ -1,6 +1,8 @@
 ﻿using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
+using EduSphereDomain.AchievementsData;
 using EduSphereDomain.Data;
+using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
@@ -13,10 +15,12 @@ namespace EduSphereDomain.Repositories
     {
         private readonly PhoenixEdusphereContext _context;
         private readonly PhoenixEdusphereContextProcedures _contextProcedures;
-        public EduSphereRepository(PhoenixEdusphereContext context, PhoenixEdusphereContextProcedures phoenixEdusphereContextProcedures)
+        private readonly AchivementContext _achivementContext;
+        public EduSphereRepository(PhoenixEdusphereContext context, PhoenixEdusphereContextProcedures phoenixEdusphereContextProcedures, AchivementContext achivementContext)
         {
             _context = context;
             _contextProcedures = phoenixEdusphereContextProcedures;
+            _achivementContext = achivementContext;
         }
 
         public async Task<IEnumerable<Class>> GetTeacherSubjectsByID(Guid id)
@@ -25,7 +29,67 @@ namespace EduSphereDomain.Repositories
             return result;
 
         }
+        public async Task<IEnumerable<Badge>> GetSystemBadges()
+        {
+            var result = await _achivementContext.Badges.ToListAsync();
+            return result;
+        }
+        public async Task<IEnumerable<Activity>> GetSystemActivities()
+        {
+            var result = await _achivementContext.Activities.ToListAsync();
+            return result;
+        }
 
+        public async Task<IEnumerable<UserActivity>> GetUserActivities(string UserID)
+        {
+            var result = await _achivementContext.UserActivities.Where(x => x.UserId == UserID).ToListAsync();
+            return result;
+        }
+        public async Task<UserBadge> SaveUserBadge(UserBadge userBadge)
+        {
+            // Add the userBadge to the context
+            var result = await _achivementContext.UserBadges.AddAsync(userBadge);
+
+            // Save changes to the database
+            await _achivementContext.SaveChangesAsync();
+
+            // Return the added userBadge
+            return result.Entity;
+        }
+        public async Task<UserActivity> SaveUserActivity(UserActivity Activity)
+        {
+            // Add the userBadge to the context
+            var result = await _achivementContext.UserActivities.AddAsync(Activity);
+            try
+            {
+
+                // Save changes to the database
+                await _achivementContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+
+            // Return the added userBadge
+            return result.Entity;
+        }
+        public async Task<IEnumerable<GetLessonCountBySchoolResult>> GetLessonCountBySchool(string SchoolID)
+        {
+            var result = await _contextProcedures.GetLessonCountBySchoolAsync(SchoolID);
+            var data = new List<GetLessonCountBySchoolResult>();
+            foreach (var item in result)
+            {
+                GetLessonCountBySchoolResult newRes = new()
+                {
+                    TotalLessons = item.TotalLessons,
+                    LessonsAddedThisMonth = item.LessonsAddedThisMonth,
+                };
+                data.Add(newRes);
+            }
+            return data;
+        }
         public async Task<IEnumerable<Lesson>> GetstudentLessons(string guid)
         {
             List<Lesson> studentLessons = new();
@@ -157,6 +221,20 @@ namespace EduSphereDomain.Repositories
             }
             return stds;
         }
+        public async Task<IEnumerable<Course>> GetCoursesBySchool(Guid SchoolID)
+        {
+            var result = await _context.Courses.Where(x => x.SchoolID == SchoolID).ToListAsync();
+            return result;
+        }
+
+        public async Task<IEnumerable<CourseDetail>> GetCourseDetailsByID(Guid CourseID)
+        {
+            var result = await _context.CourseDetails.Where(x => x.CourseID == CourseID)
+
+                .ToListAsync();
+            return result;
+        }
+
         public async Task<IEnumerable<Student>> GetStudentsByGrade(int grade)
         {
             List<Student> stds = new();

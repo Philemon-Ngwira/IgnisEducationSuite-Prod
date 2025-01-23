@@ -21,6 +21,7 @@
                             <MudNavLink Href="ClassSchedules" Icon="@Icons.Material.Filled.Schedule" Match="NavLinkMatch.Prefix">Class Schedules</MudNavLink>
                             <MudNavLink Href="UserManagement" Icon="@Icons.Material.Filled.SupervisedUserCircle" Match="NavLinkMatch.Prefix">User Management</MudNavLink>
                             <MudNavLink Href="ReportCardManagement" Icon="@Icons.Material.Filled.AddCard" Match="NavLinkMatch.Prefix">Report Card Preperations</MudNavLink>
+
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book" Match="NavLinkMatch.Prefix">Report Cards</MudNavLink>
 
 
@@ -36,6 +37,7 @@
                             <MudNavLink Href="ClassSchedules" Icon="@Icons.Material.Filled.Schedule" Match="NavLinkMatch.Prefix">Class Schedules</MudNavLink>
                             <MudNavLink Href="ReportCardManagement" Icon="@Icons.Material.Filled.AddCard" Match="NavLinkMatch.Prefix">Report Card Preperations</MudNavLink>
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book" Match="NavLinkMatch.Prefix">Report Cards</MudNavLink>
+                            <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubble" Match="NavLinkMatch.Prefix">Ignnis Communcation Hub</MudNavLink>
                         </MudNavGroup>
 
@@ -49,6 +51,8 @@
                             <MudNavLink Href="ExamMarking" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Mark Exams, Tests,Quizzes</MudNavLink>
                             <MudNavLink Href="StudentAttendance" Icon="@Icons.Custom.Uncategorized.AlertSuccess" Match="NavLinkMatch.Prefix">Mark Attendance</MudNavLink>
                             <MudNavLink Href="ExamQuizTestManagement" Icon="@Icons.Custom.FileFormats.FileDocument" Match="NavLinkMatch.Prefix">Exam Management</MudNavLink>
+                            <MudNavLink Href="CourseManagement" Icon="@Icons.Material.Filled.LibraryBooks" Match="NavLinkMatch.Prefix">Course Management</MudNavLink>
+                            <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline" Match="NavLinkMatch.Prefix">Communication Center</MudNavLink>
 
                         </MudNavGroup>
@@ -59,6 +63,7 @@
                             <MudNavLink Href="LessonManagement" Icon="@Icons.Material.Filled.School" Match="NavLinkMatch.Prefix">Lesson Management</MudNavLink>
                             <MudNavLink Href="AsssignmentManagement" Icon="@Icons.Material.Filled.Work" Match="NavLinkMatch.Prefix">Assignment Management</MudNavLink>
                             <MudNavLink Href="ReportCardManagement" Icon="@Icons.Material.Filled.AddCard" Match="NavLinkMatch.Prefix">Report Card Preperations</MudNavLink>
+                            <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline" Match="NavLinkMatch.Prefix">Communication Center</MudNavLink>
 
                         </MudNavGroup>
@@ -70,6 +75,7 @@
                             <MudNavLink Icon="@Icons.Material.Filled.HomeWork" Href="StudentAssignments" Match="NavLinkMatch.Prefix">Assignments</MudNavLink>
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book" Match="NavLinkMatch.Prefix">Report Cards</MudNavLink>
                             <MudNavLink Href="Exams" Icon="@Icons.Material.Filled.Pages" Match="NavLinkMatch.Prefix">Exams,Tests And Quizzes</MudNavLink>
+                            <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline" Match="NavLinkMatch.Prefix">Communication Center</MudNavLink>
 
                         </MudNavGroup>
@@ -82,11 +88,11 @@
 
                         </MudNavGroup>
                     }
-                    <MudNavGroup Icon="@Icons.Material.Filled.AccountCircle" Title="Account" Expanded="true">
+                    <MudNavGroup Icon="@Icons.Material.Filled.AccountCircle" Title="Account" Expanded="false">
                         <MudNavLink Disabled="!AppState.LicenseIsActive" Href="Account/Manage" Icon="@Icons.Material.Filled.Person" Match="NavLinkMatch.Prefix">Profile</MudNavLink>
                         <MudForm action="Account/Logout" method="post">
                             <AntiforgeryToken />
-                            <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                            <input type="hidden" name="ReturnUrl" value="@HomeURL" />
                             <MudNavLink Match="NavLinkMatch.Prefix">
                                 <MudButton ButtonType="ButtonType.Submit" EndIcon="@Icons.Material.Filled.Logout" class="nav-link">Logout</MudButton>
                             </MudNavLink>
@@ -104,16 +110,16 @@
 
 <style>
     .nav-image-container {
-        display: flex;
-        justify-content: center; /* Horizontal centering */
-        align-items: center; /* Vertical centering */
-        height: 100%; /* Make sure the container takes up the full height of the nav */
+    display: flex;
+    justify-content: center; /* Horizontal centering */
+    align-items: center; /* Vertical centering */
+    height: 100%; /* Make sure the container takes up the full height of the nav */
     }
 
     .container-fluid {
-        display: flex;
-        justify-content: center;
-        align-items: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     }
 
 </style>
@@ -121,9 +127,10 @@
 @code {
     string UserRole = "Teacher";
     private string? currentUrl;
+
+    private string HomeURL = "Account/Login";
     protected async override Task OnInitializedAsync()
     {
-
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
         //AppState.OnChange += StateHasChanged;

@@ -1,4 +1,7 @@
-﻿using System;
+﻿using EDUSphereSharedProject.AchievementModels;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace IgnisEducationSuite.Client.Services
 {
@@ -8,6 +11,9 @@ namespace IgnisEducationSuite.Client.Services
         public string SchoolID { get; set; } = string.Empty;
         public bool LicenseIsActive { get; set; } = false;
         public string UserRole { get; set; } = "Guest";
+
+        public List<Badge> Badges { get; set; }
+        public List<UserActivity> UserActivities { get; set; }
         public bool IsInitialized { get; private set; } = false;
         public event Action OnChange;
 
@@ -24,7 +30,6 @@ namespace IgnisEducationSuite.Client.Services
 
         private void NotifyStateChanged()
         {
-            // Use `InvokeAsync` via a component, if required
             OnChange?.Invoke();
         }
     }
