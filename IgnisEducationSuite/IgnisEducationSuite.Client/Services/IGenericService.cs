@@ -7,5 +7,6 @@ namespace IgnisEducationSuite.Client.Services
         Task<ServiceResult<T>> GetByIdAsync(string endpoint, Guid id, CancellationToken cancellationToken = default); 
         Task<ServiceResult<T>> UpdateAsync(string endpoint, string entity, T data, CancellationToken cancellationToken = default);
         Task<ServiceResult<T>> PostAsync(string endpoint, string entity, T data, CancellationToken cancellationToken = default);
+        Task<bool> DeleteEntityAsync(string entity, Guid id);
     }
 }

@@ -74,72 +74,86 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
                 Email = newUser.Email,
                 Role = newUser.Role,
                 SchoolID = school.SchoolID,
-                UserID = "N/A"
+                UserID = "N/A",
+                ProfilePic = newUser.profilePic,
+                FirstName = newUser.FirstName,
+                LastName = newUser.LastName
             };
-            var result = await Http.PostAsJsonAsync($"{navigationManager.BaseUri}api/Admin/createUser", createUserModel);
-            if (result.IsSuccessStatusCode)
+            try
             {
-                var newlyAddeduser = await result.Content.ReadFromJsonAsync<ApplicationUser>();
-                newClientAdmin = new()
+                var result = await Http.PostAsJsonAsync($"{navigationManager.BaseUri}api/Admin/createUser", createUserModel);
+                if (result.IsSuccessStatusCode)
                 {
-                    AdminID = Guid.NewGuid(),
-                    SchoolID = school.SchoolID,
-                    FirstName = newUser.FirstName,
-                    LastName = newUser.LastName,
-                    Email = newUser.Email,
-                    Gender = newUser.Gender,
-                    MobileNumber = newUser.ContactNo,
-                    Nationality = Country.CountryName,
-                    City = City.CityName,
-                    UserID = newlyAddeduser.Id,
-                    CreatedBy = user.Identity.Name,
-                    ProfilePic = newUser.profilePic,
-                    CreatedDate = DateTime.Now,
+                    var newlyAddeduser = await result.Content.ReadFromJsonAsync<ApplicationUser>();
+                    newClientAdmin = new()
+                    {
+                        AdminID = Guid.NewGuid(),
+                        SchoolID = school.SchoolID,
+                        FirstName = newUser.FirstName,
+                        LastName = newUser.LastName,
+                        Email = newUser.Email,
+                        Gender = newUser.Gender,
+                        MobileNumber = newUser.ContactNo,
+                        Nationality = Country.CountryName,
+                        City = City.CityName,
+                        UserID = newlyAddeduser.Id,
+                        CreatedBy = user.Identity.Name,
+                        ProfilePic = newUser.profilePic,
+                        CreatedDate = DateTime.Now,
 
-                    
-                };
-                var service = _genericService.GetService<ClientAdmin>();
-                var Returnresult = await service.PostAsync("api/Dynamic/PostEntity", "clientadmin", newClientAdmin);
-                if (Returnresult.IsSuccess)
-                {
-                    newClientAdmin.School = school;
-                    admins.Add(newClientAdmin);
-                    
-                    Snackbar.Add($"New admin for {school.SchoolName} has been added successfully", Severity.Success);
-                    //Mail User//
-                    EmailRequest email = new()
-                    {
-                        To = newClientAdmin.Email,
-                        Reciepient = newClientAdmin.FirstName + " " + newClientAdmin.LastName,
-                        Password = newUser.Password
+
                     };
-                    newClientAdmin = new();
-                    var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
-                    if (emailsent == "Password reset email sent successfully!")
+                    var service = _genericService.GetService<ClientAdmin>();
+
+                    var Returnresult = await service.PostAsync("api/Dynamic/PostEntity", "clientadmin", newClientAdmin);
+                    if (Returnresult.IsSuccess)
                     {
-                        isLoading = false;
-                        Snackbar.Add("New teacher One time password mailed successfully", Severity.Success);
+                        newClientAdmin.School = school;
+                        admins.Add(newClientAdmin);
+
+                        Snackbar.Add($"New admin for {school.SchoolName} has been added successfully", Severity.Success);
+                        //Mail User//
+                        EmailRequest email = new()
+                        {
+                            To = newClientAdmin.Email,
+                            Reciepient = newClientAdmin.FirstName + " " + newClientAdmin.LastName,
+                            Password = newUser.Password
+                        };
+                        newClientAdmin = new();
+                        var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
+                        if (emailsent == "Password reset email sent successfully!")
+                        {
+                            isLoading = false;
+                            Snackbar.Add("New teacher One time password mailed successfully", Severity.Success);
+                        }
+                        else
+                        {
+                            isLoading = false;
+                            Snackbar.Add("Error Sending Password email", Severity.Error);
+
+                        }
+                        StateHasChanged();
                     }
                     else
                     {
                         isLoading = false;
-                        Snackbar.Add("Error Sending Password email", Severity.Error);
-
+                        Snackbar.Add("Error adding new Admin", Severity.Error);
                     }
-                    StateHasChanged();
                 }
                 else
                 {
                     isLoading = false;
-                    Snackbar.Add("Error adding new Admin", Severity.Error);
+                    Snackbar.Add("Error Creating Account", Severity.Error);
+
                 }
             }
-            else
+            catch (Exception ex)
             {
-                isLoading = false;
-                Snackbar.Add("Error Creating Account", Severity.Error);
+                var _ = ex.Message;
 
+                throw;
             }
+            
         }
         private async Task UploadFiles(IBrowserFile file)
         {

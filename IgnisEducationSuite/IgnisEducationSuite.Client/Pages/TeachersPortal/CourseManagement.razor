@@ -1,6 +1,7 @@
 ﻿@page "/CourseManagement"
 @using EDUSphereSharedProject.Models
 @inherits AppBaseComponent
+@inject HttpClient _http
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
@@ -33,83 +34,189 @@
         </MudAlert>
     }
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    <MudAlert Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">Create New Course</MudAlert>
-    <MudGrid>
-        <MudItem xs="12" md="6">
-            <MudTextField T="Guid" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.CourseID" Label="Course ID" Disabled="true"></MudTextField>
-        </MudItem>
-        <MudItem xs="12" md="6">
-            <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.CourseName" Label="Course Name" Placeholder="Enter Course Name"></MudTextField>
-        </MudItem>
-        <MudItem xs="12" md="6">
-            <MudTextField T="int?" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.Grade" Label="Course Grade" Placeholder="Enter Grade E.g. 8,9,10"></MudTextField>
-        </MudItem>
-        <MudItem xs="12" md="6">
-            <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
-            ResetValueOnEmptyText="true"
-            CoerceText="true" CoerceValue="true"
-            AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-        </MudItem>
-        <MudItem xs="12">
-            <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
-                <ActivatorContent>
-                    <MudFab Color="Color.Secondary"
-                    StartIcon="@Icons.Material.Filled.Image"
-                    Label="Upload Course Display Image" />
-                </ActivatorContent>
-            </MudFileUpload>
-        </MudItem>
-        <MudItem xs="12">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.NavigateNext" OnClick="SaveCourseHeader">Finish and Continue</MudButton>
-        </MudItem>
-    </MudGrid>
-    @if (FinishedCreatingCourse)
-    {
-        <MudAlert Class="mb-3" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">Add Lessons To Course</MudAlert>
-        <MudDataGrid T="Lesson" MultiSelection="true" Items="@lessons" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter"
-        Hideable="true" SelectedItemsChanged="@SelectedItemsChanged">
-            <ToolBarContent>
-                <MudText Typo="Typo.h6">Your Lessons</MudText>
-                <MudSpacer />
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="FinishSavingLessons">Finish</MudButton>
-                <MudSpacer />
-                <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
-                AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-            </ToolBarContent>
-            <Columns>
-                <SelectColumn T="Lesson" />
-                <PropertyColumn Property="x => x.LessonID" Title="Lesson ID" Sortable="false" Filterable="false" />
-                <PropertyColumn Property="x => x.Title" />
-                <PropertyColumn Property="x => x.Active" />
-                <PropertyColumn Property="x => x.DatePosted" />
-                <TemplateColumn CellClass="d-flex justify-end">
-                    <CellTemplate>
-                        <MudStack Row>
-                            <MudRating Size="@Size.Small" SelectedValue="@context.Item.Rating.Value" />
-                        </MudStack>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-            <PagerContent>
-                <MudDataGridPager T="Lesson" />
-            </PagerContent>
-        </MudDataGrid>
-    }
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <MudTabPanel Text="Create Course">
+            <MudAlert Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">Create New Course</MudAlert>
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField T="Guid" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.CourseID" Label="Course ID" Disabled="true"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.CourseName" Label="Course Name" Placeholder="Enter Course Name"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField T="int?" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.Grade" Label="Course Grade" Placeholder="Enter Grade E.g. 8,9,10"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
+                    ResetValueOnEmptyText="true"
+                    CoerceText="true" CoerceValue="true"
+                    AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                        <ActivatorContent>
+                            <MudFab Color="Color.Secondary"
+                            StartIcon="@Icons.Material.Filled.Image"
+                            Label="Upload Course Display Image" />
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.NavigateNext" OnClick="SaveCourseHeader">Finish and Continue</MudButton>
+                </MudItem>
+            </MudGrid>
+            @if (FinishedCreatingCourse)
+            {
+                <MudAlert Class="mb-3" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">Add Lessons To Course</MudAlert>
+                <MudDataGrid T="Lesson" MultiSelection="true" Items="@lessons" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter"
+                Hideable="true" SelectedItemsChanged="@SelectedItemsChanged">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Your Lessons</MudText>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="FinishSavingLessons">Finish</MudButton>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                        AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                    </ToolBarContent>
+                    <Columns>
+                        <SelectColumn T="Lesson" />
+                        <PropertyColumn Property="x => x.LessonID" Title="Lesson ID" Sortable="false" Filterable="false" />
+                        <PropertyColumn Property="x => x.Title" />
+                        <PropertyColumn Property="x => x.Active" />
+                        <PropertyColumn Property="x => x.DatePosted" />
+                        <TemplateColumn CellClass="d-flex justify-end">
+                            <CellTemplate>
+                                <MudStack Row>
+                                    <MudRating Size="@Size.Small" SelectedValue="@context.Item.Rating.Value" />
+                                </MudStack>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <PagerContent>
+                        <MudDataGridPager T="Lesson" />
+                    </PagerContent>
+                </MudDataGrid>
+            }
+        </MudTabPanel>
+        <MudTabPanel Text="Manage Courses">
+            <MudTable Items="@courses" Dense="true" Hover="true" Bordered="false" Striped="true" Filter="new Func<Course,bool>(FilterFunc1)">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Your Courses</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh>Course Name</MudTh>
+                    <MudTh>Grade</MudTh>
+                    <MudTh>Date Created</MudTh>
+                    <MudTh>Action</MudTh>
+
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Course Name">@context.CourseName</MudTd>
+                    <MudTd DataLabel="Grade">@context.Grade</MudTd>
+                    <MudTd DataLabel="DateCreated">@context.DateCreated.Value.ToShortDateString()</MudTd>
+                    <MudTd DataLabel="Action">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="()=>AddLessonsToCourse(context)">Select Course</MudButton>
+                    </MudTd>
+
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
+            @if (lessonsReadytobeAdded)
+            {
+                <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                    <MudTabPanel Text="Add Lessons to Course">
+                        <MudAlert Class="mb-3" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">Add Lessons To Course</MudAlert>
+                        <MudDataGrid T="Lesson" MultiSelection="true" Items="@lessons" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter"
+                        Hideable="true" SelectedItemsChanged="@SelectedItemsChanged">
+                            <ToolBarContent>
+                                <MudText Typo="Typo.h6">Your Lessons</MudText>
+                                <MudSpacer />
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="FinishSavingLessons">Finish</MudButton>
+                                <MudSpacer />
+                                <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                                AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <Columns>
+                                <SelectColumn T="Lesson" />
+                                <PropertyColumn Property="x => x.LessonID" Title="Lesson ID" Sortable="false" Filterable="false" />
+                                <PropertyColumn Property="x => x.Title" />
+                                <PropertyColumn Property="x => x.Active" />
+                                <PropertyColumn Property="x => x.DatePosted" />
+                                <TemplateColumn CellClass="d-flex justify-end">
+                                    <CellTemplate>
+                                        <MudStack Row>
+                                            <MudRating Size="@Size.Small" SelectedValue="@context.Item.Rating.Value" />
+                                        </MudStack>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="Lesson" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </MudTabPanel>
+                    <MudTabPanel Text="Remove Lessons From Course">
+
+                        <MudAlert Class="mb-3" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Error">Remove Lessons From Course</MudAlert>
+                        <MudDataGrid T="CourseDetail" MultiSelection="true" Items="@Containedcourselessons" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilterRemove"
+                        Hideable="true" SelectedItemsChanged="@SelectedItemsChangedRemove">
+                            <ToolBarContent>
+                                <MudText Typo="Typo.h6">Your Lessons</MudText>
+                                <MudSpacer />
+                                <MudButton Variant="Variant.Filled" Color="Color.Error" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="RemoveLessonFromCourse">Finish</MudButton>
+                                <MudSpacer />
+                                <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                                AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <Columns>
+                                <SelectColumn T="CourseDetail" />
+                                <PropertyColumn Property="x => x.LessonID" Title="Lesson ID" Sortable="false" Filterable="false" />
+                                <PropertyColumn Property="x => x.Lesson.Title" />
+                                <PropertyColumn Property="x => x.Lesson.Active" />
+                                <PropertyColumn Property="x => x.DateAdded.Value.ToShortDateString()" />
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="CourseDetail" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </MudTabPanel>
+
+                </MudTabs>
+
+            }
+            else
+            {
+                <MudAlert Class="mb-3" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">No Lessons Found to be added, please add some lessons before creating a new course.</MudAlert>
+
+            }
+        </MudTabPanel>
+    </MudTabs>
+
 </MudCard>
 
 @code {
     protected bool isLoading = false;
+    protected bool lessonsReadytobeAdded = false;
     protected bool HideHint = false;
     protected bool FinishedCreatingCourse = false;
     protected List<Lesson> lessons = new();
     protected List<CourseDetail> courselessons = new();
+    protected List<CourseDetail> courselessonsToRemove = new();
+    protected List<CourseDetail> Containedcourselessons = new();
     protected List<Class> classes = new();
+    protected List<Course> courses = new();
     protected CourseDetail courseDetail = new();
     protected Teacher teacher = new();
     protected Class selectedClass = new();
     protected string searchString = string.Empty;
     [Inject] GenericServiceFactory genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
+    protected Course selectedCourse = new();
     protected Course newCourse = new()
         {
             CourseID = Guid.NewGuid()
@@ -120,9 +227,24 @@
         isLoading = true;
         await GetTeachers();
         await GetClasses();
+        await GetTeacherCourses();
         isLoading = false;
     }
-
+    protected async Task GetTeacherCourses()
+    {
+        var service = genericService.GetService<Course>();
+        int secWait = 5;
+        while (teacher.TeacherID == Guid.Empty && secWait > 0)
+        {
+            await Task.Delay(500);
+            secWait--;
+        }
+        var result = await service.GetAllAsync($"api/Dynamic/GetTeacherCourses/{teacher.TeacherID}", true);
+        if (result.IsSuccess)
+        {
+            courses = result.Data.ToList();
+        }
+    }
     protected async Task GetTeacherLessons()
     {
         var service = genericService.GetService<Lesson>();
@@ -132,7 +254,16 @@
             lessons = result.Data.ToList();
         }
     }
+    protected async Task GetLessonsInCourse()
+    {
+        var service = genericService.GetService<CourseDetail>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetCourseDetailsByCourseID/{selectedCourse.CourseID}", true);
+        if (result.IsSuccess)
+        {
+            Containedcourselessons = result.Data.ToList();
 
+        }
+    }
     protected async Task GetTeachers()
     {
 
@@ -150,29 +281,45 @@
         }
 
     }
+    void SelectedItemsChangedRemove(HashSet<CourseDetail> courses)
+    {
+
+        courselessonsToRemove.AddRange(courses);
+    }
     void SelectedItemsChanged(HashSet<Lesson> items)
     {
+        bool newCourse = false;
+        if (selectedCourse.CourseID != Guid.Empty)
+        {
+            newCourse = false;
+        }
+        else
+        {
+            newCourse = true;
+        }
         foreach (var item in items)
         {
-            courseDetail = new()
+            var courseID = newCourse ? this.newCourse.CourseID : selectedCourse.CourseID;
+
+            var courseDetail = new CourseDetail
                 {
                     CourseDetailID = Guid.NewGuid(),
-                    CourseID = newCourse.CourseID,
+                    CourseID = courseID,
                     LessonID = item.LessonID,
                     DateAdded = DateTime.Now
                 };
-            if (!courselessons.Contains(courseDetail))
+
+            if (!courselessons.Any(cd => cd.LessonID == courseDetail.LessonID && cd.CourseID == courseDetail.CourseID))
             {
                 courselessons.Add(courseDetail);
             }
             else
             {
-                Snackbar.Add($"Cant Add Lesson: {item.Title} because its already been added", Severity.Warning);
+                Snackbar.Add($"Can't add lesson: {item.Title} because it has already been added.", Severity.Warning);
             }
-
         }
-        // _events.Insert(0, $"Event = SelectedItemsChanged, Data = {System.Text.Json.JsonSerializer.Serialize(items)}");
     }
+
     protected async Task GetClasses()
     {
         var result = genericService.GetService<Class>();
@@ -190,6 +337,24 @@
         }
 
     }
+    protected async Task AddLessonsToCourse(Course SelectedCourse)
+    {
+        selectedCourse = SelectedCourse;
+
+
+        await GetTeacherLessons();
+        await GetLessonsInCourse();
+        if (lessons.Any())
+        {
+            var lessonsInCourseID = Containedcourselessons.Select(x => x.LessonID).ToList();
+            Containedcourselessons.ForEach(item =>
+          item.Lesson = lessons.FirstOrDefault(x => x.LessonID == item.LessonID));
+            // Remove lessons that are already in the course
+            lessons.RemoveAll(item => lessonsInCourseID.Contains(item.LessonID));
+            lessonsReadytobeAdded = true;
+        }
+    }
+
     protected async Task SaveCourseHeader()
     {
         isLoading = true;
@@ -216,15 +381,18 @@
         }
     }
     protected async Task FinishSavingLessons()
-    { 
+    {
         var service = genericService.GetService<List<CourseDetail>>();
         var result = await service.PostAsync("api/Dynamic/PostEntities", "coursedetail", courselessons);
         if (result.IsSuccess)
         {
-            newCourse = new(){
-                CourseID = Guid.NewGuid()
-            };
+            newCourse = new()
+                {
+                    CourseID = Guid.NewGuid()
+                };
             courselessons.Clear();
+            selectedCourse = new();
+            Containedcourselessons.Clear();
             Snackbar.Add("Course Lessons Successfully Added", Severity.Success);
             FinishedCreatingCourse = false;
             isLoading = false;
@@ -247,7 +415,16 @@
 
         return false;
     };
+    private Func<CourseDetail, bool> _quickFilterRemove => x =>
+       {
+           if (string.IsNullOrWhiteSpace(searchString))
+               return true;
 
+           if (x.Lesson.Title.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+               return true;
+
+           return false;
+       };
     protected Func<Class, string> ClassTypeConverter = p =>
       {
           if (p == null)
@@ -282,6 +459,23 @@
             Snackbar.Add("Image Uploaded Succesfullt", Severity.Success);
         }
     }
+
+    protected async Task RemoveLessonFromCourse()
+    {
+        foreach (var item in courselessonsToRemove)
+        {
+            var service = genericService.GetService<CourseDetail>();
+            var result = await service.DeleteEntityAsync("coursedetail", item.CourseDetailID); //_http.DeleteAsync($"api/Dynamic/DeleteEntity/{"coursedetail"}/{item.CourseDetailID}");
+            if (result)
+            {
+                Containedcourselessons.RemoveAll(x => x.CourseDetailID == item.CourseDetailID);
+                Snackbar.Add("Lesson Removed Succesffuly", Severity.Success);
+            }
+        }
+
+        StateHasChanged();
+        
+    }
     #region Auto Complete
     private async Task<IEnumerable<Class>> Search(string value, CancellationToken token)
     {
@@ -289,6 +483,19 @@
         if (string.IsNullOrEmpty(value))
             return new List<Class>();
         return classes.Where(x => x.ClassName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    #endregion
+
+    #region Table
+    private bool FilterFunc1(Course element) => FilterFunc(element, searchString);
+
+    private bool FilterFunc(Course element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.CourseName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
     }
     #endregion
 }

@@ -114,11 +114,13 @@
                         }
                     </div>
                     <div class="info">
-                        @if(selectedChat.Name == null){
+                        @if (selectedChat.Name == null)
+                        {
                             <h6 class="text-md mb-0">Hello ;)</h6>
                         }
-                        else{
-                        <h6 class="text-md mb-0">@selectedChat.Name</h6>
+                        else
+                        {
+                            <h6 class="text-md mb-0">@selectedChat.Name</h6>
                         }
                     </div>
                     <div class="action d-inline-flex align-items-center gap-3">
@@ -183,7 +185,7 @@
                     else
                     {
 
-                        <MudPaper Height="600px" Width="100%" Square="true" >
+                        <MudPaper Height="600px" Width="100%" Square="true">
                             <MudAlert Severity="Severity.Success">No messages yet. Start a new conversation to get the ball rolling!</MudAlert>
                         </MudPaper>
                     }
@@ -234,7 +236,9 @@
             {
                 if (receivedMessage.Content == null)
                 {
+
                     await LoadMessages(AppState.UserID);
+                    StateHasChanged();
                 }
                 else
                 {

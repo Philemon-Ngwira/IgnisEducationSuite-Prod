@@ -51,6 +51,8 @@ public partial class AspNetUser
 
     public string LastName { get; set; }
 
+    public bool? isFirstLogin { get; set; }
+
     public virtual ICollection<AspNetUserClaim> AspNetUserClaims { get; set; } = new List<AspNetUserClaim>();
 
     public virtual ICollection<AspNetUserLogin> AspNetUserLogins { get; set; } = new List<AspNetUserLogin>();

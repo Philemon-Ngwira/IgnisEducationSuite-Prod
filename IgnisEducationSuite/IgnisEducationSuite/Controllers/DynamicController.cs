@@ -26,13 +26,37 @@ namespace IgnisEducationSuite.Controllers
         }
 
         #region Non Generic
+        
+        [HttpGet("GetTeacherCourses/{ID}")]
+        public async Task<IActionResult> GetTeacherCourses(Guid ID)
+        {
+            var result = await _repository.GetTeacherCourses(ID);
+            return Ok(result);
+        }
+        [HttpGet("GetStudentDashboardState/{SchoolID}")]
+        public async Task<IActionResult> GetStudentDashBoardState(string SchoolID)
+        {
+            var result = await _repository.GetStudentDashboardState(SchoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetBestPerfomingStudentsBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetBestPerfomingStudentsBySchool(string SchoolID)
+        {
+            var result = await _repository.GetBestPerformingStudents(SchoolID);
+            return Ok(result);
+        }
         [HttpGet("GetSystemActivities")]
         public async Task<IActionResult> GetActivities()
         {
             var result = await _repository.GetSystemActivities();
             return Ok(result);
         }
-
+        [HttpGet("GetUserBadges/{UserID}")]
+        public async Task<IActionResult> GetUserBadges(string UserID)
+        {
+            var result = await _repository.GetUserBadges(UserID);
+            return Ok(result);
+        }
         [HttpPost("SaveNewUserBadge")]
         public async Task<IActionResult> SaveNewUserBadge(UserBadge userBadge)
         {
@@ -439,7 +463,7 @@ namespace IgnisEducationSuite.Controllers
             return Ok(entityObjList);
         }
         // DELETE: api/{entity}/{id}
-        [HttpDelete("{id}")]
+        [HttpDelete("DeleteEntity/{entity}/{id}")]
         public async Task<IActionResult> Delete(string entity, int id)
         {
             var repository = GetRepositoryFromEntityName(entity);

@@ -6,6 +6,7 @@
 @inject AuthenticationStateProvider _authenticationStateProvider
 @inject NavigationManager _navigationManager
 @inject GenericServiceFactory _genericService
+@inject HttpClient http
 <MudThemeProvider Theme="@theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
@@ -20,9 +21,9 @@
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
-      
-            @Body
-        
+
+        @Body
+
     </MudMainContent>
 </MudLayout>
 
@@ -32,108 +33,24 @@
     public string UserRole { get; set; } = string.Empty;
     private bool isLoading = true;
 
-    protected override void OnInitialized()
-    {
-        appState.OnChange += StateHasChanged;
-        _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
-    }
-
     protected override async Task OnInitializedAsync()
     {
         var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        await HandleAuthenticationState(authState);
-    }
-
-    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
-    {
-        var authState = await task;
-        await HandleAuthenticationState(authState);
-    }
-
-    private async Task HandleAuthenticationState(AuthenticationState authState)
-    {
         var user = authState.User;
 
         if (user.Identity?.IsAuthenticated ?? false)
         {
-            if (string.IsNullOrEmpty(UserRole))
-            {
-                UserRole = await GetUserRole(user.Identity.Name);
-            }
+            await appState.InitializeAsync(user.Identity.Name,true, _navigationManager, http);
+            
 
-            if (!appState.IsInitialized)
-            {
-                try
-                {
-                    var userID = await GetUserID(user.Identity.Name);
-                    var schoolID = await GetSchoolID(userID);
-                    var licenseIsActive = await GetLicenseStatus(schoolID);
-                    appState.UpdateDetails(userID, schoolID, licenseIsActive, UserRole);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error initializing AppState: {ex.Message}");
-                }
-            }
         }
 
         isLoading = false;
         await InvokeAsync(StateHasChanged);
     }
-
     private void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
     }
-    private async Task<List<Badge>> GetBadges()
-    {
-        var service = _genericService.GetService<Badge>();
-        var result = await service.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
-        return result.Data.ToList();
-    }
-    private async Task<List<UserActivity>> GetUserActivitiesDone(string UserRole, string UserID)
-    {
-        if (UserRole == "Student")
-        {
-            var service = _genericService.GetService<UserActivity>();
-            var result = await service.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
-            if (result.IsSuccess)
-            {
-                return result.Data.ToList();
-            }
-            else
-            {
-                return new List<UserActivity>();
-            }
-        }
-        else
-        {
-            return new List<UserActivity>();
-        }
-    }
-    private async Task<string> GetUserRole(string usernameOrEmail)
-    {
-        return await _rolesAndLicensing.GetUserRole(_navigationManager.BaseUri, usernameOrEmail);
-    }
 
-    private async Task<string> GetUserID(string usernameOrEmail)
-    {
-        return await _rolesAndLicensing.GetUserID(_navigationManager.BaseUri, usernameOrEmail);
-    }
-
-    private async Task<string> GetSchoolID(string userID)
-    {
-        return await _rolesAndLicensing.GetSchoolId(_navigationManager.BaseUri, userID);
-    }
-
-    private async Task<bool> GetLicenseStatus(string schoolID)
-    {
-        return await _rolesAndLicensing.GetLicenseStatus(_navigationManager.BaseUri, schoolID);
-    }
-
-    public void Dispose()
-    {
-        appState.OnChange -= StateHasChanged;
-        _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
-    }
 }

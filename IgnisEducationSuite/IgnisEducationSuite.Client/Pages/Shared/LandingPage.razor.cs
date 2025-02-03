@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using EDUSphereSharedProject.Models.StoreProModels;
 using Serilog;
+using static System.Net.WebRequestMethods;
+using System.Net.Http.Json;
 
 namespace IgnisEducationSuite.Client.Pages.Shared
 {
@@ -14,6 +16,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
     {
 
         [Inject] AppState AppState { get; set; } = default!;
+        [Inject] HttpClient http { get; set; }
         private bool isLoading = false;
         private bool isAuthenticated = false;
         private BarConfig StudentPerformanceChartConfig { get; set; }
@@ -69,7 +72,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
 
             if (authState)
             {
-                await InititalizeAppState(UserEmailOrUserName);
+                await InititalizeAppState(UserEmailOrUserName,authState);
                 Console.WriteLine("AppState Initialized");
 
                 while (!await InitializeParent())
@@ -127,14 +130,9 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             return true;
         }
 
-        protected async Task InititalizeAppState(string UsernameOrEmail)
+        protected async Task InititalizeAppState(string username, bool authstate)
         {
-            var UserID = await rolesAndLicensingService.GetUserID(_navigationManager.BaseUri, UsernameOrEmail);
-            var UserRole = await rolesAndLicensingService.GetUserRole(_navigationManager.BaseUri, UsernameOrEmail);
-            var SchoolID = await rolesAndLicensingService.GetSchoolId(_navigationManager.BaseUri, UserID);
-            var LicenseStatus = await rolesAndLicensingService.GetLicenseStatus(_navigationManager.BaseUri, SchoolID);
-
-            AppState.UpdateDetails(UserID, SchoolID, LicenseStatus, UserRole);
+            await AppState.InitializeAsync(username,authstate,_navigationManager, http);
             StateHasChanged();
         }
         #endregion

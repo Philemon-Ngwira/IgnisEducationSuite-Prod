@@ -1,5 +1,6 @@
 ﻿@page "/Library"
 @using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
 @inject ImageService _imageService
 @inject NavigationManager _navigationManager
 @inject GenericServiceFactory _genericService
@@ -60,7 +61,54 @@
         <MudTextField T="string" @bind-Value="searchString" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Search" Placeholder="Search book"></MudTextField>
         <MudSpacer />
         <MudButton Variant="Variant.Filled" Color="Color.Primary">Search</MudButton>
+        <div class="library-page">
+            <div class="library-grid">
+                @if (Books != null && Books.Any())
+                {
+                    @foreach (var item in Books)
+                    {
+                        <div class="library-card" title="Click to view details">
+                            @if (item.VolumeInfo.ImageLinks != null)
+                            {
+                                <img src="@item.VolumeInfo.ImageLinks.Thumbnail" alt="Course Cover" class="course-cover">
+                            }
+                            else
+                            {
+                                <img src="@item.DefaultImg" alt="Course Cover" class="course-cover">
+                            }
+                            <div class="card-header">
+                                @if (item.VolumeInfo.Title != null)
+                                {
+                                    <h6 class="course-name">@item.VolumeInfo.Title</h6>
+                                }
+                                else
+                                {
+                                    <h6 class="course-name">No Title Found</h6>
 
+                                }
+                            </div>
+                            <div class="card-body">
+                                <p class="course-creator">
+                                    Created by: @(item.VolumeInfo.Authors != null && item.VolumeInfo.Authors.Any()
+                            ? string.Join(", ", item.VolumeInfo.Authors)
+                            : "Unknown")
+                                </p>
+                                <p class="course-creator">
+                                    Published Date: @(DateTime.TryParse(item.VolumeInfo.PublishedDate, out var date)
+                            ? date.ToString("MMMM dd, yyyy")
+                            : item.VolumeInfo.PublishedDate ?? "Unknown")
+                                </p>
+
+                            </div>
+                            <div class="card-footer">
+                                <button class="details-button" @onclick="() => NavigateToDetailsGoogleBooks(item.VolumeInfo.IndustryIdentifiers.Select(x=>x.Identifier).FirstOrDefault())">View Details</button>
+                            </div>
+                        </div>
+                    }
+                }
+                <!-- Add more cards here -->
+            </div>
+        </div>
     </MudCardContent>
 </MudCard>
 
@@ -75,10 +123,37 @@
     protected string searchString = string.Empty;
     [Inject] LessonService lessonService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] IBooksClientService booksClient { get; set; } = default!;
+    private string SearchQuery = string.Empty;
+    private List<Book>? Books;
+
+
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
         await GetCCourses();
+        var DefaultQuery = string.Empty;
+        if (AppState.HideStudentDashboard)
+        {
+            DefaultQuery = "children activity books";
+        }
+        else
+        {
+            DefaultQuery = "high school mathematics";
+        }
+        var book = (await booksClient.GetDefaultBooksAsync(DefaultQuery))?.Items?.ToList();
+        Books = book.Where(b => b.AccessInfo?.Viewability != "NO_PAGES" && b.AccessInfo?.Viewability != "NONE")
+    .ToList();
+        if (Books.Any())
+        {
+            foreach (var item in Books)
+            {
+                if (item.VolumeInfo.ImageLinks == null)
+                {
+                    item.DefaultImg = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
+                }
+            }
+        }
         isLoading = false;
     }
 
@@ -118,9 +193,17 @@
         Snackbar.Add("Failed to collect details please refresh your page and try again", Severity.Error);
         return new List<Lesson>();
     }
+    protected async Task NavigateToDetailsGoogleBooks(string BookID)
+    {
+        lessonService.BookID = BookID;
+        lessonService.isGoogleBook = true;
+        await Task.Delay(500);
+        _navigationManager.NavigateTo("/LibraryDetails");
+    }
     protected async Task NavigateToCourseDetails(Course course)
     {
         lessonService.Course = course;
+        lessonService.isGoogleBook = false;
         var service = _genericService.GetService<CourseDetail>();
         var result = await service.GetAllAsync($"api/Dynamic/GetCourseDetailsByCourseID/{course.CourseID}", true);
         var lessons = await GetLessonsBySchool();

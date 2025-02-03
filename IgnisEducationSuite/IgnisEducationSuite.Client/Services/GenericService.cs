@@ -89,6 +89,26 @@ namespace IgnisEducationSuite.Client.Services
                 return ServiceResult<T>.Failure($"Deserialization error: {ex.Message}");
             }
         }
+        public async Task<bool> DeleteEntityAsync(string entity, Guid id)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"api/Dynamic/DeleteEntity/{entity}/{id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+
+                Console.WriteLine($"Error: {response.StatusCode}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting entity: {ex.Message}");
+                return false;
+            }
+        }
         public async Task<ServiceResult<T>> PostAsync(string endpoint, string entity, T data, CancellationToken cancellationToken = default)
         {
             var jsonContent = JsonSerializer.Serialize(data);

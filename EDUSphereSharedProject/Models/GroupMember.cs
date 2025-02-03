@@ -5,17 +5,9 @@ using System.Collections.Generic;
 
 namespace EDUSphereSharedProject.Models;
 
-public partial class ChatMessage
+public partial class GroupMember
 {
-    public Guid Id { get; set; }
-
-    public string UserId { get; set; }
-
     public string GroupName { get; set; }
 
-    public string Message { get; set; }
-
-    public DateTime? Timestamp { get; set; }
-
-    public string ReciepientId { get; set; }
+    public string UserId { get; set; }
 }

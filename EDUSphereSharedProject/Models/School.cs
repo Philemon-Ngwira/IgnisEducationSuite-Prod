@@ -13,6 +13,8 @@ public partial class School
 
     public byte[] SchoolLogo { get; set; }
 
+    public bool? HasplagerismEnaabled { get; set; }
+
     public virtual ICollection<Class> Classes { get; set; } = new List<Class>();
 
     public virtual ICollection<ClientAdmin> ClientAdmins { get; set; } = new List<ClientAdmin>();

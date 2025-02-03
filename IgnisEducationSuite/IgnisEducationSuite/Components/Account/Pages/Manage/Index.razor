@@ -9,12 +9,34 @@
 @inject IdentityUserAccessor UserAccessor
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Profile</PageTitle>
 
-<h3>Profile</h3>
 <StatusMessage />
 
-<div class="row">
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            @if (user != null)
+            {
+                @if (user.ProfilePic != null)
+                {
+                    <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(user.ProfilePic)}")"></MudImage>
+                }
+            }
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            @if (user != null)
+            {
+                <MudText Typo="Typo.h6"><b>UserName: @user.UserName</b></MudText>
+            }
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+
+    </MudCardContent>
+</MudCard>
+
+
+@* <div class="row">
     <div class="col-md-6">
         <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
             <DataAnnotationsValidator />
@@ -32,7 +54,7 @@
         </EditForm>
     </div>
 </div>
-
+ *@
 @code {
     private ApplicationUser user = default!;
     private string? username;
@@ -47,6 +69,7 @@
     protected override async Task OnInitializedAsync()
     {
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        
         username = await UserManager.GetUserNameAsync(user);
         phoneNumber = await UserManager.GetPhoneNumberAsync(user);
 

@@ -41,11 +41,14 @@ namespace IgnisEducationSuite.Client
             builder.Services.AddScoped<ClientEmailService>();
             builder.Services.AddScoped<RolesAndLicensingService>();
             builder.Services.AddScoped<IBadgeService, BadgeService>();
+            builder.Services.AddScoped<IBooksClientService,BooksClientService>();
             builder.Services.AddScoped<IUserActivityService, UserActivityService>(); 
             builder.Services.AddScoped<IActivityService, ActivityService>(); 
             builder.Services.AddScoped<IBadgeCriteriaService, BadgeCriteriaService>();
             builder.Services.AddScoped<AchievementDecider>();
+            builder.Services.AddHttpClient(); // Registers IHttpClientFactory
             builder.Services.AddSingleton<AppState>();
+
             #endregion
 
             await builder.Build().RunAsync();

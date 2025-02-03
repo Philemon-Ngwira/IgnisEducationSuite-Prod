@@ -54,7 +54,20 @@ namespace IgnisEducationSuite.Controllers
             return Ok(userRoles);
         }
 
+        [HttpGet("getUserById/{UserID}")]
+        public async Task<IActionResult> GetUserById(string UserID)
+        {
+            var user = await _userManager.FindByIdAsync(UserID);
+            if (user == null)
+            {
+                return BadRequest();
 
+            }
+            else
+            {
+                return Ok(user);
+            }
+        }
         // API endpoint to create a new user
         [HttpPost("createUser")]
         public async Task<IActionResult> CreateUser(CreateUserModel request)

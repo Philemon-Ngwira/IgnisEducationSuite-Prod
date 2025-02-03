@@ -86,6 +86,7 @@ public partial class AchievementContext : DbContext
                 .HasConstraintName("FK_UserBadges_Badges");
         });
 
+        OnModelCreatingGeneratedProcedures(modelBuilder);
         OnModelCreatingPartial(modelBuilder);
     }
 

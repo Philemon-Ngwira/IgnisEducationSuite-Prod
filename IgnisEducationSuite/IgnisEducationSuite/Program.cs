@@ -14,10 +14,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using IgnisEducationSuite.Hubs;
-using EduSphereDomain.AchievementsData;
 using IgnisEducationSuite.Client.Pages.Achievements.Interfaces;
 using IgnisEducationSuite.Client.Pages.Achievements.Services;
 using IgnisEducationSuite.Client.Pages.Achievements;
+using EduSphereDomain.AchievementData;
 
 namespace IgnisEducationSuite
 {
@@ -56,13 +56,15 @@ namespace IgnisEducationSuite
 
 
             #endregion
+            builder.Services.AddHttpClient<GoogleBooksService>();
+
             //---------------------------------------------------------------
             #region DB CONTEXTS
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<PhoenixEdusphereContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<MessagingContext>(options => options.UseSqlServer(connectionString));
-            builder.Services.AddDbContext<AchivementContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<AchievementContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
@@ -87,6 +89,7 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<IUserActivityService, UserActivityService>();
             builder.Services.AddScoped<IActivityService, ActivityService>();
             builder.Services.AddScoped<IBadgeCriteriaService, BadgeCriteriaService>();
+            builder.Services.AddScoped<IBooksClientService, BooksClientService>();
             builder.Services.AddScoped<AchievementDecider>();
             builder.Services.AddScoped<ChatGPTService>();
             builder.Services.AddScoped<ChatClientService>();
@@ -98,6 +101,7 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<GenericServiceFactory>();
             builder.Services.AddScoped<EduSphereRepository>();
             builder.Services.AddScoped<PhoenixEdusphereContextProcedures>();
+            builder.Services.AddScoped<AchievementContextProcedures>();
             builder.Services.AddScoped<ImageService>();
             builder.Services.AddScoped<StudentNumberGenerator>();
             builder.Services.AddScoped<ClientEmailService>();
@@ -107,6 +111,8 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<LicenseService>();
             builder.Services.AddScoped<LessonService>();
             builder.Services.AddSingleton<AppState>();
+            builder.Services.AddHttpClient(); // Registers IHttpClientFactory
+
             builder.Services.AddSingleton<IConverter>(new SynchronizedConverter(new PdfTools()));
 
             #endregion

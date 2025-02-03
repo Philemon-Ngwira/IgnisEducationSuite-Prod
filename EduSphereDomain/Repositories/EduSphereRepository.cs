@@ -1,13 +1,10 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
-using DocumentFormat.OpenXml.Wordprocessing;
-using EduSphereDomain.AchievementsData;
+﻿using EduSphereDomain.AchievementData;
 using EduSphereDomain.Data;
 using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EduSphereDomain.Repositories
 {
@@ -15,12 +12,14 @@ namespace EduSphereDomain.Repositories
     {
         private readonly PhoenixEdusphereContext _context;
         private readonly PhoenixEdusphereContextProcedures _contextProcedures;
-        private readonly AchivementContext _achivementContext;
-        public EduSphereRepository(PhoenixEdusphereContext context, PhoenixEdusphereContextProcedures phoenixEdusphereContextProcedures, AchivementContext achivementContext)
+        private readonly AchievementContext _achivementContext;
+        private readonly AchievementContextProcedures _achievementContextProcedures;
+        public EduSphereRepository(PhoenixEdusphereContext context, PhoenixEdusphereContextProcedures phoenixEdusphereContextProcedures, AchievementContext achivementContext, AchievementContextProcedures achievementContextProcedures)
         {
             _context = context;
             _contextProcedures = phoenixEdusphereContextProcedures;
             _achivementContext = achivementContext;
+            _achievementContextProcedures = achievementContextProcedures;
         }
 
         public async Task<IEnumerable<Class>> GetTeacherSubjectsByID(Guid id)
@@ -39,7 +38,65 @@ namespace EduSphereDomain.Repositories
             var result = await _achivementContext.Activities.ToListAsync();
             return result;
         }
+        public async Task <IEnumerable<Course>> GetTeacherCourses(Guid TeacherID)
+        {
+            var courses =  await _context.Courses.Where(x=>x.TeacherID==TeacherID).ToListAsync();
+            return courses;
+        }
+        public async Task<bool> GetStudentDashboardState(string SchoolId)
+        {
+            try
+            {
+                var school = _context.ClientsWithoutStudentDashboards.Where(x => x.ClientID == Guid.Parse(SchoolId)).FirstOrDefault();
+                if (school != null)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                var message = ex.Message;   
+                throw;
+            }
+            
 
+        }
+        public async Task<IEnumerable<GetBestPerformingStudentsBySchoolResult>> GetBestPerformingStudents(string SchoolID)
+        {
+            List<GetBestPerformingStudentsBySchoolResult> getBestPerformingStudents = new();
+            var result = await _contextProcedures.GetBestPerformingStudentsBySchoolAsync(SchoolID);
+            if (result != null)
+            {
+                foreach (var item in result)
+                {
+                    GetBestPerformingStudentsBySchoolResult perfomer = new()
+                    {
+                        StudentID = item.StudentID,
+                        FirstName = item.FirstName,
+                        LastName = item.LastName,
+                        SchoolID = item.SchoolID,
+                        ProfilePic = item.ProfilePic,
+                        AvgAssignmentGrade = item.AvgAssignmentGrade,
+                        AvgExamGrade = item.AvgExamGrade,
+                        AttendanceScore = item.AttendanceScore,
+                        MarksScore = item.MarksScore,
+                        LessonScore = item.LessonScore,
+                        BadgeScore = item.BadgeScore,
+                        FinalScore = item.FinalScore,
+                    };
+                    getBestPerformingStudents.Add(perfomer);
+                }
+                return getBestPerformingStudents;
+            }
+            else
+            {
+                return getBestPerformingStudents;
+            }
+        }
         public async Task<IEnumerable<UserActivity>> GetUserActivities(string UserID)
         {
             var result = await _achivementContext.UserActivities.Where(x => x.UserId == UserID).ToListAsync();
@@ -55,6 +112,28 @@ namespace EduSphereDomain.Repositories
 
             // Return the added userBadge
             return result.Entity;
+        }
+
+        public async Task<IEnumerable<GetUserBadgesByUserIDResult>> GetUserBadges(string UserID)
+        {
+            List<GetUserBadgesByUserIDResult> userBadges = new();
+            var result = await _achievementContextProcedures.GetUserBadgesByUserIDAsync(UserID);
+            foreach (var item in result)
+            {
+                GetUserBadgesByUserIDResult badge = new()
+                {
+                    UserBadgeID = item.UserBadgeID,
+                    UserID = item.UserID,
+                    BadgeName = item.BadgeName,
+                    BadgeDescription = item.BadgeDescription,
+                    BadgeLevel = item.BadgeLevel,
+                    image_url = item.image_url,
+                    DateEarned = item.DateEarned,
+
+                };
+                userBadges.Add(badge);
+            }
+            return userBadges;
         }
         public async Task<UserActivity> SaveUserActivity(UserActivity Activity)
         {

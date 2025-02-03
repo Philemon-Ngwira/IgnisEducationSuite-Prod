@@ -4,10 +4,19 @@
 @using IgnisEducationSuite.Client.Pages.Achievements
 @inherits AppBaseComponent
 @inject IDialogService DialogService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
-            <MudText Align="Align.Center" Typo="Typo.h4"><b>@selectedCourse.CourseName</b></MudText>
+            @if (isGoogleBook)
+            {
+                <!-- Add header content if needed -->
+            }
+            else
+            {
+                <MudText Align="Align.Center" Typo="Typo.h4"><b>@selectedCourse.CourseName</b></MudText>
+            }
         </CardHeaderContent>
     </MudCardHeader>
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
@@ -25,48 +34,78 @@
         </div>
     }
     <MudCardContent>
-        <MudGrid>
-            <MudItem xs="12" md="3">
-                <MudNavMenu>
-                    <MudText Typo="Typo.h6" Class="px-4">Course Content</MudText>
-                    <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Lessons</MudText>
-                    <MudDivider Class="my-2" />
-                    @foreach (var item in details)
-                    {
-                        <MudNavLink OnClick="() => SelectLesson(item.Lesson)" Icon="@Icons.Material.Filled.PlayLesson">@item.Lesson.Title</MudNavLink>
-
-                    }
-                </MudNavMenu>
-
-            </MudItem>
-            <MudItem xs="12" md="9">
-                <MudPaper Height="650">
-                    @((MarkupString)LessonFormatter.FormatLessonContent(Lesson.Content))
-                    <MudDivider Class="my-2" />
-                    <MudButton EndIcon="@Icons.Material.Filled.NavigateNext" Color="Color.Primary" OnClick="NavigateNextLesson" Variant="Variant.Filled">Next Lesson</MudButton>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
+        @if (isGoogleBook)
+        {
+            <div id="viewerContainer" style="width: 100%; height: 600px; border: 1px solid #ccc;"></div>
+            <MudButton Color="Color.Primary" @onclick="Close">Close</MudButton>
+        }
+        else
+        {
+            <MudGrid>
+                <MudItem xs="12" md="3">
+                    <MudNavMenu>
+                        <MudText Typo="Typo.h6" Class="px-4">Course Content</MudText>
+                        <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Lessons</MudText>
+                        <MudDivider Class="my-2" />
+                        @foreach (var item in details)
+                        {
+                            <MudNavLink OnClick="() => SelectLesson(item.Lesson)" Icon="@Icons.Material.Filled.PlayLesson">@item.Lesson.Title</MudNavLink>
+                        }
+                    </MudNavMenu>
+                </MudItem>
+                <MudItem xs="12" md="9">
+                    <MudPaper Height="650">
+                        @if (Lesson != null && !string.IsNullOrEmpty(Lesson.Content))
+                        {
+                            @((MarkupString)LessonFormatter.FormatLessonContent(Lesson.Content))
+                        }
+                        else
+                        {
+                            <p>No content available for this lesson.</p>
+                        }
+                        <MudDivider Class="my-2" />
+                        <MudButton EndIcon="@Icons.Material.Filled.NavigateNext" Color="Color.Primary" OnClick="NavigateNextLesson" Variant="Variant.Filled">Next Lesson</MudButton>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
     </MudCardContent>
 </MudCard>
 
 @code {
     protected bool isLoading = false;
+    protected bool isGoogleBook = false;
     [Inject] GenericServiceFactory GenericService { get; set; } = default!;
     [Inject] LessonService lessonService { get; set; }
     protected Course selectedCourse = new();
-    protected Lesson Lesson = new();
+    protected Lesson Lesson { get; set; } = new();
     protected List<CourseDetail> details = new();
     [Inject] AchievementDecider achievementDecider { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
+        isGoogleBook = lessonService.isGoogleBook;
         await Task.Delay(500);
-        selectedCourse = lessonService.Course;
-        details = lessonService.courseDetails;
-        StateHasChanged();
+        if (!isGoogleBook)
+        {
+            
+            selectedCourse = lessonService.Course;
+            details = lessonService.courseDetails;
+        }
+        else
+        {
+            
+            StateHasChanged(); // Ensure the UI is rendered before calling JavaScript
+            await JSRuntime.InvokeVoidAsync("loadGoogleBook", lessonService.BookID);
+           // await JSRuntime.InvokeVoidAsync("loadGoogleBook", "UOM:39015063835527");
+        }
         isLoading = false;
+    }
+
+    protected void Close()
+    {
+        NavigationManager.NavigateTo("/Library");
     }
 
     protected async Task GetBadges()
@@ -75,9 +114,10 @@
         var result = await service.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
         if (result.IsSuccess)
         {
-
+            // handle result
         }
     }
+
     private async Task<List<UserActivity>> GetUserActivitiesDone(string UserRole, string UserID)
     {
         if (UserRole == "Student")
@@ -88,25 +128,15 @@
             {
                 return result.Data.ToList();
             }
-            else
-            {
-                return new List<UserActivity>();
-            }
         }
-        else
-        {
-            return new List<UserActivity>();
-        }
+        return new List<UserActivity>();
     }
 
     protected async Task NavigateNextLesson()
     {
-
-        string userID = AppState.UserID.ToString();
         await GetBadges();
-        // // Replace with the actual user ID
-        // achievementDecider.Badges = AppState.Badges;
-        // achievementDecider.UserActivities = AppState.UserActivities;
+        string userID = AppState.UserID.ToString();
+
         if (AppState.UserRole == "Student")
         {
             achievementDecider.NumberOfLessons = details.Count;
@@ -115,12 +145,11 @@
             foreach (var item in result)
             {
                 var parameters = new DialogParameters<AchivementDialog> { { x => x.badge, item } };
-
                 var dialog = await DialogService.ShowAsync<AchivementDialog>("", parameters);
-                var resulted = await dialog.Result;
+                await dialog.Result;
             }
         }
-        // Move to the next lesson
+
         var currentIndex = details.FindIndex(d => d.Lesson.LessonID == Lesson.LessonID);
         if (currentIndex >= 0 && currentIndex < details.Count - 1)
         {
@@ -131,9 +160,9 @@
             // Handle end of course logic
         }
     }
+
     protected void SelectLesson(Lesson lesson)
     {
-        Lesson = new();
         Lesson = lesson;
         StateHasChanged();
     }

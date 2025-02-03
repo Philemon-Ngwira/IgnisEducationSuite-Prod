@@ -51,8 +51,17 @@
 
             <Routes @rendermode="@RenderModeForPage" />
         </main>
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-copyright">
+                    &copy; @DateTime.Now.Year Philtiara Enterprises. All rights reserved.
+                </div>
+                <div class="footer-version">
+                    Version 1.0.0
+                </div>
+            </div>
+        </footer>
 
-     
     </div>
 
     <!-- Scripts -->
@@ -65,6 +74,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <script src="_content/ChartJs.Blazor.Fork/ChartJsBlazorInterop.js"></script>
     <script src="/js/mainloader.js"></script>
+    <script type="text/javascript" src="https://www.google.com/books/jsapi.js"></script>
+    <script src="/js/GoogleBooksPreview.js"></script>
+
+
+   
 </body>
 
 

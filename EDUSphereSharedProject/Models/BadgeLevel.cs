@@ -5,7 +5,9 @@ using System.Collections.Generic;
 
 namespace EDUSphereSharedProject.Models;
 
-public partial class ChatGroup
+public partial class BadgeLevel
 {
-    public string GroupName { get; set; }
+    public Guid BadgeLevelID { get; set; }
+
+    public string LevelDescription { get; set; }
 }

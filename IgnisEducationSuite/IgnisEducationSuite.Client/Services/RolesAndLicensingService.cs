@@ -1,4 +1,7 @@
-﻿namespace IgnisEducationSuite.Client.Services
+﻿using System.Net.Http.Json;
+using static System.Net.WebRequestMethods;
+
+namespace IgnisEducationSuite.Client.Services
 {
     public class RolesAndLicensingService
     {
@@ -75,7 +78,6 @@
                 {
                     var content = await response.Content.ReadAsStringAsync();
                     return content.Trim('"').Replace("\\", "");
-                    return content;
                 }
                 else
                 {
@@ -94,7 +96,49 @@
                 return $"Exception: {ex.Message}";
             }
         }
+        public async Task<bool> GetLoginAttempt(string BaseURI, string UserID)
+        {
+            // Send the GET request
+            var result = await _httpClient.GetAsync($"{BaseURI}api/user/UserLoginAttempt/{UserID}");
 
+            // Check if the request succeeded
+            if (result.IsSuccessStatusCode)
+            {
+                // Read the response content as a string
+                var content = await result.Content.ReadAsStringAsync();
+
+                // Parse the content to a bool and return it
+                return bool.Parse(content);
+            }
+
+            // Handle the failure case (e.g., return false or throw an exception)
+            throw new Exception($"Failed to fetch login attempt. Status code: {result.StatusCode}, Reason: {result.ReasonPhrase}");
+        }
+
+        public async Task<bool> UpdateLoginAttemptAsync(string baseUri, string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new ArgumentException("UserID cannot be null or empty.", nameof(userId));
+            }
+
+            // Send the request with JSON payload
+            var response = await _httpClient.PutAsJsonAsync($"{baseUri}api/user/UpdateLoginAttempt", userId);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to update login attempt: {response.StatusCode} - {errorContent}");
+        }
+
+        public async Task<bool> getStudentDashState(string SchoolID)
+        {
+            var result = await _httpClient.GetFromJsonAsync<bool>($"api/Dynamic/GetStudentDashboardState/{SchoolID}");
+            return result;
+        }
         public async Task<bool> GetLicenseStatus(string BaseURI, string ClientID)
         {
             try
