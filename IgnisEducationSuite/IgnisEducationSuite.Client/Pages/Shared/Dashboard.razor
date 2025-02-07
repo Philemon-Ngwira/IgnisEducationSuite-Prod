@@ -9,6 +9,7 @@
 @using EDUSphereSharedProject.Models.StoreProModels
 @using IgnisEducationSuite.Client.Pages.Achievements
 @using IgnisEducationSuite.Client.Services
+@using System.Security.Claims
 @inject IDialogService DialogService
 @inject HttpClient http
 @inherits AppBaseComponent
@@ -49,10 +50,10 @@
                     }
                     else
                     {
-
+                        <MudAlert Variant="Variant.Filled" Class="mb-3" Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person2">Date and Time: @DateTime.Now</MudAlert>
                         @if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
                         {
-                            <MudAlert Variant="Variant.Filled" Class="mb-3" Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person2">Your Role is @AppState.UserRole</MudAlert>
+                          
                             <MudDivider Class="border border-secondary border-2 opacity-50 mb-3 "></MudDivider>
                             @if (AppState.HideStudentDashboard)
                             {
@@ -66,7 +67,7 @@
                                                     <MudText Typo="Typo.body2">Check Lessons From Teachers and Study them</MudText>
                                                 </MudCardContent>
                                                 <MudCardActions>
-                                                    <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.NavigateNext" Color="Color.Primary">Go</MudButton>
+                                                    <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.NavigateNext" Href="/StudentLessons"  Color="Color.Primary">Go</MudButton>
                                                 </MudCardActions>
                                             </MudCard>
                                         </MudItem>
@@ -78,7 +79,7 @@
                                                     <MudText Typo="Typo.body2">Check Lessons From Teachers and Study them</MudText>
                                                 </MudCardContent>
                                                 <MudCardActions>
-                                                    <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.NavigateNext" Color="Color.Primary">Go</MudButton>
+                                                    <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.NavigateNext" Href="/StudentAssignments" Color="Color.Secondary">Go</MudButton>
                                                 </MudCardActions>
                                             </MudCard>
                                         </MudItem>
@@ -90,11 +91,66 @@
                                                     <MudText Typo="Typo.body2">Go to Exams Tests and Quizzes to keep learning</MudText>
                                                 </MudCardContent>
                                                 <MudCardActions>
-                                                    <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.NavigateNext" Color="Color.Primary">Go</MudButton>
+                                                    <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.NavigateNext" Href="/Exams" Color="Color.Error">Go</MudButton>
                                                 </MudCardActions>
                                             </MudCard>
                                         </MudItem>
                                     </MudGrid>
+                                    <MudItem xs="12">
+                                        <MudCard>
+                                            <MudCardHeader>
+                                                <MudText Align="Align.Left" Typo="Typo.h6"><b>Class Time Table</b></MudText>
+                                            </MudCardHeader>
+                                            <MudCardContent>
+                                                <div class="card-body">
+                                                    @if (Currentschedules.Any())
+                                                    {
+                                                        <table class="timetable">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Time</th>
+                                                                    @foreach (var day in daysofTheWeek)
+                                                                    {
+                                                                        <th>@day.DayName</th>
+                                                                    }
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var group in groupedSchedules)
+                                                                {
+                                                                    <tr>
+                                                                        <td class="time">@($"{group.Key.StartTime:hh\\:mm}") - @($"{group.Key.EndTime:hh\\:mm}")</td>
+                                                                        @foreach (var day in dayOrder)
+                                                                        {
+                                                                            <td class="@((group.Any(cs => cs.DayName == day) ? "" : "empty"))">
+                                                                                @{
+                                                                                    var schedule = group.FirstOrDefault(cs => cs.DayName == day);
+                                                                                    if (schedule != null)
+                                                                                    {
+                                                                                        <span>@schedule.ClassName</span>
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        <span>No Classes</span>
+                                                                                    }
+                                                                                }
+                                                                            </td>
+                                                                        }
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+
+                                                        </table>
+                                                    }
+                                                    else
+                                                    {
+                                                        <MudAlert Variant="Variant.Filled" Severity="Severity.Info">Class Time Table Not Assigned Yet</MudAlert>
+                                                    }
+                                                </div>
+
+                                            </MudCardContent>
+                                        </MudCard>
+                                    </MudItem>
 
                                 </MudPaper>
                             }
@@ -821,6 +877,10 @@
                 _navigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}", forceLoad: true);
                 return;
             }
+            var user = authState.User;
+            var UserID = string.Empty;
+            UserID = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
 
             // Step 2: Ensure AppState is initialized
             int maxTries = 5;
@@ -831,7 +891,7 @@
                 if (AppState.IsInitialized) break;
 
                 Console.WriteLine($"Attempt {attempt}: Initializing AppState...");
-                await AppState.InitializeAsync(authState.User.Identity.Name, true,_navigationManager, http); // Ensure initialization is triggered
+                await AppState.InitializeAsync(UserID, true, _navigationManager, http); // Ensure initialization is triggered
                 await Task.Delay(delay);
                 delay *= 2; // Exponential backoff: 500ms → 1s → 2s → 4s...
             }
@@ -856,7 +916,7 @@
 
             // Step 4: Load user-specific data
             SchoolID = AppState.SchoolID;
-           
+
             Console.WriteLine("Loading main data...");
             await GetAllLessons();
             await GetStudentDetails();

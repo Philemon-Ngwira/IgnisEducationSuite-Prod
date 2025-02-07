@@ -66,9 +66,9 @@
                         <iconify-icon icon="iconoir:search"></iconify-icon>
                     </span>
                     <MudAutocomplete T="string" Label="Find User" @bind-Value="SelectedUser" SearchFunc="@Search"
-                                     ResetValueOnEmptyText="true"
-                                     CoerceText="true" CoerceValue="true"
-                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                    ResetValueOnEmptyText="true"
+                    CoerceText="true" CoerceValue="true"
+                    AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                 </div>
                 <div class="chat-all-list">
                     @foreach (var item in chats)
@@ -159,7 +159,7 @@
                         {
                             if (chatdetail.UserId != AppState.UserID)
                             {
-                                <div class="chat-single-message left">
+                                <div class="chat-single-message left" >
                                     <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedChat.ProfilePic)}")" alt="image" class="avatar-lg object-fit-cover rounded-circle">
                                     <div class="chat-message-content">
                                         <p class="mb-3">@chatdetail.Content</p>
@@ -221,6 +221,8 @@
     private List<ApplicationUser> _users = new();
     private ApplicationUser LoggedInUser = new();
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] RolesAndLicensingService _rolesService { get; set; } = default!;
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     protected override async Task OnInitializedAsync()
     {
@@ -236,8 +238,9 @@
             {
                 if (receivedMessage.Content == null)
                 {
-
-                    await LoadMessages(AppState.UserID);
+                    messages.Clear();
+                    await LoadChats();
+                    await LoadMessages(AppState.UserID, selectedChat.Reciepientid);
                     StateHasChanged();
                 }
                 else
@@ -294,17 +297,19 @@
         chats = c.ToList();
 
     }
-    private async Task LoadMessages(string chatName)
+    private async Task LoadMessages(string chatName, string reciepientID)
     {
         // Load messages for the selected chat from the server
-        messages = await Http.GetFromJsonAsync<List<Message>>($"api/Messaging/getmessages/{chatName}");
+        messages = await Http.GetFromJsonAsync<List<Message>>($"api/Messaging/getmessages/{chatName}/{reciepientID}");
     }
     private async Task SelectChat(Chat chat)
     {
+        chat.Reciepientid = await _rolesService.GetUserID(_navigationManager.BaseUri, chat.Name);
         //Snackbar.Add("Opening Chat", Severity.Success);
         selectedChat = chat;
         messages.Clear();
-        await LoadMessages(AppState.UserID);
+        await LoadMessages(AppState.UserID, chat.Reciepientid);
+        StateHasChanged();
     }
 
     Task Send(string user, Message message, string method) => _hubConnection.SendAsync(method, user, message);
@@ -333,10 +338,9 @@
             }
             else
             {
-                if (selectedChat.id == null)
-                {
+                
                     selectedChat.id = _users.Where(x => x.UserName == selectedChat.Name).Select(x => x.Id).First();
-                }
+               
                 newMessage.RecipientId = selectedChat.id;
                 await Send(selectedChat.id, newMessage, "SendMessageToUser");
                 //await _hubConnection.SendAsync("SendMessageToUser", selectedChat.Name, newMessage);

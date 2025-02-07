@@ -9,7 +9,7 @@
 @inject GenericServiceFactory genericService
 @inject ISnackbar Snackbar
 @inject StudentNumberGenerator StudentNumberGenerator
-
+@inherits AppBaseComponent
 <MudDialog>
     <DialogContent>
         @if (isLoading)
@@ -39,7 +39,16 @@
                 <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.UserName" Label="UserName"></MudTextField>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Email"></MudTextField>
+                @if (AppState.HideStudentDashboard && Role=="Student")
+                {
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Enter Parent Email For Password"></MudTextField>
+                }
+                else
+                {
+
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Email"></MudTextField>
+
+                }
             </MudItem>
 
             <MudItem xs="12" Class="mb-3">
@@ -53,15 +62,15 @@
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter" Margin="Margin.Dense" T="CountryDTO" Label="Countries" Value="Country" Placeholder="Select Country" SearchFunc="@SearchCountry"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true" CoerceValue="true"
-                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                ResetValueOnEmptyText="true"
+                CoerceText="true" CoerceValue="true"
+                AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter" Margin="Margin.Dense" T="CityDTO" Label="Cities" Disabled="Country.CountryName == null" SearchFunc="@SearchCity"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true" CoerceValue="true"
-                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                ResetValueOnEmptyText="true"
+                CoerceText="true" CoerceValue="true"
+                AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
             </MudItem>
             @if (Role == "Student")
             {
@@ -100,9 +109,9 @@
             {
                 <MudItem xs="12" md="6">
                     <MudAutocomplete Variant="Variant.Outlined" @bind-Value="selectedStudent" Placeholder="Search Student" ToStringFunc="StudentTypeconverter" Margin="Margin.Dense" T="Student" Label="Students" SearchFunc="@SearchStudent"
-                                     ResetValueOnEmptyText="true"
-                                     CoerceText="true" CoerceValue="true"
-                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                    ResetValueOnEmptyText="true"
+                    CoerceText="true" CoerceValue="true"
+                    AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                 </MudItem>
             }
 
@@ -117,8 +126,8 @@
                 <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                     <ActivatorContent>
                         <MudFab Color="Color.Secondary"
-                                StartIcon="@Icons.Material.Filled.Image"
-                                Label="Load Profile Picture" />
+                        StartIcon="@Icons.Material.Filled.Image"
+                        Label="Load Profile Picture" />
                     </ActivatorContent>
                 </MudFileUpload>
             </MudItem>
@@ -141,6 +150,7 @@
 </MudDialog>
 
 @code {
+
     [CascadingParameter] public MudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public string Role { get; set; } = string.Empty;
     [Parameter] public List<CountryDTO> countries { get; set; } = new();
@@ -269,14 +279,30 @@
         //Generate One time password
         newUser.Password = GenerateOneTimePassword();
         newUser.Role = Role;
+        var Email = string.Empty;
+        var StudentIDD = string.Empty;
+        if (AppState.HideStudentDashboard && newUser.Role == "Student")
+        {
+
+            Email = "N/A";
+        }
+        else{
+            Email = newUser.Email;
+        }
+        if(newUser.Role == "Student"){
+            StudentIDD = await StudentNumberGenerator.GenerateStudentIdAsync(IDPrefix, navigationManager.BaseUri);
+        }
+        else{
+            StudentIDD = "N/A";
+        }
         CreateUserModel createUserModel = new()
             {
                 UserName = newUser.UserName,
                 Password = newUser.Password,
-                Email = newUser.Email,
+                Email = Email,
                 Role = newUser.Role,
                 SchoolID = LoggedAdmin.SchoolID.Value,
-                UserID = "N/A",
+                UserID = StudentIDD,
                 ProfilePic = newUser.profilePic,
                 FirstName = newUser.FirstName,
                 LastName = newUser.LastName
@@ -323,7 +349,7 @@
                             Password = newUser.Password,
                             UserName = newUser.UserName,
                             isFirstMail = true
-                            
+
                         };
                     var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
 
@@ -353,7 +379,7 @@
                         Country = Country.CountryName,
                         City = City.CityName,
                         GradeLevel = newUser.GradeLevel,
-                        StudentNumber = await StudentNumberGenerator.GenerateStudentIdAsync(IDPrefix, navigationManager.BaseUri),
+                        StudentNumber = StudentIDD,
                         ProfilePic = newUser.profilePic,
                         UserID = newUser.UserID,
                         DateOnBoarded = DateTime.Now,
@@ -373,6 +399,7 @@
                             Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
                             Password = newUser.Password,
                             UserName = newUser.UserName,
+                            StudentID = StudentIDD,
                             isFirstMail = true
                         };
                     var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
@@ -434,7 +461,7 @@
                                     To = savedTeacher.Data.Email,
                                     Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
                                     Password = newUser.Password,
-                                        UserName = newUser.UserName,
+                                    UserName = newUser.UserName,
                                     isFirstMail = true
                                 };
                             var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);

@@ -26,33 +26,43 @@
 
     <MudCardContent>
         <MudGrid>
-            @foreach (var item in availableLessons)
+            @if (availableLessons.Any())
             {
-                <MudItem xs="12" md="6">
-                    <MudCard>
-                        <MudCardHeader>
-                            <CardHeaderAvatar>
-                                <MudAvatar Color="Color.Secondary">
-                                    <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.Teacher.ProfilePic)}")"></MudImage>
-                                </MudAvatar>
-                            </CardHeaderAvatar>
-                            <CardHeaderContent>
-                                <MudText Typo="Typo.body1"><b>@item.Title</b></MudText>
-                            </CardHeaderContent>
-                        </MudCardHeader>
-                        <MudCardMedia Image="@item.imageUrl" Height="250" />
-                        <MudCardContent>
-                            <MudText Typo="Typo.body2">@item.Teacher.FirstName @item.Teacher.LastName</MudText>
-                        </MudCardContent>
-                        <MudCardActions>
-                            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Star">Rate Lessson</MudButton>
-                            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="()=>NavigateToDetails(item)" StartIcon="@Icons.Material.Filled.More">View Lesson</MudButton>
+                @foreach (var item in availableLessons)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudCard>
+                            <MudCardHeader>
+                                <CardHeaderAvatar>
+                                    <MudAvatar Color="Color.Secondary">
+                                        <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.Teacher.ProfilePic)}")"></MudImage>
+                                    </MudAvatar>
+                                </CardHeaderAvatar>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.body1"><b>@item.Title</b></MudText>
+                                </CardHeaderContent>
+                            </MudCardHeader>
+                            <MudCardMedia Image="@item.imageUrl" Height="250" />
+                            <MudCardContent>
+                                <MudText Typo="Typo.body2">@item.Teacher.FirstName @item.Teacher.LastName</MudText>
+                            </MudCardContent>
+                            <MudCardActions>
+                                <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Star">Rate Lessson</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="()=>NavigateToDetails(item)" StartIcon="@Icons.Material.Filled.More">View Lesson</MudButton>
 
-                        </MudCardActions>
-                    </MudCard>
-                </MudItem>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
             }
+            else
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No Lessons Found</MudAlert>
+                </MudItem>
 
+
+            }
         </MudGrid>
     </MudCardContent>
 </MudCard>
@@ -90,7 +100,7 @@
         if (result.IsSuccess)
         {
             availableLessons = result.Data.ToList();
-            SchoolID = Guid.Parse (AppState.SchoolID);
+            SchoolID = Guid.Parse(AppState.SchoolID);
             foreach (var item in availableLessons)
             {
                 item.imageUrl = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);

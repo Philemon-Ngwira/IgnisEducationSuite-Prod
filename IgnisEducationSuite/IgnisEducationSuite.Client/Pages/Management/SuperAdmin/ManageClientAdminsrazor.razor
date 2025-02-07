@@ -12,62 +12,109 @@
         </CardHeaderContent>
     </MudCardHeader>
     <MudCardContent>
-        <MudGrid>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="newUser.UserName" Label="Enter UserName" Placeholder="Username" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="newUser.Email" Label="Enter Email" Placeholder="example@gmail.com" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="newUser.FirstName" Label="Enter FirstName" Placeholder="First Name" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="newUser.LastName" Label="Enter FirstName" Placeholder="Last Name" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newUser.Gender">
-                    @foreach (var item in genders)
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+            <MudTabPanel Text="Create New Admin">
+
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="newUser.UserName" Label="Enter UserName" Placeholder="Username" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="newUser.Email" Label="Enter Email" Placeholder="example@gmail.com" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="newUser.FirstName" Label="Enter FirstName" Placeholder="First Name" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="newUser.LastName" Label="Enter FirstName" Placeholder="Last Name" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newUser.Gender">
+                            @foreach (var item in genders)
+                            {
+                                <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="newUser.ContactNo" Label="Enter Contact #" Placeholder="+260 123456789" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter" Margin="Margin.Dense" T="CountryDTO" Label="Countries" Value="Country" Placeholder="Select Country" SearchFunc="@SearchCountry"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="true" CoerceValue="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter" Margin="Margin.Dense" T="CityDTO" Label="Cities" Disabled="Country.CountryName == null" SearchFunc="@SearchCity"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="true" CoerceValue="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudAutocomplete Variant="Variant.Outlined" @bind-Value="school" ToStringFunc="SchoolTypeconverter" Margin="Margin.Dense" T="School" Label="Schools" SearchFunc="@SearchSchool"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="true" CoerceValue="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                            <ActivatorContent>
+                                <MudFab Color="Color.Secondary"
+                                        StartIcon="@Icons.Material.Filled.Image"
+                                        Label="Upload Profile Pic" />
+                            </ActivatorContent>
+                        </MudFileUpload>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAdmin" DropShadow="true">Add School Admin</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+            <MudTabPanel Text="Manage Existing Admins">
+                <MudSelect @bind-Value="selectedSchool" T="School" ToStringFunc="SchoolTypeconverter" Label="Select School" HelperText="String" Placeholder="Please Select" AdornmentIcon="@Icons.Material.Filled.School" AdornmentColor="Color.Primary">
+                   @foreach (var item in schools)
                     {
-                        <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
+                        <MudSelectItem Value="item">@item.SchoolName</MudSelectItem>
                     }
                 </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GetUsersWithRoles">Get School Admins</MudButton>
+                @if(userRoles.Any()){
+                    <MudTable Items="@userRoles" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<ApplicationUser,bool>(FilterFunc1)" @bind-SelectedItem="selectedAdmin">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Admins</MudText>
+                            <MudSpacer />
+                            <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh>First Name</MudTh>
+                            <MudTh>Last Name</MudTh>
+                            <MudTh>Email</MudTh>
+                            <MudTh>Action</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                            <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                            <MudTd DataLabel="Email">@context.Email</MudTd>
+                            <MudTd DataLabel="Action">
+                                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false">
+                                    <MudButton Color="Color.Primary" EndIcon="@Icons.Material.Filled.NotAccessible" Variant="Variant.Outlined">Disable Account</MudButton>
+                                    <MudButton Color="Color.Warning" EndIcon="@Icons.Material.Filled.Accessible" Variant="Variant.Outlined">Activate Account</MudButton>
+                                    <MudButton Color="Color.Secondary" EndIcon="@Icons.Material.Filled.Password" Variant="Variant.Outlined" OnClick="() => ResetPassword(context)">Reset Password</MudButton>
+                                </MudButtonGroup>
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
 
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="newUser.ContactNo" Label="Enter Contact #" Placeholder="+260 123456789" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter" Margin="Margin.Dense" T="CountryDTO" Label="Countries" Value="Country" Placeholder="Select Country" SearchFunc="@SearchCountry"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true" CoerceValue="true"
-                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter" Margin="Margin.Dense" T="CityDTO" Label="Cities" Disabled="Country.CountryName == null" SearchFunc="@SearchCity"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true" CoerceValue="true"
-                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudAutocomplete Variant="Variant.Outlined" @bind-Value="school" ToStringFunc="SchoolTypeconverter" Margin="Margin.Dense" T="School" Label="Schools" SearchFunc="@SearchSchool"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true" CoerceValue="true"
-                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
-                    <ActivatorContent>
-                        <MudFab Color="Color.Secondary"
-                                StartIcon="@Icons.Material.Filled.Image"
-                                Label="Upload Profile Pic" />
-                    </ActivatorContent>
-                </MudFileUpload>
-            </MudItem>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAdmin" DropShadow="true">Add School Admin</MudButton>
-            </MudItem>
-        </MudGrid>
+                }
+               
+            </MudTabPanel>
+            
+        </MudTabs>
     </MudCardContent>
 </MudCard>
 

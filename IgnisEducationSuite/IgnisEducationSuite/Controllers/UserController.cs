@@ -23,6 +23,10 @@ namespace IgnisEducationSuite.Controllers
             if (user == null)
             {
                 user = await _userManager.FindByEmailAsync(UserNameOrEmail);
+                if(user == null)
+                {
+                    user = _userManager.Users.FirstOrDefault(x => x.UserID == UserNameOrEmail);
+                }
             }
             var userId = user?.Id;
             return Ok(userId);

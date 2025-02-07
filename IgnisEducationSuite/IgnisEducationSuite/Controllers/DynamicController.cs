@@ -464,7 +464,7 @@ namespace IgnisEducationSuite.Controllers
         }
         // DELETE: api/{entity}/{id}
         [HttpDelete("DeleteEntity/{entity}/{id}")]
-        public async Task<IActionResult> Delete(string entity, int id)
+        public async Task<IActionResult> Delete(string entity, Guid id)
         {
             var repository = GetRepositoryFromEntityName(entity);
             if (repository == null)

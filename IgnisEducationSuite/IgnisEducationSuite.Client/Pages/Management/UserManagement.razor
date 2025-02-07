@@ -1,5 +1,6 @@
 ﻿@page "/UserManagement"
 @using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.LicensingModel
 @using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.UniversalModels
 @using IgnisEducationSuite.Client.Pages.Management.Dialog
@@ -49,16 +50,16 @@
                         <TemplateColumn CellClass="d-flex justify-end">
                             <CellTemplate>
                                 <MudStack Row>
-                                 <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary" OnClick="()=>EditUserAsync(context.Item)">Edit</MudButton>
-                                 <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Error">Remove</MudButton>
-                             </MudStack>
-                         </CellTemplate>
-                     </TemplateColumn>
-                 </Columns>
+                                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary" OnClick="()=>EditUserAsync(context.Item)">Edit</MudButton>
+                                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Error">Remove</MudButton>
+                                </MudStack>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
 
-             </MudDataGrid>
+                </MudDataGrid>
 
-         </MudTabPanel>
+            </MudTabPanel>
 
         }
     </MudTabs>
@@ -78,16 +79,24 @@
     protected List<string> Roles = new();
     protected string UserID = string.Empty;
     protected ClientAdmin loggedInAdmin = new();
+    protected LicenseSlots LicenseUserLimit = new();
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-
+        if(!AppState.IsInitialized){
+            Snackbar.Add("App reinitializing");
+            _navigationManager.NavigateTo("/", true);
+        }
+        await GetUserLimit();
         await GetAdminData();
         await GetUsersWithRoles();
         await GetGenders();
         isLoading = false;
     }
-   
+    protected async Task GetUserLimit(){
+        var result = await Http.GetFromJsonAsync<LicenseSlots>($"api/Verification/GetLicenseLimit/{Guid.Parse(AppState.SchoolID)}");
+        LicenseUserLimit = result;
+    }
     protected async Task GetUsersWithRoles()
     {
         userRoles = await Http.GetFromJsonAsync<Dictionary<string, List<ApplicationUser>>>($"{_navigationManager.BaseUri}api/Admin/getUsersByRole/{loggedInAdmin.SchoolID}");
@@ -105,9 +114,9 @@
     }
     protected async Task GetAdminData()
     {
-      
-            UserID = appState.UserID;
-        
+
+        UserID = appState.UserID;
+
         if (UserID != string.Empty || UserID != null)
         {
             var service = _genericService.GetService<ClientAdmin>();
@@ -134,17 +143,34 @@
     }
     private async Task CreateUserAsync(string Role)
     {
-        var countries = await GetCountries();
-        var parameters = new DialogParameters<CreateUserDialog> { { x => x.Role, Role }, { genders => genders.genders, genders }, { c => c.countries, countries },{ a=>a.LoggedAdmin , loggedInAdmin} };
-        var DialogOpt = new DialogOptions { MaxWidth = MaxWidth.Large };
-        var dialog = await DialogService.ShowAsync<CreateUserDialog>("", parameters, DialogOpt);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
+        // Prevent adding more students if the limit is reached
+    if (Role == "Student")
+    {
+        var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
+        if (count >= LicenseUserLimit.UserLimit) // Corrected condition
         {
-
+            Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
+            return;
         }
     }
+
+    var parameters = new DialogParameters<CreateUserDialog>
+    {
+        { x => x.Role, Role },
+        { x => x.genders, genders },
+        { x => x.countries, await GetCountries() },
+        { x => x.LoggedAdmin, loggedInAdmin }
+    };
+
+    var dialog = await DialogService.ShowAsync<CreateUserDialog>("Create User", parameters, new DialogOptions { MaxWidth = MaxWidth.Large });
+    var result = await dialog.Result;
+
+    if (!result.Canceled && result.Data is ApplicationUser newUser)
+    {
+        Snackbar.Add($"User {newUser.Email} created successfully!", Severity.Success);
+    }
+}
+
     private async Task EditUserAsync(ApplicationUser user)
     {
         var parameters = new DialogParameters<EditUserAccount> { { x => x.newUser, user } };

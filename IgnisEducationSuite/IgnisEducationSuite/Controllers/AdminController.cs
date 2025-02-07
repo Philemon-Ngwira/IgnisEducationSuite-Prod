@@ -53,6 +53,14 @@ namespace IgnisEducationSuite.Controllers
 
             return Ok(userRoles);
         }
+        [HttpGet("getUsersByRoleAdmin/{SchoolID}")]
+        public async Task<IActionResult> GetUsersByRoleAdmin(Guid SchoolID)
+        {
+            var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
+            var filteredUsers = adminUsers.Where(u => u.SchoolID == SchoolID).ToList();
+
+            return Ok(filteredUsers);
+        }
 
         [HttpGet("getUserById/{UserID}")]
         public async Task<IActionResult> GetUserById(string UserID)
@@ -82,7 +90,8 @@ namespace IgnisEducationSuite.Controllers
                 LastName = request.LastName,
                 AccountActive = true,
                 EmailConfirmed = true,
-                requiresPasswordReset = true
+                requiresPasswordReset = true,
+                UserID = request.UserID,
             };
             var result = await _userManager.CreateAsync(user, request.Password);
 

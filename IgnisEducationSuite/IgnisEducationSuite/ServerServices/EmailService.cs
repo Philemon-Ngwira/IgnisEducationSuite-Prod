@@ -54,7 +54,7 @@ public class EmailService
         }
 
     }
-    public async Task SendPasswordResetEmailAsync(string toEmail, string recipientName, string resetPassword, string Username)
+    public async Task SendPasswordResetEmailAsync(string toEmail, string recipientName, string resetPassword, string Username, string StudentID)
     {
         var senderName = _configuration["EmailSettings:SenderName"];
         var year = DateTime.Now.Year.ToString();
@@ -65,7 +65,7 @@ public class EmailService
         }
         else
         {
-            emailBody = GeneratePasswordFirstResetEmailBody(recipientName, resetPassword, senderName, year, Username);
+            emailBody = GeneratePasswordFirstResetEmailBody(recipientName, resetPassword, senderName, year, Username, StudentID);
         }
 
         var emailRequest = new EmailRequest
@@ -221,7 +221,7 @@ public class EmailService
         return emailBody;
     }
 
-    public string GeneratePasswordFirstResetEmailBody(string recipientName, string resetPassword, string senderName, string year, string Username)
+    public string GeneratePasswordFirstResetEmailBody(string recipientName, string resetPassword, string senderName, string year, string Username, string StudentID)
     {
         // Define the email body template with placeholders
         string emailBody = @"
@@ -295,6 +295,7 @@ public class EmailService
             <p>Hi {recipientName},</p>
             <p>Welcome to Ignis Education Suite</p>
             <p>Your UserName is: <strong>{Username}</strong>,</p>
+            {StudentIDPlaceholder}
             <p>Your Ignis Education Suite password has been reset successfully. Your One-Time Password (OTP) is: <strong>{resetPassword}</strong></p>
             <p>You can use this password to login and create a new password. Please note the following guidelines when creating your new password:</p>
             <ul>
@@ -318,13 +319,16 @@ public class EmailService
 </body>
 </html>";
 
-        // Replace the placeholders with actual values
+        // Conditionally add Student ID information
+        string studentIDMessage = string.IsNullOrEmpty(StudentID) ? "" : $"<p>Your Student ID is: <strong>{StudentID}</strong></p>";
+
+        // Replace placeholders with actual values
         emailBody = emailBody.Replace("{recipientName}", recipientName)
                              .Replace("{resetPassword}", resetPassword)
                              .Replace("{senderName}", senderName)
                              .Replace("{year}", year)
-                             .Replace("{Username}", Username);
-
+                             .Replace("{Username}", Username)
+                             .Replace("{StudentIDPlaceholder}", studentIDMessage);
 
         return emailBody;
     }

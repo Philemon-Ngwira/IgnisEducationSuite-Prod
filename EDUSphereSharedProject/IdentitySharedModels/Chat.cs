@@ -18,5 +18,9 @@ namespace EDUSphereSharedProject.IdentitySharedModels
         public string UserName { get; set; }
         [NotMapped]
         public string id { get; set; }
+        [NotMapped]
+        public string Reciepientid { get; set; }
+        [NotMapped]
+        public string Userid { get; set; }
     }
 }

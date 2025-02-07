@@ -1,4 +1,5 @@
-﻿@using EDUSphereSharedProject.Models
+﻿@using EDUSphereSharedProject.LicensingModel
+@using EDUSphereSharedProject.Models
 
 <MudDialog>
     <DialogContent>
@@ -14,26 +15,97 @@
                 <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                     <ActivatorContent>
                         <MudFab Color="Color.Secondary"
-                                StartIcon="@Icons.Material.Filled.Image"
-                                Label="Change School Logo" />
+                        StartIcon="@Icons.Material.Filled.Image"
+                        Label="Change School Logo" />
                     </ActivatorContent>
                 </MudFileUpload>
             </MudItem>
         </MudGrid>
+        <MudDialog @bind-Visible="_nestedVisible">
+            <DialogContent>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudSelect @bind-Value="licenseRequest.PlanType" Label="Select License Plan" HelperText="String" Placeholder="Please Select" AdornmentIcon="@Icons.Material.Filled.Subscriptions" AdornmentColor="Color.Primary">
+                            <MudSelectItem Value="@("Monthly")">Monthly</MudSelectItem>
+                            <MudSelectItem Value="@("Quarterly")">Quarterly</MudSelectItem>
+                            <MudSelectItem Value="@("BiAnnual")">BiAnnual</MudSelectItem>
+                            <MudSelectItem Value="@("Annual")">Annual</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="licenseRequest.UserLimit" Label="User Limit" Placeholder="0" AdornmentIcon="@Icons.Material.Filled.Numbers"></MudNumericField>
+                    </MudItem>
+                     <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="licenseRequest.Email" Label="School Email"  AdornmentIcon="@Icons.Material.Filled.ShortText"></MudTextField>
+                    </MudItem>
+                     <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="licenseRequest.Phone" Label="School Phone" Placeholder="+260123456789" AdornmentIcon="@Icons.Material.Filled.ShortText"></MudTextField>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudDateRangePicker Label="Select License Period" @bind-DateRange="_dateRange" />
+                    </MudItem>
+                </MudGrid>
+            </DialogContent>
+            <DialogActions>
+                <MudButton Color="Color.Success" OnClick="GenerateLicense">Generate</MudButton>
+                <MudButton Color="Color.Primary" OnClick="CloseNested">Close</MudButton>
+            </DialogActions>
+        </MudDialog>
     </DialogContent>
     <DialogActions>
         <MudButtonGroup OverrideStyles="false">
             <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" OnClick="CloseDialog">Close</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.GeneratingTokens" OnClick="GenerateLicense">Generate and Activate License</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.GeneratingTokens" OnClick="OpenNested">Generate and Activate License</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.SaveAlt" OnClick="UpdateDetails">Update</MudButton>
         </MudButtonGroup>
     </DialogActions>
 </MudDialog>
 
 @code {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private MudDateRangePicker _picker;
+    private DateRange _dateRange = new DateRange(DateTime.Now.Date, DateTime.Now.AddDays(5).Date);
+    private bool _nestedVisible = false;
+
+    private void OpenNested() => _nestedVisible = true;
+
+    private void CloseNested() => _nestedVisible = false;
     [Parameter] public School school { get; set; } = new();
     [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] HttpClient HttpClient { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    protected ActivateLicenseRequest licenseRequest = new();
     private async Task UploadFiles(IBrowserFile file)
     {
 
@@ -50,7 +122,14 @@
     private void CloseDialog() => MudDialog.Close();
     private async Task GenerateLicense()
     {
-
+        licenseRequest.ClientId = school.SchoolID.ToString();
+        licenseRequest.StartDate = _dateRange.Start.Value;
+        licenseRequest.EndDate = _dateRange.End.Value;
+        licenseRequest.ClientName = school.SchoolName;
+        var result = await HttpClient.PostAsJsonAsync("api/Verification/Generate", licenseRequest);
+        if(result.IsSuccessStatusCode){
+            Snackbar.Add("License Generated Successfully", Severity.Success);
+        }
     }
     private async Task UpdateDetails()
     {

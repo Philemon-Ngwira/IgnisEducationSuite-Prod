@@ -19,7 +19,12 @@ namespace IgnisEducationSuite.Controllers
             var result = await _licenseService.ActivateLicenseAsync(activateLicenseRequest);
             return Ok(result);
         }
-
+        [HttpGet("GetLicenseLimit/{ClientID}")]
+        public async Task<IActionResult> GetLicenseLimit(Guid ClientID)
+        {
+            var result = await _licenseService.GetUserLimitAsync(ClientID);
+            return Ok(result);
+        }
         [HttpGet("Validate/{ClientID}")]
         public async Task<IActionResult> ValidateLicense(string ClientID)
         {

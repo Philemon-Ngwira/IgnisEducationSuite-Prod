@@ -19,14 +19,18 @@ namespace IgnisEducationSuite.ServerServices
         {
             try
             {
-                var user = await _userManager.FindByNameAsync(Email);
+                var user = await _userManager.FindByIdAsync(Email);
+
 
                 if (user == null)
                 {
                     user = await _userManager.FindByEmailAsync(Email);
                     if (user == null)
                     {
-                        return ("UnAuthorized");
+
+                        user = await _userManager.FindByNameAsync(Email);
+                        if (user == null)
+                            return ("UnAuthorized");
                     }
                 }
 

@@ -46,7 +46,7 @@ public class AppState
 
                 if (isAuthenticated)
                 {
-                    UserID = await _rolesAndLicensing.GetUserID(_navigationManager.BaseUri, UserName);
+                    UserID = UserName;
                     SchoolID = await _rolesAndLicensing.GetSchoolId(_navigationManager.BaseUri, UserID);
                     LicenseIsActive = await _rolesAndLicensing.GetLicenseStatus(_navigationManager.BaseUri, SchoolID);
                     UserRole = await _rolesAndLicensing.GetUserRole(_navigationManager.BaseUri, UserName);

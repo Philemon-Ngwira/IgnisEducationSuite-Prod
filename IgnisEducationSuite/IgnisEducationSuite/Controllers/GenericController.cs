@@ -67,17 +67,6 @@ namespace IgnisEducationSuite.Controllers
         }
 
         // DELETE: api/[controller]/{id}
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var entity = await _repository.GetByIdAsync(id);
-            if (entity == null)
-            {
-                return NotFound();
-            }
-
-            await _repository.DeleteAsync(id);
-            return NoContent();
-        }
+      
     }
 }

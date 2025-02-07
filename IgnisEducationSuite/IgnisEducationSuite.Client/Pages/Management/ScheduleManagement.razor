@@ -24,12 +24,29 @@
         }
 
         <MudTabs @ref="mudTabs" Outlined="true">
-            <MudTabPanel @ref="panel01" Text="Create New Schedule" Icon="@Icons.Material.Filled.Build">
+            <MudTabPanel @ref="panel01" Text="Add Time Slots" Icon="@Icons.Material.Filled.Build">
+                <MudAlert Class="mb-3" Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true">Create School Time Slots</MudAlert>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTimePicker Label="Start Time" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" @bind-Time="@newTimeSlot.StartTime" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTimePicker Label="End Time" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" @bind-Time="@newTimeSlot.EndTime" />
+                    </MudItem>
+                     <MudItem xs="12" md="6">
+                        <MudTextField Label="Slot Name" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-value="@newTimeSlot.Description" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" OnClick="RegisterTimeSlot" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Add">Register Time Slot</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+            <MudTabPanel @ref="panel02" Text="Create New Schedule" Icon="@Icons.Material.Filled.Build">
                 <MudAlert Class="mb-3" Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true">Upload Excel Class Schedule</MudAlert>
                 <MudFileUpload T="IBrowserFile" FilesChanged="HandleFileUpload" Class="mb-3">
                     <ActivatorContent>
                         <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary">
+                        Color="Color.Primary">
                             Upload Class Excel Schedule
                         </MudButton>
                     </ActivatorContent>
@@ -91,11 +108,11 @@
                         <MudAlert Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true" Class="mb-3">No Schedule Created. Upload Schedule Above</MudAlert>
                     }
                     <MudDateRangePicker Variant="Variant.Outlined" @bind-DateRange="@_dateRange" Margin="Margin.Dense" ReadOnly="@(!_editable)" Clearable="@_clearable"
-                                        PlaceholderStart="Schedule Start Date" PlaceholderEnd="Schedule End Date" />
-                    <MudButton Disabled="groupedSchedules == null" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" Color="Color.Primary" OnClick="AssignSchedule">Save Class TimeTable</MudButton>
+                    PlaceholderStart="Schedule Start Date" PlaceholderEnd="Schedule End Date" />
+                    <MudButton Disabled="groupedSchedules.Count() < 1" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" Color="Color.Primary" OnClick="AssignSchedule">Save Class TimeTable</MudButton>
                 </MudPaper>
             </MudTabPanel>
-            <MudTabPanel @ref="panel02" Text="Assign Available Schedule" Icon="@Icons.Material.Filled.Assignment">
+            <MudTabPanel @ref="panel03" Text="Assign Available Schedule" Icon="@Icons.Material.Filled.Assignment">
                 <MudAlert Severity="Severity.Normal" Class="mb-3" NoIcon="true" Variant="Variant.Filled">Class Schedule assignment</MudAlert>
                 <MudGrid Class="mb-3">
                     <MudItem xs="12" md="4">
@@ -203,6 +220,7 @@
     protected List<Class> classes = new();
     protected List<GetActiveClassScheduleResult> activeClassSchedules = new();
     protected List<TimeSlot> timeSlots = new();
+    protected TimeSlot newTimeSlot = new();
     protected List<DayofTheWeek> daysofTheWeek = new();
     protected List<GetStudentsInGradeResult> StudentsInGrade = new();
     protected List<GetStudentsInGradeWithoutScheduleResult> StudentsInGradeWithoutSchedule = new();
@@ -216,6 +234,7 @@
     private DateRange _dateRange { get; set; }
     MudTabPanel panel01;
     MudTabPanel panel02;
+    MudTabPanel panel03;
     private readonly List<string> dayOrder = new List<string>
 
 {
@@ -232,7 +251,18 @@
         isLoading = false;
     }
 
-
+    protected async Task RegisterTimeSlot(){
+        newTimeSlot.SchoolID = Guid.Parse(_appState.SchoolID);
+        newTimeSlot.TimeslotID = Guid.NewGuid();
+        var service = _genericService.GetService<TimeSlot>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "timeslot", newTimeSlot);
+        if(result.IsSuccess)
+        {
+        timeSlots.Add(newTimeSlot);
+        newTimeSlot = new();
+        Snackbar.Add("TimeSlot Successfully registered", Severity.Success);
+        }
+    }
     #region Get from Database
     protected async Task GetAdminData()
     {

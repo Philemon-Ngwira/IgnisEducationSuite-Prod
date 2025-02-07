@@ -1,5 +1,6 @@
 ﻿@using EDUSphereSharedProject.AchievementModels
 @using IgnisEducationSuite.Client.Services
+@using System.Security.Claims
 @inherits LayoutComponentBase
 @inject AppState appState
 @inject RolesAndLicensingService _rolesAndLicensing
@@ -40,8 +41,13 @@
 
         if (user.Identity?.IsAuthenticated ?? false)
         {
-            await appState.InitializeAsync(user.Identity.Name,true, _navigationManager, http);
-            
+            var UserID = string.Empty;
+
+            UserID = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+
+            await appState.InitializeAsync(UserID, true, _navigationManager, http);
+
 
         }
 

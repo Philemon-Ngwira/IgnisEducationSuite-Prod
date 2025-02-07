@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
+using System.Data;
 using System.Net.Http.Json;
 
 namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
@@ -16,6 +17,7 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
 
         protected UniversalUser newUser = new();
         protected School school = new();
+        protected School selectedSchool = new();
         protected List<Gender> genders = new();
         protected List<CountryDTO> countries = new();
         protected List<CityDTO> Cities = new();
@@ -24,19 +26,41 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
         protected CountryDTO Country = new();
         protected CityDTO City = new();
         protected ClientAdmin newClientAdmin = new();
+        protected ApplicationUser selectedAdmin = new();
+
+        protected PasswordGenerator passwordGenerator = new();
         [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+
         [Inject] NavigationManager navigationManager { get; set; } = default!;
         [Inject] HttpClient Http { get; set; } = default!;
         [Inject] ISnackbar Snackbar { get; set; } = default!;
         [Inject] ClientEmailService _emailService { get; set; } = default!;
         [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
+        private List<ApplicationUser> userRoles = new();
+
+        protected List<string> Roles = new();
+
+        [Inject] NavigationManager _navigationManager { get; set; }
         protected bool isLoading = false;
+        protected string searchString { get; set; } = string.Empty;
         protected override async Task OnInitializedAsync()
         {
-            
+            isLoading = true;
             await GetSchools();
             await GetGenders();
             await GetCountries();
+            isLoading = false;
+        }
+        protected async Task GetUsersWithRoles()
+        {
+            isLoading = true;
+            userRoles = await Http.GetFromJsonAsync<List<ApplicationUser>>($"{_navigationManager.BaseUri}api/Admin/getUsersByRoleAdmin/{selectedSchool.SchoolID}");
+            if (userRoles.Any())
+            {
+                isLoading = false;
+            }
+            isLoading = false;
         }
         protected async Task GetGenders()
         {
@@ -51,12 +75,12 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
             var result = await service.GetAllAsync("api/CountriesAndCities/GetAllCountries", true);
             if (result.IsSuccess)
             {
-                countries =  result.Data.ToList();
+                countries = result.Data.ToList();
             }
             else
             {
                 Snackbar.Add("Failed to Collect Countries", Severity.Error);
-                
+
             }
         }
         protected async Task AddAdmin()
@@ -153,7 +177,7 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
 
                 throw;
             }
-            
+
         }
         private async Task UploadFiles(IBrowserFile file)
         {
@@ -214,6 +238,55 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
             if (string.IsNullOrEmpty(value))
                 return new List<School>();
             return schools.Where(x => x.SchoolName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+        }
+        private bool FilterFunc1(ApplicationUser element) => FilterFunc(element, searchString);
+
+        private bool FilterFunc(ApplicationUser element, string searchString)
+        {
+            if (string.IsNullOrWhiteSpace(searchString))
+                return true;
+            if (element.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (element.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+                return true;
+            return false;
+        }
+        protected async Task ResetPassword(ApplicationUser user)
+        {
+            isLoading = true;
+            PasswordResetModel model = new();
+            model.UserID = user.Id;
+            model.Password = passwordGenerator.GenerateOneTimePassword();
+
+            var result = await Http.PutAsJsonAsync($"{_navigationManager.BaseUri}api/Admin/resetPassword", model);
+            if (result.IsSuccessStatusCode)
+            {
+                //Mail one time password
+                //Mail User//
+                EmailRequest email = new()
+                {
+                    To = newUser.Email,
+                    Reciepient = newUser.UserName,
+                    Password = model.Password
+                };
+                var emailsent = await _emailService.SendPasswordResetEmailAsync(email, _navigationManager.BaseUri);
+                if (emailsent == "Password reset email sent successfully!")
+                {
+                    isLoading = false;
+                    Snackbar.Add(emailsent, Severity.Success);
+                    isLoading = false;
+                    Snackbar.Add("Passowrd successfully Reset and One time passowrd has been mailed to the user.", Severity.Success);
+
+                }
+                else
+                {
+                    isLoading = false;
+                    Snackbar.Add("Passowrd successfully Reset and One time passowrd has been mailed to the user.", Severity.Success);
+
+                }
+                //Close Dialog
+
+            }
         }
         #region To String Func
 

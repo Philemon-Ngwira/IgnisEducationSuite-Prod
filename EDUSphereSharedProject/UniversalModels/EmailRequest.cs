@@ -16,6 +16,7 @@ namespace EDUSphereSharedProject.UniversalModels
         public bool IsHtml { get; set; } = false;
 
         public string UserName { get; set; } = string.Empty;
+        public string StudentID { get; set; } = string.Empty;
         public bool isFirstMail { get; set; } = false;
     }
 }

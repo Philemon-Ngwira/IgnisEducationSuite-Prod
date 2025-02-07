@@ -1,4 +1,5 @@
 ﻿using EDUSphereSharedProject.LicensingModel;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace IgnisEducationSuite.ServerServices
 {
@@ -11,7 +12,26 @@ namespace IgnisEducationSuite.ServerServices
         {
             _httpClient = httpClient;
         }
+        public async Task<LicenseSlots> GetUserLimitAsync(Guid ClientID)
+        {
+            if (ClientID == Guid.Empty)
+            {
+                return new LicenseSlots();
+            }
+            else
+            {
+                LicenseSlots licenseUserLimit = new LicenseSlots();
+                var path = $"https://localhost:7207/api/license/GetLicenseLimit?ClientID={ClientID}";
+                var response = await _httpClient.GetAsync(path);
+                if (response.IsSuccessStatusCode)
+                {
 
+                    licenseUserLimit = await response.Content.ReadFromJsonAsync<LicenseSlots>();
+
+                }
+                return licenseUserLimit;
+            }
+        }
         public async Task<string> ActivateLicenseAsync(ActivateLicenseRequest request)
         { // Get token from environment variables
             var token = Environment.GetEnvironmentVariable("JWT_SECRET");
@@ -23,7 +43,7 @@ namespace IgnisEducationSuite.ServerServices
             // Add the token to the Authorization header
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            var response = await _httpClient.PostAsJsonAsync("https://philtiaraenterpriseslicensingapi.azurewebsites.net/api/license/activate", request);
+            var response = await _httpClient.PostAsJsonAsync("https://localhost:7207/api/license/activate", request);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadAsStringAsync();
@@ -44,7 +64,7 @@ namespace IgnisEducationSuite.ServerServices
             }
             else
             {
-                var path = $"https://philtiaraenterpriseslicensingapi.azurewebsites.net/api/license/validate?ClientID={ClientID}";
+                var path = $"https://localhost:7207/api/license/validate?ClientID={ClientID}";
                 var response = await _httpClient.GetAsync(path);
 
                 if (response.IsSuccessStatusCode)

@@ -29,6 +29,9 @@ namespace IgnisEducationSuite.Controllers
                     .GroupBy(m => m.UserId == userId ? m.ReciepientId : m.UserId) // Group by the counterpart's ID
                     .Select(g => new Chat
                     {
+                        Reciepientid = g.OrderByDescending(m => m.Timestamp.Value)
+                        .Select(m => m.ReciepientId.ToString())
+                        .FirstOrDefault(),
                         Name = _context.AspNetUsers
                             .Where(u => u.Id == g.Key) // Get the counterpart's name
                             .Select(u => u.UserName)
@@ -53,6 +56,10 @@ namespace IgnisEducationSuite.Controllers
                     .GroupBy(m => m.GroupName)
                     .Select(g => new Chat
                     {
+                        Reciepientid = g.OrderByDescending(m => m.Timestamp.Value)
+                        .Select(m => m.ReciepientId.ToString())
+                        .FirstOrDefault(),
+
                         Name = g.Key, // Group name
                         IsGroup = true,
                         ProfilePic = new byte[0], // Assuming a default profile pic for groups
@@ -85,25 +92,24 @@ namespace IgnisEducationSuite.Controllers
         }
 
 
-        [HttpGet("getmessages/{chatName}")]
-        public async Task<ActionResult<List<Message>>> GetMessages(string chatName)
+        [HttpGet("getmessages/{userId}/{recipientId}")]
+        public async Task<ActionResult<List<Message>>> GetMessages(string userId, string recipientId)
         {
-            var messages = await _context.ChatMessages.Where(m => m.UserId.ToString() == chatName || m.ReciepientId.ToString() == chatName || m.GroupName == chatName)
+            var messages = await _context.ChatMessages
+                .Where(m => (m.UserId.ToString() == userId && m.ReciepientId.ToString() == recipientId)
+                         || (m.UserId.ToString() == recipientId && m.ReciepientId.ToString() == userId)) // Ensuring bidirectional messages
                 .OrderBy(m => m.Timestamp)
                 .ToListAsync();
-            var messagestoSend = new List<Message>();
-            foreach (var message in messages)
+
+            var messagestoSend = messages.Select(m => new Message
             {
-                Message newMessage = new Message
-                {
-                    Content = message.Message,
-                    UserId = message.UserId,
-                    RecipientId = message.ReciepientId,
-                    GroupName = message.GroupName,
-                    Timestamp = message.Timestamp,
-                };
-                messagestoSend.Add(newMessage);
-            }
+                Content = m.Message,
+                UserId = m.UserId,
+                RecipientId = m.ReciepientId,
+                GroupName = m.GroupName,
+                Timestamp = m.Timestamp
+            }).ToList();
+
             return messagestoSend;
         }
 

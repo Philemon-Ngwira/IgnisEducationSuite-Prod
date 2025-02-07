@@ -9,6 +9,7 @@ using EDUSphereSharedProject.Models.StoreProModels;
 using Serilog;
 using static System.Net.WebRequestMethods;
 using System.Net.Http.Json;
+using System.Security.Claims;
 
 namespace IgnisEducationSuite.Client.Pages.Shared
 {
@@ -72,7 +73,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
 
             if (authState)
             {
-                await InititalizeAppState(UserEmailOrUserName,authState);
+                await InititalizeAppState(UserEmailOrUserName, authState);
                 Console.WriteLine("AppState Initialized");
 
                 while (!await InitializeParent())
@@ -110,7 +111,8 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 var user = authState.User;
                 if (user.Identity.IsAuthenticated)
                 {
-                    UserEmailOrUserName = user.Identity.Name;
+
+                    UserEmailOrUserName = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     return true;
                 }
                 else
@@ -132,7 +134,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
 
         protected async Task InititalizeAppState(string username, bool authstate)
         {
-            await AppState.InitializeAsync(username,authstate,_navigationManager, http);
+            await AppState.InitializeAsync(username, authstate, _navigationManager, http);
             StateHasChanged();
         }
         #endregion

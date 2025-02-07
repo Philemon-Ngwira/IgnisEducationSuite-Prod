@@ -52,34 +52,59 @@
             <HeaderContent>
                 <MudTh>SubjectID</MudTh>
                 <MudTh>Subject</MudTh>
+                <MudTh>Grade</MudTh>
+                <MudTh>Section</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Nr">@context.ClassID</MudTd>
-                    <MudTd DataLabel="Sign">@context.ClassName</MudTd>
-                </RowTemplate>
-            </MudTable>
+                <MudTd DataLabel="Sign">@context.ClassName</MudTd>
+                <MudTd DataLabel="Sign">@context.Grade</MudTd>
+                @if (context.GradeSection != null)
+                {
+                    <MudTd DataLabel="Sign">@context.GradeSection</MudTd>
+
+                }
+                else{
+                    <MudTd DataLabel="Sign"><MudText>N/A</MudText></MudTd>
+
+                }
+            </RowTemplate>
+        </MudTable>
         <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">Assign Subjects</MudAlert>
         <MudTable @ref="_table" T="Class" Items="@subjects" MultiSelection="true" SelectionChangeable="true" Hover="true"
                   @bind-SelectedItems="selectedItems" SelectOnRowClick="true">
-                  <ToolBarContent>
-                      <MudButton OnClick="FinalizeSubjectSelection" Variant="Variant.Filled" Color="Color.Success" Disabled="!selectedItems.Any()">Finalize Subject Selection</MudButton>
-                  </ToolBarContent>
+            <ToolBarContent>
+                <MudButton OnClick="FinalizeSubjectSelection" Variant="Variant.Filled" Color="Color.Success" Disabled="!selectedItems.Any()">Finalize Subject Selection</MudButton>
+            </ToolBarContent>
             <HeaderContent>
                 <MudTh>SubjectID</MudTh>
                 <MudTh>Subject</MudTh>
+                <MudTh>Grade</MudTh>
+                <MudTh>Section</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Nr">@context.ClassID</MudTd>
-                    <MudTd DataLabel="Sign">@context.ClassName</MudTd>
-                </RowTemplate>
-                <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
-                </PagerContent>
-                <FooterContent>
-                    <MudTd colspan="5">Select All</MudTd>
-                </FooterContent>
-            </MudTable>
+                <MudTd DataLabel="Sign">@context.ClassName</MudTd>
+                <MudTd DataLabel="Sign">@context.Grade</MudTd>
+                @if (context.GradeSection != null)
+                {
+                    <MudTd DataLabel="Sign">@context.GradeSection</MudTd>
+
+                }
+                else
+                {
+                    <MudTd DataLabel="Sign"><MudText>N/A</MudText></MudTd>
+
+                }
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+            </PagerContent>
+            <FooterContent>
+                <MudTd colspan="5">Select All</MudTd>
+            </FooterContent>
+        </MudTable>
     </DialogContent>
 </MudDialog>
 
-    
+
