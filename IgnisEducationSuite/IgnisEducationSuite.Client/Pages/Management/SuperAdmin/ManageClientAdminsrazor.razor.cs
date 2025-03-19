@@ -139,9 +139,12 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
                         //Mail User//
                         EmailRequest email = new()
                         {
-                            To = newClientAdmin.Email,
+                            To = newUser.Email,
                             Reciepient = newClientAdmin.FirstName + " " + newClientAdmin.LastName,
-                            Password = newUser.Password
+                            Password = newUser.Password,
+                            UserName = newUser.UserName,
+                            StudentID = "N/A",
+                            isFirstMail = true
                         };
                         newClientAdmin = new();
                         var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);

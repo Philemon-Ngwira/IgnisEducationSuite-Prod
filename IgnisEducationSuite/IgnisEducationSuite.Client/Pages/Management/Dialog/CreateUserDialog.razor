@@ -344,10 +344,11 @@
                     //Mail User//
                     EmailRequest email = new()
                         {
-                            To = savedTeacher.Data.EmailAddress,
+                            To = newUser.Email,
                             Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
                             Password = newUser.Password,
                             UserName = newUser.UserName,
+                            StudentID = "N/A",
                             isFirstMail = true
 
                         };
@@ -458,10 +459,11 @@
                             //Mail User//
                             EmailRequest email = new()
                                 {
-                                    To = savedTeacher.Data.Email,
+                                    To = newUser.Email,
                                     Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
                                     Password = newUser.Password,
                                     UserName = newUser.UserName,
+                                    StudentID = "N/A",
                                     isFirstMail = true
                                 };
                             var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);

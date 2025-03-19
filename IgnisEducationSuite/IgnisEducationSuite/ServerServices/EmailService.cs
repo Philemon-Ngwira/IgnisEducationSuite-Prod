@@ -320,7 +320,10 @@ public class EmailService
 </html>";
 
         // Conditionally add Student ID information
-        string studentIDMessage = string.IsNullOrEmpty(StudentID) ? "" : $"<p>Your Student ID is: <strong>{StudentID}</strong></p>";
+        string studentIDMessage = !string.IsNullOrEmpty(StudentID) && StudentID != "N/A"
+    ? $"<p>Your Student ID is: <strong>{StudentID}</strong></p>"
+    : "";
+
 
         // Replace placeholders with actual values
         emailBody = emailBody.Replace("{recipientName}", recipientName)

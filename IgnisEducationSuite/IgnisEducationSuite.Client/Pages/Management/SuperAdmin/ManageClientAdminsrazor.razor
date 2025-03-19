@@ -73,7 +73,7 @@
                 </MudGrid>
             </MudTabPanel>
             <MudTabPanel Text="Manage Existing Admins">
-                <MudSelect @bind-Value="selectedSchool" T="School" ToStringFunc="SchoolTypeconverter" Label="Select School" HelperText="String" Placeholder="Please Select" AdornmentIcon="@Icons.Material.Filled.School" AdornmentColor="Color.Primary">
+                <MudSelect @bind-Value="selectedSchool" T="School" ToStringFunc="SchoolTypeconverter" Label="Select School"  Placeholder="Please Select" AdornmentIcon="@Icons.Material.Filled.School" AdornmentColor="Color.Primary">
                    @foreach (var item in schools)
                     {
                         <MudSelectItem Value="item">@item.SchoolName</MudSelectItem>

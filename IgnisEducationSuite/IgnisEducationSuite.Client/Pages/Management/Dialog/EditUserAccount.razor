@@ -74,8 +74,11 @@
             EmailRequest email = new()
                 {
                     To = newUser.Email,
-                    Reciepient = newUser.UserName,
-                    Password = model.Password
+                    Reciepient  = newUser.FirstName +" "+ newUser.LastName,
+                    Password = model.Password,
+                    UserName = newUser.UserName,
+                    StudentID = "N/A",
+                    isFirstMail = false
                 };
             var emailsent = await _emailService.SendPasswordResetEmailAsync(email, _navigationManager.BaseUri);
             if (emailsent == "Password reset email sent successfully!")
