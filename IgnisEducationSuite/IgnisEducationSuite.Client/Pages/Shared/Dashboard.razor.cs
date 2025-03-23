@@ -9,6 +9,7 @@ using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
+using System.Net.NetworkInformation;
 using System.Security.Claims;
 
 namespace IgnisEducationSuite.Client.Pages.Shared
@@ -63,7 +64,10 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         [Inject] AuthenticationStateProvider _authenticationStateProvider { get; set; } = default!;
         protected string SchoolID = string.Empty;
 
-
+        public void Dispose()
+        {
+            AppState.OnChange -= StateHasChanged;
+        }
         protected override async Task OnInitializedAsync()
         {
             isLoading = true;
@@ -147,7 +151,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 }
 
                 // Step 6: Subscribe to AppState changes
-                AppState.OnChange += async () => await InvokeAsync(StateHasChanged);
+                AppState.OnChange += StateHasChanged;
             }
             catch (Exception ex)
             {

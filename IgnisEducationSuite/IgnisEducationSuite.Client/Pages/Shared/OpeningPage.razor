@@ -1,5 +1,6 @@
-﻿@inherits AppBaseComponent
-<MudDialog Options="dialogOptions">
+﻿@using EDUSphereSharedProject.IdentiyModels
+@inherits AppBaseComponent
+<MudDialog Options="@dialogOptions">
     <DialogContent>
         @if (AppState.UserRole == "Student")
         {
@@ -105,6 +106,14 @@
             <MudText Class="mb-3">Start your journey today and see how many badges you can collect as you grow and excel in your studies!</MudText>
             <MudButton Class="form-control" Variant="Variant.Outlined" FullWidth="true" EndIcon="@Icons.Material.Filled.Start" Color="Color.Primary">Start</MudButton>
         }
+        else{
+            <MudText Align="Align.Justify" Typo="Typo.h4">
+                <b>Welcome to Ignis Education Suite! 🎓✨</b>
+            </MudText>
+            <MudText Typo="Typo.body1">
+                <i>Ignis Education Suite is your all-in-one platform for a dynamic and engaging learning experience. Here, you can track your progress, set personal goals, and earn badges that recognize your hard work and achievements. The system is designed to motivate and inspire you to reach your full potential through a variety of activities and challenges.</i>
+            </MudText>
+        }
     </DialogContent>
 </MudDialog>
 <style>
@@ -114,12 +123,25 @@
 </style>
 @code {
     [CascadingParameter] public MudDialogInstance MudDialog { get; set; }
+    [Parameter] public string UserID { get; set; }
+    [Inject] HttpClient http { get; set; }
     DialogOptions dialogOptions = new DialogOptions()
         {
             MaxWidth = MaxWidth.ExtraLarge,
             NoHeader = true,
             BackgroundClass = "blurydialog",
-            BackdropClick = false
+            BackdropClick = false,
+            
+
         };
     public void Close() => MudDialog.Close();
+
+    public async void Start()
+    {
+        var result = await http.PostAsJsonAsync("api/Admin/UpdateLoginStatus", UserID);
+        if (result.IsSuccessStatusCode)
+        {
+            Close();
+        }
+    }
 }

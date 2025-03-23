@@ -56,6 +56,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetStudentAttendanceByUserIDAndEventDateResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentClassInfoResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentClassScheduleResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetStudentCompletedLessonsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentDemographicsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentDemographicsCountryResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentExamDetailsByTeacherResult>().HasNoKey().ToView(null);
@@ -685,6 +686,33 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetStudentClassScheduleResult>("EXEC @returnValue = [dbo].[GetStudentClassSchedule] @StudentID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetStudentCompletedLessonsResult>> GetStudentCompletedLessonsAsync(string StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "StudentID",
+                    Size = -1,
+                    Value = StudentID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.VarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetStudentCompletedLessonsResult>("EXEC @returnValue = [dbo].[GetStudentCompletedLessons] @StudentID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

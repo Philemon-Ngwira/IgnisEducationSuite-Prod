@@ -1,5 +1,6 @@
 ﻿using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.Data;
+using IgnisEducationSuite.Migrations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -91,8 +92,13 @@ namespace IgnisEducationSuite.Controllers
                 AccountActive = true,
                 EmailConfirmed = true,
                 requiresPasswordReset = true,
+
                 UserID = request.UserID,
             };
+            if (request.Role == "Student" || request.Role == "Teacher")
+            {
+                user.isFirstLogin = true;
+            }
             var result = await _userManager.CreateAsync(user, request.Password);
 
             if (!result.Succeeded)
@@ -108,7 +114,23 @@ namespace IgnisEducationSuite.Controllers
 
             return Ok(user);
         }
+        [HttpPost("UpdateLoginStatus")]
+        public async Task<IActionResult> UpdateLoginStatus(string UserID)
+        {
+            var user = await _userManager.FindByIdAsync(UserID);
+            if (user == null)
+            {
+                return BadRequest();
+            }
+            else
+            {
+                user.isFirstLogin = false;
+                await _userManager.UpdateAsync(user);
+            }
+            return Ok(user);
 
+
+        }
         // API endpoint to delete a user
         [HttpDelete("deleteUser/{userId}")]
         public async Task<IActionResult> DeleteUser(string userId)

@@ -35,7 +35,7 @@
                     @if (Lesson.LessonCompleted == 1)
                     {
                         <MudChip T="string" Variant="Variant.Text" Color="Color.Success">Completed</MudChip>
-                        <MudDivider ></MudDivider>
+                        <MudDivider></MudDivider>
                         <MudChip T="string" Disabled="true" Variant="Variant.Text" Color="Color.Success">Completed</MudChip>
                     }
                     else
@@ -52,51 +52,61 @@
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.DoneAll" OnClick="MarkLessonAsComplete" Color="Color.Success">Mark as complete</MudButton>
-            <MudRating @bind-SelectedValue="Rating"  HoveredValueChanged="HandleHoveredValueChanged" />
+            @if (LessonService.LessonCompleted)
+            {
+                <MudRating SelectedValue="Lesson.Rating.Value" />
+
+            }
+
+            else
+            {
+
+                <MudRating @bind-SelectedValue="Rating" HoveredValueChanged="HandleHoveredValueChanged" />
+
+            }
             <MudText Typo="Typo.subtitle2" Class="deep-purple-text mt-2">@LabelText</MudText>
-            </MudCardActions>
-        </div>
-    </MudCard>
-    <style>
-        .lesson-content {
-            margin-bottom: 20px;
+        </MudCardActions>
+    </div>
+</MudCard>
+<style>
+    .lesson-content {
+        margin-bottom: 20px;
+    }
+
+        .lesson-content h3, .lesson-content h4 {
+            color: #0078d7;
         }
 
-            .lesson-content h3, .lesson-content h4 {
-                color: #0078d7;
-            }
-
-            .lesson-content p {
-                margin-bottom: 10px;
-            }
-
-            .lesson-content ul {
-                margin-top: 10px;
-                margin-bottom: 10px;
-            }
-
-
-
-        /* A4 Paper Size Simulation */
-        .lesson-content {
-            width: 210mm; /* A4 width */
-            height: 297mm; /* A4 height */
-            margin: 0 auto; /* Center the content */
-            padding: 20mm; /* Padding around the content */
-            box-sizing: border-box; /* Include padding and border in the width and height */
-            font-family: 'Times New Roman', serif; /* Common font for A4 documents */
-            font-size: 12pt; /* Standard font size for reading */
-            line-height: 1.5; /* Proper line height for readability */
-            background: #fff; /* White background (like a paper) */
-            border: 1px solid #ddd; /* Light border to simulate paper edges */
-            overflow-y: auto; /* Enable vertical scrolling for overflow content */
-            overflow-x: hidden; /* Prevent horizontal scrolling */
+        .lesson-content p {
+            margin-bottom: 10px;
         }
 
-    </style>
+        .lesson-content ul {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
 
 
-    @code {
+
+    /* A4 Paper Size Simulation */
+    .lesson-content {
+        width: 210mm; /* A4 width */
+        height: 297mm; /* A4 height */
+        margin: 0 auto; /* Center the content */
+        padding: 20mm; /* Padding around the content */
+        box-sizing: border-box; /* Include padding and border in the width and height */
+        font-family: 'Times New Roman', serif; /* Common font for A4 documents */
+        font-size: 12pt; /* Standard font size for reading */
+        line-height: 1.5; /* Proper line height for readability */
+        background: #fff; /* White background (like a paper) */
+        border: 1px solid #ddd; /* Light border to simulate paper edges */
+        overflow-y: auto; /* Enable vertical scrolling for overflow content */
+        overflow-x: hidden; /* Prevent horizontal scrolling */
+    }
+</style>
+
+
+@code {
     bool hovered = false;
     protected int Rating = 0;
     private int? activeVal;
@@ -203,7 +213,7 @@
             }
         }
 
-      
+
     }
     private string LabelText => (activeVal ?? Rating) switch
     {

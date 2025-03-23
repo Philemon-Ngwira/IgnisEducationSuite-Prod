@@ -113,6 +113,12 @@ namespace IgnisEducationSuite.Controllers
             var result = await _repository.GetstudentLessons(id);
             return Ok(result);
         }
+        [HttpGet("GetStudentCompletedLessons/{id}")]
+        public async Task<IActionResult> GetStudentCompletedLessons(string id)
+        {
+            var result = await _repository.GetstudentCompletedLessons(id);
+            return Ok(result);
+        }
         [HttpGet("GetAssignmentQuestions/{id}")]
         public async Task<IActionResult> GetAssignmentQuestions(Guid id)
         {

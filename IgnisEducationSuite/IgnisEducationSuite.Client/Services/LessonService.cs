@@ -18,5 +18,6 @@ namespace IgnisEducationSuite.Client.Services
         public Guid ExamTestQuizID { get; set; }
         public string BookID { get; set; }  
         public bool isGoogleBook { get; set; }
+        public bool LessonCompleted { get; set; }
     }
 }

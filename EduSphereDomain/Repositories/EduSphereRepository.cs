@@ -194,6 +194,31 @@ namespace EduSphereDomain.Repositories
             }
             return studentLessons;
         }
+        public async Task<IEnumerable<Lesson>> GetstudentCompletedLessons(string guid)
+        {
+            List<Lesson> studentLessons = new();
+            var result = await _contextProcedures.GetStudentCompletedLessonsAsync(guid);
+            foreach (var lesson in result)
+            {
+                Lesson newLessson = new Lesson()
+                {
+                    LessonID = lesson.LessonID,
+                    TeacherID = lesson.TeacherID,
+                    Title = lesson.Title,
+                    Content = lesson.Content,
+                    ClassID = lesson.ClassID,
+                    DatePosted = lesson.DatePosted,
+                    Rating = lesson.Rating,
+                    StudentID = lesson.StudentID,
+                    LessonCompleted = lesson.LessonCompleted,
+                    SchoolID = lesson.StudentID,
+
+                };
+                studentLessons.Add(newLessson);
+
+            }
+            return studentLessons;
+        }
         public async Task<IEnumerable<GetStudentAssignmentsResult>> GetStudentAssignments(string id)
         {
             List<GetStudentAssignmentsResult> studentAssignments = new();

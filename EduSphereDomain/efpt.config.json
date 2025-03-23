@@ -339,6 +339,10 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[GetStudentCompletedLessons]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[GetStudentDemographics]",
          "ObjectType": 1
       },
