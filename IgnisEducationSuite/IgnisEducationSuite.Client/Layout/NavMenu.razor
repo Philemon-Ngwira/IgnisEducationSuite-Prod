@@ -39,6 +39,7 @@
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book" Match="NavLinkMatch.Prefix">Report Cards</MudNavLink>
                             <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubble" Match="NavLinkMatch.Prefix">Ignnis Communcation Hub</MudNavLink>
+                            @* <MudNavLink Href="reportcarddesigner" Icon="@Icons.Material.Filled.DesignServices" ForceLoad="true" Match="NavLinkMatch.Prefix">ReportCard Designer</MudNavLink> *@
                         </MudNavGroup>
 
                     }
@@ -153,7 +154,9 @@
         currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
         StateHasChanged();
     }
-
+    // protected void NavigatetoDesigner(){
+    //     NavigationManager.NavigateTo($"/reportcarddesigner?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+    // }
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;

@@ -9,6 +9,7 @@
 	<ItemGroup>
 		<Compile Include="..\IgnisEducationSuite.Client\Pages\Management\Dialog\ManageTeacherDetails.razor.cs" Link="ManageTeacherDetails.razor.cs" />
 		<Compile Include="..\IgnisEducationSuite.Client\Pages\Shared\Dashboard.razor.cs" Link="Dashboard.razor.cs" />
+		<Compile Include="..\IgnisEducationSuite.Client\Pages\Shared\Dialogs\ReportCardDetails.razor.cs" Link="ReportCardDetails.razor.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

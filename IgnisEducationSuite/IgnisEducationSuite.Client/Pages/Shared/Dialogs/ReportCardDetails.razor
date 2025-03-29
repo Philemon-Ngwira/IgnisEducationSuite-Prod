@@ -1,0 +1,95 @@
+﻿﻿@using EDUSphereSharedProject.Models.StoreProModels
+
+<MudDialog>
+    <DialogContent>
+        @if (isLoading)
+        {
+            <div id="loader-overlay" class="loader-overlay">
+                <div class="loader-container">
+                    <!-- Spinner -->
+                    <div class="spinner"></div>
+                    <!-- Loader Icon -->
+                    <div class="loader-icon">🔄</div>
+                    <!-- Loading Text -->
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+        <div class="dialog-container">
+            <div class="report-card">
+                <div class="header">
+                    <img src="/images/LogoW.png" alt="School Logo" />
+                    <h1>Ignis Education Suite</h1>
+                    <p>Phone: +260760581058</p>
+                    <p>Email: philtiara.enterprises@gmail.com</p>
+                    <p>Website: www.philtiara.com</p>
+                </div>
+                <div class="student-info">
+                    <table>
+                        <tr>
+                            <th>Name of Student:</th>
+                            <td id="studentName">@student.FirstName @student.LastName</td>
+                            <th>School Year:</th>
+                            <td id="schoolYear">@student.IssuedDate.Value.Year</td>
+                        </tr>
+                        <tr>
+                            <th>Grade Level:</th>
+                            <td id="gradeLevel">@student.GradeLevel</td>
+                            <th>GPA:</th>
+                            <td id="overallGrade">@student.GPA</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="grades">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>SUBJECT</th>
+                                <th>SCORE</th>
+                                <th>GRADE</th>
+                                <th>FINAL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gradesTable">
+                            @foreach (var item in Results)
+                            {
+                                <tr>
+                                    <td>@item.ClassName</td>
+                                    <td>@item.Score</td>
+                                    <td>@item.Grade</td>
+                                    <td>@item.Final</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="attendance">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ATTENDED</th>
+                                <th>ABSENCES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTable">
+                            @foreach (var item in attendances)
+                            {
+                                <tr>
+                                    <td>@item.AttendanceCount</td>
+                                    <td>@(item.ExpectedAttendances - item.AttendanceCount)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel">Close</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Mail" OnClick="PrepareAndMailDocument">Get Report Card</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+

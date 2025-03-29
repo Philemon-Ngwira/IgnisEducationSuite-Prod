@@ -1,6 +1,7 @@
 ﻿@page "/AsssignmentManagement"
 @using System.Text.RegularExpressions
 @using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.TeachersPortal.Dialogs
 @inject ChatClientService ChatClientService
 @inject HttpClient Http
 @inherits AppBaseComponent
@@ -72,13 +73,21 @@
                 <br />
                 @if (assignmentQuestionsCollected)
                 {
-                    <MudDataGrid T="AssignmentQuestion" Items="@assignmentQuestions" ReadOnly="false" EditMode="@(DataGridEditMode.Cell)"
+                    <MudDataGrid T="AssignmentQuestion" Items="@assignmentQuestions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
                                  StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
                                  Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
                         <Columns>
                             <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
                             <PropertyColumn Property="x => x.QuestionText" />
                             <PropertyColumn Property="x => x.MaxMarks" />
+                            <TemplateColumn CellClass="d-flex justify-end">
+                                <CellTemplate>
+                                    <MudStack Row>
+                                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                    </MudStack>
+                                </CellTemplate>
+                            </TemplateColumn>
                         </Columns>
                     </MudDataGrid>
                 }
@@ -106,6 +115,14 @@
                                 <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
                                 <PropertyColumn Property="x => x.QuestionText" />
                                 <PropertyColumn Property="x => x.MaxMarks" />
+                                <TemplateColumn CellClass="d-flex justify-end">
+                                    <CellTemplate>
+                                        <MudStack Row>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                        </MudStack>
+                                    </CellTemplate>
+                                </TemplateColumn>
                             </Columns>
                         </MudDataGrid>
                     }
@@ -114,14 +131,28 @@
             else
             {
                 <MudGrid>
-                    <MudItem xs="12" md="9">
+                    <MudItem xs="12" md="8">
                         <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Enter Question" T="string" @bind-Value="newAssignmentQuestion.QuestionText"></MudTextField>
                     </MudItem>
-                    <MudItem xs="12" md="3">
+                    <MudItem xs="12" md="2">
                         <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Enter Question Score" T="int?" @bind-Value="newAssignmentQuestion.MaxMarks"></MudTextField>
                     </MudItem>
+                    <MudItem xs="12" md="2">
+                        <MudCheckBox T="bool?" @bind-Value="@newAssignmentQuestion.isMultipleChoice" Label="Has Multiple Choice Answers"></MudCheckBox>
+                    </MudItem>
                     <MudItem xs="12">
-                        <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Button" Color="Color.Success">Add Question</MudButton>
+                        <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Button" Color="Color.Success" OnClick="AddmanualQuestion">Add Question</MudButton>
+                    </MudItem>
+                    <MudItem xs="12">
+
+
+                        <MudList T="string">
+                            @foreach (var item in assignmentQuestions)
+                            {
+                                <MudListItem Text="@item.QuestionText" />
+                            }
+                        </MudList>
+
                     </MudItem>
                 </MudGrid>
             }
@@ -215,9 +246,40 @@
             background-color: #45a049;
             transform: translateY(-2px);
         }
-
 </style>
 @code {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    [Inject] IDialogService DialogService { get; set; }
     protected string GPTQuery = string.Empty;
     protected string ResponseMessage = string.Empty;
     protected bool assignmentHeaderDefined = false;
@@ -227,6 +289,8 @@
     protected List<Class> classes = new();
     protected List<Teacher> teachers = new();
     protected List<AssignmentQuestion> assignmentQuestions = new();
+
+    protected List<MultipleChoiceAssignmentAnswer> QuestionOptions = new();
     protected Class selectedClass = new();
     protected Teacher teacher = new();
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
@@ -276,9 +340,9 @@
     }
     protected async Task GetTeachers()
     {
-      
-            UserID = AppState.UserID;
-        
+
+        UserID = AppState.UserID;
+
         if (UserID != string.Empty || UserID != null)
         {
             var result = _genericService.GetService<Teacher>();
@@ -307,7 +371,35 @@
 
     protected Func<Class, string> ClassTypeconverter = p => p?.ClassName + " " + (p?.Teacher.FirstName + " " + p?.Teacher.LastName);
     #endregion
+    protected async Task AddmanualQuestion()
+    {
+        newAssignmentQuestion.QuestionID = Guid.NewGuid();
 
+        if (newAssignmentQuestion.isMultipleChoice == true)
+
+        {
+
+            await OpenMultipleChoiceDialog(newAssignmentQuestion.QuestionID);
+
+            assignmentQuestions.Add(newAssignmentQuestion);
+
+
+
+            newAssignmentQuestion = new();
+
+        }
+
+        else
+        {
+
+            assignmentQuestions.Add(newAssignmentQuestion);
+
+
+
+            newAssignmentQuestion = new();
+
+        }
+    }
     private async Task SendMessage()
     {
         isLoading = true;
@@ -317,6 +409,11 @@
             GPTQuery = string.Empty;
 
             assignmentQuestions = GenerateQuestions(ResponseMessage);
+            foreach (var item in assignmentQuestions)
+            {
+
+                item.QuestionID = Guid.NewGuid();
+            }
             assignmentQuestionsCollected = true;
         }
         isLoading = false;
@@ -358,7 +455,6 @@
                 foreach (var item in assignmentQuestions)
                 {
                     item.AssignmentID = newAssignment.AssignmentID;
-                    item.QuestionID = Guid.NewGuid();
                 }
 
                 var service1 = _genericService.GetService<List<AssignmentQuestion>>();
@@ -392,6 +488,30 @@
         isLoading = false;
 
     }
+    protected async Task OpenMultipleChoiceDialog(Guid QuestionID)
+    {
+        var parameters = new DialogParameters<MultipleChoiceManagementDialog>
+    {
+        { x => x.isExam, false },
+        { x => x.QuestionID, QuestionID}
+    };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraLarge };
+        var dialog = await DialogService.ShowAsync<MultipleChoiceManagementDialog>("Add Choices", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is List<MultipleChoiceAssignmentAnswer> questionOptions)
+        {
+            if (QuestionOptions is null)
+                QuestionOptions = new List<MultipleChoiceAssignmentAnswer>();
+
+            QuestionOptions.AddRange(questionOptions);
+
+
+            // You can now use `QuestionOptions` elsewhere in your component
+            StateHasChanged(); // Ensure UI updates
+        }
+    }
 
     protected void FinalizeDefiningHeader()
     {
@@ -410,6 +530,11 @@
         if (response.IsSuccessStatusCode)
         {
             assignmentQuestions = await response.Content.ReadFromJsonAsync<List<AssignmentQuestion>>();
+            foreach (var item in assignmentQuestions)
+            {
+
+                item.QuestionID = Guid.NewGuid();
+            }
             assignmentQuestionsCollected = true;
         }
         else

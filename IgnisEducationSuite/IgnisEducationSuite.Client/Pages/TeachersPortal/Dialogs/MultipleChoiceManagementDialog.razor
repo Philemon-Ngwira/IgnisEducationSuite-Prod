@@ -1,0 +1,130 @@
+﻿@using EDUSphereSharedProject.Models
+<MudDialog>
+    <DialogContent>
+        @if (!isExam)
+        {
+            <MudNumericField T="int"
+            Variant="Variant.Outlined"
+            Value="NumberofOptions"
+            ValueChanged="OnNumberOfOptionsChanged"
+            Margin="Margin.Dense"
+            Label="Enter Number Of Options"
+            Min="1" Max="10">
+            </MudNumericField>
+
+            @if (Options.Count > 0)
+            {
+                @for (int i = 0; i < Options.Count; i++)
+                {
+                    var index = i;  // Store `i` in a local variable
+                    <MudTextField T="string"
+                    Variant="Variant.Outlined"
+                    Label=@($"Option {OptionLabels[index]}")
+                    Value="@Options[index].Text"
+                    ValueChanged="@(text => OnOptionTextChanged(index, text))">
+                    </MudTextField>
+                }
+
+            }
+            <MudButton Variant="Variant.Filled"
+            Color="Color.Success"
+            EndIcon="@Icons.Material.Filled.SaveAlt"
+            OnClick="SaveQuestionOptions"
+            Disabled="@(!AllOptionsFilled())">
+                Submit Options
+            </MudButton>
+        }
+        else{
+
+        }
+    </DialogContent>
+
+
+</MudDialog>
+
+@code {
+    [Parameter] public bool isExam { get; set; } = false;
+    [Parameter] public Guid QuestionID { get; set; } = Guid.Empty;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    protected int NumberofOptions = 1;
+
+    protected List<string> OptionLabels = new() { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
+
+    protected List<OptionModel> Options = new();
+
+    protected override void OnInitialized()
+    {
+        GenerateOptions();
+    }
+
+    private void GenerateOptions()
+    {
+        // Preserve existing options while resizing the list
+        if (Options.Count < NumberofOptions)
+        {
+            // Add new options if needed
+            for (int i = Options.Count; i < NumberofOptions; i++)
+            {
+                Options.Add(new OptionModel { Id = i, Text = "" });
+            }
+        }
+        else if (Options.Count > NumberofOptions)
+        {
+            // Remove excess options
+            Options.RemoveRange(NumberofOptions, Options.Count - NumberofOptions);
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnNumberOfOptionsChanged(int value)
+    {
+        NumberofOptions = value;
+        GenerateOptions();
+    }
+
+    private void OnOptionTextChanged(int index, string text)
+    {
+        if (index >= 0 && index < Options.Count)
+        {
+            Options[index].Text = text;
+            StateHasChanged(); // Ensure UI updates
+        }
+    }
+    protected async Task SaveQuestionOptions()
+    {
+        if (!isExam)
+        {
+            List<MultipleChoiceAssignmentAnswer> options = new();
+
+            for (int i = 0; i < Options.Count; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(Options[i].Text)) // Prevent empty options
+                {
+                    MultipleChoiceAssignmentAnswer newAnswer = new()
+                        {
+                            MultipleChoiceID = Guid.NewGuid(),
+                            AssignmentQuestionID = QuestionID,
+                            MultipleChoiceLetter = OptionLabels.ElementAtOrDefault(i) ?? "?", // Prevent out-of-range error
+                            MuiltpleChoiceAnswer = Options[i].Text
+                        };
+
+                    options.Add(newAnswer);
+                }
+            }
+
+            MudDialog?.Close(DialogResult.Ok(options)); // Ensure `MudDialog` is not null
+        }
+    }
+
+    private bool AllOptionsFilled()
+    {
+        return Options.All(o => !string.IsNullOrWhiteSpace(o.Text));
+    }
+
+    public class OptionModel
+    {
+        public int Id { get; set; }
+        public string Text { get; set; }
+    }
+}

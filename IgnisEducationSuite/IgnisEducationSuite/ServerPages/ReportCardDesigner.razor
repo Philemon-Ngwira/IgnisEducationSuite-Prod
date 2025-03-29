@@ -1,0 +1,66 @@
+﻿@page "/da"
+
+
+@using EDUSphereSharedProject.UniversalModels
+@using Microsoft.AspNetCore.Components.Web
+
+<h3 class="text-xl font-bold mb-4">Report Card Template Designer</h3>
+
+<div class="flex gap-4">
+    <!-- Fields Palette -->
+    <div class="w-1/4 p-4 border rounded">
+        <h4 class="font-semibold mb-2">Available Fields</h4>
+        @foreach (var field in AvailableFields)
+        {
+            <div draggable="true"
+                 @ondragstart="e => OnDragStart(e, field)"
+                 class="p-2 mb-2 bg-blue-200 rounded cursor-move">
+                @field
+            </div>
+        }
+    </div>
+
+    <!-- Canvas -->
+    <div class="relative border w-[800px] h-[1100px] bg-white"
+         @ondrop="OnDrop"
+         @ondragover="OnDragOver">
+        @foreach (var field in PlacedFields)
+        {
+            <div class="absolute bg-green-200 p-1 rounded"
+                 style="left:@field.PositionX; top:@field.PositionY; font-size:@field.FontSize;">
+                @field.FieldName
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    List<string> AvailableFields = new() { "Student Name", "Grade", "Attendance", "Comments" };
+    List<TemplateField> PlacedFields = new();
+
+    string DraggedField = "";
+
+    void OnDragStart(DragEventArgs e, string field)
+    {
+        DraggedField = field;
+    }
+
+    void OnDragOver(DragEventArgs e)
+    {
+        // Allow drop
+        e.DataTransfer.DropEffect = "move";
+    }
+
+    void OnDrop(DragEventArgs e)
+    {
+        var x = e.OffsetX;
+        var y = e.OffsetY;
+
+        PlacedFields.Add(new TemplateField
+            {
+                FieldName = DraggedField,
+                PositionX = x,
+                PositionY = y
+            });
+    }
+}

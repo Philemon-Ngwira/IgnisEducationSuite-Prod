@@ -95,6 +95,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[ExamTestQuizMultipleChoiceAnswers]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Gender]",
          "ObjectType": 0
       },
@@ -112,6 +116,10 @@
       },
       {
          "Name": "[dbo].[Lessons]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[MultipleChoiceAssignmentAnswers]",
          "ObjectType": 0
       },
       {

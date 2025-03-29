@@ -61,6 +61,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<ExamQuizTestQuestion> ExamQuizTestQuestions { get; set; }
 
+    public virtual DbSet<ExamTestQuizMultipleChoiceAnswer> ExamTestQuizMultipleChoiceAnswers { get; set; }
+
     public virtual DbSet<Gender> Genders { get; set; }
 
     public virtual DbSet<Grade> Grades { get; set; }
@@ -68,6 +70,8 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<GradingScale> GradingScales { get; set; }
 
     public virtual DbSet<Lesson> Lessons { get; set; }
+
+    public virtual DbSet<MultipleChoiceAssignmentAnswer> MultipleChoiceAssignmentAnswers { get; set; }
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
@@ -487,6 +491,23 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasConstraintName("FK_ExamQuizQuestions_ExamQuizTestHeader");
         });
 
+        modelBuilder.Entity<ExamTestQuizMultipleChoiceAnswer>(entity =>
+        {
+            entity.HasKey(e => e.MultipleChoiceID);
+
+            entity.Property(e => e.MultipleChoiceID).ValueGeneratedNever();
+            entity.Property(e => e.MuiltpleChoiceAnswer).IsUnicode(false);
+            entity.Property(e => e.MultipleChoiceLetter)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .IsFixedLength();
+
+            entity.HasOne(d => d.ExamTestQuizQuestion).WithMany(p => p.ExamTestQuizMultipleChoiceAnswers)
+                .HasForeignKey(d => d.ExamTestQuizQuestionID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ExamTestQuizMultipleChoiceAnswers_ExamQuizTestQuestions");
+        });
+
         modelBuilder.Entity<Gender>(entity =>
         {
             entity.ToTable("Gender");
@@ -547,6 +568,23 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasForeignKey(d => d.TeacherID)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK__Lessons__Teacher__440B1D61");
+        });
+
+        modelBuilder.Entity<MultipleChoiceAssignmentAnswer>(entity =>
+        {
+            entity.HasKey(e => e.MultipleChoiceID);
+
+            entity.Property(e => e.MultipleChoiceID).ValueGeneratedNever();
+            entity.Property(e => e.MuiltpleChoiceAnswer).IsUnicode(false);
+            entity.Property(e => e.MultipleChoiceLetter)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .IsFixedLength();
+
+            entity.HasOne(d => d.AssignmentQuestion).WithMany(p => p.MultipleChoiceAssignmentAnswers)
+                .HasForeignKey(d => d.AssignmentQuestionID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_MultipleChoiceAssignmentAnswers_AssignmentQuestions");
         });
 
         modelBuilder.Entity<Notification>(entity =>
