@@ -1,6 +1,8 @@
 ﻿@page "/ExamQuizTestManagement"
 @using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.TeachersPortal.Dialogs
 @inherits AppBaseComponent
+@inject IDialogService DialogService
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
@@ -69,8 +71,8 @@
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
                         <ActivatorContent>
                             <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                            Color="Color.Primary"
+                            StartIcon="@Icons.Material.Filled.CloudUpload">
                                 Upload Question
                             </MudButton>
                         </ActivatorContent>
@@ -92,12 +94,21 @@
                     <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">Edit Questions</MudAlert>
                     @if (questions.Any())
                     {
-                        <MudDataGrid T="ExamQuizTestQuestion" ReadOnly="false" Items="@questions" EditMode="DataGridEditMode.Cell"
-                                     StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
-                                     Bordered="true" Dense="true" EditTrigger="DataGridEditTrigger.OnRowClick">
+                        <MudDataGrid T="ExamQuizTestQuestion" Items="@questions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
+                        StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                        Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
                             <Columns>
-                                <PropertyColumn Property="x => x.QuestionText" Title="Question" />
+                                <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
+                                <PropertyColumn Property="x => x.QuestionText" />
                                 <PropertyColumn Property="x => x.Marks" />
+                                <TemplateColumn CellClass="d-flex justify-end">
+                                    <CellTemplate>
+                                        <MudStack Row>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                        </MudStack>
+                                    </CellTemplate>
+                                </TemplateColumn>
                             </Columns>
                         </MudDataGrid>
                         <MudButton Variant="Variant.Filled" OnClick="SaveAssignment" Color="Color.Success" EndIcon="@Icons.Material.Filled.SaveAlt">
@@ -151,8 +162,8 @@
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
                         <ActivatorContent>
                             <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                            Color="Color.Primary"
+                            StartIcon="@Icons.Material.Filled.CloudUpload">
                                 Upload Lesson
                             </MudButton>
                         </ActivatorContent>
@@ -174,12 +185,21 @@
                     <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled">Edit Questions</MudAlert>
                     @if (questions.Any())
                     {
-                        <MudDataGrid T="ExamQuizTestQuestion" ReadOnly="false" Items="@questions" EditMode="@(DataGridEditMode.Cell)"
-                                     StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
-                                     Bordered="true" Dense="true" EditTrigger="@( DataGridEditTrigger.OnRowClick)">
+                        <MudDataGrid T="ExamQuizTestQuestion" Items="@questions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
+                        StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                        Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
                             <Columns>
-                                <PropertyColumn Property="x => x.QuestionText" Title="Question" />
+                                <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
+                                <PropertyColumn Property="x => x.QuestionText" />
                                 <PropertyColumn Property="x => x.Marks" />
+                                <TemplateColumn CellClass="d-flex justify-end">
+                                    <CellTemplate>
+                                        <MudStack Row>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                        </MudStack>
+                                    </CellTemplate>
+                                </TemplateColumn>
                             </Columns>
                         </MudDataGrid>
                         <MudButton Variant="Variant.Filled" OnClick="SaveAssignment" Color="Color.Success" EndIcon="@Icons.Material.Filled.SaveAlt">
@@ -189,7 +209,7 @@
                 }
             </MudTabPanel>
             <MudTabPanel Text="Quizzes">
-                <MudGrid Class="mb-3" >
+                <MudGrid Class="mb-3">
                     <MudItem Class="mb-3" xs="12">
                         <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Filled">Quiz Information</MudAlert>
                     </MudItem>
@@ -234,8 +254,8 @@
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
                         <ActivatorContent>
                             <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                            Color="Color.Primary"
+                            StartIcon="@Icons.Material.Filled.CloudUpload">
                                 Upload Lesson
                             </MudButton>
                         </ActivatorContent>
@@ -257,14 +277,39 @@
                     <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled">Edit Questions</MudAlert>
                     @if (questions.Any())
                     {
-                        <MudDataGrid T="ExamQuizTestQuestion" ReadOnly="false" Items="@questions" EditMode="@(DataGridEditMode.Cell)"
+                        <MudDataGrid T="ExamQuizTestQuestion" Items="@questions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
+                        StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                        Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
+                            <Columns>
+                                <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
+                                <PropertyColumn Property="x => x.QuestionText" />
+                                <PropertyColumn Property="x => x.Marks" />
+                                <TemplateColumn CellClass="d-flex justify-end">
+                                    <CellTemplate>
+                                        <MudStack Row>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                        </MudStack>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                        </MudDataGrid>
+                        @*  <MudDataGrid T="ExamQuizTestQuestion" ReadOnly="false" Items="@questions" EditMode="@(DataGridEditMode.Form)"
                                      StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
                                      Bordered="true" Dense="true" EditTrigger="@( DataGridEditTrigger.OnRowClick)">
                             <Columns>
                                 <PropertyColumn Property="x => x.QuestionText" Title="Question" />
                                 <PropertyColumn Property="x => x.Marks" />
+                                <TemplateColumn CellClass="d-flex justify-end">
+                                    <CellTemplate>
+                                        <MudStack Row>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                        </MudStack>
+                                    </CellTemplate>
+                                </TemplateColumn>
                             </Columns>
-                        </MudDataGrid>
+                        </MudDataGrid> *@
                         <MudButton Variant="Variant.Filled" OnClick="SaveAssignment" Color="Color.Success" EndIcon="@Icons.Material.Filled.SaveAlt">
                             Save Assignment
                         </MudButton>
@@ -278,6 +323,9 @@
     </MudCardContent>
 </MudCard>
 @code {
+
+
+
     protected bool isLoading = false;
     protected ExamQuizTestHeader examQuizTestHeader = new();
     protected ExamQuizTestQuestion examQuizTestQuestion = new();
@@ -291,6 +339,8 @@
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     [Inject] ChatClientService ChatClientService { get; set; } = default!;
+
+    protected List<ExamTestQuizMultipleChoiceAnswer> QuestionOptions = new();
     [Inject] HttpClient Http { get; set; } = default!;
     protected bool examCreated = false;
     protected bool testCreated = false;
@@ -309,9 +359,9 @@
     protected async Task GetClassTeacherDetails()
     {
 
-      
-            UserID = AppState.UserID;
-        
+
+        UserID = AppState.UserID;
+
         if (UserID != string.Empty || UserID != null)
         {
             var service = _genericService.GetService<vw_ClassTeacherDetail>();
@@ -421,7 +471,6 @@
             else
             {
                 item.ExamQuizID = headerID;
-                item.QuestionID = Guid.NewGuid();
                 item.QuestionType = "ShortAnswer";
                 finalList.Add(item);
             }
@@ -438,6 +487,7 @@
             var result = await service.PostAsync("api/Dynamic/PostEntities", "examquestion", finalList);
             if (result.IsSuccess)
             {
+                await SaveExamMultipleChoices();
                 Snackbar.Add("assignment Saved Successfully", Severity.Success);
                 questions.Clear();
                 examQuizTestHeader = new();
@@ -447,10 +497,23 @@
             }
         }
     }
+    //Save Multiple Choice Options
+    protected async Task SaveExamMultipleChoices(){
+        if (QuestionOptions.Any()) {
+            var service = _genericService.GetService<List<ExamTestQuizMultipleChoiceAnswer>>();
+            var result = await service.PostAsync("api/Dynamic/PostEntities", "exammultiplechoices", QuestionOptions);
+            if(result.IsSuccess){
+                 Snackbar.Add("Options Saved Successfully", Severity.Success);
+                QuestionOptions.Clear();
+                StateHasChanged();
+            }
+        }
+    }
     protected void AddQuestionManually()
     {
         if (examQuizTestQuestion.QuestionText != null & examQuizTestQuestion.Marks != null)
         {
+            examQuizTestQuestion.QuestionID = Guid.NewGuid();
             questions.Add(examQuizTestQuestion);
             examQuizTestQuestion = new();
             StateHasChanged();
@@ -462,7 +525,30 @@
             return;
         }
     }
+    protected async Task OpenMultipleChoiceDialog(Guid QuestionID)
+    {
+        var parameters = new DialogParameters<MultipleChoiceManagementDialog>
+    {
+        { x => x.isExam, true },
+        { x => x.QuestionID, QuestionID}
+    };
 
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraLarge };
+        var dialog = await DialogService.ShowAsync<MultipleChoiceManagementDialog>("Add Choices", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is List<ExamTestQuizMultipleChoiceAnswer> questionOptions)
+        {
+            if (QuestionOptions is null)
+                QuestionOptions = new List<ExamTestQuizMultipleChoiceAnswer>();
+            questions.FirstOrDefault(x => x.QuestionID == QuestionID).isMultipleChoice = true;
+            QuestionOptions.AddRange(questionOptions);
+
+
+            // You can now use `QuestionOptions` elsewhere in your component
+            StateHasChanged(); // Ensure UI updates
+        }
+    }
     private async Task OnFileUpload(IBrowserFile file)
     {
 
@@ -490,6 +576,11 @@
             GPTQuery = string.Empty;
 
             questions = GenerateQuestions(responseMessage);
+            foreach (var item in questions)
+            {
+
+                item.QuestionID = Guid.NewGuid();
+            }
         }
         isLoading = false;
     }

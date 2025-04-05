@@ -43,11 +43,11 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Title">@context.Title</MudTd>
-                        <MudTd DataLabel="Subject">@context.ClassName</MudTd>
-                        <MudTd DataLabel="Total Marks">@context.TotalMarks</MudTd>
-                        <MudTd DataLabel="Due Date">@context.DueDate</MudTd>
-                        <MudTd DataLabel="Status">
-                            @if (context.Overdue == 1)
+                    <MudTd DataLabel="Subject">@context.ClassName</MudTd>
+                    <MudTd DataLabel="Total Marks">@context.TotalMarks</MudTd>
+                    <MudTd DataLabel="Due Date">@context.DueDate</MudTd>
+                    <MudTd DataLabel="Status">
+                        @if (context.Overdue == 1)
                         {
                             <MudChip T="string" Variant="Variant.Outlined" Color="Color.Error">Overdue</MudChip>
                         }
@@ -124,6 +124,19 @@
             Snackbar.Add("Failed to Assignment Details, Please refresh and try again", Severity.Error);
         }
     }
+    protected async Task GetAssignmentMultipleChoiceAnswers(){
+        foreach (var item in LessonService.assignmentQuestions)
+        {
+            if(item.isMultipleChoice == true){
+                var service = _genericService.GetService<MultipleChoiceAssignmentAnswer>();
+                var result = await service.GetAllAsync($"api/Dynamic/GetQuestionChoicesAssignment/{item.QuestionID}", true);
+                if (result.IsSuccess)
+                {
+                    LessonService.AssignmentAnswerChoices.AddRange(result.Data.ToList());
+                }
+            }
+        }
+    }
     #endregion
 
     #region Filter Functions
@@ -145,6 +158,7 @@
     {
         isLoading = true;
         await GetAssignmentQuestions(selectedAssignment.AssignmentID);
+        await GetAssignmentMultipleChoiceAnswers();
         LessonService.studentID = selectedAssignment.StudentID;
         isLoading = false;
         _navigationManager.NavigateTo("/AssignmentDetails");

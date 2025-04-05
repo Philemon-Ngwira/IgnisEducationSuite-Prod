@@ -296,17 +296,22 @@
     {
         var result = _genericService.GetService<Class>();
         var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{teacher.SchoolID}", true);
-        var classesdata = service.Data.ToList();
-        foreach (var item in classesdata)
-        {
-            var authstate = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authstate.User;
 
+        if (service?.Data == null) return; // Null safety check
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // Filter only relevant classes
+        var filteredClasses = service.Data
+            .Where(item => item.TeacherID == teacher.TeacherID)
+            .ToList();
+
+        // Assign teacher before adding
+        foreach (var item in filteredClasses)
+        {
             item.Teacher = teacher;
-            if (item.Teacher.EmailAddress == user.Identity.Name)
-            {
-                classes.Add(item);
-            }
+            classes.Add(item);
         }
 
     }

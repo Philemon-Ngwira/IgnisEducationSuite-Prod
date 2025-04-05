@@ -41,79 +41,80 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Title">@context.Title</MudTd>
-                            <MudTd DataLabel="Total Marks">@context.TotalMarks</MudTd>
-                            <MudTd DataLabel="Created Date">@context.CreatedDate.Value.ToShortDateString()</MudTd>
-                            <MudTd DataLabel="Exam Date">@context.EndDate.ToShortDateString()</MudTd>
-                            <MudTd DataLabel="Action">
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() =>NavigateToDetails(context)">Go to Exam</MudButton>
-                            </MudTd>
-                        </RowTemplate>
-                        <PagerContent>
-                            <MudTablePager />
-                        </PagerContent>
-                    </MudTable>
+                        <MudTd DataLabel="Total Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="Created Date">@context.CreatedDate.Value.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Exam Date">@context.EndDate.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Action">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() =>NavigateToDetails(context)">Go to Exam</MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
             </MudTabPanel>
             <MudTabPanel Text="Tests">
-                    <MudTable Items="@examQuizzes.Where(x=>x.ExamType =="Test")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
-                        <ToolBarContent>
-                            <MudText Typo="Typo.h6">Available Tests</MudText>
-                            <MudSpacer />
-                            <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-                        </ToolBarContent>
-                        <HeaderContent>
-                            <MudTh>Title</MudTh>
-                            <MudTh>Total Marks</MudTh>
-                            <MudTh>Created Date</MudTh>
-                            <MudTh>Test Date</MudTh>
-                            <MudTh>Action</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="Title">@context.Title</MudTd>
-                            <MudTd DataLabel="Total Marks">@context.TotalMarks</MudTd>
-                            <MudTd DataLabel="Created Date">@context.CreatedDate.Value.ToShortDateString()</MudTd>
-                            <MudTd DataLabel="Test Date">@context.EndDate.ToShortDateString()</MudTd>
-                            <MudTd DataLabel="Action">
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() =>NavigateToDetails(context)">Go to Test</MudButton>
-                            </MudTd>
-                        </RowTemplate>
-                        <PagerContent>
-                            <MudTablePager />
-                        </PagerContent>
-                    </MudTable>
+                <MudTable Items="@examQuizzes.Where(x=>x.ExamType =="Test")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Available Tests</MudText>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>Title</MudTh>
+                        <MudTh>Total Marks</MudTh>
+                        <MudTh>Created Date</MudTh>
+                        <MudTh>Test Date</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Title">@context.Title</MudTd>
+                        <MudTd DataLabel="Total Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="Created Date">@context.CreatedDate.Value.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Test Date">@context.EndDate.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Action">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() =>NavigateToDetails(context)">Go to Test</MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
             </MudTabPanel>
             <MudTabPanel Text="Quizzes">
-                    <MudTable Items="@examQuizzes.Where(x=>x.ExamType =="Quiz")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
-                        <ToolBarContent>
-                            <MudText Typo="Typo.h6">Available Quizzes</MudText>
-                            <MudSpacer />
-                            <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-                        </ToolBarContent>
-                        <HeaderContent>
-                            <MudTh>Title</MudTh>
-                            <MudTh>Total Marks</MudTh>
-                            <MudTh>Created Date</MudTh>
-                            <MudTh>Quiz Date</MudTh>
-                            <MudTh>Action</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="Title">@context.Title</MudTd>
-                            <MudTd DataLabel="Total Marks">@context.TotalMarks</MudTd>
-                            <MudTd DataLabel="Created Date">@context.CreatedDate.Value.ToShortDateString()</MudTd>
-                            <MudTd DataLabel="Quiz Date">@context.EndDate.ToShortDateString()</MudTd>
-                            <MudTd DataLabel="Action">
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() =>NavigateToDetails(context)">Go to Quiz</MudButton>
-                            </MudTd>
-                        </RowTemplate>
-                        <PagerContent>
-                            <MudTablePager />
-                        </PagerContent>
-                    </MudTable>
+                <MudTable Items="@examQuizzes.Where(x=>x.ExamType =="Quiz")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Available Quizzes</MudText>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>Title</MudTh>
+                        <MudTh>Total Marks</MudTh>
+                        <MudTh>Created Date</MudTh>
+                        <MudTh>Quiz Date</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Title">@context.Title</MudTd>
+                        <MudTd DataLabel="Total Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="Created Date">@context.CreatedDate.Value.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Quiz Date">@context.EndDate.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Action">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() =>NavigateToDetails(context)">Go to Quiz</MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
             </MudTabPanel>
         </MudTabs>
     </MudCardContent>
 </MudCard>
 
-    @code {
+@code {
+
     protected List<GetUpcomingExamsOrQuizzesResult> examQuizzes = new();
     protected List<Student> students = new();
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
@@ -127,9 +128,9 @@
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-      
-            UserID = _appState.UserID;
-        
+
+        UserID = _appState.UserID;
+
         if (UserID != string.Empty || UserID != null)
         {
             await GetStudent();
@@ -176,11 +177,28 @@
 
 
     }
+    protected async Task GetMultipleChoiceAnswers()
+    {
+        foreach (var item in LessonService.examQuizTestQuestions)
+        {
+            if (item.isMultipleChoice == true)
+            {
+                var service = _genericService.GetService<ExamTestQuizMultipleChoiceAnswer>();
+                var result = await service.GetAllAsync($"api/Dynamic/GetQuestionChoicesExams/{item.QuestionID}", true);
+                if (result.IsSuccess)
+                {
+                    LessonService.ExamAnswerChoices.AddRange(result.Data.ToList());
+                }
+            }
+        }
+    }
     //GetExamTestQuizQuestions
 
     protected async void NavigateToDetails(GetUpcomingExamsOrQuizzesResult examHeader)
     {
         LessonService.examQuizTestQuestions = await GetExamstestsAndQuizzesQuestions(examHeader.ExamQuizID);
+
+        await GetMultipleChoiceAnswers();
         LessonService.ExamTestQuizID = examHeader.ExamQuizID;
         LessonService.studentID = student.StudentID;
         _navigationManager.NavigateTo("/ExamDetails");

@@ -21,6 +21,7 @@ public partial class ExamQuizTestQuestion
     public string Options { get; set; }
 
     public string CorrectAnswer { get; set; }
+    public bool isMultipleChoice { get; set; }
 
     public virtual ExamQuizTestHeader ExamQuiz { get; set; }
 

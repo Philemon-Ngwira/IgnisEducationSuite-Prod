@@ -22,14 +22,55 @@
         }
         @foreach (var item in examQuizTestQuestions)
         {
-            <MudText Class="mb-3">Q: @item.QuestionText</MudText>
-            <MudTextField Class="mb-3" @bind-Value="GetOrCreateAnswer(item.QuestionID).AnswerText" Variant="Variant.Outlined" Margin="Margin.Dense" T="string" Label="Answer Box" Placeholder="Enter Your Answer Here"></MudTextField>
+            @if (item.isMultipleChoice == true)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.body1">Q @item.QuestionNumber @item.QuestionText</MudText>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudList T="string">
+                        @foreach (var Aitem in LS.ExamAnswerChoices.Where(a => a.ExamTestQuizQuestionID == item.QuestionID)
+                        .OrderBy(x=>x.MultipleChoiceLetter))
+                        {
+                            <MudListItem>
+                                <MudCheckBox T="bool"
+                                             Label="@Aitem.MuiltpleChoiceAnswer"
+                                             Value="IsChecked(item.QuestionID, Aitem.MultipleChoiceLetter)"
+                                             ValueChanged="(e) => HandleMultipleChoiceSelection(item.QuestionID,Aitem.MultipleChoiceLetter,Aitem.MuiltpleChoiceAnswer,e)">
+                                    <span class="bullet-answer"> @Aitem.MuiltpleChoiceAnswer</span>
+                                </MudCheckBox>
+                            </MudListItem>
+                        }
+                    </MudList>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.body1">Q @item.QuestionNumber @item.QuestionText</MudText>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="GetOrCreateAnswer(item.QuestionID).AnswerText"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="Enter your answer here" />
+                </MudItem>
+            }
+           @*  <MudText Class="mb-3">Q: @item.QuestionText</MudText>
+            <MudTextField Class="mb-3" @bind-Value="GetOrCreateAnswer(item.QuestionID).AnswerText" Variant="Variant.Outlined" Margin="Margin.Dense" T="string" Label="Answer Box" Placeholder="Enter Your Answer Here"></MudTextField> *@
         }
     </MudCardContent>
     <MudCardActions>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAnswers" >Submit</MudButton>
     </MudCardActions>
 </MudCard>
+<style>
+    .bullet-answer::before {
+        content: "•";
+        margin-right: 5px;
+    }
+
+</style>
 
 @code {
     protected bool isLoading = false;
@@ -72,6 +113,34 @@
             isLoading = false;
             return;
         }
+    }
+    private void HandleMultipleChoiceSelection(Guid questionId, string selectedLetter, string AnswerText,bool isChecked)
+    {
+        if (isChecked)
+        {
+            // Create a new answer entry for this choice
+            var newAnswer = new StudentExamQuizAndTestAnswer
+                {
+                    QuestionID = questionId,
+                    AnswerText = $"{selectedLetter} : {AnswerText}" // Store the selected letter as the answer
+                };
+
+            answers.Add(newAnswer);
+        }
+        else
+        {
+            // Remove the answer if the checkbox is unchecked
+            var existingAnswer = answers.FirstOrDefault(a => a.QuestionID == questionId && a.AnswerText == selectedLetter);
+            if (existingAnswer != null)
+            {
+                answers.Remove(existingAnswer);
+            }
+        }
+    }
+
+    private bool IsChecked(Guid questionId, string letter)
+    {
+        return answers.Any(a => a.QuestionID == questionId && a.AnswerText == letter);
     }
     protected async Task SaveExamHeader()
     {

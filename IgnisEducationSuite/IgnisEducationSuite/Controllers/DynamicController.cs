@@ -26,7 +26,18 @@ namespace IgnisEducationSuite.Controllers
         }
 
         #region Non Generic
-        
+        [HttpGet("GetQuestionChoicesAssignment/{ID}")]
+        public async Task<IActionResult> GetMultipleChoiceAssignment(Guid ID)
+        {
+            var result = await _repository.GetAssingmentMultipleChoices(ID);
+            return Ok(result);
+        }
+        [HttpGet("GetQuestionChoicesExams/{ID}")]
+        public async Task<IActionResult> GetMultipleChoiceExams(Guid ID)
+        {
+            var result = await _repository.GetExamMultipleChoices(ID);
+            return Ok(result);
+        }
         [HttpGet("GetTeacherCourses/{ID}")]
         public async Task<IActionResult> GetTeacherCourses(Guid ID)
         {
@@ -499,7 +510,7 @@ namespace IgnisEducationSuite.Controllers
                 "lesson" => GetRepository<Lesson>(),
                 "studentcompletedlesson" => GetRepository<StudentCompletedLesson>(),
                 "assignment" => GetRepository<Assignment>(),
-                "assignmentquestions" => GetRepository<AssignmentQuestion>(),
+                "assignmentquestions" => GetRepository<AssignmentQuestion>(), //assignmentQuestions
                 "studentassignment" => GetRepository<StudentAssignment>(),
                 "studentassignmentasnwers" => GetRepository<StudentAssignmentAnswer>(),
                 "studentgrowth" => GetRepository<vw_StudentGrowth>(),
@@ -521,7 +532,8 @@ namespace IgnisEducationSuite.Controllers
                 "clientadmin" => GetRepository<ClientAdmin>(),
                 "course" => GetRepository<Course>(),
                 "coursedetail" => GetRepository<CourseDetail>(),
-
+                "assignmentmultiplechoices" => GetRepository<MultipleChoiceAssignmentAnswer>(),
+                "exammultiplechoices" => GetRepository<ExamTestQuizMultipleChoiceAnswer>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -567,7 +579,8 @@ namespace IgnisEducationSuite.Controllers
                 "clientadmin" => JsonSerializer.Deserialize<ClientAdmin>(obj.ToString()),
                 "course" => JsonSerializer.Deserialize<Course>(obj.ToString()),
                 "coursedetail" => JsonSerializer.Deserialize<CourseDetail>(obj.ToString()),
-
+                "assignmentmultiplechoices" => JsonSerializer.Deserialize<MultipleChoiceAssignmentAnswer>(obj.ToString()),
+                "exammultiplechoices" => JsonSerializer.Deserialize<ExamTestQuizMultipleChoiceAnswer>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null

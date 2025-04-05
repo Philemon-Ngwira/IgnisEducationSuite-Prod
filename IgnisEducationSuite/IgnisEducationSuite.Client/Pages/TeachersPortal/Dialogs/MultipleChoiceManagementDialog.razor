@@ -1,8 +1,6 @@
 ﻿@using EDUSphereSharedProject.Models
 <MudDialog>
     <DialogContent>
-        @if (!isExam)
-        {
             <MudNumericField T="int"
             Variant="Variant.Outlined"
             Value="NumberofOptions"
@@ -33,10 +31,7 @@
             Disabled="@(!AllOptionsFilled())">
                 Submit Options
             </MudButton>
-        }
-        else{
-
-        }
+       
     </DialogContent>
 
 
@@ -105,6 +100,27 @@
                         {
                             MultipleChoiceID = Guid.NewGuid(),
                             AssignmentQuestionID = QuestionID,
+                            MultipleChoiceLetter = OptionLabels.ElementAtOrDefault(i) ?? "?", // Prevent out-of-range error
+                            MuiltpleChoiceAnswer = Options[i].Text
+                        };
+
+                    options.Add(newAnswer);
+                }
+            }
+
+            MudDialog?.Close(DialogResult.Ok(options)); // Ensure `MudDialog` is not null
+        }
+        else{
+            List<ExamTestQuizMultipleChoiceAnswer> options = new();
+
+            for (int i = 0; i < Options.Count; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(Options[i].Text)) // Prevent empty options
+                {
+                    ExamTestQuizMultipleChoiceAnswer newAnswer = new()
+                        {
+                            MultipleChoiceID = Guid.NewGuid(),
+                            ExamTestQuizQuestionID = QuestionID,
                             MultipleChoiceLetter = OptionLabels.ElementAtOrDefault(i) ?? "?", // Prevent out-of-range error
                             MuiltpleChoiceAnswer = Options[i].Text
                         };

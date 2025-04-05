@@ -1,5 +1,4 @@
-﻿
-@page "/AssignmentDetails"
+﻿@page "/AssignmentDetails"
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
@@ -28,13 +27,43 @@
         <MudGrid>
             @foreach (var item in assignmentQuestions)
             {
-                <MudItem xs="12">
-                    <MudText Typo="Typo.body1">Q @item.QuestionNumber @item.QuestionText</MudText>
-                </MudItem>
-                <MudItem xs="12">
-                    <!-- Find or create the corresponding answer item based on QuestionID -->
-                    <MudTextField @bind-Value="GetOrCreateAnswer(item.QuestionID).AnswerText" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Enter your answer here" />
-                </MudItem>
+                @if (item.isMultipleChoice == true)
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body1">Q @item.QuestionNumber @item.QuestionText</MudText>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudList T="string">
+                            @foreach (var Aitem in LessonService.AssignmentAnswerChoices
+                           .Where(a => a.AssignmentQuestionID == item.QuestionID)
+                           .OrderBy(a => a.MultipleChoiceLetter)) // Ordering by letter
+                            {
+                                <MudListItem>
+                                    <MudCheckBox T="bool"
+                                                 Label="@Aitem.MultipleChoiceLetter"
+                                                 Value="IsChecked(item.QuestionID, Aitem.MultipleChoiceLetter)"
+                                                 ValueChanged="(e) => HandleMultipleChoiceSelection(item.QuestionID, Aitem.MultipleChoiceLetter, Aitem.MuiltpleChoiceAnswer, e)">
+                                        <span class="bullet-answer"> @Aitem.MuiltpleChoiceAnswer</span>
+                                    </MudCheckBox>
+                                </MudListItem>
+                            }
+
+                        </MudList>
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body1">Q @item.QuestionNumber @item.QuestionText</MudText>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="GetOrCreateAnswer(item.QuestionID).AnswerText"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Placeholder="Enter your answer here" />
+                    </MudItem>
+                }
+
             }
         </MudGrid>
     </MudCardContent>
@@ -42,5 +71,11 @@
         <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Send" OnClick="SaveAssignment">Finish And Submit</MudButton>
     </MudCardActions>
 </MudCard>
+<style>
+    .bullet-answer::before {
+        content: "•";
+        margin-right: 5px;
+    }
 
+</style>
 

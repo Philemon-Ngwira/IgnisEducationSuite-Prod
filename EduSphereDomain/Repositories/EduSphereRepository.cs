@@ -38,6 +38,16 @@ namespace EduSphereDomain.Repositories
             var result = await _achivementContext.Activities.ToListAsync();
             return result;
         }
+        public async Task<IEnumerable<MultipleChoiceAssignmentAnswer>> GetAssingmentMultipleChoices(Guid ID)
+        {
+            var result = await _context.MultipleChoiceAssignmentAnswers.Where(x => x.AssignmentQuestionID == ID).ToListAsync();
+            return result;
+        }
+        public async Task<IEnumerable<ExamTestQuizMultipleChoiceAnswer>> GetExamMultipleChoices(Guid ID)
+        {
+            var result = await _context.ExamTestQuizMultipleChoiceAnswers.Where(x => x.ExamTestQuizQuestionID == ID).ToListAsync();
+            return result;
+        }
         public async Task <IEnumerable<Course>> GetTeacherCourses(Guid TeacherID)
         {
             var courses =  await _context.Courses.Where(x=>x.TeacherID==TeacherID).ToListAsync();
