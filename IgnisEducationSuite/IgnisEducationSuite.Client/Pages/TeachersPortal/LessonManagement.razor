@@ -54,10 +54,21 @@
                                      CoerceText="true" CoerceValue="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                 </MudItem>
+                <MudItem xs="12">
+                    <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                                Upload Any Lesson Images
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </MudItem>
             </MudGrid>
             <MudButtonGroup OverrideStyles="false">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow=true StartIcon="@Icons.Material.Filled.Done" OnClick="FinishEditing">Finish Editing</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="string.IsNullOrEmpty(ResponseMessage)" OnClick="SaveLesson" DropShadow=true StartIcon="@Icons.Material.Filled.Save">Save Lesson</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveLesson" DropShadow=true StartIcon="@Icons.Material.Filled.Save">Save Lesson</MudButton>
             </MudButtonGroup>
 
         }
@@ -111,17 +122,29 @@
                         </BlazoredTextEditor>
 
                     </MudItem>
+                    <MudItem xs="12">
+                        <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
+                            <ActivatorContent>
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                                    Upload Any Lesson Images
+                                </MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                    </MudItem>
                 </MudGrid>
 
 
             </div>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow=true StartIcon="@Icons.Material.Filled.Done" OnClick="FinishEditing">Finish Editing</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="responseisEmpty" DropShadow=true StartIcon="@Icons.Material.Filled.Save" OnClick="SaveLesson">Save Lesson</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow=true StartIcon="@Icons.Material.Filled.Save" OnClick="SaveLesson">Save Lesson</MudButton>
         }
 
 
     </MudCardContent>
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+
     <MudCardContent Class="mb-3">
         <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.List" Variant="Variant.Filled">Current Available Lessons</MudAlert>
         <MudDataGrid Items="@teacherLessons" Filterable="false" SortMode="@SortMode.None" Groupable="false">
@@ -244,6 +267,8 @@
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject] ILessonMediaClientService mediaClientService { get; set; } = default!;
+    protected List<LessonMedium> lessonMedia = new();
     private BlazoredTextEditor richTextEditor;
     string toolbar = """"...markup here..."""";
     string body = string.Empty;
@@ -342,6 +367,49 @@
 
     }
     #endregion
+    private List<IBrowserFile> files = new();
+
+    private async void UploadFiles(IReadOnlyList<IBrowserFile> selectedFiles)
+    {
+        foreach (var file in selectedFiles)
+        {
+            files.Add(file);
+        }
+
+        var content = new MultipartFormDataContent();
+
+        foreach (var file in files)
+        {
+            var stream = file.OpenReadStream(maxAllowedSize: 10_000_000); // 10MB per file
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+
+            content.Add(fileContent, "files", file.Name);
+        }
+
+        var result = await mediaClientService.UploadFilesAsync(content);
+
+        if (result.Any())
+        {
+            var urls = result;
+            //Add Urls to List of URLs
+            foreach (var item in urls)
+            {
+                LessonMedium newLessonMedia = new()
+                {
+                    ImageID = Guid.NewGuid(),
+                    Url = item,
+                    CreatedDate = DateTime.Today,
+                };
+                lessonMedia.Add(newLessonMedia);
+            }
+        }
+        else
+        {
+            files = new();
+            SnackBar.Add("Failed to save media", Severity.Error);
+        }
+    }
 
     private async Task OnFileChange(IBrowserFile file)
     {
@@ -353,9 +421,11 @@
 
         if (response.IsSuccessStatusCode)
         {
+
             var returned = await response.Content.ReadAsStringAsync();
             body = $"<p>{returned}</p>";
             await this.richTextEditor.LoadHTMLContent(body);
+
             StateHasChanged();
             // Extracted text
         }
@@ -373,64 +443,90 @@
             ResponseMessage = await ChatClientService.GetChatResponseAsync("api/Chat/AskChatGPT", Query);
             if (ResponseMessage != null)
             {
+
                 responseisEmpty = false;
                 body = ResponseMessage;
                 await richTextEditor.LoadHTMLContent(body);
+
             }
             Query = string.Empty;
+            StateHasChanged();
         }
         isLoading = false;
     }
 
     protected async Task SaveLesson()
     {
-        isLoading = true;
-        if (!string.IsNullOrEmpty(newLesson.Title))
+        bool NotreadyToSave = responseisEmpty;
+        if (!NotreadyToSave)
         {
-            if (!string.IsNullOrEmpty(ResponseMessage) && selectedClass.ClassName != null)
+            isLoading = true;
+            if (!string.IsNullOrEmpty(newLesson.Title))
             {
-                if (string.IsNullOrEmpty(newLesson.Content))
+                if (!string.IsNullOrEmpty(ResponseMessage) && selectedClass.ClassName != null)
                 {
-                    newLesson.Content = ResponseMessage;
-                }
-                newLesson.TeacherID = selectedClass.TeacherID;
-                newLesson.ClassID = selectedClass.ClassID;
-                newLesson.DatePosted = DateTime.Today;
-                newLesson.Rating = 0;
-                newLesson.LessonID = Guid.NewGuid();
-                var service = _genericService.GetService<Lesson>();
-                var result = await service.PostAsync("api/Dynamic/PostEntity", "lesson", newLesson);
+                    if (string.IsNullOrEmpty(newLesson.Content))
+                    {
+                        newLesson.Content = ResponseMessage;
+                    }
+                    newLesson.TeacherID = selectedClass.TeacherID;
+                    newLesson.ClassID = selectedClass.ClassID;
+                    newLesson.DatePosted = DateTime.Today;
+                    newLesson.Rating = 0;
+                    newLesson.LessonID = Guid.NewGuid();
+                    var service = _genericService.GetService<Lesson>();
+                    var result = await service.PostAsync("api/Dynamic/PostEntity", "lesson", newLesson);
 
-                if (result.IsSuccess)
+                    if (result.IsSuccess)
+                    {
+                        await SaveLessonMedia(newLesson.LessonID);
+                        isLoading = false;
+                        SnackBar.Add("Lesson Added Successfully", Severity.Success);
+                        newLesson.Class = classes.Where(x => x.ClassID == newLesson.ClassID).FirstOrDefault();
+                        newLesson.Teacher = teachers.Where(x => x.TeacherID == newLesson.TeacherID).FirstOrDefault();
+                        teacherLessons.Add(newLesson);
+                        newLesson = new();
+                        selectedClass = new();
+                        ResponseMessage = "Waiting for response...";
+                        responseisEmpty = true;
+                        StateHasChanged();
+                    }
+                }
+                else
                 {
                     isLoading = false;
-                    SnackBar.Add("Lesson Added Successfully", Severity.Success);
-                    newLesson.Class = classes.Where(x => x.ClassID == newLesson.ClassID).FirstOrDefault();
-                    newLesson.Teacher = teachers.Where(x => x.TeacherID == newLesson.TeacherID).FirstOrDefault();
-                    teacherLessons.Add(newLesson);
-                    newLesson = new();
-                    selectedClass = new();
-                    ResponseMessage = "Waiting for response...";
-                    responseisEmpty = true;
-                    StateHasChanged();
+                    SnackBar.Add("Lesson Body Missing", Severity.Error);
+
+                    return;
                 }
             }
             else
             {
                 isLoading = false;
-                SnackBar.Add("Lesson Body Missing", Severity.Error);
+                SnackBar.Add("Title Missing, Please add Lesson Title", Severity.Error);
 
                 return;
             }
         }
         else
         {
-            isLoading = false;
-            SnackBar.Add("Title Missing, Please add Lesson Title", Severity.Error);
-
+            SnackBar.Add("Please Click Finish Editing Before continuing", Severity.Warning);
             return;
         }
         isLoading = false;
+    }
+    protected async Task SaveLessonMedia(Guid LessonID)
+    {
+        foreach (var item in lessonMedia)
+        {
+            item.LessonID = LessonID;
+        }
+        var service = _genericService.GetService<List<LessonMedium>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "lessonmedia", lessonMedia);
+        if (result.IsSuccess)
+        {
+            SnackBar.Add("Media Successfully Saved");
+        }
     }
     protected async Task TaskRemoveLesson(Lesson lesson)
     {
@@ -453,10 +549,20 @@
 
     protected async Task FinishEditing()
     {
-        ResponseMessage = await richTextEditor.GetHTML();
-        responseisEmpty = false;
+        try
+        {
+            ResponseMessage = await richTextEditor.GetHTML();
+            responseisEmpty = false;
+            Console.WriteLine("responseisEmpty set to false");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Editor failed: " + ex.Message);
+        }
+
         StateHasChanged();
     }
+
     #region Auto Complete
     private async Task<IEnumerable<Class>> Search(string value, CancellationToken token)
     {

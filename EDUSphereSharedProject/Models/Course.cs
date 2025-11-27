@@ -29,7 +29,6 @@ public partial class Course
     public virtual ICollection<CourseDetail> CourseDetails { get; set; } = new List<CourseDetail>();
 
     public virtual School School { get; set; }
-
     [NotMapped]
     public string ImgUrl { get; set; }
 }

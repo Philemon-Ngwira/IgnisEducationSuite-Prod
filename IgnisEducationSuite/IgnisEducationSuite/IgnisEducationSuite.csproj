@@ -16,6 +16,7 @@
 		<ProjectReference Include="..\..\EduSphereDomain\EduSphereDomain.csproj" />
 		<ProjectReference Include="..\..\EDUSphereSharedProject\EDUSphereSharedProject.csproj" />
 		<ProjectReference Include="..\IgnisEducationSuite.Client\IgnisEducationSuite.Client.csproj" />
+		<PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
 		<PackageReference Include="ClosedXML" Version="0.104.2" />
 		<PackageReference Include="DinkToPdf" Version="1.0.8" />
 		<PackageReference Include="MailKit" Version="4.9.0" />

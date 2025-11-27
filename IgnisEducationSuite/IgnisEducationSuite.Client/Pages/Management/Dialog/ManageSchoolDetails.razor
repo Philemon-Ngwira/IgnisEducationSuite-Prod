@@ -15,8 +15,8 @@
                 <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                     <ActivatorContent>
                         <MudFab Color="Color.Secondary"
-                        StartIcon="@Icons.Material.Filled.Image"
-                        Label="Change School Logo" />
+                                StartIcon="@Icons.Material.Filled.Image"
+                                Label="Change School Logo" />
                     </ActivatorContent>
                 </MudFileUpload>
             </MudItem>
@@ -35,10 +35,10 @@
                     <MudItem xs="12" md="6">
                         <MudNumericField @bind-Value="licenseRequest.UserLimit" Label="User Limit" Placeholder="0" AdornmentIcon="@Icons.Material.Filled.Numbers"></MudNumericField>
                     </MudItem>
-                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="licenseRequest.Email" Label="School Email"  AdornmentIcon="@Icons.Material.Filled.ShortText"></MudTextField>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="licenseRequest.Email" Label="School Email" AdornmentIcon="@Icons.Material.Filled.ShortText"></MudTextField>
                     </MudItem>
-                     <MudItem xs="12" md="6">
+                    <MudItem xs="12" md="6">
                         <MudTextField @bind-Value="licenseRequest.Phone" Label="School Phone" Placeholder="+260123456789" AdornmentIcon="@Icons.Material.Filled.ShortText"></MudTextField>
                     </MudItem>
                     <MudItem xs="12">
@@ -126,8 +126,11 @@
         licenseRequest.StartDate = _dateRange.Start.Value;
         licenseRequest.EndDate = _dateRange.End.Value;
         licenseRequest.ClientName = school.SchoolName;
+        licenseRequest.Application = "IgnisEducationSuite";
+
         var result = await HttpClient.PostAsJsonAsync("api/Verification/Generate", licenseRequest);
-        if(result.IsSuccessStatusCode){
+        if (result.IsSuccessStatusCode)
+        {
             Snackbar.Add("License Generated Successfully", Severity.Success);
         }
     }

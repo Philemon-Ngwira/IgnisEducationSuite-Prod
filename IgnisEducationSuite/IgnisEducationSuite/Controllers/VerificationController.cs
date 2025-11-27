@@ -14,7 +14,7 @@ namespace IgnisEducationSuite.Controllers
             _licenseService = licenseService;
         }
         [HttpPost("Generate")]
-        public async Task<IActionResult> GenerateLicense(ActivateLicenseRequest activateLicenseRequest)
+        public async Task<IActionResult> GenerateLicense([FromBody] ActivateLicenseRequest activateLicenseRequest)
         {
             var result = await _licenseService.ActivateLicenseAsync(activateLicenseRequest);
             return Ok(result);

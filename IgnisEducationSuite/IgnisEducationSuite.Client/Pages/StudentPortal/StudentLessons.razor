@@ -52,7 +52,7 @@
                             </MudCardContent>
                             <MudCardActions>
                                 <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Star">Rate Lessson</MudButton>
-                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="()=>NavigateToDetails(item, false)" StartIcon="@Icons.Material.Filled.More">View Lesson</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="() => NavigateToDetails(item, false)" StartIcon="@Icons.Material.Filled.More">View Lesson</MudButton>
 
                             </MudCardActions>
                         </MudCard>
@@ -84,7 +84,7 @@
                                 <MudText Typo="Typo.body2">@item.Teacher.FirstName @item.Teacher.LastName</MudText>
                             </MudCardContent>
                             <MudCardActions>
-                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="()=>NavigateToDetails(item, true)" StartIcon="@Icons.Material.Filled.More">View Lesson</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="() => NavigateToDetails(item, true)" StartIcon="@Icons.Material.Filled.More">View Lesson</MudButton>
 
                             </MudCardActions>
                         </MudCard>
@@ -125,7 +125,7 @@
 
         if (UserID != string.Empty || UserID != null)
         {
-
+            await GetTeachers();
             await GetStudentClasses();
             await GetStudentCompletedLessons();
         }
@@ -142,8 +142,8 @@
             SchoolID = Guid.Parse(AppState.SchoolID);
             foreach (var item in availableLessons)
             {
-                item.imageUrl = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
-                await GetTeachers();
+                //item.imageUrl = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
+
                 item.Teacher = teachers.Where(x => x.TeacherID == item.TeacherID).FirstOrDefault();
             }
         }
@@ -162,8 +162,8 @@
             CompletedLessons = result.Data.ToList();
             foreach (var item in CompletedLessons)
             {
-                item.imageUrl = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
-                await GetTeachers();
+                // item.imageUrl = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
+
                 item.Teacher = teachers.Where(x => x.TeacherID == item.TeacherID).FirstOrDefault();
             }
         }
@@ -171,17 +171,28 @@
     protected async Task GetTeachers()
     {
         var service = _genericService.GetService<Teacher>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetTeachersBySchoolID/{SchoolID}", true);
+        var result = await service.GetAllAsync($"api/Dynamic/GetTeachersBySchoolID/{AppState.SchoolID}", true);
         teachers = result.Data.ToList();
     }
     protected async void NavigateToDetails(Lesson selectedLesson, bool LessonCompleted)
     {
         await GetTeachers();
+        await GetLessonMedia(selectedLesson.LessonID);
         selectedLesson.Teacher = teachers.Where(x => x.TeacherID == selectedLesson.TeacherID).FirstOrDefault();
         LessonService.CurrentLesson = selectedLesson;
         LessonService.LessonCompleted = LessonCompleted;
         _navigationManager.NavigateTo("/LessonDetails");
 
+    }
+
+    protected async Task GetLessonMedia(Guid LessonID)
+    {
+        var service = _genericService.GetService<LessonMedium>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetLessonMedia/{LessonID}", true);
+        if (result.IsSuccess)
+        {
+            LessonService.LessonMedia = result.Data.ToList();
+        }
     }
 
 }

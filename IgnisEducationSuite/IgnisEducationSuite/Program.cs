@@ -40,10 +40,10 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 
             builder.Services.AddAuthentication(options =>
-                {
-                    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-                    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-                })
+            {
+                options.DefaultScheme = IdentityConstants.ApplicationScheme;
+                options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+            })
                 .AddIdentityCookies();
             //---------------------------------------------------------------
             #region HTTP CLIENT
@@ -111,6 +111,8 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<LicenseService>();
             builder.Services.AddScoped<LessonService>();
             builder.Services.AddSingleton<AppState>();
+            builder.Services.AddScoped<ILessonMediaService, LessonMediaClientService>();
+            builder.Services.AddScoped<LessonMediaService>();
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory
 
             builder.Services.AddSingleton<IConverter>(new SynchronizedConverter(new PdfTools()));

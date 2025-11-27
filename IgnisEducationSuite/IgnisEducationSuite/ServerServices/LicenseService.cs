@@ -1,49 +1,59 @@
 ﻿using EDUSphereSharedProject.LicensingModel;
-using Microsoft.AspNetCore.Http.HttpResults;
+using System.Text.Json;
 
 namespace IgnisEducationSuite.ServerServices
 {
     public class LicenseService
     {
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
         public bool LicenseIsActive { get; private set; } = false;
 
-        public LicenseService(HttpClient httpClient)
+        //private const string BaseUrl = "https://licensingapi-a8gjawera8h5cefw.southafricanorth-01.azurewebsites.net/";
+        private const string BaseUrl = "https://localhost:7207/";
+
+        public LicenseService(IHttpClientFactory httpClientFactory)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
         }
+
+        // ---------------------------
+        // IGNIS-ONLY METHOD
+        // GET LICENSE SLOTS / USER LIMIT
+        // ---------------------------
         public async Task<LicenseSlots> GetUserLimitAsync(Guid ClientID)
         {
             if (ClientID == Guid.Empty)
-            {
                 return new LicenseSlots();
-            }
-            else
-            {
-                LicenseSlots licenseUserLimit = new LicenseSlots();
-                var path = $"https://philtiaraenterpriseslicensingapi.azurewebsites.net/api/license/GetLicenseLimit?ClientID={ClientID}";
-                var response = await _httpClient.GetAsync(path);
-                if (response.IsSuccessStatusCode)
-                {
 
-                    licenseUserLimit = await response.Content.ReadFromJsonAsync<LicenseSlots>();
+            var client = _httpClientFactory.CreateClient();
+            client.BaseAddress = new Uri(BaseUrl);
 
-                }
-                return licenseUserLimit;
-            }
+            var path = $"api/license/GetLicenseLimit?ClientID={ClientID}";
+            var response = await client.GetAsync(path);
+
+            if (!response.IsSuccessStatusCode)
+                return new LicenseSlots(); // fail-safe
+
+            var created = await response.Content.ReadFromJsonAsync<LicenseSlots>();
+            return created ?? new LicenseSlots();
         }
-        public async Task<string> ActivateLicenseAsync(ActivateLicenseRequest request)
-        { // Get token from environment variables
-            var token = Environment.GetEnvironmentVariable("JWT_SECRET");
-            //Debug//
-            if (token == null)
-            {
-                token = "S1jNXM9kchEDJMfT@Kxu6FLvwnMY^TM9n@8Y";
-            }
-            // Add the token to the Authorization header
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            var response = await _httpClient.PostAsJsonAsync("https://philtiaraenterpriseslicensingapi.azurewebsites.net/api/license/activate", request);
+        // ---------------------------
+        // ACTIVATE LICENSE
+        // ---------------------------
+        public async Task<string> ActivateLicenseAsync(ActivateLicenseRequest request)
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.BaseAddress = new Uri(BaseUrl);
+
+            var token = Environment.GetEnvironmentVariable("JWT_SECRET")
+                       ?? "S1jNXM9kchEDJMfT@Kxu6FLvwnMY^TM9n@8Y";
+
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.PostAsJsonAsync("api/license/activate", request);
+
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadAsStringAsync();
@@ -56,42 +66,49 @@ namespace IgnisEducationSuite.ServerServices
             }
         }
 
+        // ---------------------------
+        // VALIDATE LICENSE
+        // ---------------------------
         public async Task<string> ValidateLicenseAsync(string ClientID)
         {
             if (string.IsNullOrEmpty(ClientID))
-            {
                 return "Not Found";
+
+            var client = _httpClientFactory.CreateClient();
+            client.BaseAddress = new Uri(BaseUrl);
+
+            var path = $"api/license/validate?ClientID={ClientID}";
+            var response = await client.GetAsync(path);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsStringAsync();
+
+                if (result.Contains("Expired"))
+                {
+                    LicenseIsActive = false;
+                    return $"License Invalid: {result}";
+                }
+
+                LicenseIsActive = true;
+                return $"License Validated: {result}";
             }
             else
             {
-                var path = $"https://philtiaraenterpriseslicensingapi.azurewebsites.net/api/license/validate?ClientID={ClientID}";
-                var response = await _httpClient.GetAsync(path);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadAsStringAsync();
-                    if (result == "{\"status\":\"Expired or Terminated\"}")
-                    {
-                        LicenseIsActive = false;
-                        return $"License Invalid: {result}";
-                    }
-                    else
-                    {
-                        LicenseIsActive = true;
-                        return $"License Validated: {result}";
-                    }
-                }
-                else
-                {
-                    var error = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Failed to validate license: {response.ReasonPhrase} - {error}");
-                }
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Failed to validate license: {response.ReasonPhrase} - {error}");
             }
         }
 
+        // ---------------------------
+        // TERMINATE LICENSE
+        // ---------------------------
         public async Task<string> TerminateLicenseAsync(TerminateLicenseRequest request)
         {
-            var response = await _httpClient.PostAsJsonAsync("https://philtiaraenterpriseslicensingapi.azurewebsites.net/api/license/terminate", request);
+            var client = _httpClientFactory.CreateClient();
+            client.BaseAddress = new Uri(BaseUrl);
+
+            var response = await client.PostAsJsonAsync("api/license/terminate", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -106,4 +123,3 @@ namespace IgnisEducationSuite.ServerServices
         }
     }
 }
-

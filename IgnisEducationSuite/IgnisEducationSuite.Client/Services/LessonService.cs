@@ -13,12 +13,13 @@ namespace IgnisEducationSuite.Client.Services
         public List<StudentAssignmentAnswer> studentAssignmentAnswers { get; set; } = new();
         public List<StudentExamQuizAndTestAnswer> studentExamAnswers { get; set; } = new();
         public List<CourseDetail> courseDetails { get; set; }
+        public List<LessonMedium> LessonMedia { get; set; }
         public Guid studentID { get; set; }
         public Guid teacherID { get; set; }
         public Guid parentID { get; set; }
         public Guid assignmentID { get; set; }
         public Guid ExamTestQuizID { get; set; }
-        public string BookID { get; set; }  
+        public string BookID { get; set; }
         public bool isGoogleBook { get; set; }
         public bool LessonCompleted { get; set; }
     }

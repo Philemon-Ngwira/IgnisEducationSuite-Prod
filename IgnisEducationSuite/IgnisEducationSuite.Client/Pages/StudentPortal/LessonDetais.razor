@@ -48,7 +48,37 @@
             </MudGrid>
 
             @((MarkupString)LessonFormatter.FormatLessonContent(Lesson.Content))
+            <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+            @if (LessonService.LessonMedia.Any())
+            {
+                <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Image">Lesson Media</MudAlert>
+                <div class="gallery">
+                    @foreach (var image in PagedImages)
+                    {
+                        <img src="@image.Url" width="100" @onclick="() => OpenModal(image.Url)" alt="Gallery Image" />
+                    }
+                </div>
+                <div class="pagination">
+                    <button @onclick="PrevPage" disabled="@(_currentPage == 1)">Prev</button>
+                    <span>Page @_currentPage of @_totalPages</span>
+                    <button @onclick="NextPage" disabled="@(_currentPage == _totalPages)">Next</button>
+                </div>
+                @if (IsModalOpen)
+                {
+                    <div class="modal" @onclick="CloseModal">
+                        <button class="modal-nav prev" @onclick:stopPropagation="true" @onclick="ShowPreviousImage">&#10094;</button>
 
+                        <div class="modal-content-wrapper" @onclick:stopPropagation="true">
+                            <img src="@SelectedImage" class="modal-content" />
+                        </div>
+
+                        <button class="modal-nav next" @onclick:stopPropagation="true" @onclick="ShowNextImage">&#10095;</button>
+                        <span class="close" @onclick:stopPropagation="true" @onclick="CloseModal">&times;</span>
+                    </div>
+
+                }
+
+            }
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.DoneAll" OnClick="MarkLessonAsComplete" Color="Color.Success">Mark as complete</MudButton>
@@ -107,6 +137,16 @@
 
 
 @code {
+    private bool IsModalOpen = false;
+
+    private string SelectedImage = string.Empty;
+
+    private int _currentPage = 1;
+    private int _itemsPerPage = 5;
+    private int selectedIndex;
+    private IEnumerable<LessonMedium> PagedImages =>
+     LessonService.LessonMedia.Skip((_currentPage - 1) * _itemsPerPage).Take(_itemsPerPage);
+    private int _totalPages => (int)Math.Ceiling((double)LessonService.LessonMedia.Count / _itemsPerPage);
     bool hovered = false;
     protected int Rating = 0;
     private int? activeVal;
@@ -132,8 +172,43 @@
         }
         isLoading = false;
     }
+    private void OpenModal(string image)
+    {
+        SelectedImage = image;
+        IsModalOpen = true;
+    }
 
+    private void CloseModal()
+    {
+        SelectedImage = string.Empty;
+        IsModalOpen = false;
+    }
+    private void NextPage()
+    {
+        if (_currentPage < _totalPages)
+        {
+            _currentPage++;
+        }
+    }
+    private void ShowNextImage()
+    {
+        selectedIndex = (selectedIndex + 1) % LessonService.LessonMedia.Count;
+        SelectedImage = LessonService.LessonMedia[selectedIndex].Url;
+    }
 
+    private void ShowPreviousImage()
+    {
+        selectedIndex = (selectedIndex - 1 + LessonService.LessonMedia.Count) % LessonService.LessonMedia.Count;
+        SelectedImage = LessonService.LessonMedia[selectedIndex].Url;
+    }
+
+    private void PrevPage()
+    {
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+        }
+    }
     protected async Task MarkLessonAsComplete()
     {
         isLoading = true;

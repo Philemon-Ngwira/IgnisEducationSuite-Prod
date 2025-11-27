@@ -3,6 +3,7 @@ using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components;
 using System.Net.Http.Json;
+using EDUSphereSharedProject.Models.StoreProModels;
 
 public class AppState
 {
@@ -18,7 +19,6 @@ public class AppState
     public bool HideStudentDashboard { get; private set; } = false;
     public List<Badge> Badges { get; set; } = new();
     public List<UserActivity> UserActivities { get; set; } = new();
-
     public bool IsInitialized { get; private set; } = false;
 
     public event Action OnChange;
@@ -47,10 +47,29 @@ public class AppState
                 if (isAuthenticated)
                 {
                     UserID = UserName;
-                    SchoolID = await _rolesAndLicensing.GetSchoolId(_navigationManager.BaseUri, UserID);
-                    LicenseIsActive = await _rolesAndLicensing.GetLicenseStatus(_navigationManager.BaseUri, SchoolID);
-                    UserRole = await _rolesAndLicensing.GetUserRole(_navigationManager.BaseUri, UserName);
-                    HideStudentDashboard = await _rolesAndLicensing.getStudentDashState(SchoolID);
+                    var service = _genericService.GetService<GetInitializationDataResult>();
+                    var result = await service.GetAllAsync($"api/Dynamic/GetInitializationData/{UserID}", true);
+                    if (result.IsSuccess)
+                    {
+                        if (result.Data.Any())
+                        {
+                            GetInitializationDataResult item = result.Data.FirstOrDefault();
+                            SchoolID = item.StudentID.ToString();
+                            UserRole = item.Name;
+                            if (item.HideStudentDashboard == 1)
+                            {
+                                HideStudentDashboard = true;
+                            }
+                            else
+                            {
+                                HideStudentDashboard = false;
+                            }
+                        }
+                        LicenseIsActive = await _rolesAndLicensing.GetLicenseStatus(_navigationManager.BaseUri, SchoolID);
+                    }
+
+
+
                     await LoadUserBadgesAndActivities();
 
                     IsInitialized = true;

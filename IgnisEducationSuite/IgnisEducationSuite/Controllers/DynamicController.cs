@@ -26,6 +26,20 @@ namespace IgnisEducationSuite.Controllers
         }
 
         #region Non Generic
+
+        [HttpGet("GetInitializationData/{ID}")]
+        public async Task<IActionResult> GetInitializationData(string ID)
+        {
+            var result = await _repository.GetInitializationDataResults(ID);
+            return Ok(result);
+        }
+
+        [HttpGet("GetLessonMedia/{ID}")]
+        public async Task<IActionResult> GetLessonMedia(Guid ID)
+        {
+            var result = await _repository.GetLessonMedia(ID);
+            return Ok(result);
+        }
         [HttpGet("GetQuestionChoicesAssignment/{ID}")]
         public async Task<IActionResult> GetMultipleChoiceAssignment(Guid ID)
         {
@@ -534,6 +548,7 @@ namespace IgnisEducationSuite.Controllers
                 "coursedetail" => GetRepository<CourseDetail>(),
                 "assignmentmultiplechoices" => GetRepository<MultipleChoiceAssignmentAnswer>(),
                 "exammultiplechoices" => GetRepository<ExamTestQuizMultipleChoiceAnswer>(),
+                "lessonmedia" => GetRepository<LessonMedium>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -581,6 +596,7 @@ namespace IgnisEducationSuite.Controllers
                 "coursedetail" => JsonSerializer.Deserialize<CourseDetail>(obj.ToString()),
                 "assignmentmultiplechoices" => JsonSerializer.Deserialize<MultipleChoiceAssignmentAnswer>(obj.ToString()),
                 "exammultiplechoices" => JsonSerializer.Deserialize<ExamTestQuizMultipleChoiceAnswer>(obj.ToString()),
+                "lessonmedia" => JsonSerializer.Deserialize<LessonMedium>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
