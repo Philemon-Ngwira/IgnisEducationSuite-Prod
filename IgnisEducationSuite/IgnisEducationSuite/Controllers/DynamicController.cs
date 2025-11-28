@@ -1,9 +1,10 @@
 ﻿using EduSphereDomain.Repositories;
+using EDUSphereSharedProject.AchievementModels;
+using EDUSphereSharedProject.Models;
+using IgnisEducationSuite.ServerServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
-using EDUSphereSharedProject.Models;
-using Microsoft.AspNetCore.Authorization;
-using EDUSphereSharedProject.AchievementModels;
 
 namespace IgnisEducationSuite.Controllers
 {
@@ -14,11 +15,12 @@ namespace IgnisEducationSuite.Controllers
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly EduSphereRepository _repository;
-
-        public DynamicController(IServiceProvider serviceProvider, EduSphereRepository repository)
+        private readonly LicenseService _licenseService;
+        public DynamicController(IServiceProvider serviceProvider, EduSphereRepository repository, LicenseService licenseService)
         {
             _serviceProvider = serviceProvider;
             _repository = repository;
+            _licenseService = licenseService;
         }
         private IGenericRepository<T> GetRepository<T>() where T : class
         {
@@ -604,6 +606,15 @@ namespace IgnisEducationSuite.Controllers
 #pragma warning restore CS8603 // Possible null reference return.
         }
 
+        #endregion
+
+        #region Non Generic
+        [HttpGet("GetLicenseStatus/{companyId}")]
+        public async Task<IActionResult> GetLicenseByCompany(Guid companyId)
+        {
+            var result = await _licenseService.GetCompanyLicense(companyId);
+            return Ok(result);
+        }
         #endregion
     }
 }

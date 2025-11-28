@@ -32,34 +32,37 @@
 
     <MudAlert Class="mb-3" Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true">Current System Users</MudAlert>
     <MudTabs Elevation="4" Rounded="true" Centered="true" Color="@Color.Primary">
-
-        @foreach (var item in userRoles)
+        @if (userRoles.Keys.Any())
         {
-            <MudTabPanel Text="@item.Key">
-                <MudDataGrid Items="@item.Value">
-                    <ToolBarContent>
-                        <MudButton Size="@Size.Small" OnClick="() => CreateUserAsync(item.Key)" Variant="@Variant.Filled" Color="@Color.Primary">Create New User</MudButton>
+            @foreach (var item in userRoles)
+            {
+                <MudTabPanel Text="@item.Key">
+                    <MudDataGrid Items="@item.Value">
+                        <ToolBarContent>
+                            <MudButton Size="@Size.Small" OnClick="() => CreateUserAsync(item.Key)" Variant="@Variant.Filled" Color="@Color.Primary">Create New User</MudButton>
 
-                    </ToolBarContent>
-                    <Columns>
-                        <PropertyColumn Property="x => x.UserName" Title="User Name" />
-                        <PropertyColumn Property="x => x.Email" />
-                        <PropertyColumn Property="x => x.Id" Title="UserId" />
-                        <PropertyColumn Property="x => x.requiresPasswordReset" />
-                        <PropertyColumn Property="x => x.AccountActive" Title="Account Status" />
-                        <TemplateColumn CellClass="d-flex justify-end">
-                            <CellTemplate>
-                                <MudStack Row>
-                                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary" OnClick="()=>EditUserAsync(context.Item)">Edit</MudButton>
-                                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Error">Remove</MudButton>
-                                </MudStack>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
+                        </ToolBarContent>
+                        <Columns>
+                            <PropertyColumn Property="x => x.UserName" Title="User Name" />
+                            <PropertyColumn Property="x => x.Email" />
+                            <PropertyColumn Property="x => x.Id" Title="UserId" />
+                            <PropertyColumn Property="x => x.requiresPasswordReset" />
+                            <PropertyColumn Property="x => x.AccountActive" Title="Account Status" />
+                            <TemplateColumn CellClass="d-flex justify-end">
+                                <CellTemplate>
+                                    <MudStack Row>
+                                        <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary" OnClick="() => EditUserAsync(context.Item)">Edit</MudButton>
+                                        <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Error">Remove</MudButton>
+                                    </MudStack>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
 
-                </MudDataGrid>
+                    </MudDataGrid>
 
-            </MudTabPanel>
+                </MudTabPanel>
+
+            }
 
         }
     </MudTabs>
@@ -68,13 +71,13 @@
 
 @code {
     protected bool isLoading = false;
-    [Inject] NavigationManager _navigationManager { get; set; }
-    [Inject] GenericServiceFactory _genericService { get; set; }
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; }
-    private Dictionary<string, List<ApplicationUser>> userRoles;
-    private string newUserName;
-    private string newUserPassword;
-    private string newUserRole;
+    private Dictionary<string, List<ApplicationUser>> userRoles = new();
+    private string newUserName = string.Empty;
+    private string newUserPassword = string.Empty;
+    private string newUserRole = string.Empty;
     protected List<Gender> genders = new();
     protected List<string> Roles = new();
     protected string UserID = string.Empty;
@@ -83,7 +86,8 @@
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-        if(!AppState.IsInitialized){
+        if (!AppState.IsInitialized)
+        {
             Snackbar.Add("App reinitializing");
             _navigationManager.NavigateTo("/", true);
         }
@@ -93,7 +97,8 @@
         await GetGenders();
         isLoading = false;
     }
-    protected async Task GetUserLimit(){
+    protected async Task GetUserLimit()
+    {
         var result = await Http.GetFromJsonAsync<LicenseSlots>($"api/Verification/GetLicenseLimit/{Guid.Parse(AppState.SchoolID)}");
         LicenseUserLimit = result;
     }
@@ -144,17 +149,17 @@
     private async Task CreateUserAsync(string Role)
     {
         // Prevent adding more students if the limit is reached
-    if (Role == "Student")
-    {
-        var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
-        if (count >= LicenseUserLimit.UserLimit) // Corrected condition
+        if (Role == "Student")
         {
-            Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
-            return;
+            var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
+            if (count >= LicenseUserLimit.UserLimit) // Corrected condition
+            {
+                Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
+                return;
+            }
         }
-    }
 
-    var parameters = new DialogParameters<CreateUserDialog>
+        var parameters = new DialogParameters<CreateUserDialog>
     {
         { x => x.Role, Role },
         { x => x.genders, genders },
@@ -162,14 +167,14 @@
         { x => x.LoggedAdmin, loggedInAdmin }
     };
 
-    var dialog = await DialogService.ShowAsync<CreateUserDialog>("Create User", parameters, new DialogOptions { MaxWidth = MaxWidth.Large });
-    var result = await dialog.Result;
+        var dialog = await DialogService.ShowAsync<CreateUserDialog>("Create User", parameters, new DialogOptions { MaxWidth = MaxWidth.Large });
+        var result = await dialog.Result;
 
-    if (!result.Canceled && result.Data is ApplicationUser newUser)
-    {
-        Snackbar.Add($"User {newUser.Email} created successfully!", Severity.Success);
+        if (!result.Canceled && result.Data is ApplicationUser newUser)
+        {
+            Snackbar.Add($"User {newUser.Email} created successfully!", Severity.Success);
+        }
     }
-}
 
     private async Task EditUserAsync(ApplicationUser user)
     {

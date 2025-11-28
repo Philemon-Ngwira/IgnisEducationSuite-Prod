@@ -9,20 +9,30 @@ namespace EDUSphereSharedProject.UniversalModels
 {
     public class CreateUserModel
     {
-        public string UserName { get; set; }
-        public string Password { get; set; }
-        public string Email { get; set; }
-        public string Role { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
         [NotMapped]
-        public string UserID { get; set; }
+        public string UserID { get; set; } = string.Empty;
         [NotMapped]
-        public Guid SchoolID { get; set; }
+        public Guid SchoolID { get; set; } = new Guid();
         [NotMapped]
-        public string FirstName { get; set; }
+        public string FirstName { get; set; } = string.Empty;
         [NotMapped]
-        public string LastName { get; set; }
+        public string LastName { get; set; } = string.Empty;
         [NotMapped]
-        public byte[] ProfilePic { get; set; }
+        public byte[] ProfilePic { get; set; } = new byte[0];
+        [NotMapped]
+        public string Gender { get; set; }  = string.Empty;
+        [NotMapped]
+        public DateTime DateEngaged { get; set; }
+        [NotMapped]
+        public string Address { get; set; } = string.Empty;
+        [NotMapped]
+        public int GradeLevel { get; set; } = 0;
+        [NotMapped]
+        public string GradeSection { get;set; } =  string.Empty;
 
     }
 }

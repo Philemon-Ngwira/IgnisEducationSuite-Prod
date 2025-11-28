@@ -33,7 +33,7 @@
                     <MudItem xs="12" md="6">
                         <MudTimePicker Label="End Time" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" @bind-Time="@newTimeSlot.EndTime" />
                     </MudItem>
-                     <MudItem xs="12" md="6">
+                    <MudItem xs="12" md="6">
                         <MudTextField Label="Slot Name" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-value="@newTimeSlot.Description" />
                     </MudItem>
                     <MudItem xs="12">
@@ -46,7 +46,7 @@
                 <MudFileUpload T="IBrowserFile" FilesChanged="HandleFileUpload" Class="mb-3">
                     <ActivatorContent>
                         <MudButton Variant="Variant.Filled"
-                        Color="Color.Primary">
+                                   Color="Color.Primary">
                             Upload Class Excel Schedule
                         </MudButton>
                     </ActivatorContent>
@@ -86,7 +86,7 @@
                                             <td class="@((group.Any(cs => cs.DayOfTheWeek.DayName == day) ? "" : "empty"))">
                                                 @{
                                                     var schedule = group.FirstOrDefault(cs => cs.DayOfTheWeek.DayName == day);
-                                                    if (schedule != null)
+                                                    if (schedule != null && !string.IsNullOrWhiteSpace(schedule.Class.ClassName))
                                                     {
                                                         <span>@schedule.Class.ClassName</span>
                                                     }
@@ -96,6 +96,7 @@
                                                     }
                                                 }
                                             </td>
+
                                         }
                                     </tr>
                                 }
@@ -108,7 +109,7 @@
                         <MudAlert Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true" Class="mb-3">No Schedule Created. Upload Schedule Above</MudAlert>
                     }
                     <MudDateRangePicker Variant="Variant.Outlined" @bind-DateRange="@_dateRange" Margin="Margin.Dense" ReadOnly="@(!_editable)" Clearable="@_clearable"
-                    PlaceholderStart="Schedule Start Date" PlaceholderEnd="Schedule End Date" />
+                                        PlaceholderStart="Schedule Start Date" PlaceholderEnd="Schedule End Date" />
                     <MudButton Disabled="groupedSchedules.Count() < 1" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" Color="Color.Primary" OnClick="AssignSchedule">Save Class TimeTable</MudButton>
                 </MudPaper>
             </MudTabPanel>
@@ -130,7 +131,8 @@
                             }
                             else
                             {
-                                @GradeInt @GradeLevel
+                                @GradeInt
+                                @GradeLevel
                             }
                         </MudButton>
                     </MudItem>
@@ -143,7 +145,8 @@
                             }
                             else
                             {
-                                @GradeInt @GradeLevel
+                                @GradeInt
+                                @GradeLevel
                             }
                             Class Schedule
                         </MudAlert>
@@ -251,16 +254,17 @@
         isLoading = false;
     }
 
-    protected async Task RegisterTimeSlot(){
+    protected async Task RegisterTimeSlot()
+    {
         newTimeSlot.SchoolID = Guid.Parse(_appState.SchoolID);
         newTimeSlot.TimeslotID = Guid.NewGuid();
         var service = _genericService.GetService<TimeSlot>();
         var result = await service.PostAsync("api/Dynamic/PostEntity", "timeslot", newTimeSlot);
-        if(result.IsSuccess)
+        if (result.IsSuccess)
         {
-        timeSlots.Add(newTimeSlot);
-        newTimeSlot = new();
-        Snackbar.Add("TimeSlot Successfully registered", Severity.Success);
+            timeSlots.Add(newTimeSlot);
+            newTimeSlot = new();
+            Snackbar.Add("TimeSlot Successfully registered", Severity.Success);
         }
     }
     #region Get from Database
@@ -349,61 +353,124 @@
     private async Task HandleFileUpload(IBrowserFile file)
     {
         isLoading = true;
-        if (classes.Any())
+
+        try
         {
-            if (file != null)
+            if (!classes.Any())
             {
-                using var content = new MultipartFormDataContent();
-                content.Add(new StreamContent(file.OpenReadStream()), "file", file.Name);
-
-                var absoluteUri = new Uri(new Uri(_navigationManager.BaseUri), "api/Upload/uploadSchedules");
-                var response = await Http.PostAsync(absoluteUri, content);
-                if (response.IsSuccessStatusCode)
-                {
-                    schedules = await response.Content.ReadFromJsonAsync<List<ScheduleMappingClass>>();
-                    CreateSchedules(schedules);
-                    groupedSchedules = classSchedules
-                     .OrderBy(cs => dayOrder.IndexOf(cs.DayOfTheWeek.DayName)) // Order by day
-                     .ThenBy(cs => cs.TimeSlot.StartTime)                     // Then by time
-                     .GroupBy(cs => cs.TimeSlot)                              // Group by TimeSlot
-                     .OrderBy(g => g.Key.StartTime);                          // Order groups by StartTime
-
-                    var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
-                               .ToDictionary(x => x.day, x => x.index);
-
-                    var orderedDays = daysofTheWeek.OrderBy(x => dayOrderDict[x.DayName]).ToList();
-                    daysofTheWeek = orderedDays;
-                    GradeLevel = $"{schedules.Select(x => x.GradeLevel).FirstOrDefault()}{schedules.Select(x => x.GradeSection).FirstOrDefault()}";
-                    GradeInt = schedules.Select(x => x.GradeLevel).FirstOrDefault();
-                    StateHasChanged();
-                }
+                Snackbar.Add("Cannot Create Schedule without Classes, Please add all classes first", Severity.Error);
+                return;
             }
+
+            if (file == null) return;
+
+            using var content = new MultipartFormDataContent();
+            content.Add(new StreamContent(file.OpenReadStream()), "file", file.Name);
+
+            var absoluteUri = new Uri(new Uri(_navigationManager.BaseUri), "api/Upload/uploadSchedules");
+            var response = await Http.PostAsync(absoluteUri, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to upload schedule", Severity.Error);
+                return;
+            }
+
+            // Read schedules safely
+            schedules = await response.Content.ReadFromJsonAsync<List<ScheduleMappingClass>>() ?? new List<ScheduleMappingClass>();
+
+            CreateSchedules(schedules);
+
+            // Null-safe ordering & grouping
+            groupedSchedules = classSchedules
+                .Where(cs => cs != null)
+                .Select(cs =>
+                {
+                    cs.TimeSlot ??= new TimeSlot { StartTime = TimeSpan.Zero, EndTime = TimeSpan.Zero };
+                    cs.DayOfTheWeek ??= new DayofTheWeek { DayName = "Unknown" };
+                    cs.Class ??= new Class { ClassName = "Unknown" };
+                    return cs;
+                })
+                .OrderBy(cs => dayOrder.IndexOf(cs.DayOfTheWeek.DayName))      // Order by day
+                .ThenBy(cs => cs.TimeSlot.StartTime ?? TimeSpan.Zero)          // Then by start time
+                .GroupBy(cs => cs.TimeSlot)                                    // Group by TimeSlot
+                .OrderBy(g => g.Key.StartTime ?? TimeSpan.Zero)                // Order groups by StartTime
+                .ToList();
+
+            // Re-order days safely
+            var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
+                                       .ToDictionary(x => x.day, x => x.index);
+
+            daysofTheWeek = daysofTheWeek
+                .OrderBy(x => dayOrderDict.ContainsKey(x.DayName) ? dayOrderDict[x.DayName] : int.MaxValue)
+                .ToList();
+
+            // Set grade info safely
+            var firstSchedule = schedules.FirstOrDefault();
+            if (firstSchedule != null)
+            {
+                GradeLevel = $"{firstSchedule.GradeLevel}{firstSchedule.GradeSection}";
+                GradeInt = firstSchedule.GradeLevel;
+            }
+
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            Snackbar.Add("Cannot Create Schedule without Classes, Please add all classes first", Severity.Error);
-            return;
+            Console.WriteLine($"Error uploading schedule: {ex.Message}");
+            Snackbar.Add("An error occurred while uploading the schedule", Severity.Error);
         }
-        isLoading = false;
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     protected IEnumerable<ClassSchedule> CreateSchedules(List<ScheduleMappingClass> schedules)
     {
+        if (!Guid.TryParse(_appState.SchoolID, out var schoolId))
+        {
+            throw new Exception("Invalid SchoolID in AppState");
+        }
+
+        var schoolTimeSlots = timeSlots.Where(x => x.SchoolID == schoolId).ToList();
+
         foreach (var item in schedules)
         {
-            ClassSchedule newClassSchedule = new()
-                {
-                    ClassScheduleID = Guid.NewGuid(),
-                    Class = classes.Where(x => x.Grade == item.GradeLevel && x.ClassName.ToUpper().Contains(item.Class.ToUpper())).FirstOrDefault(),
-                    DayOfTheWeek = daysofTheWeek.Where(x => x.DayName.Contains(item.Day)).FirstOrDefault(),
-                    TimeSlot = timeSlots.Where(x => x.StartTime == TimeSpan.Parse(item.StartTime) && x.EndTime == TimeSpan.Parse(item.EndTime)).FirstOrDefault(),
+            // Safe parsing of start and end times
+            TimeSpan.TryParse(item.StartTime, out var startTime);
+            TimeSpan.TryParse(item.EndTime, out var endTime);
 
-                };
+            // Find class safely
+            var matchedClass = classes
+                .FirstOrDefault(x => x.Grade == item.GradeLevel
+                                     && x.ClassName?.ToUpper().Contains(item.Class?.ToUpper() ?? "") == true)
+                ?? new Class { ClassName = "Unknown", Grade = item.GradeLevel };
+
+            // Find day safely
+            var matchedDay = daysofTheWeek
+                .FirstOrDefault(x => x.DayName?.Equals(item.Day, StringComparison.OrdinalIgnoreCase) == true)
+                ?? new DayofTheWeek { DayName = item.Day ?? "Unknown" };
+
+            // Find TimeSlot safely (closest match if exact match not found)
+            var matchedTimeSlot = schoolTimeSlots
+                .FirstOrDefault(ts => ts.StartTime == startTime && ts.EndTime == endTime)
+                ?? new TimeSlot { StartTime = startTime, EndTime = endTime };
+
+            var newClassSchedule = new ClassSchedule
+            {
+                ClassScheduleID = Guid.NewGuid(),
+                Class = matchedClass,
+                DayOfTheWeek = matchedDay,
+                TimeSlot = matchedTimeSlot,
+            };
 
             classSchedules.Add(newClassSchedule);
         }
+
         return classSchedules;
     }
+
 
     protected async Task AssignSchedule()
     {
@@ -420,11 +487,11 @@
                 schedule.SchoolID = loggedInAdmin.SchoolID;
                 // Create a new StudentClassSchedule for each student and schedule pair
                 StudentClassSchedule newSchedule = new()
-                    {
-                        StudentClassScheduleID = Guid.NewGuid(),
-                        StudentID = student.StudentID,
-                        ScheduleID = schedule.ClassScheduleID
-                    };
+                {
+                    StudentClassScheduleID = Guid.NewGuid(),
+                    StudentID = student.StudentID,
+                    ScheduleID = schedule.ClassScheduleID
+                };
 
                 // Add to the list
                 classSchedulestoSave.Add(newSchedule);
@@ -480,15 +547,15 @@
         foreach (var item in activeClassSchedules)
         {
             ClassSchedule classSchedule = new()
-                {
-                    ClassScheduleID = item.ClassScheduleID,
-                    ClassID = item.ClassID,
-                    DayOfTheWeekID = item.DayOfTheWeekID,
-                    TimeSlotID = item.TimeSlotID,
-                    Class = classes.Where(x => x.ClassID == item.ClassID).FirstOrDefault(),
-                    DayOfTheWeek = daysofTheWeek.Where(x => x.DayID == item.DayOfTheWeekID).FirstOrDefault(),
-                    TimeSlot = timeSlots.Where(x => x.TimeslotID == item.TimeSlotID).FirstOrDefault()
-                };
+            {
+                ClassScheduleID = item.ClassScheduleID,
+                ClassID = item.ClassID,
+                DayOfTheWeekID = item.DayOfTheWeekID,
+                TimeSlotID = item.TimeSlotID,
+                Class = classes.Where(x => x.ClassID == item.ClassID).FirstOrDefault(),
+                DayOfTheWeek = daysofTheWeek.Where(x => x.DayID == item.DayOfTheWeekID).FirstOrDefault(),
+                TimeSlot = timeSlots.Where(x => x.TimeslotID == item.TimeSlotID).FirstOrDefault()
+            };
             classSchedules.Add(classSchedule);
         }
         this.classSchedules = classSchedules;
@@ -515,11 +582,11 @@
             foreach (var schedule in classSchedules)
             {
                 StudentClassSchedule newSchedule = new()
-                    {
-                        StudentClassScheduleID = Guid.NewGuid(),
-                        StudentID = student.StudentID,
-                        ScheduleID = schedule.ClassScheduleID
-                    };
+                {
+                    StudentClassScheduleID = Guid.NewGuid(),
+                    StudentID = student.StudentID,
+                    ScheduleID = schedule.ClassScheduleID
+                };
 
                 // Add to the list
                 classSchedulestoSave.Add(newSchedule);

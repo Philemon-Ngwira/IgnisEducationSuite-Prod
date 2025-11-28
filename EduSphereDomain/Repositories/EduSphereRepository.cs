@@ -1,4 +1,5 @@
-﻿using EduSphereDomain.AchievementData;
+﻿using DocumentFormat.OpenXml.Office2010.Excel;
+using EduSphereDomain.AchievementData;
 using EduSphereDomain.Data;
 using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
@@ -48,9 +49,30 @@ namespace EduSphereDomain.Repositories
             var result = await _context.ExamTestQuizMultipleChoiceAnswers.Where(x => x.ExamTestQuizQuestionID == ID).ToListAsync();
             return result;
         }
-        public async Task <IEnumerable<Course>> GetTeacherCourses(Guid TeacherID)
+        public async Task<IEnumerable<GetInitializationDataResult>> GetInitializationDataResults(string ID)
         {
-            var courses =  await _context.Courses.Where(x=>x.TeacherID==TeacherID).ToListAsync();
+            var result = await _contextProcedures.GetInitializationDataAsync(ID);
+            return result.Select(x => new GetInitializationDataResult
+            {
+                StudentID = x.StudentID,
+                RoleName = x.RoleName,
+                HideStudentDashboard = x.HideStudentDashboard,
+                UserName = x.UserName,
+                Email = x.Email,
+                SchoolID = x.SchoolID,
+                SchoolName = x.SchoolName,
+                SchoolLogo = x.SchoolLogo,
+                HasplagerismEnaabled = x.HasplagerismEnaabled
+            });
+        }
+        public async Task<IEnumerable<LessonMedium>> GetLessonMedia(Guid Id)
+        {
+            var result = await _context.LessonMedia.Where(x => x.LessonID == Id).ToListAsync();
+            return result;
+        }
+        public async Task<IEnumerable<Course>> GetTeacherCourses(Guid TeacherID)
+        {
+            var courses = await _context.Courses.Where(x => x.TeacherID == TeacherID).ToListAsync();
             return courses;
         }
         public async Task<bool> GetStudentDashboardState(string SchoolId)
@@ -69,10 +91,10 @@ namespace EduSphereDomain.Repositories
             }
             catch (Exception ex)
             {
-                var message = ex.Message;   
+                var message = ex.Message;
                 throw;
             }
-            
+
 
         }
         public async Task<IEnumerable<GetBestPerformingStudentsBySchoolResult>> GetBestPerformingStudents(string SchoolID)

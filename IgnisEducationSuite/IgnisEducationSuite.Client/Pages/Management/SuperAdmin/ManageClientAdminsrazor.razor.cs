@@ -139,7 +139,7 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
                         //Mail User//
                         EmailRequest email = new()
                         {
-                            To = newUser.Email,
+                            To = newClientAdmin.Email,
                             Reciepient = newClientAdmin.FirstName + " " + newClientAdmin.LastName,
                             Password = newUser.Password,
                             UserName = newUser.UserName,
@@ -268,8 +268,8 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
                 //Mail User//
                 EmailRequest email = new()
                 {
-                    To = newUser.Email,
-                    Reciepient = newUser.UserName,
+                    To = user.Email,
+                    Reciepient = user.UserName,
                     Password = model.Password
                 };
                 var emailsent = await _emailService.SendPasswordResetEmailAsync(email, _navigationManager.BaseUri);
@@ -278,13 +278,13 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
                     isLoading = false;
                     Snackbar.Add(emailsent, Severity.Success);
                     isLoading = false;
-                    Snackbar.Add("Passowrd successfully Reset and One time passowrd has been mailed to the user.", Severity.Success);
+                    Snackbar.Add("Password successfully Reset and One time password has been mailed to the user.", Severity.Success);
 
                 }
                 else
                 {
                     isLoading = false;
-                    Snackbar.Add("Passowrd successfully Reset and One time passowrd has been mailed to the user.", Severity.Success);
+                    Snackbar.Add("Password successfully Reset and One time password has been mailed to the user.", Severity.Success);
 
                 }
                 //Close Dialog

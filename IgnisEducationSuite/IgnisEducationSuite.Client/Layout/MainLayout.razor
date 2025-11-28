@@ -8,7 +8,7 @@
 @inject NavigationManager _navigationManager
 @inject GenericServiceFactory _genericService
 @inject HttpClient http
-<MudThemeProvider />
+<MudThemeProvider Theme="theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -16,7 +16,7 @@
 <MudLayout>
     <MudAppBar>
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(() => DrawerToggle())" />
-        <MudText Typo="Typo.h6" Style="color: white;">Ignis Education Suite</MudText>
+        <MudText Typo="Typo.h6" Style="color: white;">@( appState.SchoolName ??"Ignis Education Suite")</MudText>
     </MudAppBar>
     <MudDrawer Elevation="2" @bind-Open="@_drawerOpen">
         <NavMenu />

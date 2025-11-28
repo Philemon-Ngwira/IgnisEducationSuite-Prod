@@ -2,7 +2,8 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using EduSphereDomain;
+using EduSphereDomain.Models;
+using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -71,6 +72,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<Lesson> Lessons { get; set; }
 
+    public virtual DbSet<LessonMedium> LessonMedia { get; set; }
+
     public virtual DbSet<MultipleChoiceAssignmentAnswer> MultipleChoiceAssignmentAnswers { get; set; }
 
     public virtual DbSet<Notification> Notifications { get; set; }
@@ -108,6 +111,10 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<TeacherSubjectNormalized> TeacherSubjectNormalizeds { get; set; }
 
     public virtual DbSet<TimeSlot> TimeSlots { get; set; }
+
+    public virtual DbSet<UserActivity> UserActivities { get; set; }
+
+    public virtual DbSet<UserBadge> UserBadges { get; set; }
 
     public virtual DbSet<WorldCity> WorldCities { get; set; }
 
@@ -392,6 +399,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.School).WithMany(p => p.ClientAdmins)
                 .HasForeignKey(d => d.SchoolID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_ClientAdmins_Schools");
         });
 
@@ -568,6 +576,18 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasForeignKey(d => d.TeacherID)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK__Lessons__Teacher__440B1D61");
+        });
+
+        modelBuilder.Entity<LessonMedium>(entity =>
+        {
+            entity.HasKey(e => e.ImageID);
+
+            entity.Property(e => e.ImageID).ValueGeneratedNever();
+            entity.Property(e => e.Caption)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.Url).IsUnicode(false);
         });
 
         modelBuilder.Entity<MultipleChoiceAssignmentAnswer>(entity =>
@@ -888,6 +908,25 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.Description)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<UserActivity>(entity =>
+        {
+            entity.HasKey(e => e.ActivityId);
+
+            entity.Property(e => e.ActivityId).ValueGeneratedNever();
+            entity.Property(e => e.ActivityDate).HasColumnType("datetime");
+            entity.Property(e => e.ActivityType)
+                .IsRequired()
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UserId).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<UserBadge>(entity =>
+        {
+            entity.Property(e => e.UserBadgeID).ValueGeneratedNever();
+            entity.Property(e => e.DateEarned).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<WorldCity>(entity =>

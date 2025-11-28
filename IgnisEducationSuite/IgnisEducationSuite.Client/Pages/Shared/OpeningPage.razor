@@ -122,7 +122,7 @@
     }
 </style>
 @code {
-    [CascadingParameter] public MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
     [Parameter] public string UserID { get; set; }
     [Inject] HttpClient http { get; set; }
     DialogOptions dialogOptions = new DialogOptions()

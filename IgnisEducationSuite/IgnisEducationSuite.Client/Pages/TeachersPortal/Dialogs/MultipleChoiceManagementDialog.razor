@@ -40,7 +40,7 @@
 @code {
     [Parameter] public bool isExam { get; set; } = false;
     [Parameter] public Guid QuestionID { get; set; } = Guid.Empty;
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     protected int NumberofOptions = 1;
 
     protected List<string> OptionLabels = new() { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };

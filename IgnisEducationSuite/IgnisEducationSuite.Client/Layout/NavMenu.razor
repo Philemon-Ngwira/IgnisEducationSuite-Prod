@@ -1,12 +1,20 @@
 ﻿@using IgnisEducationSuite.Client.Services
 @implements IDisposable
 @inject NavigationManager NavigationManager
-@inherits AppBaseComponent
+@inject AppState AppState
 <MudNavMenu>
     <div class="navbar navbar-dark">
         <div class="container-fluid">
             <div class="nav-image-container">
-                <MudImage Alt="Logo" Src="/images/LogoW.png" Width="250" Height="250"></MudImage>
+                @if (!string.IsNullOrEmpty(AppState.SchoolLogo))
+                {
+                    <MudImage Alt="Logo" Src=@($"data:image/jpeg;base64, {AppState.SchoolLogo}") Width="250" Height="250"></MudImage>
+
+                }
+                else
+                {
+                    <MudImage Alt="Logo" Src="/images/LogoW.png" Width="250" Height="250"></MudImage>
+                }
             </div>
             <MudNavLink Href="/" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">Dashboard</MudNavLink>
 
@@ -27,15 +35,15 @@
 
                         </MudNavGroup>
                     }
-                    @if (AppState.UserRole == "Admin")
+                    else if (AppState.UserRole == "Admin")
                     {
-                        <MudNavGroup Disabled="!AppState.LicenseIsActive" Icon="@Icons.Material.Filled.SupervisorAccount" Title="Administration" Expanded="false">
+                        <MudNavGroup Disabled="!AppState.LicenseIsActive" Icon="@Icons.Material.Filled.SupervisorAccount" Title="Administration" Expanded="true">
                             <MudNavLink Href="UserManagement" Icon="@Icons.Material.Filled.SupervisedUserCircle" Match="NavLinkMatch.Prefix">User Management</MudNavLink>
-                            <MudNavLink Href="StudentManagement" Icon="@Icons.Material.Filled.People" Match="NavLinkMatch.Prefix">Student Management</MudNavLink>
+                            <MudNavLink Href="StudentManagement" Icon="@MaterialDesignIcons.Normal.HumanMaleFemaleChild" Match="NavLinkMatch.Prefix">Student Management</MudNavLink>
                             <MudNavLink Href="TeacherManagement" Icon="@Icons.Material.Filled.Person" Match="NavLinkMatch.Prefix">Teacher Management</MudNavLink>
                             <MudNavLink Href="ClassManagement" Icon="@Icons.Material.Filled.Class" Match="NavLinkMatch.Prefix">Class Management</MudNavLink>
-                            <MudNavLink Href="ClassSchedules" Icon="@Icons.Material.Filled.Schedule" Match="NavLinkMatch.Prefix">Class Schedules</MudNavLink>
-                            <MudNavLink Href="ReportCardManagement" Icon="@Icons.Material.Filled.AddCard" Match="NavLinkMatch.Prefix">Report Card Preperations</MudNavLink>
+                            <MudNavLink Href="ClassSchedules" Icon="@MaterialDesignIcons.Normal.Timetable" Match="NavLinkMatch.Prefix">Class Schedules</MudNavLink>
+                            <MudNavLink Href="ReportCardManagement" Icon="@MaterialDesignIcons.Normal.CardAccountDetails" Match="NavLinkMatch.Prefix">Report Card Preperations</MudNavLink>
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book" Match="NavLinkMatch.Prefix">Report Cards</MudNavLink>
                             <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubble" Match="NavLinkMatch.Prefix">Ignnis Communcation Hub</MudNavLink>
@@ -43,7 +51,7 @@
                         </MudNavGroup>
 
                     }
-                    @if (AppState.UserRole == "Teacher")
+                    else if (AppState.UserRole == "Teacher")
                     {
                         <MudNavGroup Icon="@Icons.Material.Filled.Hub" Title="Teacher Portal" Expanded="false">
                             <MudNavLink Href="LessonManagement" Icon="@Icons.Material.Filled.School" Match="NavLinkMatch.Prefix">Lesson Management</MudNavLink>
@@ -58,7 +66,7 @@
 
                         </MudNavGroup>
                     }
-                    @if (AppState.UserRole == "Staff")
+                    else if (AppState.UserRole == "Staff")
                     {
                         <MudNavGroup Disabled="!AppState.LicenseIsActive" Icon="@Icons.Material.Filled.Hub" Title="Teacher Portal" Expanded="false">
                             <MudNavLink Href="LessonManagement" Icon="@Icons.Material.Filled.School" Match="NavLinkMatch.Prefix">Lesson Management</MudNavLink>
@@ -69,20 +77,30 @@
 
                         </MudNavGroup>
                     }
-                    @if (AppState.UserRole == "Student")
+                    else if (AppState.UserRole == "Student")
                     {
                         <MudNavGroup Disabled="!AppState.LicenseIsActive" Icon="@Icons.Material.Filled.Mediation" Title="Student Portal" Expanded="false">
                             @if (AppState.HideStudentDashboard)
                             {
                                 <MudNavLink Icon="@Icons.Material.Filled.Class" Href="StudentLessons" Match="NavLinkMatch.Prefix">Lessons</MudNavLink>
-                                <MudNavLink Icon="@Icons.Material.Filled.HomeWork" Href="StudentAssignments" Match="NavLinkMatch.Prefix">Assignments</MudNavLink>
+                                <MudBadge Content="@AppState.newAssignmentsCount"
+                                          Color="Color.Primary"
+                                          Overlap="true"
+                                          Visible="AppState.newAssignmentsCount > 0">
+                                    <MudNavLink Icon="@Icons.Material.Filled.HomeWork" Href="StudentAssignments" Match="NavLinkMatch.Prefix">Assignments</MudNavLink>
+                                </MudBadge>
                                 <MudNavLink Href="Exams" Icon="@Icons.Material.Filled.Pages" Match="NavLinkMatch.Prefix">Exams,Tests And Quizzes</MudNavLink>
                                 <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
                             }
                             else
                             {
                                 <MudNavLink Icon="@Icons.Material.Filled.Class" Href="StudentLessons" Match="NavLinkMatch.Prefix">Lessons</MudNavLink>
-                                <MudNavLink Icon="@Icons.Material.Filled.HomeWork" Href="StudentAssignments" Match="NavLinkMatch.Prefix">Assignments</MudNavLink>
+                                <MudBadge Content="@AppState.newAssignmentsCount"
+                                          Color="Color.Primary"
+                                          Overlap="true"
+                                          Visible="AppState.newAssignmentsCount > 0">
+                                    <MudNavLink Icon="@Icons.Material.Filled.HomeWork" Href="StudentAssignments" Match="NavLinkMatch.Prefix">Assignments</MudNavLink>
+                                </MudBadge>
                                 <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book" Match="NavLinkMatch.Prefix">Report Cards</MudNavLink>
                                 <MudNavLink Href="Exams" Icon="@Icons.Material.Filled.Pages" Match="NavLinkMatch.Prefix">Exams,Tests And Quizzes</MudNavLink>
                                 <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
@@ -91,7 +109,7 @@
 
                         </MudNavGroup>
                     }
-                    @if (AppState.UserRole == "Parent")
+                    else if (AppState.UserRole == "Parent")
                     {
                         <MudNavGroup Disabled="!AppState.LicenseIsActive" Icon="@Icons.Material.Filled.Mediation" Title="Student Portal" Expanded="false">
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book" Match="NavLinkMatch.Prefix">Report Cards</MudNavLink>
@@ -142,6 +160,7 @@
     private string HomeURL = "Account/Login";
     protected async override Task OnInitializedAsync()
     {
+        await Task.Delay(1000);
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
         AppState.OnChange += StateHasChanged;

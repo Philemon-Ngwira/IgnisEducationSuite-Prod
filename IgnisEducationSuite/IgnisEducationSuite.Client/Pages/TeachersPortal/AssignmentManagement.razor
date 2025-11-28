@@ -378,6 +378,7 @@
         isLoading = true;
         if (!string.IsNullOrEmpty(GPTQuery))
         {
+
             ResponseMessage = await ChatClientService.GetChatResponseAsync("api/Chat/AskChatGPT", GPTQuery);
             GPTQuery = string.Empty;
 

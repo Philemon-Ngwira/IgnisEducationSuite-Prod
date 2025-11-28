@@ -33,45 +33,116 @@
         <MudCheckBox Label="Use ChatGPT" @bind-Value="useGPT"></MudCheckBox>
         @if (useGPT)
         {
-            <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Ask Chat GPT To create Lesson On Topic" @bind-Value="@Query"></MudTextField>
-            <MudButton OnClick="SendMessage" Variant="Variant.Filled" Color="Color.Primary">Ask ChatGPT</MudButton>
-            <br />
-            <BlazoredTextEditor @ref="@richTextEditor">
-                <ToolbarContent>
-                    @((MarkupString)toolbar)
-                </ToolbarContent>
-                <EditorContent>
-                    @((MarkupString)body)
-                </EditorContent>
-            </BlazoredTextEditor>
-            <MudGrid>
-                <MudItem xs="12" md="6">
-                    <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense" Label="Add A title" @bind-Value="@newLesson.Title"></MudTextField>
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
-                                     ResetValueOnEmptyText="true"
-                                     CoerceText="true" CoerceValue="true"
-                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-                </MudItem>
-                <MudItem xs="12">
-                    <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
-                        <ActivatorContent>
-                            <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.CloudUpload">
-                                Upload Any Lesson Images
-                            </MudButton>
-                        </ActivatorContent>
-                    </MudFileUpload>
-                </MudItem>
-            </MudGrid>
-            <MudButtonGroup OverrideStyles="false">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow=true StartIcon="@Icons.Material.Filled.Done" OnClick="FinishEditing">Finish Editing</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveLesson" DropShadow=true StartIcon="@Icons.Material.Filled.Save">Save Lesson</MudButton>
-            </MudButtonGroup>
+            <MudPaper Class="p-4 mb-4" Elevation="2">
+                <MudGrid Spacing="3" Justify="Justify.Center">
 
+                    <!-- Query Input -->
+                    <MudItem xs="12" md="8">
+                        <MudTextField T="string"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Label="Ask Chat GPT to create a lesson on topic"
+                                      @bind-Value="Query"
+                                      FullWidth="true"
+                                      AdornmentIcon="@Icons.Material.Filled.Chat"
+                                      AdornmentColor="Color.Primary" />
+                    </MudItem>
+
+                    <!-- Class Selection -->
+                    <MudItem xs="12" md="4">
+                        <MudAutocomplete T="Class"
+                                         Label="Select Class"
+                                         @bind-Value="selectedClass"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         FullWidth="true"
+                                         ToStringFunc="ClassTypeConverter"
+                                         SearchFunc="@Search"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="true"
+                                         CoerceValue="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search"
+                                         AdornmentColor="Color.Primary" />
+                    </MudItem>
+
+                </MudGrid>
+
+                <!-- Ask GPT Button -->
+                <MudGrid Class="mt-3">
+                    <MudItem xs="12">
+                        <MudButton OnClick="SendMessage"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Send">
+                            Ask ChatGPT
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Lesson Content Editor -->
+            <MudPaper Class="p-4 mb-4" Elevation="2">
+                <BlazoredTextEditor @ref="@richTextEditor">
+                    <ToolbarContent>
+                        @((MarkupString)toolbar)
+                    </ToolbarContent>
+                    <EditorContent>
+                        @((MarkupString)body)
+                    </EditorContent>
+                </BlazoredTextEditor>
+            </MudPaper>
+
+            <!-- Lesson Metadata -->
+            <MudPaper Class="p-4 mb-4" Elevation="2">
+                <MudGrid Spacing="3">
+
+                    <!-- Lesson Title -->
+                    <MudItem xs="12" md="6">
+                        <MudTextField T="string"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Label="Add a Lesson Title"
+                                      @bind-Value="newLesson.Title"
+                                      FullWidth="true" />
+                    </MudItem>
+
+                    <!-- File Upload -->
+                    <MudItem xs="12">
+                        <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
+                            <ActivatorContent>
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                                    Upload Lesson Images
+                                </MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                    </MudItem>
+
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Action Buttons -->
+            <MudPaper Class="p-4 mb-4 d-flex justify-end" Elevation="0">
+                <MudButtonGroup>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Done"
+                               DropShadow="true"
+                               OnClick="FinishEditing">
+                        Finish Editing
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Save"
+                               DropShadow="true"
+                               OnClick="SaveLesson">
+                        Save Lesson
+                    </MudButton>
+                </MudButtonGroup>
+            </MudPaper>
         }
+
         else
         {
 
@@ -440,7 +511,8 @@
         isLoading = true;
         if (!string.IsNullOrEmpty(Query))
         {
-            ResponseMessage = await ChatClientService.GetChatResponseAsync("api/Chat/AskChatGPT", Query);
+            var message = EnhanceTeacherQuery(Query, selectedClass.ClassName);
+            ResponseMessage = await ChatClientService.GetChatResponseAsync("api/Chat/AskChatGPT", message);
             if (ResponseMessage != null)
             {
 
@@ -454,6 +526,41 @@
         }
         isLoading = false;
     }
+    private string EnhanceTeacherQuery(string rawQuery, string subject = "General")
+    {
+        if (string.IsNullOrWhiteSpace(rawQuery))
+            return rawQuery;
+
+        var enhancedPrompt = $@"
+You are an expert high school teacher and curriculum writer.
+Your task is to create a COMPLETE, NARRATIVE LESSON — not a lesson plan.
+
+Write the lesson as if it is a chapter in a student textbook or a script a teacher can read in class.
+
+STRICT REQUIREMENTS:
+- Produce a continuous, flowing lesson in full paragraphs.
+- No sections like 'Lesson Plan', 'Lesson Structure', or timed blocks.
+- Use headings only for natural content divisions (e.g., Introduction, Main Content, Examples, Conclusion).
+- Include a clear lesson title.
+- Start with a brief introduction that grabs the student's attention.
+- Explain concepts step-by-step in simple, high-school-friendly language.
+- Include examples, analogies, or scenarios to aid understanding.
+- Include key terms WITH definitions woven into the explanation naturally.
+- End with 3–6 reflection or review questions.
+- Provide suggested further reading or reference material (not URLs).
+
+MOST IMPORTANT:
+→ The output MUST be a FULL WRITTEN LESSON, not a lesson plan.
+
+Subject: {subject}
+Teacher's Input: {rawQuery}
+
+Write the best possible educational lesson.
+";
+
+        return enhancedPrompt;
+    }
+
 
     protected async Task SaveLesson()
     {

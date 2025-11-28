@@ -1,9 +1,9 @@
 ﻿using EDUSphereSharedProject.AchievementModels;
-using IgnisEducationSuite.Client.Services;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components;
-using System.Net.Http.Json;
 using EDUSphereSharedProject.Models.StoreProModels;
+using EDUSphereSharedProject.UniversalModels;
+using IgnisEducationSuite.Client.Services;
+using Microsoft.AspNetCore.Components;
+using MudBlazor;
 
 public class AppState
 {
@@ -12,108 +12,143 @@ public class AppState
     private RolesAndLicensingService _rolesAndLicensing;
     private GenericServiceFactory _genericService;
 
+    public usp_GetPharmacyLicenseStatusResult License { get; private set; } = new();
+
     public string UserID { get; private set; } = string.Empty;
     public string SchoolID { get; private set; } = string.Empty;
-    public bool LicenseIsActive { get; private set; } = false;
+    public bool LicenseIsActive { get; private set; }
     public string UserRole { get; private set; } = "Guest";
-    public bool HideStudentDashboard { get; private set; } = false;
+    public string SchoolName { get; private set; } = string.Empty;
+    public string SchoolLogo { get; private set; } = string.Empty;
+    public bool HideStudentDashboard { get; private set; }
     public List<Badge> Badges { get; set; } = new();
     public List<UserActivity> UserActivities { get; set; } = new();
-    public bool IsInitialized { get; private set; } = false;
+    public bool IsInitialized { get; private set; }
+
+    public int newAssignmentsCount { get; private set; }
 
     public event Action OnChange;
 
-    // Constructor accepts IServiceProvider
     public AppState(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
     }
 
-    public async Task<bool> InitializeAsync(string UserName, bool isAuthenticated, NavigationManager _navigationManager, HttpClient http)
+    public async Task<bool> InitializeAsync(string userName, bool isAuthenticated, NavigationManager nav, HttpClient http)
     {
-        if (IsInitialized) return true;
+        if (IsInitialized)
+            return true;
 
-        try
+        if (!isAuthenticated)
         {
-            // Create a scope explicitly to resolve scoped services
-            using (var scope = _serviceProvider.CreateScope())
-            {
-                _httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-                _rolesAndLicensing = scope.ServiceProvider.GetRequiredService<RolesAndLicensingService>();
-                _genericService = scope.ServiceProvider.GetRequiredService<GenericServiceFactory>();
-
-                var _http = _httpClientFactory.CreateClient();
-
-                if (isAuthenticated)
-                {
-                    UserID = UserName;
-                    var service = _genericService.GetService<GetInitializationDataResult>();
-                    var result = await service.GetAllAsync($"api/Dynamic/GetInitializationData/{UserID}", true);
-                    if (result.IsSuccess)
-                    {
-                        if (result.Data.Any())
-                        {
-                            GetInitializationDataResult item = result.Data.FirstOrDefault();
-                            SchoolID = item.StudentID.ToString();
-                            UserRole = item.Name;
-                            if (item.HideStudentDashboard == 1)
-                            {
-                                HideStudentDashboard = true;
-                            }
-                            else
-                            {
-                                HideStudentDashboard = false;
-                            }
-                        }
-                        LicenseIsActive = await _rolesAndLicensing.GetLicenseStatus(_navigationManager.BaseUri, SchoolID);
-                    }
-
-
-
-                    await LoadUserBadgesAndActivities();
-
-                    IsInitialized = true;
-                    NotifyStateChanged();
-                }
-                else
-                {
-                    Console.WriteLine("User is not authenticated. AppState initialization aborted.");
-                    return false;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error initializing AppState: {ex.Message}");
+            Console.WriteLine("User not authenticated. Initialization cancelled.");
             return false;
         }
 
-        return true;
-    }
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
 
-    private async Task LoadUserBadgesAndActivities()
+            // Resolve once
+            _httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+            _rolesAndLicensing = scope.ServiceProvider.GetRequiredService<RolesAndLicensingService>();
+            _genericService = scope.ServiceProvider.GetRequiredService<GenericServiceFactory>();
+
+            UserID = userName;
+
+            var initService = _genericService.GetService<GetInitializationDataResult>();
+            var initResult = await initService.GetAllAsync($"api/Dynamic/GetInitializationData/{UserID}", true);
+
+            if (!initResult.IsSuccess || !initResult.Data.Any())
+            {
+                Console.WriteLine("Initialization data unavailable.");
+                return false;
+            }
+
+            var d = initResult.Data.ToList();
+            var data = d[0];
+
+            SchoolID = data.SchoolID.ToString();
+            UserRole = data.RoleName;
+            SchoolName = data.SchoolName;
+
+            // Convert once, avoid unnecessary null/empty operations
+            SchoolLogo = data.SchoolLogo is { Length: > 0 }
+                ? Convert.ToBase64String(data.SchoolLogo)
+                : string.Empty;
+
+            HideStudentDashboard = data.HideStudentDashboard == 1;
+
+            await LoadLicenseAsync(SchoolID);
+            await LoadUserBadgesAndActivitiesAsync();
+            if (UserRole == "Student")
+            {
+                await GetAssignments();
+            }
+            LicenseIsActive = License?.IsValid == 1;
+
+            IsInitialized = true;
+            NotifyStateChanged();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AppState] Initialization failed: {ex.Message}");
+            return false;
+        }
+    }
+    protected async Task GetAssignments()
+    {
+        var service = _genericService.GetService<GetStudentAssignmentsResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetAssignment/{UserID}", true);
+        if (result.IsSuccess)
+        {
+            newAssignmentsCount = result.Data.Where(c => c.Overdue != 1).Count();
+        }
+
+    }
+    private async Task LoadLicenseAsync(string tenantId)
     {
         try
         {
-            // Resolve services dynamically
+            var service = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetLicenseStatus/{tenantId}", true);
 
+            if (result.IsSuccess)
+                License = result.Data.FirstOrDefault() ?? new usp_GetPharmacyLicenseStatusResult();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading license: {ex.Message}");
+        }
+    }
+
+    private async Task LoadUserBadgesAndActivitiesAsync()
+    {
+        try
+        {
             var badgeService = _genericService.GetService<Badge>();
             var badgeResult = await badgeService.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
+
             Badges = badgeResult.IsSuccess ? badgeResult.Data.ToList() : new List<Badge>();
 
             if (UserRole == "Student")
             {
                 var activityService = _genericService.GetService<UserActivity>();
                 var activityResult = await activityService.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
+
                 UserActivities = activityResult.IsSuccess ? activityResult.Data.ToList() : new List<UserActivity>();
             }
-
-            NotifyStateChanged();
-
+            else
+            {
+                // Non-students don't need activities
+                UserActivities.Clear();
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading badges and activities: {ex.Message}");
+            Console.WriteLine($"Error loading badges/activities: {ex.Message}");
         }
     }
 

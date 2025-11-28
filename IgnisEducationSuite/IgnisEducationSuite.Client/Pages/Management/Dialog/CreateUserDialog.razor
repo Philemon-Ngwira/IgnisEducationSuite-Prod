@@ -39,7 +39,7 @@
                 <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.UserName" Label="UserName"></MudTextField>
             </MudItem>
             <MudItem xs="12" md="6">
-                @if (AppState.HideStudentDashboard && Role=="Student")
+                @if (AppState.HideStudentDashboard && Role == "Student")
                 {
                     <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Enter Parent Email For Password"></MudTextField>
                 }
@@ -62,15 +62,15 @@
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter" Margin="Margin.Dense" T="CountryDTO" Label="Countries" Value="Country" Placeholder="Select Country" SearchFunc="@SearchCountry"
-                ResetValueOnEmptyText="true"
-                CoerceText="true" CoerceValue="true"
-                AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter" Margin="Margin.Dense" T="CityDTO" Label="Cities" Disabled="Country.CountryName == null" SearchFunc="@SearchCity"
-                ResetValueOnEmptyText="true"
-                CoerceText="true" CoerceValue="true"
-                AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
             </MudItem>
             @if (Role == "Student")
             {
@@ -109,9 +109,9 @@
             {
                 <MudItem xs="12" md="6">
                     <MudAutocomplete Variant="Variant.Outlined" @bind-Value="selectedStudent" Placeholder="Search Student" ToStringFunc="StudentTypeconverter" Margin="Margin.Dense" T="Student" Label="Students" SearchFunc="@SearchStudent"
-                    ResetValueOnEmptyText="true"
-                    CoerceText="true" CoerceValue="true"
-                    AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                 </MudItem>
             }
 
@@ -126,8 +126,8 @@
                 <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                     <ActivatorContent>
                         <MudFab Color="Color.Secondary"
-                        StartIcon="@Icons.Material.Filled.Image"
-                        Label="Load Profile Picture" />
+                                StartIcon="@Icons.Material.Filled.Image"
+                                Label="Load Profile Picture" />
                     </ActivatorContent>
                 </MudFileUpload>
             </MudItem>
@@ -151,7 +151,7 @@
 
 @code {
 
-    [CascadingParameter] public MudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public string Role { get; set; } = string.Empty;
     [Parameter] public List<CountryDTO> countries { get; set; } = new();
     [Parameter] public List<Gender> genders { get; set; } = new();
@@ -274,226 +274,213 @@
     }
     protected async Task CreateNewUser()
     {
-        isLoading = true;
-        StateHasChanged();
-        //Generate One time password
-        newUser.Password = GenerateOneTimePassword();
-        newUser.Role = Role;
-        var Email = string.Empty;
-        var StudentIDD = string.Empty;
-        if (AppState.HideStudentDashboard && newUser.Role == "Student")
+        try
         {
+            isLoading = true;
+            StateHasChanged();
 
-            Email = "N/A";
-        }
-        else{
-            Email = newUser.Email;
-        }
-        if(newUser.Role == "Student"){
-            StudentIDD = await StudentNumberGenerator.GenerateStudentIdAsync(IDPrefix, navigationManager.BaseUri);
-        }
-        else{
-            StudentIDD = "N/A";
-        }
-        CreateUserModel createUserModel = new()
+            // 1️⃣ Generate credentials
+            newUser.Password = GenerateOneTimePassword();
+            newUser.Role = Role;
+
+            string email = (AppState.HideStudentDashboard && newUser.Role == "Student") ? "N/A" : newUser.Email;
+            string studentID = (newUser.Role == "Student")
+                ? await StudentNumberGenerator.GenerateStudentIdAsync(IDPrefix, navigationManager.BaseUri)
+                : "N/A";
+
+            var createUserModel = new CreateUserModel
             {
                 UserName = newUser.UserName,
                 Password = newUser.Password,
-                Email = Email,
+                Email = email,
                 Role = newUser.Role,
                 SchoolID = LoggedAdmin.SchoolID.Value,
-                UserID = StudentIDD,
+                UserID = studentID,
                 ProfilePic = newUser.profilePic,
                 FirstName = newUser.FirstName,
                 LastName = newUser.LastName
             };
-        //Create Identity User
-        var result = await Http.PostAsJsonAsync($"{navigationManager.BaseUri}api/Admin/createUser", createUserModel);
-        if (result.IsSuccessStatusCode)
-        {
-            var newlyAddeduser = await result.Content.ReadFromJsonAsync<ApplicationUser>();
-            newUser.UserID = newlyAddeduser.Id;
 
-            //Create UserBasedOnRoll
-            if (newUser.Role == "Teacher")
+            // 2️⃣ Create Identity User
+            var result = await Http.PostAsJsonAsync($"{navigationManager.BaseUri}api/Admin/createUser", createUserModel);
+            if (!result.IsSuccessStatusCode)
             {
-                Teacher newteacher = new()
-                    {
-                        TeacherID = Guid.NewGuid(),
-                        FirstName = newUser.FirstName,
-                        LastName = newUser.LastName,
-                        ContactNo = newUser.ContactNo,
-                        Gender = newUser.Gender,
-                        EmailAddress = newUser.Email,
-                        DateEngaged = newUser.DateEngaged,
-                        ProfilePic = newUser.profilePic,
-                        CreatedBy = await GetLoggedInuser(),
-                        CreatedDate = DateTime.Now,
-                        UserID = newUser.UserID,
-                        SchoolID = LoggedAdmin.SchoolID,
-                        Nationality = Country.CountryName,
-                        City = City.CityName
-
-
-
-                    };
-                var service = genericService.GetService<Teacher>();
-                var savedTeacher = await service.PostAsync("api/Dynamic/PostEntity", "teacher", newteacher);
-                if (savedTeacher.IsSuccess)
-                {
-                    //Mail User//
-                    EmailRequest email = new()
-                        {
-                            To = newUser.Email,
-                            Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
-                            Password = newUser.Password,
-                            UserName = newUser.UserName,
-                            StudentID = "N/A",
-                            isFirstMail = true
-
-                        };
-                    var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
-
-                    isLoading = false;
-                    if (emailsent == "Password reset email sent successfully!")
-                    {
-                        Snackbar.Add("New teacher One time password mailed successfully", Severity.Success);
-                    }
-                    Snackbar.Add("New teacher successfully added, please visit teacher management to finish up set up", Severity.Success);
-                    MudDialog.Close(DialogResult.Ok("successful"));
-                }
-                else
-                {
-                    Snackbar.Add("Error: Saving Teacher Failed", Severity.Error);
-                    return;
-                }
-            }
-            else if (newUser.Role == "Student")
-            {
-                Student newStudent = new()
-                    {
-                        StudentID = Guid.NewGuid(),
-                        FirstName = newUser.FirstName,
-                        LastName = newUser.LastName,
-                        Gender = newUser.Gender,
-                        Address = newUser.Address,
-                        Country = Country.CountryName,
-                        City = City.CityName,
-                        GradeLevel = newUser.GradeLevel,
-                        StudentNumber = StudentIDD,
-                        ProfilePic = newUser.profilePic,
-                        UserID = newUser.UserID,
-                        DateOnBoarded = DateTime.Now,
-                        SchoolID = LoggedAdmin.SchoolID,
-                        GradeSection = newUser.GradeSection
-
-
-                    };
-                var service = genericService.GetService<Student>();
-                var savedTeacher = await service.PostAsync("api/Dynamic/PostEntity", "student", newStudent);
-                if (savedTeacher.IsSuccess)
-                {
-                    //Mail User//
-                    EmailRequest email = new()
-                        {
-                            To = newUser.Email,
-                            Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
-                            Password = newUser.Password,
-                            UserName = newUser.UserName,
-                            StudentID = StudentIDD,
-                            isFirstMail = true
-                        };
-                    var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
-
-                    isLoading = false;
-                    if (emailsent == "Password reset email sent successfully!")
-                    {
-                        Snackbar.Add("New student One time password mailed successfully", Severity.Success);
-                    }
-                    Snackbar.Add("New student successfully added, please visit student management to finish up set up", Severity.Success);
-                    MudDialog.Close(DialogResult.Ok("successful"));
-                }
-                else
-                {
-
-                    Snackbar.Add("Error: Saving student Failed", Severity.Error);
-                    return;
-                }
+                Snackbar.Add("Error: Saving user failed", Severity.Error);
+                return;
             }
 
-            else if (newUser.Role == "Parent")
+            var createdUser = await result.Content.ReadFromJsonAsync<ApplicationUser>();
+            newUser.UserID = createdUser.Id;
+
+            // 3️⃣ Role-specific entity creation
+            switch (newUser.Role)
             {
-                if (selectedStudent.FirstName == null)
-                {
-                    Snackbar.Add("Parent Must Have child, select child from students", Severity.Error);
-                    return;
-                }
-                else
-                {
-                    Parent newParent = new()
-                        {
-                            ParentID = Guid.NewGuid(),
-                            FirstName = newUser.FirstName,
-                            LastName = newUser.LastName,
-                            Email = newUser.Email,
-                            UserId = newUser.UserID,
-                            Address = newUser.Address,
-                            Country = newUser.Country,
-                            City = newUser.City,
-                            PhoneNumber = newUser.ContactNo,
-                            ProfilePic = newUser.profilePic,
-                            SchoolID = LoggedAdmin.SchoolID
-                        };
+                case "Teacher":
+                    await CreateTeacherAsync(newUser, createdUser.Id);
+                    break;
 
-                    var service = genericService.GetService<Parent>();
-                    var savedTeacher = await service.PostAsync("api/Dynamic/PostEntity", "parent", newParent);
-                    if (savedTeacher.IsSuccess)
-                    {
-                        //Update Student//
-                        selectedStudent.Parent = savedTeacher.Data;
-                        selectedStudent.ParentID = selectedStudent.Parent.ParentID;
-                        var updateService = _genericService.GetService<Student>();
-                        var updatedStudent = await updateService.UpdateAsync("api/Dynamic/UpdateEntity", "student", selectedStudent);
-                        if (updatedStudent.IsSuccess)
-                        {
-                            //Mail User//
-                            EmailRequest email = new()
-                                {
-                                    To = newUser.Email,
-                                    Reciepient = savedTeacher.Data.FirstName + " " + savedTeacher.Data.LastName,
-                                    Password = newUser.Password,
-                                    UserName = newUser.UserName,
-                                    StudentID = "N/A",
-                                    isFirstMail = true
-                                };
-                            var emailsent = await _emailService.SendPasswordResetEmailAsync(email, navigationManager.BaseUri);
+                case "Student":
+                    await CreateStudentAsync(newUser, studentID, createdUser.Id);
+                    break;
 
-                            isLoading = false;
-                            if (emailsent == "Password reset email sent successfully!")
-                            {
-                                Snackbar.Add("New parent One time password mailed successfully", Severity.Success);
-                            }
-                            Snackbar.Add("New parent successfully added, please visit parent management to finish up set up", Severity.Success);
-                            MudDialog.Close(DialogResult.Ok("successful"));
-                        }
-                    }
-                    else
-                    {
-                        isLoading = false;
-                        Snackbar.Add("Error: Saving parent Failed", Severity.Error);
-                        return;
-                    }
-                }
+                case "Parent":
+                    await CreateParentAsync(newUser, selectedStudent, createdUser.Id);
+                    break;
+
+                default:
+                    Snackbar.Add("Unknown role selected", Severity.Error);
+                    break;
             }
-
         }
-        else
+        catch (Exception ex)
         {
-            Snackbar.Add("Error: Saving  Failed", Severity.Error);
-            return;
+            Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
         }
     }
+    private async Task SendOneTimePasswordEmail(UniversalUser user, string recipientName, string studentID)
+    {
+        try
+        {
+            var emailRequest = new EmailRequest
+            {
+                To = user.Email,
+                Reciepient = recipientName,
+                Password = user.Password,
+                UserName = user.UserName,
+                StudentID = studentID,
+                isFirstMail = true
+            };
 
+            var emailResult = await _emailService.SendPasswordResetEmailAsync(emailRequest, navigationManager.BaseUri);
+            if (emailResult == "Password reset email sent successfully!")
+            {
+                Snackbar.Add($"One time password sent successfully to {recipientName}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"Email failed to send: {emailResult}", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error sending email: {ex.Message}", Severity.Error);
+        }
+    }
+    private async Task CreateTeacherAsync(UniversalUser user, string userId)
+    {
+        var teacher = new Teacher
+        {
+            TeacherID = Guid.NewGuid(),
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            EmailAddress = user.Email,
+            Gender = user.Gender,
+            DateEngaged = user.DateEngaged,
+            ProfilePic = user.profilePic,
+            UserID = userId,
+            SchoolID = LoggedAdmin.SchoolID,
+            CreatedBy = await GetLoggedInuser(),
+            CreatedDate = DateTime.Now,
+            Nationality = Country.CountryName,
+            City = City.CityName
+        };
+
+        var service = genericService.GetService<Teacher>();
+        var saved = await service.PostAsync("api/Dynamic/PostEntity", "teacher", teacher);
+
+        if (!saved.IsSuccess)
+        {
+            Snackbar.Add("Error: Saving teacher failed", Severity.Error);
+            return;
+        }
+
+        await SendOneTimePasswordEmail(user, $"{saved.Data.FirstName} {saved.Data.LastName}", "N/A");
+        MudDialog.Close(DialogResult.Ok("successful"));
+    }
+    private async Task CreateStudentAsync(UniversalUser user, string studentID, string userId)
+    {
+        var student = new Student
+        {
+            StudentID = Guid.NewGuid(),
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Gender = user.Gender,
+            Address = user.Address,
+            Country = Country.CountryName,
+            City = City.CityName,
+            GradeLevel = user.GradeLevel,
+            StudentNumber = studentID,
+            ProfilePic = user.profilePic,
+            UserID = userId,
+            DateOnBoarded = DateTime.Now,
+            SchoolID = LoggedAdmin.SchoolID,
+            GradeSection = user.GradeSection
+        };
+
+        var service = genericService.GetService<Student>();
+        var saved = await service.PostAsync("api/Dynamic/PostEntity", "student", student);
+
+        if (!saved.IsSuccess)
+        {
+            Snackbar.Add("Error: Saving student failed", Severity.Error);
+            return;
+        }
+
+        await SendOneTimePasswordEmail(user, $"{saved.Data.FirstName} {saved.Data.LastName}", studentID);
+        MudDialog.Close(DialogResult.Ok("successful"));
+    }
+    private async Task CreateParentAsync(UniversalUser user, Student selectedStudent, string userId)
+    {
+        if (selectedStudent == null)
+        {
+            Snackbar.Add("Parent must have a child selected", Severity.Error);
+            return;
+        }
+
+        var parent = new Parent
+        {
+            ParentID = Guid.NewGuid(),
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Email = user.Email,
+            UserId = userId,
+            Address = user.Address,
+            Country = user.Country,
+            City = user.City,
+            PhoneNumber = user.ContactNo,
+            ProfilePic = user.profilePic,
+            SchoolID = LoggedAdmin.SchoolID
+        };
+
+        var service = genericService.GetService<Parent>();
+        var saved = await service.PostAsync("api/Dynamic/PostEntity", "parent", parent);
+
+        if (!saved.IsSuccess)
+        {
+            Snackbar.Add("Error: Saving parent failed", Severity.Error);
+            return;
+        }
+
+        // Link parent to student
+        selectedStudent.ParentID = saved.Data.ParentID;
+        selectedStudent.Parent = saved.Data;
+        var updateService = genericService.GetService<Student>();
+        var updatedStudent = await updateService.UpdateAsync("api/Dynamic/UpdateEntity", "student", selectedStudent);
+
+        if (!updatedStudent.IsSuccess)
+        {
+            Snackbar.Add("Error linking parent to student", Severity.Error);
+            return;
+        }
+
+        await SendOneTimePasswordEmail(user, $"{saved.Data.FirstName} {saved.Data.LastName}", "N/A");
+        MudDialog.Close(DialogResult.Ok("successful"));
+    }
 
     private async Task<IEnumerable<CountryDTO>> SearchCountry(string value, CancellationToken token)
     {

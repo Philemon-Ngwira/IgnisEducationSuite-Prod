@@ -101,7 +101,7 @@
 
     private void CloseNested() => _nestedVisible = false;
     [Parameter] public School school { get; set; } = new();
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] HttpClient HttpClient { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;

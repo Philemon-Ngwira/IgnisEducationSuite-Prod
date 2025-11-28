@@ -125,7 +125,7 @@
 
     </style>
     @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     protected bool isLoading = false;
     [Parameter] public Student selectedStudent { get; set; } = new();
     [Parameter] public List<Class> classes { get; set; } = new();

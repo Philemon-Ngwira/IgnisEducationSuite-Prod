@@ -90,6 +90,6 @@
 
     private IComponentRenderMode? RenderModeForPage => HttpContext.Request.Path.StartsWithSegments("/Account")
         ? null
-        : new InteractiveAutoRenderMode(false)
+        : new InteractiveAutoRenderMode(prerender:false)
     ;
 }

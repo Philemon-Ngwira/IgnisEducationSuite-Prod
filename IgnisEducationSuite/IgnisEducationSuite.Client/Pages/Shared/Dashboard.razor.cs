@@ -74,59 +74,70 @@ namespace IgnisEducationSuite.Client.Pages.Shared
 
             try
             {
-                // Step 1: Check authentication state
+                // ----------------------------------------------------------
+                // 1. AUTH CHECK (Fast)
+                // ----------------------------------------------------------
                 var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-                if (authState.User.Identity?.IsAuthenticated != true)
+                var user = authState.User;
+
+                if (!user.Identity?.IsAuthenticated ?? false)
                 {
-                    Console.WriteLine("User is not authenticated. Initialization aborted.");
-                    _navigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}", forceLoad: true);
+                    _navigationManager.NavigateTo(
+                        $"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}",
+                        forceLoad: true
+                    );
                     return;
                 }
-                var user = authState.User;
-                var UserID = string.Empty;
-                UserID = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
-
-                // Step 2: Ensure AppState is initialized
-                int maxTries = 5;
-                int delay = 500;
-
-                for (int attempt = 1; attempt <= maxTries; attempt++)
+                var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
                 {
-                    if (AppState.IsInitialized) break;
-
-                    Console.WriteLine($"Attempt {attempt}: Initializing AppState...");
-                    await AppState.InitializeAsync(UserID, true, _navigationManager, http); // Ensure initialization is triggered
-                    await Task.Delay(delay);
-                    delay *= 2; // Exponential backoff: 500ms → 1s → 2s → 4s...
+                    Console.WriteLine("No UserID found in claims.");
+                    return;
                 }
 
+                // ----------------------------------------------------------
+                // 2. Initialize AppState (Single call, no retry spam)
+                // ----------------------------------------------------------
                 if (!AppState.IsInitialized)
                 {
-                    Console.WriteLine("AppState failed to initialize.");
-                    _navigationManager.NavigateTo("/", true);
-                    throw new Exception("AppState failed to initialize.");
+                    Console.WriteLine("Initializing AppState...");
+                    var initSuccess = await AppState.InitializeAsync(userId, true, _navigationManager, http);
+
+                    if (!initSuccess)
+                    {
+                        Console.WriteLine("AppState failed to initialize.");
+                        _navigationManager.NavigateTo("/", true);
+                        return;
+                    }
                 }
 
-                // Step 3: Handle first login case for non-admin users
-                if (AppState.UserRole != "SuperAdmin" && AppState.UserRole != "Admin")
+                // ----------------------------------------------------------
+                // 3. Handle First Login (Only non-admins)
+                // ----------------------------------------------------------
+                if (AppState.UserRole is not ("SuperAdmin" or "Admin"))
                 {
-                    var isFirstLogin = await licensingService.GetLoginAttempt(_navigationManager.BaseUri, AppState.UserID);
-                    if (isFirstLogin)
+                    var baseUrl = _navigationManager.BaseUri;
+
+                    if (await licensingService.GetLoginAttempt(baseUrl, AppState.UserID))
                     {
-                        await licensingService.UpdateLoginAttemptAsync(_navigationManager.BaseUri, AppState.UserID);
+                        await licensingService.UpdateLoginAttemptAsync(baseUrl, AppState.UserID);
                         DialogService.Show<OpeningPage>("");
                     }
                 }
 
-                // Step 4: Load user-specific data
+                // ----------------------------------------------------------
+                // 4. Load Core Dashboard Data (PARALLEL = FAST)
+                // ----------------------------------------------------------
                 SchoolID = AppState.SchoolID;
 
-                Console.WriteLine("Loading main data...");
-                await GetAllLessons();
-                await GetStudentDetails();
+                Console.WriteLine("Loading core data...");
 
-                var otherTasks = new[]
+                // Must run first (because other tasks depend on lesson/student data)
+                await Task.WhenAll(GetAllLessons(), GetStudentDetails());
+
+                // Now load the rest in parallel
+                var dashboardTasks = new[]
                 {
             GetTopLessons(),
             GetStudentDemoGraphicCountry(),
@@ -135,22 +146,29 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             GetBestPerformingStudents()
         };
 
-                Console.WriteLine("Starting parallel tasks...");
-                await Task.WhenAll(otherTasks);
-                Console.WriteLine("Completed parallel tasks.");
+                await Task.WhenAll(dashboardTasks);
 
-                // Step 5: Load additional student/parent data
-                if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
+                // ----------------------------------------------------------
+                // 5. Student/Parent Extra Data (Parallel too)
+                // ----------------------------------------------------------
+                if (AppState.UserRole is "Student" or "Parent")
                 {
-                    await GetTimeSlots();
-                    await GetDaysOfWeek();
-                    await GetStudentPerfomanceData();
-                    await GetUnCompletedClasses();
-                    await GetClassSchedule();
-                    await GetAttendances();
+                    var studentTasks = new[]
+                    {
+                GetTimeSlots(),
+                GetDaysOfWeek(),
+                GetStudentPerfomanceData(),
+                GetUnCompletedClasses(),
+                GetClassSchedule(),
+                GetAttendances()
+            };
+
+                    await Task.WhenAll(studentTasks);
                 }
 
-                // Step 6: Subscribe to AppState changes
+                // ----------------------------------------------------------
+                // 6. Subscribe to State Changes
+                // ----------------------------------------------------------
                 AppState.OnChange += StateHasChanged;
             }
             catch (Exception ex)

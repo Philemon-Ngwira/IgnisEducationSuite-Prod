@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace EDUSphereSharedProject.Models.StoreProModels
+namespace EduSphereDomain.Models
 {
     public partial class GetInitializationDataResult
     {

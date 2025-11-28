@@ -21,8 +21,8 @@ public class EmailService
             // Get email settings from environment variables
             var smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST");
             var smtpPort = int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT"));
-            var smtpUsername = Environment.GetEnvironmentVariable("SMTP_EMAIL");
-            var smtpPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD");
+            var smtpUsername = Environment.GetEnvironmentVariable("SMTP_EMAIL_IGNIS");
+            var smtpPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD_IGNIS");
 
             if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpUsername) || string.IsNullOrEmpty(smtpPassword))
             {
@@ -42,7 +42,7 @@ public class EmailService
             // Connect to the SMTP server and send the email
             using var client = new SmtpClient();
 
-            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
+            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.SslOnConnect);
             await client.AuthenticateAsync(smtpUsername, smtpPassword);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);

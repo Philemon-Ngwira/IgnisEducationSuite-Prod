@@ -40,7 +40,7 @@
 
 </style>
 @code {
-    [CascadingParameter] public MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
     [Parameter] public Badge badge { get; set; } = new();
     DialogOptions dialogOptions = new DialogOptions()
         {

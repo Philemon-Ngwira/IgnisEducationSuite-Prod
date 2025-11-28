@@ -1,4 +1,5 @@
 ﻿using EDUSphereSharedProject.LicensingModel;
+using EDUSphereSharedProject.UniversalModels;
 using System.Text.Json;
 
 namespace IgnisEducationSuite.ServerServices
@@ -98,6 +99,39 @@ namespace IgnisEducationSuite.ServerServices
                 var error = await response.Content.ReadAsStringAsync();
                 throw new Exception($"Failed to validate license: {response.ReasonPhrase} - {error}");
             }
+        }
+        public async Task<List<usp_GetPharmacyLicenseStatusResult>> GetCompanyLicense(Guid companyID)
+        {
+            try
+            {
+                var path = $"api/license/GetClientActiveLicensePeriod/{companyID}";
+                var client = _httpClientFactory.CreateClient();
+                // client.BaseAddress = new Uri("https://licensingapi-a8gjawera8h5cefw.southafricanorth-01.azurewebsites.net/"); // Replace with actual API URL
+                client.BaseAddress = new Uri("https://localhost:7207/");
+                var response = await client.GetAsync(path);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // You can log this or throw an exception depending on your design
+                    throw new HttpRequestException($"API call failed with status code: {response.StatusCode}");
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+
+                var licenses = JsonSerializer.Deserialize<List<usp_GetPharmacyLicenseStatusResult>>(
+                    content,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                );
+
+                return licenses ?? new List<usp_GetPharmacyLicenseStatusResult>();
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+
+                throw;
+            }
+
         }
 
         // ---------------------------

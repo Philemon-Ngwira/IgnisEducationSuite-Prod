@@ -46,7 +46,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance _mudDialogInstance { get; set; }
+    [CascadingParameter] IMudDialogInstance _mudDialogInstance { get; set; }
     protected bool isLoading = false;
     [Parameter] public ApplicationUser newUser { get; set; } = new();
     protected bool DisableuserAccount = false;

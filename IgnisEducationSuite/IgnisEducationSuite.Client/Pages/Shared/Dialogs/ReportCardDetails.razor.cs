@@ -11,7 +11,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared.Dialogs
     public partial class ReportCardDetails
     {
 
-        [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+        [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
         [Parameter] public List<GetReportCardDetailsResult> Results { get; set; } = new();
         [Parameter] public List<GetAttendanceSummaryResult> attendances { get; set; } = new();
         [Parameter] public GetReportCardsByStudentResult student { get; set; } = new();

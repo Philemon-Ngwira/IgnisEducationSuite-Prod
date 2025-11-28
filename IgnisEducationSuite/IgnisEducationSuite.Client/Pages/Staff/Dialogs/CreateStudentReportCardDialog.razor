@@ -69,7 +69,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] public MudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public Student student { get; set; } = new();
     [Parameter] public List<Class> Classes { get; set; } = new();
     [Parameter] public List<GradingScale> GradingScales { get; set; } = new();

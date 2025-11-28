@@ -98,7 +98,7 @@
                                     <MudItem xs="12">
                                         <MudCard>
                                             <MudCardHeader>
-                                                <MudText Align="Align.Left" Typo="Typo.h6"><b>Class Time Table</b></MudText>
+                                                <MudText Align="Align.Left" Typo="Typo.h6" Style="color:aliceblue"><b>Class Time Table</b></MudText>
                                             </MudCardHeader>
                                             <MudCardContent>
                                                 <div class="card-body">
@@ -262,12 +262,12 @@
                                                 <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
                                                     @if (AppState.UserRole == "Parent")
                                                     {
-                                                        <h6 class="mb-2 fw-bold text-lg mb-0">Student Attendance Trends</h6>
+                                                        <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Student Attendance Trends</h6>
 
                                                     }
                                                     else
                                                     {
-                                                        <h6 class="mb-2 fw-bold text-lg mb-0">Current Pending Lessons</h6>
+                                                        <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Current Pending Lessons</h6>
                                                         <a href="StudentLessons" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
                                                             Pending Lessons
                                                             <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
@@ -345,7 +345,7 @@
                                                 <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
                                                     @if (AppState.UserRole == "Student")
                                                     {
-                                                        <h6 class="mb-2 fw-bold text-lg mb-0">Attendance</h6>
+                                                        <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Attendance</h6>
                                                         <a href="StudentLessons" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
                                                             Class Attendance
                                                             <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
@@ -433,7 +433,7 @@
                                         <div class="card">
                                             <div class="card-header">
                                                 <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
-                                                    <h6 class="mb-2 fw-bold text-lg mb-0">Time Table</h6>
+                                                    <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Time Table</h6>
                                                 </div>
                                             </div>
                                             <div class="card-body">
