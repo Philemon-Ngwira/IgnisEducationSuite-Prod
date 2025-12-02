@@ -20,6 +20,8 @@ namespace IgnisEducationSuite.Client.Services
         public Guid assignmentID { get; set; }
         public Guid ExamTestQuizID { get; set; }
         public string BookID { get; set; }
+
+        public string LiveClassCreatorEmail { get; set; } = string.Empty;
         public bool isGoogleBook { get; set; }
         public bool LessonCompleted { get; set; }
     }

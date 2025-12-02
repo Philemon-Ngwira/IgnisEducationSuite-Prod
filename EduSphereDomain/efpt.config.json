@@ -115,6 +115,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[LiveMeetings]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[MultipleChoiceAssignmentAnswers]",
          "ObjectType": 0
       },
@@ -324,6 +328,10 @@
       },
       {
          "Name": "[dbo].[GetLessonsBySchool]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[GetLiveMeeting]",
          "ObjectType": 1
       },
       {

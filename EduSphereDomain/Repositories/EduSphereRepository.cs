@@ -29,6 +29,22 @@ namespace EduSphereDomain.Repositories
             return result;
 
         }
+        public async Task<IEnumerable<LiveMeeting>> GetMeetingsAsync(string MeetingID)
+        {
+            var result = await _contextProcedures.GetLiveMeetingAsync(MeetingID);
+            return result.Select(x => new LiveMeeting
+            {
+                MeetingID = x.MeetingID,
+                MeetingNumber = x.MeetingNumber,
+                MeetingPassword = x.MeetingPassword,
+                CreatedBy = x.CreatedBy,
+                CreatorEmail = x.CreatorEmail,
+                CreatedDate = x.CreatedDate,
+                ScheduledDate = x.ScheduledDate,
+                isDone = x.isDone
+
+            }).ToList();
+        }
         public async Task<IEnumerable<Badge>> GetSystemBadges()
         {
             var result = await _achivementContext.Badges.ToListAsync();

@@ -14,6 +14,7 @@ public class AppState
 
     public usp_GetPharmacyLicenseStatusResult License { get; private set; } = new();
 
+    public string UserEmail { get; set; } = string.Empty;
     public string UserID { get; private set; } = string.Empty;
     public string SchoolID { get; private set; } = string.Empty;
     public bool LicenseIsActive { get; private set; }
@@ -71,7 +72,7 @@ public class AppState
             SchoolID = data.SchoolID.ToString();
             UserRole = data.RoleName;
             SchoolName = data.SchoolName;
-
+            UserEmail = data.Email;
             // Convert once, avoid unnecessary null/empty operations
             SchoolLogo = data.SchoolLogo is { Length: > 0 }
                 ? Convert.ToBase64String(data.SchoolLogo)

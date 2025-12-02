@@ -1,0 +1,93 @@
+﻿@page "/createliveclass"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Zoom
+@inherits AppBaseComponent
+
+<h3>Create Live Class</h3>
+
+<div class="form-group">
+    <label>Subject</label>
+    <input class="form-control" @bind="Subject" />
+</div>
+
+<div class="form-group">
+    <label>Grade</label>
+    <select class="form-control" @bind="Grade">
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+    </select>
+</div>
+
+<div class="form-group">
+    <label>Start Time</label>
+    <input type="datetime-local" class="form-control" @bind="StartTime" />
+</div>
+
+<button class="btn btn-success" @onclick="CreateMeeting">Create Class</button>
+
+@if (!string.IsNullOrEmpty(MeetingLink))
+{
+    <p>Meeting created! Students can join here: <a href="@MeetingLink">@MeetingLink</a></p>
+}
+
+@code {
+    private string Subject { get; set; }
+    private string Grade { get; set; } = "8";
+    private DateTime StartTime { get; set; } = DateTime.Now.AddMinutes(5);
+    private string MeetingLink { get; set; }
+    [Inject] LessonService lessonService { get; set; } = default!;
+    private async Task CreateMeeting()
+    {
+        var request = new
+        {
+            Topic = $"{Subject} Grade {Grade}",
+            StartTime = StartTime,
+            Duration = 60,
+            Password = "",
+            TeacherEmail = "ngwira.philemon@gmail.com"
+        };
+
+        var response = await HttpClient.PostAsJsonAsync("api/zoom/createmeeting", request);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<ZoomMeetingResponse>();
+
+        // Generate the front-end link for students
+        var LiveMeetingReady = await SaveLiveMeetingMasterData(result);
+        if (LiveMeetingReady)
+            MeetingLink = $"/liveclass/{result.MeetingNumber}/{result.Password}";
+    }
+    protected async Task<bool> SaveLiveMeetingMasterData(ZoomMeetingResponse zoomMeeting)
+    {
+        LiveMeeting newMeeting = new()
+        {
+            MeetingID = Guid.NewGuid(),
+            MeetingNumber = zoomMeeting.MeetingNumber,
+            MeetingPassword = zoomMeeting.Password,
+            CreatedBy = Guid.Parse(AppState.UserID),
+            CreatedDate = DateTime.UtcNow,
+            CreatorEmail = AppState.UserEmail,
+            ScheduledDate = StartTime,
+            isDone = false,
+
+        };
+        var service = GenericService.GetService<LiveMeeting>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "livemeeting", newMeeting);
+        if (result.IsSuccess)
+        {
+            Console.WriteLine("Live meeting master data saved successfully.");
+            return true;
+        }
+        else
+        {
+            Console.WriteLine("Failed to save live meeting master data.");
+            return false;
+        }
+    }
+    public class CreateMeetingResponse
+    {
+        public string MeetingNumber { get; set; }
+        public string JoinUrl { get; set; }
+    }
+}

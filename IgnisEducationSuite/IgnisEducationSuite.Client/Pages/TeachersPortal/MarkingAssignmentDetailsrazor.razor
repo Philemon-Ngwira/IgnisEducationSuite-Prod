@@ -31,7 +31,7 @@
                 <MudText Typo="Typo.subtitle1">Last Name: <b>@student.LastName</b></MudText>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudText Typo="Typo.subtitle1">Student ID <b>@student.StudentNumber</b></MudText>
+                <MudText Typo="Typo.subtitle1">Student ID: <b>@student.StudentNumber</b></MudText>
             </MudItem>
         </MudGrid>
         <MudAlert Severity="Severity.Normal" Variant=Variant.Filled Icon="@Icons.Material.Filled.Info">Question and Answers</MudAlert>
@@ -42,17 +42,38 @@
                 <MudItem xs="12">
                     <MudGrid>
                         <MudItem xs="12" md="10">
-                            <MudText Typo="Typo.body1">Q @item.Question.QuestionNumber: @item.Question.QuestionText (@item.Question.MaxMarks)</MudText>
-                            </MudItem>
-                            <MudItem xs="12" md="1">
-                                <MudCheckBox @bind-Value="item.isCorrect" T="bool?" Disabled="item.isWrong.Value" Color="Color.Success" Dense="true" Label="Correct"></MudCheckBox>
-                            </MudItem>
-                            <MudItem xs="12" md="1">
-                                <MudCheckBox @bind-Value="item.isWrong" T="bool?" Disabled="item.isCorrect.Value" Color="Color.Error" Dense="true" CheckedIcon="@Icons.Material.Filled.Cancel" Label="Wrong"></MudCheckBox>
-                            </MudItem>
-                            <MudItem xs="12">
-                                <MudText Typo="Typo.body2"><b><i>Answer: @item.AnswerText</i></b></MudText>
+                            <MudText Typo="Typo.body1">
+                                Q @item.Question.QuestionNumber: @item.Question.QuestionText (@item.Question.MaxMarks)
+                            </MudText>
                         </MudItem>
+
+                        <MudItem xs="6" md="1">
+                            <MudCheckBox @bind-Value="item.isCorrect"
+                                         T="bool?"
+                                         Disabled="item.isWrong == true"
+                                         Color="Color.Success"
+                                         Dense="true"
+                                         Label="Correct">
+                            </MudCheckBox>
+                        </MudItem>
+
+                        <MudItem xs="6" md="1">
+                            <MudCheckBox @bind-Value="item.isWrong"
+                                         T="bool?"
+                                         Disabled="item.isCorrect == true"
+                                         Color="Color.Error"
+                                         Dense="true"
+                                         CheckedIcon="@Icons.Material.Filled.Cancel"
+                                         Label="Wrong">
+                            </MudCheckBox>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.body2">
+                                <b><i>Answer: @item.AnswerText</i></b>
+                            </MudText>
+                        </MudItem>
+
 
                     </MudGrid>
                 </MudItem>
@@ -66,6 +87,9 @@
     </MudCardActions>
 </MudCard>
 @code {
+
+
+
     protected Student student = new();
     protected List<StudentAssignmentAnswer> studentAssignmentAnswers = new();
     protected List<AssignmentQuestion> Questions = new();
@@ -79,7 +103,21 @@
         await GetAssignmentQuestions(LessonService.assignmentID);
         isLoading = false;
     }
-
+    protected async Task SubmitResult()
+    {
+        foreach (var item in studentAssignmentAnswers)
+        {
+            if (item.isCorrect == true)
+            {
+                item.MarksObtained = Questions.Where(x => x.QuestionID == item.QuestionID).Select(c => c.MaxMarks).FirstOrDefault();
+            }
+            else{
+                item.MarksObtained = 0;
+            }
+        }
+        var service = _genericService.GetService<List<StudentAssignmentAnswer>>();
+       
+    }
     protected async Task GetStudentDetails()
     {
         var result = _genericService.GetService<Student>();
@@ -99,6 +137,10 @@
         foreach (var item in studentAssignmentAnswers)
         {
             item.Question = Questions.Where(x => x.QuestionID == item.QuestionID).FirstOrDefault();
+
+            item.isCorrect = false;
+
+            item.isWrong = false;
         }
     }
 }

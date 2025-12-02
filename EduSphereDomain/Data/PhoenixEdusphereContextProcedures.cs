@@ -47,6 +47,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetInitializationDataResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetLessonCountBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetLessonsBySchoolResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetLiveMeetingResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetMissedClassesForPastWeekResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetReportCardDetailsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetReportCardsByParentResult>().HasNoKey().ToView(null);
@@ -453,6 +454,33 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetLessonsBySchoolResult>("EXEC @returnValue = [dbo].[GetLessonsBySchool] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetLiveMeetingResult>> GetLiveMeetingAsync(string MeetingNumber, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "MeetingNumber",
+                    Size = 100,
+                    Value = MeetingNumber ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetLiveMeetingResult>("EXEC @returnValue = [dbo].[GetLiveMeeting] @MeetingNumber", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

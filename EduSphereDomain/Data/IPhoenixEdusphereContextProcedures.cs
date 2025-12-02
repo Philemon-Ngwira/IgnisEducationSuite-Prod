@@ -25,6 +25,7 @@ namespace EduSphereDomain.Data
         Task<List<GetInitializationDataResult>> GetInitializationDataAsync(string UserId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetLessonCountBySchoolResult>> GetLessonCountBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetLessonsBySchoolResult>> GetLessonsBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetLiveMeetingResult>> GetLiveMeetingAsync(string MeetingNumber, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetMissedClassesForPastWeekResult>> GetMissedClassesForPastWeekAsync(string StudentID, string ParentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetReportCardDetailsResult>> GetReportCardDetailsAsync(Guid? ReportCardID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetReportCardsByParentResult>> GetReportCardsByParentAsync(string parentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);

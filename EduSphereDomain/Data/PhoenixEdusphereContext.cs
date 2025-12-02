@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using EduSphereDomain.Models;
-using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -74,6 +73,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<LessonMedium> LessonMedia { get; set; }
 
+    public virtual DbSet<LiveMeeting> LiveMeetings { get; set; }
+
     public virtual DbSet<MultipleChoiceAssignmentAnswer> MultipleChoiceAssignmentAnswers { get; set; }
 
     public virtual DbSet<Notification> Notifications { get; set; }
@@ -112,9 +113,9 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<TimeSlot> TimeSlots { get; set; }
 
-    public virtual DbSet<UserActivity> UserActivities { get; set; }
+    public virtual DbSet<EDUSphereSharedProject.AchievementModels.UserActivity> UserActivities { get; set; }
 
-    public virtual DbSet<UserBadge> UserBadges { get; set; }
+    public virtual DbSet<EDUSphereSharedProject.AchievementModels.UserBadge> UserBadges { get; set; }
 
     public virtual DbSet<WorldCity> WorldCities { get; set; }
 
@@ -590,6 +591,24 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.Url).IsUnicode(false);
         });
 
+        modelBuilder.Entity<LiveMeeting>(entity =>
+        {
+            entity.HasKey(e => e.MeetingID);
+
+            entity.Property(e => e.MeetingID).ValueGeneratedNever();
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.CreatorEmail)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.MeetingNumber)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.MeetingPassword)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.ScheduledDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<MultipleChoiceAssignmentAnswer>(entity =>
         {
             entity.HasKey(e => e.MultipleChoiceID);
@@ -910,7 +929,7 @@ public partial class PhoenixEdusphereContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<UserActivity>(entity =>
+        modelBuilder.Entity<EDUSphereSharedProject.AchievementModels.UserActivity>(entity =>
         {
             entity.HasKey(e => e.ActivityId);
 
@@ -923,7 +942,7 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.UserId).HasMaxLength(255);
         });
 
-        modelBuilder.Entity<UserBadge>(entity =>
+        modelBuilder.Entity<EDUSphereSharedProject.AchievementModels.UserBadge>(entity =>
         {
             entity.Property(e => e.UserBadgeID).ValueGeneratedNever();
             entity.Property(e => e.DateEarned).HasColumnType("datetime");

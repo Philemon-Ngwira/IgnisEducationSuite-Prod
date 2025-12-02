@@ -113,6 +113,7 @@ namespace IgnisEducationSuite
             builder.Services.AddSingleton<AppState>();
             builder.Services.AddScoped<ILessonMediaClientService, LessonMediaClientService>();
             builder.Services.AddScoped<LessonMediaService>();
+            builder.Services.AddScoped<ZoomService>();
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory
 
             builder.Services.AddSingleton<IConverter>(new SynchronizedConverter(new PdfTools()));

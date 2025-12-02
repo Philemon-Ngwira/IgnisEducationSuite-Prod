@@ -1,0 +1,69 @@
+﻿@page "/liveclass/{MeetingNumber}/{Password}"
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+
+<h3>Connecting to live class…</h3>
+
+<div id="zmmtg-root"></div>
+<div id="aria-notify-area"></div>
+
+@code {
+    [Parameter] public string MeetingNumber { get; set; }
+    [Parameter] public string Password { get; set; }
+    [Inject] LessonService lessonService { get; set; } = default!;
+    private string sdkKey = Environment.GetEnvironmentVariable("ZoomSdkKey");
+    private string sdkSecret = Environment.GetEnvironmentVariable("ZoomSdkSecret");
+
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        int role = 0; // 0 = attendee, 1 = host
+        var meeting = await GetMeeting();
+        if (meeting == null)
+        {
+            // Handle meeting not found
+            Console.WriteLine("Meeting not found.");
+            return;
+        }
+        if (meeting.CreatorEmail == AppState.UserEmail)
+        {
+            role = 1;
+        }
+        else
+        {
+            role = 0;
+        }
+        var sigRequest = new
+        {
+            SdkKey = string.Empty,
+            SdkSecret = string.Empty,
+            MeetingNumber = MeetingNumber,
+            Role = role // 0 = attendee, 1 = host
+        };
+
+        var response = await HttpClient.PostAsJsonAsync("api/Zoom/signature", sigRequest);
+        var result = await response.Content.ReadFromJsonAsync<SignatureResponse>();
+
+        await JS.InvokeVoidAsync("ZoomInterop.init",
+            result.signature,
+            MeetingNumber,
+            "Student",
+            result.SdkKey,
+            Password
+        );
+    }
+    public async Task<LiveMeeting> GetMeeting()
+    {
+        var service = GenericService.GetService<LiveMeeting>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetMeetingData/{MeetingNumber}", true);
+        return result.Data.FirstOrDefault()!;
+    }
+    public class SignatureResponse
+    {
+        public string signature { get; set; }
+        public string SdkKey { get; set; }
+        public string SdkSecret { get; set; }
+    }
+}

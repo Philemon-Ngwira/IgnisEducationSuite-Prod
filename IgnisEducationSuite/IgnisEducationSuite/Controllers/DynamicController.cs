@@ -551,6 +551,7 @@ namespace IgnisEducationSuite.Controllers
                 "assignmentmultiplechoices" => GetRepository<MultipleChoiceAssignmentAnswer>(),
                 "exammultiplechoices" => GetRepository<ExamTestQuizMultipleChoiceAnswer>(),
                 "lessonmedia" => GetRepository<LessonMedium>(),
+                "livemeeting" => GetRepository<LiveMeeting>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -599,6 +600,7 @@ namespace IgnisEducationSuite.Controllers
                 "assignmentmultiplechoices" => JsonSerializer.Deserialize<MultipleChoiceAssignmentAnswer>(obj.ToString()),
                 "exammultiplechoices" => JsonSerializer.Deserialize<ExamTestQuizMultipleChoiceAnswer>(obj.ToString()),
                 "lessonmedia" => JsonSerializer.Deserialize<LessonMedium>(obj.ToString()),
+                "livemeeting" => JsonSerializer.Deserialize<LiveMeeting>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -613,6 +615,12 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetLicenseByCompany(Guid companyId)
         {
             var result = await _licenseService.GetCompanyLicense(companyId);
+            return Ok(result);
+        }
+        [HttpGet("GetMeetingData/{MeetingID}")]
+        public async Task<IActionResult> GetMeetingData(string MeetingID)
+        {
+            var result = await _repository.GetMeetingsAsync(MeetingID);
             return Ok(result);
         }
         #endregion

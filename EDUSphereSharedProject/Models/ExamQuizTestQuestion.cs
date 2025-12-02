@@ -21,7 +21,7 @@ public partial class ExamQuizTestQuestion
     public string Options { get; set; }
 
     public string CorrectAnswer { get; set; }
-    public bool isMultipleChoice { get; set; }
+
     public virtual ExamQuizTestHeader ExamQuiz { get; set; }
 
     public virtual ICollection<ExamTestQuizMultipleChoiceAnswer> ExamTestQuizMultipleChoiceAnswers { get; set; } = new List<ExamTestQuizMultipleChoiceAnswer>();
@@ -29,4 +29,6 @@ public partial class ExamQuizTestQuestion
     public virtual ICollection<StudentExamQuizAndTestAnswer> StudentExamQuizAndTestAnswers { get; set; } = new List<StudentExamQuizAndTestAnswer>();
     [NotMapped]
     public int? QuestionNumber { get; set; }
+    [NotMapped]
+    public bool isMultipleChoice { get; set; }
 }
