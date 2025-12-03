@@ -49,6 +49,8 @@ namespace IgnisEducationSuite.Client
             builder.Services.AddScoped<ILessonMediaClientService, LessonMediaClientService>();
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory
             builder.Services.AddSingleton<AppState>();
+            builder.Services.AddScoped<ZoomInteropBridge>();
+
 
             #endregion
 

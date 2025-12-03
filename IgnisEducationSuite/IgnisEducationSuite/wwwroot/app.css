@@ -19,6 +19,9 @@
     --info: #5C6BC0;
     --appbar-shadow: rgba(32, 10, 51, 0.15);
 }
+.hide-footer .footer {
+    display: none !important;
+}
 
 /* --- BASE BACKGROUND & TEXT --- */
 body {

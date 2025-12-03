@@ -114,6 +114,8 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<ILessonMediaClientService, LessonMediaClientService>();
             builder.Services.AddScoped<LessonMediaService>();
             builder.Services.AddScoped<ZoomService>();
+            builder.Services.AddScoped<ZoomInteropBridge>();
+
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory
 
             builder.Services.AddSingleton<IConverter>(new SynchronizedConverter(new PdfTools()));

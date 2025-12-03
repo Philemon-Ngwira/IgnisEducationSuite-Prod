@@ -78,7 +78,9 @@ namespace EduSphereDomain.Repositories
                 SchoolID = x.SchoolID,
                 SchoolName = x.SchoolName,
                 SchoolLogo = x.SchoolLogo,
-                HasplagerismEnaabled = x.HasplagerismEnaabled
+                HasplagerismEnaabled = x.HasplagerismEnaabled,
+                FirstName = x.FirstName,
+                LastName = x.LastName,
             });
         }
         public async Task<IEnumerable<LessonMedium>> GetLessonMedia(Guid Id)
