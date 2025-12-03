@@ -52,20 +52,20 @@
             <HeaderContent>
                 <MudTh>SubjectID</MudTh>
                 <MudTh>Subject</MudTh>
-                <MudTh>Grade</MudTh>
+                <MudTh>Academic Level</MudTh>
                 <MudTh>Section</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Nr">@context.ClassID</MudTd>
-                <MudTd DataLabel="Sign">@context.ClassName</MudTd>
-                <MudTd DataLabel="Sign">@context.Grade</MudTd>
+                <MudTd DataLabel="SubjectID">@context.ClassID</MudTd>
+                <MudTd DataLabel="Subject">@context.ClassName</MudTd>
+                <MudTd DataLabel="Level">@context.LevelName</MudTd>
                 @if (context.GradeSection != null)
                 {
-                    <MudTd DataLabel="Sign">@context.GradeSection</MudTd>
+                    <MudTd DataLabel="Section">@context.GradeSection</MudTd>
 
                 }
                 else{
-                    <MudTd DataLabel="Sign"><MudText>N/A</MudText></MudTd>
+                    <MudTd DataLabel="Section"><MudText>N/A</MudText></MudTd>
 
                 }
             </RowTemplate>
@@ -79,21 +79,21 @@
             <HeaderContent>
                 <MudTh>SubjectID</MudTh>
                 <MudTh>Subject</MudTh>
-                <MudTh>Grade</MudTh>
+                <MudTh>Academic Level</MudTh>
                 <MudTh>Section</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Nr">@context.ClassID</MudTd>
-                <MudTd DataLabel="Sign">@context.ClassName</MudTd>
-                <MudTd DataLabel="Sign">@context.Grade</MudTd>
+                <MudTd DataLabel="SubjectID">@context.ClassID</MudTd>
+                <MudTd DataLabel="Subject">@context.ClassName</MudTd>
+                <MudTd DataLabel="Level">@context.LevelName</MudTd>
                 @if (context.GradeSection != null)
                 {
-                    <MudTd DataLabel="Sign">@context.GradeSection</MudTd>
+                    <MudTd DataLabel="Section">@context.GradeSection</MudTd>
 
                 }
                 else
                 {
-                    <MudTd DataLabel="Sign"><MudText>N/A</MudText></MudTd>
+                    <MudTd DataLabel="Section"><MudText>N/A</MudText></MudTd>
 
                 }
             </RowTemplate>

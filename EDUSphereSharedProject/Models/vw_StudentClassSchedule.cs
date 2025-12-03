@@ -17,7 +17,7 @@ public partial class vw_StudentClassSchedule
 
     public string ClassName { get; set; }
 
-    public int? Grade { get; set; }
+    public int? AcademicLevel { get; set; }
 
     public string DayName { get; set; }
 

@@ -31,7 +31,7 @@ public partial class vw_StudentAttendanceSummary
 
     public DateTime? TermEndDate { get; set; }
 
-    public int? GradeLevel { get; set; }
+    public int? AcademicLevel { get; set; }
 
     public int? AttendanceCount { get; set; }
 }

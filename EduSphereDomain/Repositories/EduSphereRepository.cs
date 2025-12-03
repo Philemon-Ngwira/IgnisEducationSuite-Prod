@@ -45,6 +45,18 @@ namespace EduSphereDomain.Repositories
 
             }).ToList();
         }
+
+        public async Task<IEnumerable<AcademicLevel>> GetAcademicLevelsAsync(string SchoolID)
+        {
+            var result = await _contextProcedures.GetAcademicLevelsForSchoolAsync(Guid.Parse(SchoolID));
+            return result.Select(x => new AcademicLevel
+            {
+                AcademicLevelID = x.AcademicLevelID,
+                LevelInt = x.LevelInt,
+                LevelName = x.LevelName,
+                GroupName = x.GroupName,
+            }).ToList();
+        }
         public async Task<IEnumerable<Badge>> GetSystemBadges()
         {
             var result = await _achivementContext.Badges.ToListAsync();
@@ -400,7 +412,7 @@ namespace EduSphereDomain.Repositories
                     StudentID = item.StudentID,
                     FirstName = item.FirstName,
                     LastName = item.LastName,
-                    GradeLevel = item.GradeLevel,
+                    AcademicLevel = item.AcademicLevel,
                     ParentID = item.ParentID,
                     Gender = item.Gender,
                     Address = item.Address,
@@ -717,7 +729,7 @@ namespace EduSphereDomain.Repositories
                     StudentID = item.StudentID,
                     FirstName = item.FirstName,
                     LastName = item.LastName,
-                    GradeLevel = item.GradeLevel,
+                    GradeLevel = item.AcademicLevel,
                     Term = item.Term,
                     GPA = item.GPA,
                     IssuedDate = item.IssuedDate,
@@ -741,7 +753,7 @@ namespace EduSphereDomain.Repositories
                     StudentID = item.StudentID,
                     FirstName = item.FirstName,
                     LastName = item.LastName,
-                    GradeLevel = item.GradeLevel,
+                    GradeLevel = item.AcademicLevel,
                     Term = item.Term,
                     GPA = item.GPA,
                     IssuedDate = item.IssuedDate,
@@ -803,7 +815,7 @@ namespace EduSphereDomain.Repositories
                     ScheduleID = item.ScheduleID,
                     ClassName = item.ClassName,
                     DayName = item.DayName,
-                    Grade = item.Grade,
+                    Grade = item.AcademicLevel,
                     StartTime = item.StartTime,
                     EndTime = item.EndTime,
                     Description = item.Description,
@@ -942,7 +954,7 @@ namespace EduSphereDomain.Repositories
                     StartDate = item.StartDate,
                     EndDate = item.EndDate,
                     ClassName = item.ClassName,
-                    Grade = item.Grade
+                    Grade = item.AcademicLevel,
                 };
 
                 activeClassScheduleResults.Add(activeClassSchedule);

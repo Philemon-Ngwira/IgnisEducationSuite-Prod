@@ -40,8 +40,17 @@
                 </MudTextField>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="int?" @bind-Value="newStudent.GradeLevel" Label="Grade">
-                </MudTextField>
+                <MudSelect Variant="Variant.Outlined"
+                           T="int?"
+                           Label="Select Academic Level"
+                           @bind-Value="newStudent.AcademicLevel"
+                           Margin="Margin.Dense">
+                    @foreach (var a in academicLevels)
+                    {
+                        <MudSelectItem T="int?" Value="a.LevelInt">@a.LevelName</MudSelectItem>
+                    }
+                </MudSelect>
+
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newStudent.GradeSection" Label="Grade Section" Placeholder="Enter Section e.g For 10A Enter 'A'">
@@ -77,14 +86,14 @@
                     <PropertyColumn Property="x => x.LastName" />
                     <PropertyColumn Property="x => x.Gender" Title="Gender" />
                     <PropertyColumn Property="x => x.Address" />
-                    <PropertyColumn Property="x => x.GradeLevel" />
+                    <PropertyColumn Property="x => x.LevelName" />
                     <TemplateColumn CellClass="d-flex justify-end">
                         <CellTemplate>
                             <MudStack Row>
-                             <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="()=>ManageStudentDetailsAsync(context.Item)" Color="@Color.Primary">Manage</MudButton>
-                         </MudStack>
-                     </CellTemplate>
-                 </TemplateColumn>
+                                <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="() => ManageStudentDetailsAsync(context.Item)" Color="@Color.Primary">Manage</MudButton>
+                            </MudStack>
+                        </CellTemplate>
+                    </TemplateColumn>
                 }
                 else
                 {
@@ -96,6 +105,7 @@
 
 </MudCard>
 @code {
+
     protected Student newStudent = new();
     protected ClientAdmin clientAdmin = new();
     protected List<Student> Students = new();
@@ -180,6 +190,9 @@
         isLoading = true;
         newStudent.StudentID = Guid.NewGuid();
 
+        newStudent.LevelName = academicLevels.Where(a => a.LevelInt == newStudent.AcademicLevel)
+                                .Select(s => s.LevelName)
+                                .FirstOrDefault();
         var result = _genericService.GetService<Student>();
         var service = await result.PostAsync("api/Dynamic/PostEntity", "student", newStudent);
         if (service.IsSuccess)
@@ -207,7 +220,7 @@
 
         var studentClasses = await GetStudentClasses(student.StudentID);
         var classesToSend = classes
-     .Where(x => x.Grade == student.GradeLevel
+     .Where(x => x.AcademicLevel == student.AcademicLevel
                  && !studentClasses.Any(s => s.ClassID == x.ClassID))
      .ToList();
 

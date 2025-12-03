@@ -11,7 +11,7 @@ namespace EduSphereDomain.Models
         public Guid? StudentID { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public int? GradeLevel { get; set; }
+        public int? AcademicLevel { get; set; }
         public string Term { get; set; }
         [Column(TypeName = "decimal(4,2)")]
         public decimal? GPA { get; set; }

@@ -43,10 +43,10 @@
                         <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Exam Date" @bind-Date="_date" />
                     </MudItem>
                     <MudItem xs="12" md="6">
-                        <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeconverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeConverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var item in vw_Classes)
                             {
-                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.Grade @item.ClassName</MudSelectItem>
+                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.AcademicLevel @item.ClassName</MudSelectItem>
 
                             }
                         </MudSelect>
@@ -135,10 +135,10 @@
                         <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Test Date" @bind-Date="_date" />
                     </MudItem>
                     <MudItem xs="12" md="6">
-                        <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeconverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeConverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var item in vw_Classes)
                             {
-                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.Grade @item.ClassName</MudSelectItem>
+                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.AcademicLevel @item.ClassName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
@@ -226,10 +226,10 @@
                         <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Quiz Date" @bind-Date="_date" />
                     </MudItem>
                     <MudItem xs="12" md="6">
-                        <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeconverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeConverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var item in vw_Classes)
                             {
-                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.Grade @item.ClassName</MudSelectItem>
+                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.AcademicLevel @item.ClassName</MudSelectItem>
 
                             }
                         </MudSelect>
@@ -607,6 +607,19 @@
 
     #region To String Func
 
-    protected Func<vw_ClassTeacherDetail, string> ClassTypeconverter = p => p?.ClassName + " " + (p?.Grade);
+    protected Func<Class, string> ClassTypeConverter = p =>
+   {
+       if (p == null)
+       {
+           return "";
+       }
+
+       var className = p.ClassName ?? "";
+       var teacherFirstName = p.Teacher?.FirstName ?? "";
+       var teacherLastName = p.Teacher?.LastName ?? "Teacher";
+       var gradeName = p.LevelName ?? "";
+
+       return $"{className}:{gradeName},{teacherFirstName.Substring(0, 1)}.{teacherLastName}";
+   };
     #endregion
 }

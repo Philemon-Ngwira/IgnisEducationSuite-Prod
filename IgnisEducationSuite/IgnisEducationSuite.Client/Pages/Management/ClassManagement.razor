@@ -27,10 +27,19 @@
         <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Class" Variant="Variant.Filled">Create New Class</MudAlert>
         <MudGrid Class="mb-3">
             <MudItem xs="12" md="6">
-                <MudTextField T="string" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.ClassName" Label="Enter Class Name" ></MudTextField>
+                <MudTextField T="string" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.ClassName" Label="Enter Class Name"></MudTextField>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudNumericField T="int?" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.Grade" Label="Enter Grade Level"></MudNumericField>
+                <MudSelect Variant="Variant.Outlined"
+                           T="int?"
+                           Label="Select Academic Level"
+                           @bind-Value="newClass.AcademicLevel"
+                           Margin="Margin.Dense">
+                    @foreach (var a in academicLevels)
+                    {
+                        <MudSelectItem T="int?" Value="a.LevelInt">@a.LevelName</MudSelectItem>
+                    }
+                </MudSelect>
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField T="string" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.GradeSection" Label="Enter Grade Section" Placeholder="Enter Section e.g For 10A Enter 'A'"></MudTextField>
@@ -41,28 +50,28 @@
                                  CoerceText="true" CoerceValue="true"
                                  AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
             </MudItem>
-             <MudItem xs="12">
-                 <MudButton  Variant="Variant.Filled" Color="Color.Primary" OnClick="AddNewClass" >Add Class</MudButton>
-             </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddNewClass">Add Class</MudButton>
+            </MudItem>
         </MudGrid>
         <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
         <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Class" Variant="Variant.Filled">Available classes</MudAlert>
 
-        <MudDataGrid Items="classes" Filterable="false"  SortMode="@SortMode.Multiple" Groupable="false">
+        <MudDataGrid Items="classes" Filterable="false" SortMode="@SortMode.Multiple" Groupable="false">
             <Columns>
                 @if (classes.Any())
                 {
                     <PropertyColumn Property="x => x.Teacher.FirstName" />
                     <PropertyColumn Property="x => x.Teacher.LastName" />
                     <PropertyColumn Property="x => x.ClassName" />
-                    <PropertyColumn Property="x => x.Grade"  />
+                    <PropertyColumn Property="x => x.LevelName" />
                     <TemplateColumn CellClass="d-flex justify-end">
                         <CellTemplate>
                             <MudStack Row>
-                             <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Manage</MudButton>
-                         </MudStack>
-                     </CellTemplate>
-                 </TemplateColumn>
+                                <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Manage</MudButton>
+                            </MudStack>
+                        </CellTemplate>
+                    </TemplateColumn>
                 }
                 else
                 {
@@ -74,6 +83,7 @@
 </MudCard>
 
 @code {
+
     protected bool isLoading = false;
     protected Class newClass = new();
     protected Teacher teacherSelected = new();
@@ -90,7 +100,7 @@
         await GetLoggedInAdmin();
         await GetTeachers();
         await GetClasses();
-      
+
 
         isLoading = false;
     }
@@ -111,15 +121,16 @@
         foreach (var item in classes)
         {
             item.Teacher = teachers.Where(x => x.TeacherID == item.TeacherID).FirstOrDefault();
+
         }
 
     }
     protected async Task GetLoggedInAdmin()
     {
         string UserID = string.Empty;
-       
-            UserID = _appState.UserID;
-        
+
+        UserID = _appState.UserID;
+
         if (UserID != string.Empty || UserID != null)
         {
             var service = _genericService.GetService<ClientAdmin>();
@@ -142,6 +153,9 @@
             newClass.Teacher = null;
         }
         newClass.SChoolID = loggedInAdmin.SchoolID;
+
+        newClass.LevelName = academicLevels.Where(c => c.LevelInt == newClass.AcademicLevel)
+        .Select(x => x.LevelName).FirstOrDefault();
         var service = _genericService.GetService<Class>();
         var result = await service.PostAsync("api/Dynamic/PostEntity", "class", newClass);
         if (result.IsSuccess)
@@ -159,7 +173,7 @@
     }
     private async Task<IEnumerable<Teacher>> Search2(string value, CancellationToken token)
     {
-       
+
         if (string.IsNullOrEmpty(value))
             return new List<Teacher>();
         return teachers.Where(x => x.FirstName.Contains(value, StringComparison.InvariantCultureIgnoreCase) || x.LastName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
@@ -167,6 +181,6 @@
 
     #region To String Func
 
-    protected Func<Teacher, string> TeacherTypeconverter = p => p?.FirstName+ " "+p?.LastName;
+    protected Func<Teacher, string> TeacherTypeconverter = p => p?.FirstName + " " + p?.LastName;
     #endregion
 }

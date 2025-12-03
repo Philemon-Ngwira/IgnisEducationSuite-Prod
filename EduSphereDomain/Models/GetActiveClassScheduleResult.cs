@@ -16,6 +16,6 @@ namespace EduSphereDomain.Models
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string ClassName { get; set; }
-        public int? Grade { get; set; }
+        public int? AcademicLevel { get; set; }
     }
 }

@@ -35,7 +35,7 @@
                 <MudText Align="Align.Left"><b>Name: @newReportCard.Student.FirstName @student.LastName</b></MudText>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudText Align="Align.Left"><b>Grade: @newReportCard.Student.GradeLevel</b></MudText>
+                <MudText Align="Align.Left"><b>Grade: @newReportCard.Student.LevelName</b></MudText>
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudText Align="Align.Left"><b>StudentID: @newReportCard.Student.StudentNumber</b></MudText>
@@ -112,7 +112,7 @@
         newReportCard.Student = null;
         newReportCard.TermStartDate = _dateRangeTerm.Start;
         newReportCard.TermEndDate = _dateRangeTerm.End;
-        newReportCard.GradeLevel = student.GradeLevel;
+        newReportCard.AcademicLevel = student.AcademicLevel;
         List<double> subjectGPAs = new();
         subjectGPAs = reporCardDetails.Select(x => ((double)x.GPA.Value)).ToList();
         newReportCard.GPA = (decimal?)CalculateFinalGPA(subjectGPAs);

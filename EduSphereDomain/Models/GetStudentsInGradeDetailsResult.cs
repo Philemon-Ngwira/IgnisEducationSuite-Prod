@@ -10,7 +10,7 @@ namespace EduSphereDomain.Models
         public Guid StudentID { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public int? GradeLevel { get; set; }
+        public int? AcademicLevel { get; set; }
         public Guid? ParentID { get; set; }
         public string Gender { get; set; }
         public string Address { get; set; }

@@ -11,7 +11,7 @@ namespace EduSphereDomain.Models
         public Guid? StudentID { get; set; }
         public Guid? ScheduleID { get; set; }
         public string ClassName { get; set; }
-        public int? Grade { get; set; }
+        public int? AcademicLevel { get; set; }
         public string DayName { get; set; }
         public Guid TimeslotID { get; set; }
         public TimeSpan? StartTime { get; set; }

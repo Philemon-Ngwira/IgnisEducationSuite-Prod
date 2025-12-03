@@ -37,6 +37,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<CheckStudentNumberExistsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<DeactivateAndCleanSchedulesResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GenerateStudentAttendanceResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetAcademicLevelsForSchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetActiveClassScheduleResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetAttendanceByTeacherAndDateResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetAttendanceSummaryResult>().HasNoKey().ToView(null);
@@ -147,6 +148,32 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GenerateStudentAttendanceResult>("EXEC @returnValue = [dbo].[GenerateStudentAttendance]", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetAcademicLevelsForSchoolResult>> GetAcademicLevelsForSchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetAcademicLevelsForSchoolResult>("EXEC @returnValue = [dbo].[GetAcademicLevelsForSchool] @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

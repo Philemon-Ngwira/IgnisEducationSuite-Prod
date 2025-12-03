@@ -623,6 +623,12 @@ namespace IgnisEducationSuite.Controllers
             var result = await _repository.GetMeetingsAsync(MeetingID);
             return Ok(result);
         }
+        [HttpGet("GetSchoolAcademicStructure/{schoolID}")]
+        public async Task<IActionResult> GetAcademicLevel(string schoolID)
+        {
+            var result = await _repository.GetAcademicLevelsAsync(schoolID);
+            return Ok(result);
+        }
         #endregion
     }
 }

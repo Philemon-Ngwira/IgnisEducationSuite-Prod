@@ -12,6 +12,8 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public int? GradeLevel { get; set; }
+
+        public string LevelName { get; set; }
         public string Term { get; set; }
         [Column(TypeName = "decimal(4,2)")]
         public decimal? GPA { get; set; }

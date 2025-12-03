@@ -1,5 +1,6 @@
 ﻿@using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.Models.StoreProModels
+@inherits AppBaseComponent
 <MudDialog>
     <DialogContent>
         @if (isLoading)
@@ -50,7 +51,7 @@
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudText>Grade: <b>@selectedStudent.GradeLevel</b></MudText>
+                <MudText>Grade: <b>@selectedStudent.AcademicLevel</b></MudText>
             </MudItem>
             <MudItem xs="12" md="6">
                 @if (selectedStudent.StudentNumber == null)
@@ -67,9 +68,17 @@
                 }
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudNumericField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Change Grade Level" @bind-Value="selectedStudent.GradeLevel"></MudNumericField>
-            </MudItem>
+                <MudSelect Variant="Variant.Outlined"
+                           T="int?"
+                           @bind-Value="selectedStudent.AcademicLevel"
+                           Label="Change Academic Level">
+                    @foreach (var a in academicLevels)
+                    {
+                        <MudSelectItem T="AcademicLevel" Value="a">@a.LevelName</MudSelectItem>
+                    }
+                </MudSelect>
 
+            </MudItem>
             <MudItem xs="12" md="6">
                 <MudSelect Variant="Variant.Outlined" Margin="Margin.Dense" T="Class" ToStringFunc="ClassTypeconverter" Label="Assign Classes to Student" MultiSelection="true" @bind-Value="value" @bind-SelectedValues="options">
                     @foreach (var c in classes)
@@ -96,35 +105,35 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="ID">@context.ClassID</MudTd>
-                            <MudTd DataLabel="ClassName">@context.ClassName</MudTd>
-                            <MudTd DataLabel="Teacher">@context.Teacher</MudTd>
-                            <MudTd DataLabel="Action">
-                                <MudButton Variant="Variant.Filled" Color="Color.Error" EndIcon="@Icons.Material.Filled.Delete">Un-Assign Class</MudButton>
-                            </MudTd>
-                        </RowTemplate>
-                    </MudTable>
-                </MudItem>
-            </MudGrid>
-        </DialogContent>
-    </MudDialog>
-    <style>
-        /* Profile Picture Styles */
-        .profile-pic {
-            border-radius: 10px; /* Rounded corners */
-            border: 3px solid #ccc; /* Gray border */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-            object-fit: cover; /* Ensures the image scales nicely within the square */
-            display: block; /* Useful if nested inside flex or grid */
+                        <MudTd DataLabel="ClassName">@context.ClassName</MudTd>
+                        <MudTd DataLabel="Teacher">@context.Teacher</MudTd>
+                        <MudTd DataLabel="Action">
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" EndIcon="@Icons.Material.Filled.Delete">Un-Assign Class</MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+</MudDialog>
+<style>
+    /* Profile Picture Styles */
+    .profile-pic {
+        border-radius: 10px; /* Rounded corners */
+        border: 3px solid #ccc; /* Gray border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        object-fit: cover; /* Ensures the image scales nicely within the square */
+        display: block; /* Useful if nested inside flex or grid */
+    }
+
+        /* Add hover effect */
+        .profile-pic:hover {
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow on hover */
+            transition: box-shadow 0.3s ease; /* Smooth shadow change */
         }
 
-            /* Add hover effect */
-            .profile-pic:hover {
-                box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow on hover */
-                transition: box-shadow 0.3s ease; /* Smooth shadow change */
-            }
-
-    </style>
-    @code {
+</style>
+@code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     protected bool isLoading = false;
     [Parameter] public Student selectedStudent { get; set; } = new();
@@ -146,11 +155,11 @@
             foreach (var item in options)
             {
                 StudentClass studentClass = new()
-                    {
-                        StudentClassID = Guid.NewGuid(),
-                        StudentID = selectedStudent.StudentID,
-                        ClassID = item.ClassID
-                    };
+                {
+                    StudentClassID = Guid.NewGuid(),
+                    StudentID = selectedStudent.StudentID,
+                    ClassID = item.ClassID
+                };
                 studentClassesToAdd.Add(studentClass);
             }
 

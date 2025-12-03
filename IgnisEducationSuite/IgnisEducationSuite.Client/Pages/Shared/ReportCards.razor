@@ -31,7 +31,7 @@
                     <Columns>
                         <PropertyColumn Property="x => x.FirstName" />
                         <PropertyColumn Property="x => x.LastName" />
-                        <PropertyColumn Property="x => x.GradeLevel" Title="Grade" />
+                        <PropertyColumn Property="x => x.LevelName" Title="Grade" />
                         <PropertyColumn Property="x => x.GPA" />
                         <PropertyColumn Property="x => x.IssuedDate.Value.ToShortDateString()" />
                         <PropertyColumn Property="x => x.TermStartDate.Value.ToShortDateString()" Title="Term Start" />
@@ -97,6 +97,7 @@
             if (result.IsSuccess)
             {
                 studentResults = result.Data.ToList();
+
             }
         }
         else
@@ -106,6 +107,10 @@
             {
                 studentResults = result.Data.ToList();
             }
+        }
+        foreach (var item in studentResults)
+        {
+            item.LevelName = academicLevels.Where(x => x.LevelInt == item.GradeLevel).Select(s => s.LevelName).First();
         }
     }
 

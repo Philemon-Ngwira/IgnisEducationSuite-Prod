@@ -1,5 +1,5 @@
 ﻿﻿@using EDUSphereSharedProject.Models.StoreProModels
-
+@inherits AppBaseComponent
 <MudDialog>
     <DialogContent>
         @if (isLoading)
@@ -18,8 +18,8 @@
         <div class="dialog-container">
             <div class="report-card">
                 <div class="header">
-                    <img src="/images/LogoW.png" alt="School Logo" />
-                    <h1>Ignis Education Suite</h1>
+                    <img src="@($"data:image/jpeg;base64, {AppState.SchoolLogo}")" alt="School Logo" />
+                    <h4>@AppState.SchoolName</h4>
                     <p>Phone: +260760581058</p>
                     <p>Email: philtiara.enterprises@gmail.com</p>
                     <p>Website: www.philtiara.com</p>
@@ -34,7 +34,7 @@
                         </tr>
                         <tr>
                             <th>Grade Level:</th>
-                            <td id="gradeLevel">@student.GradeLevel</td>
+                            <td id="gradeLevel">@student.LevelName</td>
                             <th>GPA:</th>
                             <td id="overallGrade">@student.GPA</td>
                         </tr>

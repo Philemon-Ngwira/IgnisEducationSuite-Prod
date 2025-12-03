@@ -36,7 +36,7 @@
                 <MudTextField Variant="Variant.Outlined" T="string" @bind-Value="newAssignment.Description" Label="Assignment Description" Margin="Margin.Dense"></MudTextField>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeconverter" SearchFunc="@Search"
+                <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
                                  ResetValueOnEmptyText="true"
                                  CoerceText="true" CoerceValue="true"
                                  AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
@@ -307,6 +307,11 @@
         foreach (var item in filteredClasses)
         {
             item.Teacher = teacher;
+            if (string.IsNullOrEmpty(item.LevelName))
+            {
+                item.LevelName = academicLevels.Where(x => x.LevelInt == item.AcademicLevel)
+                                .Select(a => a.LevelName).First();
+            }
             classes.Add(item);
         }
     }
@@ -342,7 +347,21 @@
 
     #region To String Func
 
-    protected Func<Class, string> ClassTypeconverter = p => p?.ClassName + " " + (p?.Teacher.FirstName + " " + p?.Teacher.LastName);
+    protected Func<Class, string> ClassTypeConverter = p =>
+   {
+       if (p == null)
+       {
+           return "";
+       }
+
+       var className = p.ClassName ?? "";
+       var teacherFirstName = p.Teacher?.FirstName ?? "";
+       var teacherLastName = p.Teacher?.LastName ?? "Teacher";
+       var gradeName = p.LevelName ?? "";
+
+       return $"{className}:{gradeName},{teacherFirstName.Substring(0, 1)}.{teacherLastName}";
+   };
+
     #endregion
     protected async Task AddmanualQuestion()
     {

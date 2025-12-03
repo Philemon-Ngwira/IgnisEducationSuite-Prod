@@ -407,6 +407,11 @@
         foreach (var item in filteredClasses)
         {
             item.Teacher = teacher;
+            if (string.IsNullOrEmpty(item.LevelName))
+            {
+                item.LevelName = academicLevels.Where(x => x.LevelInt == item.AcademicLevel)
+                                .Select(a => a.LevelName).First();
+            }
             classes.Add(item);
         }
 
@@ -685,14 +690,15 @@ Write the best possible educational lesson.
     {
         if (p == null)
         {
-            return "Unknown Class";
+            return "";
         }
 
-        var className = p.ClassName ?? "Unknown Class";
-        var teacherFirstName = p.Teacher?.FirstName ?? "Unknown";
+        var className = p.ClassName ?? "";
+        var teacherFirstName = p.Teacher?.FirstName ?? "";
         var teacherLastName = p.Teacher?.LastName ?? "Teacher";
+        var gradeName = p.LevelName ?? "";
 
-        return $"{className} {teacherFirstName} {teacherLastName}";
+        return $"{className}:{gradeName},{teacherFirstName.Substring(0, 1)}.{teacherLastName}";
     };
 
     #endregion

@@ -15,6 +15,7 @@ namespace EduSphereDomain.Data
         Task<List<CheckStudentNumberExistsResult>> CheckStudentNumberExistsAsync(string StudentNumber, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<DeactivateAndCleanSchedulesResult>> DeactivateAndCleanSchedulesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GenerateStudentAttendanceResult>> GenerateStudentAttendanceAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetAcademicLevelsForSchoolResult>> GetAcademicLevelsForSchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetActiveClassScheduleResult>> GetActiveClassScheduleAsync(int? Grade, string SchoolID, string ClassSection, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetAttendanceByTeacherAndDateResult>> GetAttendanceByTeacherAndDateAsync(string TeacherID, DateTime? AttendanceDate, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetAttendanceSummaryResult>> GetAttendanceSummaryAsync(Guid? StudentID, DateTime? TermStartDate, DateTime? TermEndDate, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);

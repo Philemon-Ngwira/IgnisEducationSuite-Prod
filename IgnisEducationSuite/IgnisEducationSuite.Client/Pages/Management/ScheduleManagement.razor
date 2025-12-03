@@ -1,6 +1,7 @@
 ﻿@using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.Models.StoreProModels
 @using EDUSphereSharedProject.UniversalModels
+@using System.Net.Http.Headers
 @page "/ClassSchedules"
 <MudCard>
     <MudCardHeader>
@@ -86,7 +87,7 @@
                                             <td class="@((group.Any(cs => cs.DayOfTheWeek.DayName == day) ? "" : "empty"))">
                                                 @{
                                                     var schedule = group.FirstOrDefault(cs => cs.DayOfTheWeek.DayName == day);
-                                                    if (schedule != null && !string.IsNullOrWhiteSpace(schedule.Class.ClassName))
+                                                    if (schedule != null)
                                                     {
                                                         <span>@schedule.Class.ClassName</span>
                                                     }
@@ -96,7 +97,6 @@
                                                     }
                                                 }
                                             </td>
-
                                         }
                                     </tr>
                                 }
@@ -365,7 +365,14 @@
             if (file == null) return;
 
             using var content = new MultipartFormDataContent();
-            content.Add(new StreamContent(file.OpenReadStream()), "file", file.Name);
+
+            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+            // Important: Name MUST match the parameter name in the API (e.g., "file")
+            content.Add(fileContent, "file", file.Name);
+
+            content.Add(new StringContent(_appState.SchoolID.ToString()), "SchoolID");
 
             var absoluteUri = new Uri(new Uri(_navigationManager.BaseUri), "api/Upload/uploadSchedules");
             var response = await Http.PostAsync(absoluteUri, content);
@@ -443,9 +450,9 @@
 
             // Find class safely
             var matchedClass = classes
-                .FirstOrDefault(x => x.Grade == item.GradeLevel
+                .FirstOrDefault(x => x.AcademicLevel == item.GradeLevel
                                      && x.ClassName?.ToUpper().Contains(item.Class?.ToUpper() ?? "") == true)
-                ?? new Class { ClassName = "Unknown", Grade = item.GradeLevel };
+                ?? new Class { ClassName = "Unknown", AcademicLevel = item.GradeLevel };
 
             // Find day safely
             var matchedDay = daysofTheWeek

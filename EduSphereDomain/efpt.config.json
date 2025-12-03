@@ -15,6 +15,10 @@
    "SelectedToBeGenerated": 1,
    "Tables": [
       {
+         "Name": "[dbo].[AcademicLevels]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[AspNetRoleClaims]",
          "ObjectType": 0
       },
@@ -288,6 +292,10 @@
       },
       {
          "Name": "[dbo].[GenerateStudentAttendance]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[GetAcademicLevelsForSchool]",
          "ObjectType": 1
       },
       {

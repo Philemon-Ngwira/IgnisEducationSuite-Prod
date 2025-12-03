@@ -13,11 +13,13 @@ public partial class Class
 
     public Guid? TeacherID { get; set; }
 
-    public int? Grade { get; set; }
+    public int? AcademicLevel { get; set; }
 
     public Guid? SChoolID { get; set; }
 
     public string GradeSection { get; set; }
+
+    public string LevelName { get; set; }
 
     public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
 

@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using EduSphereDomain.Models;
+using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +15,8 @@ public partial class PhoenixEdusphereContext : DbContext
         : base(options)
     {
     }
+
+    public virtual DbSet<AcademicLevel> AcademicLevels { get; set; }
 
     public virtual DbSet<AspNetRole> AspNetRoles { get; set; }
 
@@ -113,9 +116,9 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<TimeSlot> TimeSlots { get; set; }
 
-    public virtual DbSet<EDUSphereSharedProject.AchievementModels.UserActivity> UserActivities { get; set; }
+    public virtual DbSet<UserActivity> UserActivities { get; set; }
 
-    public virtual DbSet<EDUSphereSharedProject.AchievementModels.UserBadge> UserBadges { get; set; }
+    public virtual DbSet<UserBadge> UserBadges { get; set; }
 
     public virtual DbSet<WorldCity> WorldCities { get; set; }
 
@@ -147,6 +150,19 @@ public partial class PhoenixEdusphereContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AcademicLevel>(entity =>
+        {
+            entity.Property(e => e.AcademicLevelID).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.GroupName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.LevelName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<AspNetRole>(entity =>
         {
             entity.HasIndex(e => e.NormalizedName, "RoleNameIndex")
@@ -337,6 +353,9 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.ClassID).HasDefaultValueSql("(newid())");
             entity.Property(e => e.ClassName).HasMaxLength(50);
             entity.Property(e => e.GradeSection).HasMaxLength(50);
+            entity.Property(e => e.LevelName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
 
             entity.HasOne(d => d.SChool).WithMany(p => p.Classes)
                 .HasForeignKey(d => d.SChoolID)
@@ -421,6 +440,9 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.DateCreated).HasColumnType("datetime");
+            entity.Property(e => e.LevelName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
 
             entity.HasOne(d => d.School).WithMany(p => p.Courses)
                 .HasForeignKey(d => d.SchoolID)
@@ -669,11 +691,27 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.HasKey(e => e.ReportCardID).HasName("PK__ReportCa__CBAAABBCD81269AE");
 
             entity.Property(e => e.ReportCardID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.ApprovalStatus)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.DeanName)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.DeansComment)
+                .HasMaxLength(255)
+                .IsUnicode(false);
             entity.Property(e => e.GPA).HasColumnType("decimal(4, 2)");
             entity.Property(e => e.GradeSection).HasMaxLength(50);
             entity.Property(e => e.IssuedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("date");
+            entity.Property(e => e.LevelName).HasMaxLength(50);
+            entity.Property(e => e.PrincipleName)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.PrinciplesComment)
+                .HasMaxLength(255)
+                .IsUnicode(false);
             entity.Property(e => e.Term).HasMaxLength(20);
             entity.Property(e => e.TermEndDate).HasColumnType("datetime");
             entity.Property(e => e.TermStartDate).HasColumnType("datetime");
@@ -722,6 +760,7 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.Gender).HasMaxLength(10);
             entity.Property(e => e.GradeSection).HasMaxLength(50);
             entity.Property(e => e.LastName).HasMaxLength(50);
+            entity.Property(e => e.LevelName).HasMaxLength(50);
             entity.Property(e => e.StudentNumber)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -929,7 +968,7 @@ public partial class PhoenixEdusphereContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<EDUSphereSharedProject.AchievementModels.UserActivity>(entity =>
+        modelBuilder.Entity<UserActivity>(entity =>
         {
             entity.HasKey(e => e.ActivityId);
 
@@ -942,7 +981,7 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.UserId).HasMaxLength(255);
         });
 
-        modelBuilder.Entity<EDUSphereSharedProject.AchievementModels.UserBadge>(entity =>
+        modelBuilder.Entity<UserBadge>(entity =>
         {
             entity.Property(e => e.UserBadgeID).ValueGeneratedNever();
             entity.Property(e => e.DateEarned).HasColumnType("datetime");

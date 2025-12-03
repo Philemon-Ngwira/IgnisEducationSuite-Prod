@@ -13,7 +13,7 @@ public partial class Student
 
     public string LastName { get; set; }
 
-    public int? GradeLevel { get; set; }
+    public int? AcademicLevel { get; set; }
 
     public Guid? ParentID { get; set; }
 
@@ -36,6 +36,8 @@ public partial class Student
     public Guid? SchoolID { get; set; }
 
     public string GradeSection { get; set; }
+
+    public string LevelName { get; set; }
 
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
 

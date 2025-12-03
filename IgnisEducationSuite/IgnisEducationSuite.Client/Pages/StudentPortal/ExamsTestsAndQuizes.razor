@@ -147,7 +147,7 @@
             if (students.Any())
             {
                 student = students.Where(x => x.UserID == UserID).FirstOrDefault();
-                await GetExamstestsAndQuizzes(student.GradeLevel);
+                await GetExamstestsAndQuizzes(student.AcademicLevel);
             }
         }
 

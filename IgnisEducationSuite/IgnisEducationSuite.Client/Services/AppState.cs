@@ -1,4 +1,5 @@
 ﻿using EDUSphereSharedProject.AchievementModels;
+using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.Client.Services;
@@ -28,6 +29,7 @@ public class AppState
     public List<UserActivity> UserActivities { get; set; } = new();
     public bool IsInitialized { get; private set; }
 
+    public List<AcademicLevel> academicLevels { get; set; } = new List<AcademicLevel>();
     public int newAssignmentsCount { get; private set; }
 
     public event Action OnChange;
@@ -86,6 +88,7 @@ public class AppState
 
             await LoadLicenseAsync(SchoolID);
             await LoadUserBadgesAndActivitiesAsync();
+            academicLevels = await getAcademicLevels();
             if (UserRole == "Student")
             {
                 await GetAssignments();
@@ -102,6 +105,16 @@ public class AppState
             Console.WriteLine($"[AppState] Initialization failed: {ex.Message}");
             return false;
         }
+    }
+    protected async Task<List<AcademicLevel>> getAcademicLevels()
+    {
+        var service = _genericService.GetService<AcademicLevel>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolAcademicStructure/{SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        return new List<AcademicLevel>();
     }
     protected async Task GetAssignments()
     {

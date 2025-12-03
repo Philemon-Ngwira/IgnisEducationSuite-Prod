@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Text;
+﻿using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Packaging;
+using EduSphereDomain.Repositories;
 using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.ServerServices;
+using Microsoft.AspNetCore.Mvc;
+using System.Text;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
-using ClosedXML.Excel;
 
 
 namespace IgnisEducationSuite.Controllers
@@ -15,10 +16,11 @@ namespace IgnisEducationSuite.Controllers
     public class UploadController : ControllerBase
     {
         private readonly PDFService _pDFService;
-
-        public UploadController(PDFService pDFService)
+        private readonly EduSphereRepository _repository;
+        public UploadController(PDFService pDFService, EduSphereRepository repository)
         {
             _pDFService = pDFService;
+            _repository = repository;
         }
         [HttpPost("uploadWord")]
         public async Task<IActionResult> UploadWordDocument(IFormFile file)
@@ -96,10 +98,11 @@ namespace IgnisEducationSuite.Controllers
 
         #region Excel
         [HttpPost("uploadSchedules")]
-        public async Task<IActionResult> Upload(IFormFile file)
+        public async Task<IActionResult> Upload([FromForm] IFormFile file,
+    [FromForm] string SchoolID)
         {
             var schedules = new List<ScheduleMappingClass>();
-
+            var schoolStructure = await _repository.GetAcademicLevelsAsync(SchoolID.ToString());
             if (file != null && file.Length > 0)
             {
                 using var stream = new MemoryStream();
@@ -120,7 +123,8 @@ namespace IgnisEducationSuite.Controllers
                     string endTimeStr = row.Cell(6).GetValue<string>()?.Trim() ?? "";
 
                     // Parse GradeLevel safely
-                    int.TryParse(gradeLevelStr, out int gradeLevel);
+                   
+                    var gradeLevel = schoolStructure.Where(x => x.LevelName.ToUpper() == gradeLevelStr.ToUpper()).Select(x => x.LevelInt).FirstOrDefault();
 
                     // Parse times safely
                     TimeSpan.TryParse(startTimeStr, out TimeSpan startTime);
@@ -129,7 +133,7 @@ namespace IgnisEducationSuite.Controllers
                     var schedule = new ScheduleMappingClass
                     {
                         Class = className,
-                        GradeLevel = gradeLevel,
+                        GradeLevel = (int)gradeLevel,
                         GradeSection = gradeSection,
                         Day = day,
                         StartTime = startTime.ToString(),

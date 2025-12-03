@@ -45,20 +45,30 @@
                     <MudTextField T="string" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.CourseName" Label="Course Name" Placeholder="Enter Course Name"></MudTextField>
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudTextField T="int?" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="@newCourse.Grade" Label="Course Grade" Placeholder="Enter Grade E.g. 8,9,10"></MudTextField>
+                    <MudSelect Variant="Variant.Outlined"
+                               T="int?"
+                               Label="Select Academic Level"
+                               @bind-Value="newCourse.AcademicLevel"
+                               Margin="Margin.Dense">
+                        @foreach (var a in academicLevels)
+                        {
+                            <MudSelectItem T="int?" Value="a.LevelInt">@a.LevelName</MudSelectItem>
+                        }
+                    </MudSelect>
+
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
-                    ResetValueOnEmptyText="true"
-                    CoerceText="true" CoerceValue="true"
-                    AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                         <ActivatorContent>
                             <MudFab Color="Color.Secondary"
-                            StartIcon="@Icons.Material.Filled.Image"
-                            Label="Upload Course Display Image" />
+                                    StartIcon="@Icons.Material.Filled.Image"
+                                    Label="Upload Course Display Image" />
                         </ActivatorContent>
                     </MudFileUpload>
                 </MudItem>
@@ -70,14 +80,14 @@
             {
                 <MudAlert Class="mb-3" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">Add Lessons To Course</MudAlert>
                 <MudDataGrid T="Lesson" MultiSelection="true" Items="@lessons" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter"
-                Hideable="true" SelectedItemsChanged="@SelectedItemsChanged">
+                             Hideable="true" SelectedItemsChanged="@SelectedItemsChanged">
                     <ToolBarContent>
                         <MudText Typo="Typo.h6">Your Lessons</MudText>
                         <MudSpacer />
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="FinishSavingLessons">Finish</MudButton>
                         <MudSpacer />
                         <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
-                        AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
                     </ToolBarContent>
                     <Columns>
                         <SelectColumn T="Lesson" />
@@ -100,7 +110,7 @@
             }
         </MudTabPanel>
         <MudTabPanel Text="Manage Courses">
-            <MudTable Items="@courses" Dense="true" Hover="true" Bordered="false" Striped="true" Filter="new Func<Course,bool>(FilterFunc1)">
+            <MudTable Items="@courses" Dense="true" Hover="true" Bordered="false" Striped="true" Filter="new Func<Course, bool>(FilterFunc1)">
                 <ToolBarContent>
                     <MudText Typo="Typo.h6">Your Courses</MudText>
                     <MudSpacer />
@@ -108,17 +118,17 @@
                 </ToolBarContent>
                 <HeaderContent>
                     <MudTh>Course Name</MudTh>
-                    <MudTh>Grade</MudTh>
+                    <MudTh>Academic Level</MudTh>
                     <MudTh>Date Created</MudTh>
                     <MudTh>Action</MudTh>
 
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Course Name">@context.CourseName</MudTd>
-                    <MudTd DataLabel="Grade">@context.Grade</MudTd>
+                    <MudTd DataLabel="Grade">@context.LevelName</MudTd>
                     <MudTd DataLabel="DateCreated">@context.DateCreated.Value.ToShortDateString()</MudTd>
                     <MudTd DataLabel="Action">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="()=>AddLessonsToCourse(context)">Select Course</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AddLessonsToCourse(context)">Select Course</MudButton>
                     </MudTd>
 
                 </RowTemplate>
@@ -132,14 +142,14 @@
                     <MudTabPanel Text="Add Lessons to Course">
                         <MudAlert Class="mb-3" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Normal">Add Lessons To Course</MudAlert>
                         <MudDataGrid T="Lesson" MultiSelection="true" Items="@lessons" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilter"
-                        Hideable="true" SelectedItemsChanged="@SelectedItemsChanged">
+                                     Hideable="true" SelectedItemsChanged="@SelectedItemsChanged">
                             <ToolBarContent>
                                 <MudText Typo="Typo.h6">Your Lessons</MudText>
                                 <MudSpacer />
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="FinishSavingLessons">Finish</MudButton>
                                 <MudSpacer />
                                 <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
-                                AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
                             </ToolBarContent>
                             <Columns>
                                 <SelectColumn T="Lesson" />
@@ -164,14 +174,14 @@
 
                         <MudAlert Class="mb-3" Variant="Variant.Filled" Icon="@Icons.Material.Filled.BookmarkAdd" Severity="Severity.Error">Remove Lessons From Course</MudAlert>
                         <MudDataGrid T="CourseDetail" MultiSelection="true" Items="@Containedcourselessons" SortMode="SortMode.Multiple" Filterable="true" QuickFilter="@_quickFilterRemove"
-                        Hideable="true" SelectedItemsChanged="@SelectedItemsChangedRemove">
+                                     Hideable="true" SelectedItemsChanged="@SelectedItemsChangedRemove">
                             <ToolBarContent>
                                 <MudText Typo="Typo.h6">Your Lessons</MudText>
                                 <MudSpacer />
                                 <MudButton Variant="Variant.Filled" Color="Color.Error" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="RemoveLessonFromCourse">Finish</MudButton>
                                 <MudSpacer />
                                 <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
-                                AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
                             </ToolBarContent>
                             <Columns>
                                 <SelectColumn T="CourseDetail" />
@@ -218,9 +228,9 @@
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     protected Course selectedCourse = new();
     protected Course newCourse = new()
-        {
-            CourseID = Guid.NewGuid()
-        };
+    {
+        CourseID = Guid.NewGuid()
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -302,12 +312,12 @@
             var courseID = newCourse ? this.newCourse.CourseID : selectedCourse.CourseID;
 
             var courseDetail = new CourseDetail
-                {
-                    CourseDetailID = Guid.NewGuid(),
-                    CourseID = courseID,
-                    LessonID = item.LessonID,
-                    DateAdded = DateTime.Now
-                };
+            {
+                CourseDetailID = Guid.NewGuid(),
+                CourseID = courseID,
+                LessonID = item.LessonID,
+                DateAdded = DateTime.Now
+            };
 
             if (!courselessons.Any(cd => cd.LessonID == courseDetail.LessonID && cd.CourseID == courseDetail.CourseID))
             {
@@ -387,9 +397,9 @@
         if (result.IsSuccess)
         {
             newCourse = new()
-                {
-                    CourseID = Guid.NewGuid()
-                };
+            {
+                CourseID = Guid.NewGuid()
+            };
             courselessons.Clear();
             selectedCourse = new();
             Containedcourselessons.Clear();
@@ -474,7 +484,7 @@
         }
 
         StateHasChanged();
-        
+
     }
     #region Auto Complete
     private async Task<IEnumerable<Class>> Search(string value, CancellationToken token)

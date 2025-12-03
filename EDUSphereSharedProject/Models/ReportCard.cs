@@ -21,11 +21,29 @@ public partial class ReportCard
 
     public DateTime? TermEndDate { get; set; }
 
-    public int? GradeLevel { get; set; }
+    public int? AcademicLevel { get; set; }
 
     public string GradeSection { get; set; }
 
     public Guid? SchoolID { get; set; }
+
+    public string LevelName { get; set; }
+
+    public int? PointsInBestSix { get; set; }
+
+    public int? MarksInBestSix { get; set; }
+
+    public int? PositionInClass { get; set; }
+
+    public string DeansComment { get; set; }
+
+    public string DeanName { get; set; }
+
+    public string PrinciplesComment { get; set; }
+
+    public string PrincipleName { get; set; }
+
+    public string ApprovalStatus { get; set; }
 
     public virtual ICollection<ReportCardDetail> ReportCardDetails { get; set; } = new List<ReportCardDetail>();
 
