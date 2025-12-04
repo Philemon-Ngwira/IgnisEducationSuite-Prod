@@ -390,36 +390,18 @@
 
             // Null-safe ordering & grouping
             groupedSchedules = classSchedules
-                .Where(cs => cs != null)
-                .Select(cs =>
-                {
-                    cs.TimeSlot ??= new TimeSlot { StartTime = TimeSpan.Zero, EndTime = TimeSpan.Zero };
-                    cs.DayOfTheWeek ??= new DayofTheWeek { DayName = "Unknown" };
-                    cs.Class ??= new Class { ClassName = "Unknown" };
-                    return cs;
-                })
-                .OrderBy(cs => dayOrder.IndexOf(cs.DayOfTheWeek.DayName))      // Order by day
-                .ThenBy(cs => cs.TimeSlot.StartTime ?? TimeSpan.Zero)          // Then by start time
-                .GroupBy(cs => cs.TimeSlot)                                    // Group by TimeSlot
-                .OrderBy(g => g.Key.StartTime ?? TimeSpan.Zero)                // Order groups by StartTime
-                .ToList();
+ .OrderBy(cs => dayOrder.IndexOf(cs.DayOfTheWeek.DayName)) // Order by day
+ .ThenBy(cs => cs.TimeSlot.StartTime)                     // Then by time
+ .GroupBy(cs => cs.TimeSlot)                              // Group by TimeSlot
+ .OrderBy(g => g.Key.StartTime);                          // Order groups by StartTime
 
-            // Re-order days safely
             var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
-                                       .ToDictionary(x => x.day, x => x.index);
+                       .ToDictionary(x => x.day, x => x.index);
 
-            daysofTheWeek = daysofTheWeek
-                .OrderBy(x => dayOrderDict.ContainsKey(x.DayName) ? dayOrderDict[x.DayName] : int.MaxValue)
-                .ToList();
-
-            // Set grade info safely
-            var firstSchedule = schedules.FirstOrDefault();
-            if (firstSchedule != null)
-            {
-                GradeLevel = $"{firstSchedule.GradeLevel}{firstSchedule.GradeSection}";
-                GradeInt = firstSchedule.GradeLevel;
-            }
-
+            var orderedDays = daysofTheWeek.OrderBy(x => dayOrderDict[x.DayName]).ToList();
+            daysofTheWeek = orderedDays;
+            GradeLevel = $"{schedules.Select(x => x.GradeLevel).FirstOrDefault()}{schedules.Select(x => x.GradeSection).FirstOrDefault()}";
+            GradeInt = schedules.Select(x => x.GradeLevel).FirstOrDefault();
             StateHasChanged();
         }
         catch (Exception ex)
@@ -435,48 +417,51 @@
 
     protected IEnumerable<ClassSchedule> CreateSchedules(List<ScheduleMappingClass> schedules)
     {
-        if (!Guid.TryParse(_appState.SchoolID, out var schoolId))
-        {
-            throw new Exception("Invalid SchoolID in AppState");
-        }
-
-        var schoolTimeSlots = timeSlots.Where(x => x.SchoolID == schoolId).ToList();
+        var SchoolTimeSlots = timeSlots
+            .Where(x => x.SchoolID == Guid.Parse(_appState.SchoolID))
+            .OrderBy(x => x.StartTime)
+            .ToList();
 
         foreach (var item in schedules)
         {
-            // Safe parsing of start and end times
-            TimeSpan.TryParse(item.StartTime, out var startTime);
-            TimeSpan.TryParse(item.EndTime, out var endTime);
+            var rowStart = TimeSpan.Parse(item.StartTime);
+            var rowEnd = TimeSpan.Parse(item.EndTime);
 
-            // Find class safely
-            var matchedClass = classes
-                .FirstOrDefault(x => x.AcademicLevel == item.GradeLevel
-                                     && x.ClassName?.ToUpper().Contains(item.Class?.ToUpper() ?? "") == true)
-                ?? new Class { ClassName = "Unknown", AcademicLevel = item.GradeLevel };
+            // Find *all* slots that fall inside this time range
+            var matchingSlots = SchoolTimeSlots
+                .Where(ts => ts.StartTime >= rowStart && ts.EndTime <= rowEnd)
+                .OrderBy(ts => ts.StartTime)
+                .ToList();
 
-            // Find day safely
-            var matchedDay = daysofTheWeek
-                .FirstOrDefault(x => x.DayName?.Equals(item.Day, StringComparison.OrdinalIgnoreCase) == true)
-                ?? new DayofTheWeek { DayName = item.Day ?? "Unknown" };
+            // If nothing matched, skip
+            if (!matchingSlots.Any())
+                continue;
 
-            // Find TimeSlot safely (closest match if exact match not found)
-            var matchedTimeSlot = schoolTimeSlots
-                .FirstOrDefault(ts => ts.StartTime == startTime && ts.EndTime == endTime)
-                ?? new TimeSlot { StartTime = startTime, EndTime = endTime };
-
-            var newClassSchedule = new ClassSchedule
+            // Create multiple class schedule entries
+            foreach (var slot in matchingSlots)
             {
-                ClassScheduleID = Guid.NewGuid(),
-                Class = matchedClass,
-                DayOfTheWeek = matchedDay,
-                TimeSlot = matchedTimeSlot,
-            };
+                ClassSchedule newClassSchedule = new()
+                {
+                    ClassScheduleID = Guid.NewGuid(),
+                    Class = classes
+                        .Where(x => x.AcademicLevel == item.GradeLevel &&
+                                    x.ClassName.ToUpper().Contains(item.Class.ToUpper()))
+                        .FirstOrDefault(),
 
-            classSchedules.Add(newClassSchedule);
+                    DayOfTheWeek = daysofTheWeek
+                        .Where(x => x.DayName.Contains(item.Day))
+                        .FirstOrDefault(),
+
+                    TimeSlot = slot
+                };
+
+                classSchedules.Add(newClassSchedule);
+            }
         }
 
         return classSchedules;
     }
+
 
 
     protected async Task AssignSchedule()

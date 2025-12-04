@@ -18,6 +18,7 @@ using IgnisEducationSuite.Client.Pages.Achievements.Interfaces;
 using IgnisEducationSuite.Client.Pages.Achievements.Services;
 using IgnisEducationSuite.Client.Pages.Achievements;
 using EduSphereDomain.AchievementData;
+using EduSphereDomain.ChatData;
 
 namespace IgnisEducationSuite
 {
@@ -63,6 +64,7 @@ namespace IgnisEducationSuite
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<PhoenixEdusphereContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<PhoenixEdusphereChatContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<MessagingContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<AchievementContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();

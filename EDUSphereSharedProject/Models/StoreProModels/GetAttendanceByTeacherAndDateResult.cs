@@ -16,5 +16,7 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string ClassName { get; set; }
+        public int? AcademicLevel { get; set; }
+        public string LevelName { get; set; }
     }
 }

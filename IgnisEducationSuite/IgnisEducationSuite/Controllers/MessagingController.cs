@@ -52,25 +52,26 @@ namespace IgnisEducationSuite.Controllers
 
                 // Fetch group chats
                 var groupChats = await _context.ChatMessages
-                    .Where(m => m.GroupName != null && (m.UserId == userId || m.ReciepientId == userId))
-                    .GroupBy(m => m.GroupName)
-                    .Select(g => new Chat
-                    {
-                        Reciepientid = g.OrderByDescending(m => m.Timestamp.Value)
-                        .Select(m => m.ReciepientId.ToString())
-                        .FirstOrDefault(),
+             .Where(m => !string.IsNullOrEmpty(m.GroupName))
+             .GroupBy(m => m.GroupName)
+             .Select(g => new Chat
+             {
+                 Reciepientid = null, // No single recipient for groups
 
-                        Name = g.Key, // Group name
-                        IsGroup = true,
-                        ProfilePic = new byte[0], // Assuming a default profile pic for groups
-                        LastMessage = g.OrderByDescending(m => m.Timestamp)
-                            .Select(m => m.Message)
-                            .FirstOrDefault() ?? string.Empty, // Default to empty if no messages
-                        LastMessageTimestamp = g.OrderByDescending(m => m.Timestamp.Value)
-                            .Select(m => m.Timestamp.Value)
-                            .FirstOrDefault()
-                    })
-                    .ToListAsync();
+                 Name = g.Key, // Group name
+                 IsGroup = true,
+                 ProfilePic = new byte[0], // Default group profile
+
+                 LastMessage = g.OrderByDescending(m => m.Timestamp)
+                                .Select(m => m.Message)
+                                .FirstOrDefault() ?? string.Empty,
+
+                 LastMessageTimestamp = g.OrderByDescending(m => m.Timestamp.Value)
+                                         .Select(m => m.Timestamp.Value)
+                                         .FirstOrDefault()
+             })
+             .ToListAsync();
+
 
                 // Combine user and group chats
                 var allChats = userChats.Concat(groupChats).ToList();
@@ -92,16 +93,34 @@ namespace IgnisEducationSuite.Controllers
         }
 
 
-        [HttpGet("getmessages/{userId}/{recipientId}")]
-        public async Task<ActionResult<List<Message>>> GetMessages(string userId, string recipientId)
+        [HttpGet("getmessages/{userId}/{chatIdentifier}")]
+        public async Task<ActionResult<List<Message>>> GetMessages(string userId, string chatIdentifier)
         {
-            var messages = await _context.ChatMessages
-                .Where(m => (m.UserId.ToString() == userId && m.ReciepientId.ToString() == recipientId)
-                         || (m.UserId.ToString() == recipientId && m.ReciepientId.ToString() == userId)) // Ensuring bidirectional messages
-                .OrderBy(m => m.Timestamp)
-                .ToListAsync();
+            List<ChatMessage> messages;
 
-            var messagestoSend = messages.Select(m => new Message
+            // Check if this is a group chat (by convention, group names are strings that are not GUIDs)
+            var isGroupChat = Guid.TryParse(chatIdentifier, out Guid recipientGuid) == false;
+
+            if (isGroupChat)
+            {
+                // Fetch all messages for the group
+                messages = await _context.ChatMessages
+                    .Where(m => m.GroupName == chatIdentifier)
+                    .OrderBy(m => m.Timestamp)
+                    .ToListAsync();
+            }
+            else
+            {
+                // 1-on-1 chat: fetch messages between two users
+                messages = await _context.ChatMessages
+                    .Where(m => (m.UserId.ToString() == userId && m.ReciepientId.ToString() == chatIdentifier)
+                             || (m.UserId.ToString() == chatIdentifier && m.ReciepientId.ToString() == userId))
+                    .OrderBy(m => m.Timestamp)
+                    .ToListAsync();
+            }
+
+            // Map to DTO
+            var messagesToSend = messages.Select(m => new Message
             {
                 Content = m.Message,
                 UserId = m.UserId,
@@ -110,7 +129,7 @@ namespace IgnisEducationSuite.Controllers
                 Timestamp = m.Timestamp
             }).ToList();
 
-            return messagestoSend;
+            return messagesToSend;
         }
 
 

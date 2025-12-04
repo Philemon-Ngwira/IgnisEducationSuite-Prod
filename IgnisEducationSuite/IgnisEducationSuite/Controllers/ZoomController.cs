@@ -1,11 +1,12 @@
-﻿using EDUSphereSharedProject.Zoom;
+﻿using EduSphereDomain.Data;
+using EduSphereDomain.MessagingData;
+using EDUSphereSharedProject.ChatModels;
+using EDUSphereSharedProject.Zoom;
+using IgnisEducationSuite.Hubs;
 using IgnisEducationSuite.ServerServices;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using static IgnisEducationSuite.Client.Pages.Shared.LiveClasses;
 
 namespace IgnisEducationSuite.Controllers
@@ -16,10 +17,15 @@ namespace IgnisEducationSuite.Controllers
     {
 
         private readonly ZoomService _zoomService;
-
-        public ZoomController(ZoomService zoomService)
+        private readonly MessagingContext _Chatcontext;
+        private readonly PhoenixEdusphereContext _context;
+        private readonly IHubContext<ChatHub> _hubContext;
+        public ZoomController(ZoomService zoomService, MessagingContext context, PhoenixEdusphereContext edusphereContext, IHubContext<ChatHub> hubContext)
         {
             _zoomService = zoomService;
+            _Chatcontext = context;
+            _context = edusphereContext;
+            _hubContext = hubContext;
         }
         [HttpPost("signature")]
         public IActionResult GenerateSignature([FromBody] SignatureRequest request)
@@ -34,27 +40,63 @@ namespace IgnisEducationSuite.Controllers
                 SdkSecret = request.SdkSecret
             });
         }
-        
 
-        //[HttpPost("signature")]
-        //public IActionResult GetSignature([FromBody] SignatureRequest req)
-        //{
-        //    var ts = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalMilliseconds - 30000;
+        [HttpPost("ShareToChat")]
+        public async Task<IActionResult> ShareToChat([FromBody] ShareLiveClassRequest request)
+        {
+            var groupName = $"Grade {request.Grade} {request.Subject} Live Class ({request.StartTime:MMM dd, HH:mm})";
 
-        //    var message = $"{req.MeetingNumber}{req.Role}{ts}";
-        //    var encoding = new UTF8Encoding();
-        //    var keyBytes = encoding.GetBytes(req.SdkSecret);
-        //    var messageBytes = encoding.GetBytes(message);
+            // 1. Create group in DB
+            var group = new ChatGroup
+            {
+                GroupID = Guid.NewGuid(),
+                GroupName = groupName,
+                CreatedDate = DateTime.UtcNow,
+            };
+            _Chatcontext.ChatGroups.Add(group);
+            await _Chatcontext.SaveChangesAsync();
 
-        //    using var hmac = new System.Security.Cryptography.HMACSHA256(keyBytes);
-        //    var hash = hmac.ComputeHash(messageBytes);
-        //    var hashString = Convert.ToBase64String(hash);
+            // 2. Get students
+            var students = await _context.Students
+                .Where(s => s.AcademicLevel == int.Parse(request.Grade) &&
+                            s.StudentClasses.Any(sub => sub.Class.ClassName == request.Subject))
+                .Select(s => s.UserID)
+                .ToListAsync();
 
-        //    var token = $"{req.SdkKey}.{req.MeetingNumber}.{ts}.{req.Role}.{hashString}";
-        //    var signature = Convert.ToBase64String(Encoding.UTF8.GetBytes(token));
+            // 3. Add teacher
+            students.Add(request.TeacherId);
 
-        //    return Ok(new { signature });
-        //}
+            // 4. Add group members
+            foreach (var userId in students)
+            {
+                _Chatcontext.GroupMembers.Add(new GroupMember
+                {
+                    GroupMemberID = Guid.NewGuid(),
+                    GroupID = group.GroupID,
+                    GroupName = group.GroupName,
+                    UserId = userId,
+                    DateAdded = DateTime.UtcNow,
+                });
+            }
+            await _Chatcontext.SaveChangesAsync();
+
+            // 5. Send system message via SignalR
+            var message = new ChatMessage
+            {
+                Id = Guid.NewGuid(),
+                Message = $"📢 Your {request.Subject} live class is scheduled.\nJoin here: {request.MeetingLink}",
+                UserId = request.TeacherId,
+                GroupName = groupName,
+                Timestamp = DateTime.UtcNow
+            };
+            _Chatcontext.ChatMessages.Add(message);
+            await _Chatcontext.SaveChangesAsync();
+
+            await _hubContext.Clients.Group(groupName).SendAsync("ReceiveMessage", message);
+
+            return Ok(new { GroupName = groupName });
+        }
+
 
         [HttpPost("createmeeting")]
         public async Task<IActionResult> CreateMeeting([FromBody] CreateMeetingRequest request)

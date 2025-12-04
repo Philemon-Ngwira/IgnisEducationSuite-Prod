@@ -47,7 +47,9 @@ namespace IgnisEducationSuite.Hubs
                 Id = Guid.NewGuid(),
                 GroupName = groupName,
                 Message = message.Content,
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.Now,
+                UserId = message.UserId,
+                
             };
             _context.ChatMessages.Add(newMessage);
             await _context.SaveChangesAsync();

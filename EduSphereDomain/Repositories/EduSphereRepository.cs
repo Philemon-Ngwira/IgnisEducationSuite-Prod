@@ -1,5 +1,6 @@
 ﻿using DocumentFormat.OpenXml.Office2010.Excel;
 using EduSphereDomain.AchievementData;
+using EduSphereDomain.ChatData;
 using EduSphereDomain.Data;
 using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
@@ -782,6 +783,8 @@ namespace EduSphereDomain.Repositories
                     FirstName = item.FirstName,
                     LastName = item.LastName,
                     ClassName = item.ClassName,
+                    AcademicLevel = item.AcademicLevel,
+                    LevelName = item.LevelName,
                 };
                 stdAttdances.Add(attendanceByTeacherAndDateResult);
             }

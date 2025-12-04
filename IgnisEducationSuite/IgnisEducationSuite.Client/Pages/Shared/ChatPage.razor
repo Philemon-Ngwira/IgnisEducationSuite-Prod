@@ -5,6 +5,8 @@
 @using EDUSphereSharedProject.IdentiyModels
 @using IgnisEducationSuite.Client.Services
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.WebUtilities;
+
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inherits AppBaseComponent
@@ -66,25 +68,38 @@
                         <iconify-icon icon="iconoir:search"></iconify-icon>
                     </span>
                     <MudAutocomplete T="string" Label="Find User" @bind-Value="SelectedUser" SearchFunc="@Search"
-                    ResetValueOnEmptyText="true"
-                    CoerceText="true" CoerceValue="true"
-                    AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true" CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                 </div>
                 <div class="chat-all-list">
                     @foreach (var item in chats)
                     {
                         <div class="chat-sidebar-single active" @onclick="() => SelectChat(item)">
                             <div class="img">
-                                @if (item.ProfilePic != null)
+                                @if (item.ProfilePic != null && item.ProfilePic.Length > 0)
                                 {
-                                    <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.ProfilePic)}")" alt="image">
+                                    <!-- Show user/group custom profile picture -->
+                                    <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.ProfilePic)}")"
+                                         alt="profile image"
+                                         class="avatar-lg object-fit-cover rounded-circle">
+                                }
+                                else if (item.IsGroup)
+                                {
+                                    <!-- Show default group image -->
+                                    <img src="images/ClassImages/TeamSharing.png"
+                                         alt="group image"
+                                         class="avatar-lg object-fit-cover rounded-circle">
                                 }
                                 else
                                 {
-                                    <img src="images/Avatar/Woman.png" alt="image">
-
+                                    <!-- Show default user image -->
+                                    <img src="images/Avatar/Woman.png"
+                                         alt="default user image"
+                                         class="avatar-lg object-fit-cover rounded-circle">
                                 }
                             </div>
+
                             <div class="info">
                                 <h6 class="text-sm mb-1">@item.Name</h6>
                                 <p class="mb-0 text-xs">@GetTeaser(item.LastMessage)</p>
@@ -104,13 +119,26 @@
             <div class="chat-main card">
                 <div class="chat-sidebar-single active">
                     <div class="img">
-                        @if (selectedChat.ProfilePic != null)
+                        @if (selectedChat.ProfilePic != null && selectedChat.ProfilePic.Length > 0)
                         {
-                            <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedChat.ProfilePic)}")" class="w-40-px h-40-px rounded-circle flex-shrink-0 me-12 overflow-hidden" alt="image">
+                            <!-- Show user/group custom profile picture -->
+                            <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedChat.ProfilePic)}")"
+                                 alt="profile image"
+                                 class="avatar-lg object-fit-cover rounded-circle">
+                        }
+                        else if (selectedChat.IsGroup)
+                        {
+                            <!-- Show default group image -->
+                            <img src="images/ClassImages/TeamSharing.png"
+                                 alt="group image"
+                                 class="avatar-lg object-fit-cover rounded-circle">
                         }
                         else
                         {
-                            <img src="images/Avatar/Woman.png" alt="image">
+                            <!-- Show default user image -->
+                            <img src="images/Avatar/Woman.png"
+                                 alt="default user image"
+                                 class="avatar-lg object-fit-cover rounded-circle">
                         }
                     </div>
                     <div class="info">
@@ -159,10 +187,18 @@
                         {
                             if (chatdetail.UserId != AppState.UserID)
                             {
-                                <div class="chat-single-message left" >
-                                    <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedChat.ProfilePic)}")" alt="image" class="avatar-lg object-fit-cover rounded-circle">
+                                <div class="chat-single-message left">
+                                    @if (selectedChat.IsGroup)
+                                    {
+                                        <img src="@("/images/ClassImages/TeamSharing.png")" alt="image" class="avatar-lg object-fit-cover rounded-circle">
+
+                                    }
+                                    else
+                                    {
+                                        <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedChat.ProfilePic)}")" alt="image" class="avatar-lg object-fit-cover rounded-circle">
+                                    }
                                     <div class="chat-message-content">
-                                        <p class="mb-3">@chatdetail.Content</p>
+                                        <p class="mb-3">@ParseMessageContent(chatdetail.Content)</p>
                                         <p class="chat-time mb-0">
                                             <span>@chatdetail.Timestamp.Value.ToString("hh:mm tt")</span>
                                         </p>
@@ -173,7 +209,7 @@
                             {
                                 <div class="chat-single-message right">
                                     <div class="chat-message-content">
-                                        <p class="mb-3">@chatdetail.Content</p>
+                                        <p class="mb-3">@ParseMessageContent(chatdetail.Content)</p>
                                         <p class="chat-time mb-0">
                                             <span>@chatdetail.Timestamp.Value.ToString("hh:mm tt")</span>
                                         </p>
@@ -226,31 +262,64 @@
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     protected override async Task OnInitializedAsync()
     {
+        // Load users first
         await GetUsers();
 
+        // Build HubConnection
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
             .Build();
 
-        _hubConnection.On<Message>("ReceiveMessage", async (receivedMessage) =>
+        // Setup message listener
+        _hubConnection.On<Message>("ReceiveMessage", receivedMessage =>
         {
-            if (receivedMessage != null)
+            if (receivedMessage == null) return;
+
+            InvokeAsync(async () =>
             {
+                // Signal to refresh all chats/messages
                 if (receivedMessage.Content == null)
                 {
                     messages.Clear();
                     await LoadChats();
-                    await LoadMessages(AppState.UserID, selectedChat.Reciepientid);
+                    if (selectedChat != null)
+                        await LoadMessages(AppState.UserID, selectedChat.Reciepientid);
+
                     StateHasChanged();
+                    return;
                 }
-                else
+
+                // Determine if message is for currently open chat
+                bool isForCurrentChat = selectedChat != null &&
+                    ((selectedChat.IsGroup && selectedChat.Name == receivedMessage.GroupName) ||
+                     (!selectedChat.IsGroup && selectedChat.id == receivedMessage.UserId));
+
+                if (isForCurrentChat)
                 {
                     messages.Add(receivedMessage);
                     StateHasChanged();
+
+                    // Scroll to bottom
+                    await JS.InvokeVoidAsync("scrollChatToBottom", "chatMessageList");
                 }
-            }
+                else
+                {
+                    // Update chat list teaser/last message
+                    var chat = chats.FirstOrDefault(c =>
+                        (c.IsGroup && c.Name == receivedMessage.GroupName) ||
+                        (!c.IsGroup && c.id == receivedMessage.UserId));
+
+                    if (chat != null)
+                    {
+                        chat.LastMessage = receivedMessage.Content;
+                        chat.LastMessageTimestamp = receivedMessage.Timestamp ?? DateTime.Now;
+                        StateHasChanged();
+                    }
+                }
+            });
         });
 
+        // Start hub connection
         try
         {
             await _hubConnection.StartAsync();
@@ -261,46 +330,75 @@
             Console.WriteLine($"Hub connection failed: {ex.Message}");
             isConnected = false;
         }
+
+        // Load all chats
         await LoadChats();
+
+        // Auto-open group if query parameter exists
+        var uri = new Uri(_navigationManager.Uri);
+        if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query)
+            .TryGetValue("openGroup", out var groupName))
+        {
+            var chat = chats.FirstOrDefault(x => x.Name == groupName);
+            if (chat != null)
+            {
+                await SelectChat(chat);
+            }
+        }
     }
 
+    private MarkupString ParseMessageContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return new MarkupString(string.Empty);
+
+        string replaced = content;
+
+        // 1. Full URLs (http, https)
+        var urlPattern = @"(http[s]?://[^\s]+)";
+        replaced = System.Text.RegularExpressions.Regex.Replace(replaced, urlPattern, "<a href='$1' target='_blank'>$1</a>");
+
+        // 2. Relative links starting with / and containing only valid URL characters (letters, numbers, -, _, /)
+        var relativePattern = @"(\/[\w\d\-_\/]+)";
+        replaced = System.Text.RegularExpressions.Regex.Replace(replaced, relativePattern, "<a href='$1'>$1</a>");
+
+        return new MarkupString(replaced);
+    }
 
 
     protected async Task GetUsers()
     {
-        if (_users.Any())
-        {
-            return;
-        }
-        else
-        {
-            if (AppState.SchoolID != null)
-            {
+        if (_users.Any()) return;
 
-                var users = await Http.GetFromJsonAsync<List<ApplicationUser>>($"{Navigation.BaseUri}api/Admin/GetChatUsers/{AppState.SchoolID}");
-                if (users.Any())
-                {
-                    _users = users;
-                    LoggedInUser = _users.Where(x => x.Id == AppState.UserID).FirstOrDefault();
-                    StateHasChanged();
-                }
-                else
-                {
-                    _users = new();
-                }
+        if (AppState.SchoolID != null)
+        {
+            var users = await Http.GetFromJsonAsync<List<ApplicationUser>>(
+                $"{_navigationManager.BaseUri}api/Admin/GetChatUsers/{AppState.SchoolID}");
+            if (users != null && users.Any())
+            {
+                _users = users;
+                LoggedInUser = _users.FirstOrDefault(x => x.Id == AppState.UserID);
+                StateHasChanged();
+            }
+            else
+            {
+                _users = new List<ApplicationUser>();
             }
         }
     }
     private async Task LoadChats()
-    { // Load the list of chats (users and groups) from the server
-        var c = await Http.GetFromJsonAsync<List<Chat>>($"{Navigation.BaseUri}api/Messaging/getchats/{AppState.UserID}");
-        chats = c.ToList();
+    {
+        var c = await Http.GetFromJsonAsync<List<Chat>>($"{_navigationManager.BaseUri}api/Messaging/getchats/{AppState.UserID}");
+        if (c != null)
+            chats = c.ToList();
 
     }
+
     private async Task LoadMessages(string chatName, string reciepientID)
     {
-        // Load messages for the selected chat from the server
-        messages = await Http.GetFromJsonAsync<List<Message>>($"api/Messaging/getmessages/{chatName}/{reciepientID}");
+        var msgs = await Http.GetFromJsonAsync<List<Message>>($"api/Messaging/getmessages/{chatName}/{reciepientID}");
+        if (msgs != null)
+            messages = msgs;
     }
     private async Task SelectChat(Chat chat)
     {
@@ -308,7 +406,16 @@
         //Snackbar.Add("Opening Chat", Severity.Success);
         selectedChat = chat;
         messages.Clear();
-        await LoadMessages(AppState.UserID, chat.Reciepientid);
+        var IdTosend = string.Empty;
+        if (chat.IsGroup)
+        {
+            IdTosend = chat.Name;
+        }
+        else
+        {
+            IdTosend = chat.Reciepientid;
+        }
+        await LoadMessages(AppState.UserID, IdTosend);
         StateHasChanged();
     }
 
@@ -324,11 +431,11 @@
         try
         {
             var newMessage = new Message
-                {
-                    Content = message,
-                    UserId = AppState.UserID,
-                    Timestamp = DateTime.Now
-                };
+            {
+                Content = message,
+                UserId = AppState.UserID,
+                Timestamp = DateTime.Now
+            };
 
             if (selectedChat.IsGroup)
             {
@@ -338,9 +445,9 @@
             }
             else
             {
-                
-                    selectedChat.id = _users.Where(x => x.UserName == selectedChat.Name).Select(x => x.Id).First();
-               
+
+                selectedChat.id = _users.Where(x => x.UserName == selectedChat.Name).Select(x => x.Id).First();
+
                 newMessage.RecipientId = selectedChat.id;
                 await Send(selectedChat.id, newMessage, "SendMessageToUser");
                 //await _hubConnection.SendAsync("SendMessageToUser", selectedChat.Name, newMessage);
@@ -383,15 +490,15 @@
         {
             // Create a new chat
             var newChat = new Chat
-                {
-                    id = newChatUser.Id,
-                    Name = newChatUser.UserName,
-                    UserName = $"{newChatUser.FirstName} {newChatUser.LastName}",
-                    IsGroup = false,
-                    ProfilePic = newChatUser.ProfilePic,
-                    LastMessage = string.Empty,
-                    LastMessageTimestamp = DateTime.Now
-                };
+            {
+                id = newChatUser.Id,
+                Name = newChatUser.UserName,
+                UserName = $"{newChatUser.FirstName} {newChatUser.LastName}",
+                IsGroup = false,
+                ProfilePic = newChatUser.ProfilePic,
+                LastMessage = string.Empty,
+                LastMessageTimestamp = DateTime.Now
+            };
             // Add the new chat to the list of chats
             if (!chats.Contains(newChat))
             {

@@ -141,11 +141,13 @@ namespace IgnisEducationSuite.ServerServices
 
         public static string GenerateRandomPassword(int length = 10)
         {
-            const string validChars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%!&*";
+            // Exclude characters that could break URLs: @ # $ % ! & *
+            const string validChars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
             var random = new Random();
             return new string(Enumerable.Repeat(validChars, length)
                 .Select(s => s[random.Next(s.Length)]).ToArray());
         }
+
 
         public class SignatureResponse
         {
