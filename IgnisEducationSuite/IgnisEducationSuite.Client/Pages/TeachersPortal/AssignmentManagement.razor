@@ -84,7 +84,7 @@
                                 <CellTemplate>
                                     <MudStack Row>
                                         <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="() => OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
                                     </MudStack>
                                 </CellTemplate>
                             </TemplateColumn>
@@ -119,7 +119,7 @@
                                     <CellTemplate>
                                         <MudStack Row>
                                             <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="() => OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
                                         </MudStack>
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -366,7 +366,7 @@
     protected async Task AddmanualQuestion()
     {
         newAssignmentQuestion.QuestionID = Guid.NewGuid();
-
+        newAssignmentQuestion.QuestionNumber = assignmentQuestions.Count + 1;
         if (newAssignmentQuestion.isMultipleChoice == true)
 
         {

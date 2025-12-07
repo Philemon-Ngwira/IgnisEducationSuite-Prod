@@ -5,9 +5,9 @@ using System.Collections.Generic;
 
 namespace EDUSphereSharedProject.Models;
 
-public partial class GroupMember
+public partial class ReportCardState
 {
-    public string GroupName { get; set; }
+    public Guid StateID { get; set; }
 
-    public string UserId { get; set; }
+    public string State { get; set; }
 }

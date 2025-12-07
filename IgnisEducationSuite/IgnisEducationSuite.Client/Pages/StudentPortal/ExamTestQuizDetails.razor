@@ -25,30 +25,41 @@
             @if (item.isMultipleChoice == true)
             {
                 <MudItem xs="12">
-                    <MudText Typo="Typo.body1">Q @item.QuestionNumber @item.QuestionText</MudText>
+                    <MudText Typo="Typo.body1">
+                        Q @item.QuestionNumber @item.QuestionText
+                    </MudText>
                 </MudItem>
+
                 <MudItem xs="12">
                     <MudList T="string">
-                        @foreach (var Aitem in LS.ExamAnswerChoices.Where(a => a.ExamTestQuizQuestionID == item.QuestionID)
-                        .OrderBy(x=>x.MultipleChoiceLetter))
+                        @foreach (var Aitem in LS.ExamAnswerChoices
+                                        .Where(a => a.ExamTestQuizQuestionID == item.QuestionID)
+                                        .OrderBy(x => x.MultipleChoiceLetter))
                         {
                             <MudListItem>
                                 <MudCheckBox T="bool"
                                              Label="@Aitem.MuiltpleChoiceAnswer"
-                                             Value="IsChecked(item.QuestionID, Aitem.MultipleChoiceLetter)"
-                                             ValueChanged="(e) => HandleMultipleChoiceSelection(item.QuestionID,Aitem.MultipleChoiceLetter,Aitem.MuiltpleChoiceAnswer,e)">
-                                    <span class="bullet-answer"> @Aitem.MuiltpleChoiceAnswer</span>
-                                </MudCheckBox>
-                            </MudListItem>
-                        }
+                                             Value="@IsChecked(item.QuestionID, Aitem.MultipleChoiceLetter)"
+                                            ValueChanged="@(checkedValue => HandleMultipleChoiceSelection(
+                                                                                      item.QuestionID,
+                                                                                      Aitem.MultipleChoiceLetter,
+                                                                                      Aitem.MuiltpleChoiceAnswer,
+                                                                                      checkedValue))">
+                        <span class="bullet-answer">@Aitem.MuiltpleChoiceAnswer</span>
+                    </MudCheckBox>
+                </MudListItem>
+                                }
                     </MudList>
                 </MudItem>
             }
             else
             {
                 <MudItem xs="12">
-                    <MudText Typo="Typo.body1">Q @item.QuestionNumber @item.QuestionText</MudText>
+                    <MudText Typo="Typo.body1">
+                        Q @item.QuestionNumber @item.QuestionText
+                    </MudText>
                 </MudItem>
+
                 <MudItem xs="12">
                     <MudTextField @bind-Value="GetOrCreateAnswer(item.QuestionID).AnswerText"
                                   Variant="Variant.Outlined"
@@ -56,12 +67,11 @@
                                   Placeholder="Enter your answer here" />
                 </MudItem>
             }
-           @*  <MudText Class="mb-3">Q: @item.QuestionText</MudText>
-            <MudTextField Class="mb-3" @bind-Value="GetOrCreateAnswer(item.QuestionID).AnswerText" Variant="Variant.Outlined" Margin="Margin.Dense" T="string" Label="Answer Box" Placeholder="Enter Your Answer Here"></MudTextField> *@
         }
+
     </MudCardContent>
     <MudCardActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAnswers" >Submit</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAnswers">Submit</MudButton>
     </MudCardActions>
 </MudCard>
 <style>
@@ -74,10 +84,12 @@
 
 @code {
     protected bool isLoading = false;
+
     [Inject] LessonService LS { get; set; } = default!;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
+
     protected List<ExamQuizTestQuestion> examQuizTestQuestions = new();
     protected List<StudentExamQuizAndTestAnswer> answers = new();
     protected StudentExamsTestsAndQuiz examHeader = new();
@@ -93,13 +105,17 @@
     private async Task SubmitAnswers()
     {
         isLoading = true;
+
         await SaveExamHeader();
+
         foreach (var item in answers)
         {
             item.HeaderID = examHeader.StudentExamID;
         }
+
         var service = _genericService.GetService<List<StudentExamQuizAndTestAnswer>>();
         var result = await service.PostAsync("api/Dynamic/PostEntities", "examanswers", answers);
+
         if (result.IsSuccess)
         {
             answers.Clear();
@@ -109,32 +125,28 @@
         }
         else
         {
-            Snackbar.Add("Error Saving please check your internet and try again, if problem persists please contact your system admin", Severity.Error);
+            Snackbar.Add("Error Saving please check your internet and try again.", Severity.Error);
             isLoading = false;
-            return;
         }
     }
-    private void HandleMultipleChoiceSelection(Guid questionId, string selectedLetter, string AnswerText,bool isChecked)
+
+    private void HandleMultipleChoiceSelection(Guid questionId, string selectedLetter, string answerText, bool isChecked)
     {
+        // Remove previous answer (single-choice logic)
+        var existing = answers.FirstOrDefault(a => a.QuestionID == questionId);
+        if (existing != null)
+            answers.Remove(existing);
+
+        // If checked, add the new answer
         if (isChecked)
         {
-            // Create a new answer entry for this choice
-            var newAnswer = new StudentExamQuizAndTestAnswer
-                {
-                    QuestionID = questionId,
-                    AnswerText = $"{selectedLetter} : {AnswerText}" // Store the selected letter as the answer
-                };
-
-            answers.Add(newAnswer);
-        }
-        else
-        {
-            // Remove the answer if the checkbox is unchecked
-            var existingAnswer = answers.FirstOrDefault(a => a.QuestionID == questionId && a.AnswerText == selectedLetter);
-            if (existingAnswer != null)
+            answers.Add(new StudentExamQuizAndTestAnswer
             {
-                answers.Remove(existingAnswer);
-            }
+                QuestionID = questionId,
+                AnswerText = selectedLetter,   // store only the letter
+                StudentExamAnswerID = Guid.NewGuid(),
+                AnswerDate = DateTime.Now
+            });
         }
     }
 
@@ -142,42 +154,44 @@
     {
         return answers.Any(a => a.QuestionID == questionId && a.AnswerText == letter);
     }
+
     protected async Task SaveExamHeader()
     {
+        examHeader.StudentExamID = Guid.NewGuid();
         examHeader.SubmissionDate = DateTime.Now;
         examHeader.StudentID = LS.studentID;
-        examHeader.StudentExamID = Guid.NewGuid();
         examHeader.ExamID = LS.ExamTestQuizID;
         examHeader.Grade = 0;
 
         var service = _genericService.GetService<StudentExamsTestsAndQuiz>();
         var result = await service.PostAsync("api/Dynamic/PostEntity", "studentexamsheader", examHeader);
+
         if (result.IsSuccess)
         {
             Snackbar.Add("Please wait while we complete your submission", Severity.Success);
         }
         else
         {
-            Snackbar.Add("Error Saving please check your internet and try again, if problem persists please contact your system admin", Severity.Error);
+            Snackbar.Add("Error Saving header. Check your internet.", Severity.Error);
             isLoading = false;
-            return;
-
         }
     }
 
     private StudentExamQuizAndTestAnswer GetOrCreateAnswer(Guid questionId)
     {
-        // Look for an existing answer object for this question
         var answer = answers.FirstOrDefault(a => a.QuestionID == questionId);
 
-        // If no answer exists, create a new one and add it to the list
         if (answer == null)
         {
-            answer = new StudentExamQuizAndTestAnswer { QuestionID = questionId };
-            answer.StudentExamAnswerID = Guid.NewGuid();
-            answer.AnswerDate = DateTime.Today;
-            answer.isCorrect = false;
-            answer.isWrong = false;
+            answer = new StudentExamQuizAndTestAnswer
+            {
+                QuestionID = questionId,
+                StudentExamAnswerID = Guid.NewGuid(),
+                AnswerDate = DateTime.Now,
+                isCorrect = false,
+                isWrong = false
+            };
+
             answers.Add(answer);
         }
 

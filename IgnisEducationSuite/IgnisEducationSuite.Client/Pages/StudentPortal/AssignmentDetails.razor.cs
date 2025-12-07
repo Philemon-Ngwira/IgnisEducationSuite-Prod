@@ -40,36 +40,34 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
             return answer;
         }
 
-        private void HandleMultipleChoiceSelection(Guid questionId, string selectedLetter, string AnswerText, bool isChecked)
+        private void HandleMultipleChoiceSelection(Guid questionId, string selectedLetter, string answerText, bool isChecked)
         {
+            // Remove previous answer (single-choice logic)
+            var existing = assignmentAnswers.FirstOrDefault(a => a.QuestionID == questionId);
+            if (existing != null)
+                assignmentAnswers.Remove(existing);
+
+            // If checked, add a new answer
             if (isChecked)
             {
-                // Create a new answer entry for this choice
-                var newAnswer = new StudentAssignmentAnswer
+                assignmentAnswers.Add(new StudentAssignmentAnswer
                 {
                     QuestionID = questionId,
-                    AnswerText = $"{selectedLetter} : {AnswerText}" // Store the selected letter as the answer
-                };
-
-                assignmentAnswers.Add(newAnswer);
-            }
-            else
-            {
-                // Remove the answer if the checkbox is unchecked
-                var existingAnswer = assignmentAnswers.FirstOrDefault(a => a.QuestionID == questionId && a.AnswerText == selectedLetter);
-                if (existingAnswer != null)
-                {
-                    assignmentAnswers.Remove(existingAnswer);
-                }
+                    AnswerText = selectedLetter,   // store only the letter
+                    AnswerID = Guid.NewGuid(),
+                    AnsweredDate = DateTime.Now
+                });
             }
         }
 
         private bool IsChecked(Guid questionId, string letter)
         {
-            return assignmentAnswers.Any(a => a.QuestionID == questionId && a.AnswerText == letter);
+            return assignmentAnswers.Any(a =>
+                a.QuestionID == questionId && a.AnswerText == letter);
         }
 
 
+        
         //protected async Task ValidateAnswersWithChatGPT()
         //{
         //    foreach (var item in assignmentAnswers)
@@ -138,7 +136,7 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
                 }
                 //Save Student Answers
                 var service1 = GenericServiceFactory.GetService<List<StudentAssignmentAnswer>>();
-                var studentAnswers = await service1.PostAsync("api/Dynamic/PostEntities", "studentassignmentasnwers", assignmentAnswers);
+                var studentAnswers = await service1.PostAsync("api/Dynamic/PostEntities", "studentassignmentanswers", assignmentAnswers);
 
                 if (studentAnswers.IsSuccess)
                 {

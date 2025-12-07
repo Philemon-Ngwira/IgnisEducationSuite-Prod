@@ -191,7 +191,7 @@
     protected async Task GetStudent()
     {
         var result = _genericService.GetService<Student>();
-        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"student"}", true);
+        var service = await result.GetAllAsync($"api/Dynamic/GetStudentsBySchool/{AppState.SchoolID}", true);
         students = service.Data.ToList();
 
     }

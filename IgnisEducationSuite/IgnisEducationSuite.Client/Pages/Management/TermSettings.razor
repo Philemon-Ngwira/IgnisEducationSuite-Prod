@@ -1,0 +1,138 @@
+﻿@page "/term-settings"
+@using EDUSphereSharedProject.Models
+@using MudBlazor
+@inject IDialogService DialogService
+<PageTitle>Term Settings</PageTitle>
+
+<MudPaper Class="pa-4">
+
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h5">Term Settings</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenAddDialog">
+            <MudIcon Icon="@Icons.Material.Filled.Add" /> Add Term
+        </MudButton>
+    </MudStack>
+
+    <MudTable Items="@termSettings" Hover="true" Bordered="true" Striped="true" Dense="true">
+        <HeaderContent>
+            <MudTh>Term Name</MudTh>
+            <MudTh>Mid Term Start</MudTh>
+            <MudTh>Mid Term End</MudTh>
+            <MudTh>Final Term Start</MudTh>
+            <MudTh>Final Term End</MudTh>
+            <MudTh>Dean Start</MudTh>
+            <MudTh>Dean End</MudTh>
+            <MudTh>Principal Start</MudTh>
+            <MudTh>Principal End</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.TermName</MudTd>
+            <MudTd>@context.MidTermStart.Value.ToShortDateString()</MudTd>
+            <MudTd>@context.MidtermEnd.Value.ToShortDateString()</MudTd>
+            <MudTd>@context.FinalTermStart.Value.ToShortDateString()</MudTd>
+            <MudTd>@context.FinalTermEnd.Value.ToShortDateString()</MudTd>
+            <MudTd>@context.DeanStart.Value.ToShortDateString()</MudTd>
+            <MudTd>@context.DeanEnd.Value.ToShortDateString()</MudTd>
+            <MudTd>@context.PrincipleStart.Value.ToShortDateString()</MudTd>
+            <MudTd>@context.PrincipleEnd.Value.ToShortDateString()</MudTd>
+            <MudTd>
+                <MudButton Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled" OnClick="@(() => EditTerm(context))">
+                    Edit
+                </MudButton>
+                <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined" OnClick="@(() => DeleteTerm(context))">
+                    Delete
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+</MudPaper>
+
+<!-- Dialog for Add/Edit -->
+<MudDialog @bind-IsVisible="@dialogVisible" MaxWidth="MaxWidth.Medium" FullWidth="true">
+    <DialogContent>
+        <MudForm @ref="form" Validated="OnValidSubmit">
+            <MudTextField @bind-Value="editTerm.TermName" Label="Term Name" Required="true" />
+            <MudDatePicker @bind-Date="editTerm.MidTermStart" Label="Mid Term Start" Required="true" />
+            <MudDatePicker @bind-Date="editTerm.MidtermEnd" Label="Mid Term End" Required="true" />
+            <MudDatePicker @bind-Date="editTerm.FinalTermStart" Label="Final Term Start" Required="true" />
+            <MudDatePicker @bind-Date="editTerm.FinalTermEnd" Label="Final Term End" Required="true" />
+            <MudDatePicker @bind-Date="editTerm.DeanStart" Label="Dean Start" Required="true" />
+            <MudDatePicker @bind-Date="editTerm.DeanEnd" Label="Dean End" Required="true" />
+            <MudDatePicker @bind-Date="editTerm.PrincipleStart" Label="Principal Start" Required="true" />
+            <MudDatePicker @bind-Date="editTerm.PrincipleEnd" Label="Principal End" Required="true" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="SaveTerm">Save</MudButton>
+        <MudButton Color="Color.Secondary" OnClick="CloseDialog">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<TermSetting> termSettings = new();
+    private TermSetting editTerm = new();
+    private bool dialogVisible = false;
+    private MudForm form;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTermSettings();
+    }
+
+    private async Task LoadTermSettings()
+    {
+        //termSettings = await DbService.GetTermSettingsAsync();
+    }
+
+    private void OpenAddDialog()
+    {
+        editTerm = new TermSetting();
+        dialogVisible = true;
+    }
+
+    private void EditTerm(TermSetting term)
+    {
+        editTerm = term; // clone to avoid editing the list directly
+        dialogVisible = true;
+    }
+
+    private async Task SaveTerm()
+    {
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        if (editTerm.TermSettingID == Guid.Empty)
+        {
+            //await DbService.AddTermSettingAsync(editTerm);
+        }
+        else
+        {
+            //await DbService.UpdateTermSettingAsync(editTerm);
+        }
+
+        dialogVisible = false;
+        await LoadTermSettings();
+    }
+
+    private async Task DeleteTerm(TermSetting term)
+    {
+        bool? confirmed = await DialogService.ShowMessageBox(
+            "Confirm Delete",
+            $"Are you sure you want to delete {term.TermName}?",
+            yesText: "Yes", noText: "Cancel"
+        );
+
+        if (confirmed == true)
+        {
+            //await DbService.DeleteTermSettingAsync(term.TermSettingID);
+            await LoadTermSettings();
+        }
+    }
+
+    private void CloseDialog()
+    {
+        dialogVisible = false;
+    }
+}

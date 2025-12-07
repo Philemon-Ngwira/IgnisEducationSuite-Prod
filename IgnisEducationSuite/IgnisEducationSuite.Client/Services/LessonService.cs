@@ -1,5 +1,5 @@
 ﻿using EDUSphereSharedProject.Models;
-
+using EDUSphereSharedProject.Models.StoreProModels;
 namespace IgnisEducationSuite.Client.Services
 {
     public class LessonService
@@ -14,6 +14,12 @@ namespace IgnisEducationSuite.Client.Services
         public List<StudentExamQuizAndTestAnswer> studentExamAnswers { get; set; } = new();
         public List<CourseDetail> courseDetails { get; set; }
         public List<LessonMedium> LessonMedia { get; set; }
+
+        #region Models
+        public StudentAssignment Assignment { get; set; }
+        public StudentExamsTestsAndQuiz ExamQuizTest { get; set; }
+        public GetStudentExamDetailsByTeacherResult ExamDetails { get; set; }
+        #endregion
         public Guid studentID { get; set; }
         public Guid teacherID { get; set; }
         public Guid parentID { get; set; }

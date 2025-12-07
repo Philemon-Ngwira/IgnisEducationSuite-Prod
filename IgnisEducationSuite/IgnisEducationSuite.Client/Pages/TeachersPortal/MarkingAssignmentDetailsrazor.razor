@@ -1,5 +1,7 @@
 ﻿@page "/MarkingAssignmentDetails"
 @using EDUSphereSharedProject.Models
+
+@inherits AppBaseComponent
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
@@ -36,54 +38,100 @@
         </MudGrid>
         <MudAlert Severity="Severity.Normal" Variant=Variant.Filled Icon="@Icons.Material.Filled.Info">Question and Answers</MudAlert>
 
-        @foreach (var item in studentAssignmentAnswers)
+      @foreach (var item in studentAssignmentAnswers)
+{
+    <MudGrid Class="mb-3">
+
+        @if (item.Question?.isMultipleChoice == true)
         {
-            <MudGrid Class="mb-3">
-                <MudItem xs="12">
-                    <MudGrid>
-                        <MudItem xs="12" md="10">
-                            <MudText Typo="Typo.body1">
-                                Q @item.Question.QuestionNumber: @item.Question.QuestionText (@item.Question.MaxMarks)
-                            </MudText>
-                        </MudItem>
+            <!-- MULTIPLE CHOICE UI -->
+            <MudItem xs="10">
+                <MudText Typo="Typo.body1">
+                    Q @item.Question.QuestionNumber: @item.Question.QuestionText (@item.Question.MaxMarks)
+                </MudText>
+            </MudItem>
 
-                        <MudItem xs="6" md="1">
-                            <MudCheckBox @bind-Value="item.isCorrect"
-                                         T="bool?"
-                                         Disabled="item.isWrong == true"
-                                         Color="Color.Success"
-                                         Dense="true"
-                                         Label="Correct">
+            <MudItem xs="6" md="1">
+                <MudCheckBox @bind-Value="item.isCorrect"
+                             T="bool?"
+                             Disabled="item.isWrong == true"
+                             Color="Color.Success"
+                             Dense="true"
+                             Label="Correct" />
+            </MudItem>
+
+            <MudItem xs="6" md="1">
+                <MudCheckBox @bind-Value="item.isWrong"
+                             T="bool?"
+                             Disabled="item.isCorrect == true"
+                             Color="Color.Error"
+                             Dense="true"
+                             CheckedIcon="@Icons.Material.Filled.Cancel"
+                             Label="Wrong" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudList T="string" Disabled="true">
+                    @foreach (var choice in LessonService.AssignmentAnswerChoices
+                            .Where(c => c.AssignmentQuestionID == item.QuestionID)
+                            .OrderBy(c => c.MultipleChoiceLetter))
+                    {
+                        <MudListItem>
+                            <MudCheckBox Disabled="true"
+                                         Value="@(choice.MultipleChoiceLetter == item.AnswerText)">
+                                <span><strong>@choice.MultipleChoiceLetter)</strong> @choice.MuiltpleChoiceAnswer</span>
                             </MudCheckBox>
-                        </MudItem>
-
-                        <MudItem xs="6" md="1">
-                            <MudCheckBox @bind-Value="item.isWrong"
-                                         T="bool?"
-                                         Disabled="item.isCorrect == true"
-                                         Color="Color.Error"
-                                         Dense="true"
-                                         CheckedIcon="@Icons.Material.Filled.Cancel"
-                                         Label="Wrong">
-                            </MudCheckBox>
-                        </MudItem>
-
-                        <MudItem xs="12">
-                            <MudText Typo="Typo.body2">
-                                <b><i>Answer: @item.AnswerText</i></b>
-                            </MudText>
-                        </MudItem>
-
-
-                    </MudGrid>
-                </MudItem>
-            </MudGrid>
-
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudItem>
         }
+        else
+        {
+            <!-- WRITTEN / NON-MULTIPLE CHOICE -->
+            <MudItem xs="12">
+                <MudGrid>
+                    <MudItem xs="12" md="10">
+                        <MudText Typo="Typo.body1">
+                            Q @item.Question.QuestionNumber: @item.Question.QuestionText (@item.Question.MaxMarks)
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="6" md="1">
+                        <MudCheckBox @bind-Value="item.isCorrect"
+                                     T="bool?"
+                                     Disabled="item.isWrong == true"
+                                     Color="Color.Success"
+                                     Dense="true"
+                                     Label="Correct" />
+                    </MudItem>
+
+                    <MudItem xs="6" md="1">
+                        <MudCheckBox @bind-Value="item.isWrong"
+                                     T="bool?"
+                                     Disabled="item.isCorrect == true"
+                                     Color="Color.Error"
+                                     Dense="true"
+                                     CheckedIcon="@Icons.Material.Filled.Cancel"
+                                     Label="Wrong" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body2">
+                            <b><i>Answer: @item.AnswerText</i></b>
+                        </MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudItem>
+        }
+
+    </MudGrid>
+}
+
 
     </MudCardContent>
     <MudCardActions>
-        <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.DoneAll" Color="Color.Success">Finish</MudButton>
+        <MudButton Variant="Variant.Filled" OnClick="SubmitResult" EndIcon="@Icons.Material.Filled.DoneAll" Color="Color.Success">Finish</MudButton>
     </MudCardActions>
 </MudCard>
 @code {
@@ -95,6 +143,7 @@
     protected List<AssignmentQuestion> Questions = new();
     [Inject] LessonService LessonService { get; set; } = default!;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
     protected bool isLoading = false;
     protected override async Task OnInitializedAsync()
     {
@@ -105,42 +154,105 @@
     }
     protected async Task SubmitResult()
     {
+        // Build dictionary for fast lookup
+        var marksLookup = Questions.ToDictionary(q => q.QuestionID, q => q.MaxMarks);
+
         foreach (var item in studentAssignmentAnswers)
         {
             if (item.isCorrect == true)
             {
-                item.MarksObtained = Questions.Where(x => x.QuestionID == item.QuestionID).Select(c => c.MaxMarks).FirstOrDefault();
+                item.MarksObtained = marksLookup[item.QuestionID];
             }
-            else{
+            else
+            {
                 item.MarksObtained = 0;
             }
         }
-        var service = _genericService.GetService<List<StudentAssignmentAnswer>>();
-       
+
+        var totalObtained = studentAssignmentAnswers.Sum(c => c.MarksObtained);
+        var totalPossible = Questions.Sum(q => q.MaxMarks);
+
+        // Safe check
+        if (totalPossible <= 0)
+            totalPossible = 1;
+
+        var studentAssignment = LessonService.Assignment;
+
+        studentAssignment.Grade =
+    ((decimal)totalObtained / (decimal)totalPossible) * 100m;
+
+        studentAssignment.Status = "Graded";
+
+        // Update main assignment
+        var SAService = _genericService.GetService<StudentAssignment>();
+        var SAResult = await SAService.UpdateAsync(
+            "api/Dynamic/UpdateEntity",
+            "studentassignment",
+            studentAssignment
+        );
+
+        if (SAResult.IsSuccess)
+        {
+            // Update answers
+            var answerService = _genericService.GetService<List<StudentAssignmentAnswer>>();
+            var result = await answerService.UpdateAsync(
+                "api/Dynamic/UpdateEntities",
+                "studentassignmentanswers", // fixed typo
+                studentAssignmentAnswers
+            );
+
+            if (result.IsSuccess)
+            {
+                // optional: notify success or redirect
+                Snackbar.Add($"Marking of Student Assignment for {student.FirstName} {student.LastName}: Completed!", Severity.Success);
+                NavigationManager.NavigateTo("/AssingmentChecking");
+            }
+        }
     }
+
     protected async Task GetStudentDetails()
     {
         var result = _genericService.GetService<Student>();
-        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"student"}", true);
+        var service = await result.GetAllAsync($"api/Dynamic/GetStudentsBySchool/{AppState.SchoolID}", true);
         var students = service.Data.ToList();
         if (students.Any())
         {
             student = students.Where(x => x.StudentID == LessonService.studentID).FirstOrDefault();
         }
     }
+    protected async Task<IEnumerable<MultipleChoiceAssignmentAnswer>> GetQuestionChoicesAssignment(Guid Id)
+    {
+        var service = GenericService.GetService<MultipleChoiceAssignmentAnswer>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetQuestionChoicesAssignment/{Id}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        return new List<MultipleChoiceAssignmentAnswer>();
+    }
     protected async Task GetAssignmentQuestions(Guid id)
     {
         var service = _genericService.GetService<AssignmentQuestion>();
         var result = await service.GetAllAsync($"api/Dynamic/GetAssignmentQuestions/{id}", true);
         Questions = result.Data.ToList();
+
+        LessonService.AssignmentAnswerChoices.Clear();  // <--- ADD THIS
+
         studentAssignmentAnswers = LessonService.studentAssignmentAnswers;
+
         foreach (var item in studentAssignmentAnswers)
         {
-            item.Question = Questions.Where(x => x.QuestionID == item.QuestionID).FirstOrDefault();
-
+            item.Question = Questions.FirstOrDefault(x => x.QuestionID == item.QuestionID);
             item.isCorrect = false;
-
             item.isWrong = false;
+
+            if (item.Question?.isMultipleChoice == true)
+            {
+                LessonService.AssignmentAnswerChoices.AddRange(
+                    await GetQuestionChoicesAssignment(item.QuestionID)
+                );
+            }
         }
     }
+
 }

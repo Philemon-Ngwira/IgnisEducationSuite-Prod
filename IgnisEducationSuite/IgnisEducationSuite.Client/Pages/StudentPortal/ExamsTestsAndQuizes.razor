@@ -26,7 +26,7 @@
 
         <MudTabs Elevation="4" Rounded="true" Centered="true" Color="@Color.Primary">
             <MudTabPanel Text="Exams">
-                <MudTable Items="@examQuizzes.Where(x=>x.ExamType =="Exam")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
+                <MudTable Items="@examQuizzes.Where(x => x.ExamType == "Exam")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult, bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
                     <ToolBarContent>
                         <MudText Typo="Typo.h6">Available Exams</MudText>
                         <MudSpacer />
@@ -45,7 +45,7 @@
                         <MudTd DataLabel="Created Date">@context.CreatedDate.Value.ToShortDateString()</MudTd>
                         <MudTd DataLabel="Exam Date">@context.EndDate.ToShortDateString()</MudTd>
                         <MudTd DataLabel="Action">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() =>NavigateToDetails(context)">Go to Exam</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() => NavigateToDetails(context)">Go to Exam</MudButton>
                         </MudTd>
                     </RowTemplate>
                     <PagerContent>
@@ -54,7 +54,7 @@
                 </MudTable>
             </MudTabPanel>
             <MudTabPanel Text="Tests">
-                <MudTable Items="@examQuizzes.Where(x=>x.ExamType =="Test")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
+                <MudTable Items="@examQuizzes.Where(x => x.ExamType == "Test")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult, bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
                     <ToolBarContent>
                         <MudText Typo="Typo.h6">Available Tests</MudText>
                         <MudSpacer />
@@ -73,7 +73,7 @@
                         <MudTd DataLabel="Created Date">@context.CreatedDate.Value.ToShortDateString()</MudTd>
                         <MudTd DataLabel="Test Date">@context.EndDate.ToShortDateString()</MudTd>
                         <MudTd DataLabel="Action">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() =>NavigateToDetails(context)">Go to Test</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() => NavigateToDetails(context)">Go to Test</MudButton>
                         </MudTd>
                     </RowTemplate>
                     <PagerContent>
@@ -82,7 +82,7 @@
                 </MudTable>
             </MudTabPanel>
             <MudTabPanel Text="Quizzes">
-                <MudTable Items="@examQuizzes.Where(x=>x.ExamType =="Quiz")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
+                <MudTable Items="@examQuizzes.Where(x => x.ExamType == "Quiz")" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetUpcomingExamsOrQuizzesResult, bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
                     <ToolBarContent>
                         <MudText Typo="Typo.h6">Available Quizzes</MudText>
                         <MudSpacer />
@@ -101,7 +101,7 @@
                         <MudTd DataLabel="Created Date">@context.CreatedDate.Value.ToShortDateString()</MudTd>
                         <MudTd DataLabel="Quiz Date">@context.EndDate.ToShortDateString()</MudTd>
                         <MudTd DataLabel="Action">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() =>NavigateToDetails(context)">Go to Quiz</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ReadMore" OnClick="() => NavigateToDetails(context)">Go to Quiz</MudButton>
                         </MudTd>
                     </RowTemplate>
                     <PagerContent>
@@ -140,13 +140,13 @@
     protected async Task GetStudent()
     {
         var result = _genericService.GetService<Student>();
-        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"student"}", true);
+        var service = await result.GetAllAsync($"api/Dynamic/GetStudentsByUser/{AppState.UserID}", true);
         if (service.IsSuccess)
         {
             students = service.Data.ToList();
             if (students.Any())
             {
-                student = students.Where(x => x.UserID == UserID).FirstOrDefault();
+                student = students.FirstOrDefault();
                 await GetExamstestsAndQuizzes(student.AcademicLevel);
             }
         }
@@ -181,6 +181,7 @@
     {
         foreach (var item in LessonService.examQuizTestQuestions)
         {
+
             if (item.isMultipleChoice == true)
             {
                 var service = _genericService.GetService<ExamTestQuizMultipleChoiceAnswer>();
@@ -190,6 +191,7 @@
                     LessonService.ExamAnswerChoices.AddRange(result.Data.ToList());
                 }
             }
+
         }
     }
     //GetExamTestQuizQuestions
@@ -197,8 +199,10 @@
     protected async void NavigateToDetails(GetUpcomingExamsOrQuizzesResult examHeader)
     {
         LessonService.examQuizTestQuestions = await GetExamstestsAndQuizzesQuestions(examHeader.ExamQuizID);
-
-        await GetMultipleChoiceAnswers();
+        if (LessonService.examQuizTestQuestions.Any())
+        {
+            await GetMultipleChoiceAnswers();
+        }
         LessonService.ExamTestQuizID = examHeader.ExamQuizID;
         LessonService.studentID = student.StudentID;
         _navigationManager.NavigateTo("/ExamDetails");

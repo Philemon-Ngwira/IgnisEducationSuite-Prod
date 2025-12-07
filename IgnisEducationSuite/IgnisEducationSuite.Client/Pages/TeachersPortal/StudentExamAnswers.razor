@@ -1,5 +1,6 @@
 ﻿@page "/ExamAnswers"
 @using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
 
 <MudCard>
     <MudCardHeader>
@@ -7,63 +8,257 @@
             <MudText Align="Align.Center" Typo="Typo.h4"><b>Answers</b></MudText>
         </CardHeaderContent>
     </MudCardHeader>
+
     <MudCardContent>
         @if (isLoading)
         {
             <div id="loader-overlay" class="loader-overlay">
                 <div class="loader-container">
-                    <!-- Spinner -->
                     <div class="spinner"></div>
-                    <!-- Loader Icon -->
                     <div class="loader-icon">🔄</div>
-                    <!-- Loading Text -->
                     <p class="loading-text">Loading, please wait...</p>
                 </div>
             </div>
         }
-        @foreach (var item in answers)
-        {
-            <MudGrid Class="mb-3">
-                <MudItem xs="12">
+
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.body1" Align="Align.Left"><b>Exam Details</b></MudText>
+                    <MudDivider Class="mt-4"></MudDivider>
                     <MudGrid>
-                        <MudItem xs="12" md="10">
-                            <MudText Typo="Typo.body1">Q: @item.Question.QuestionText (@item.Question.Marks)</MudText>
-                            </MudItem>
-                            <MudItem xs="12" md="1">
-                                <MudCheckBox @bind-Value="item.isCorrect" T="bool?" Disabled="item.isWrong.Value" Color="Color.Success" Dense="true" Label="Correct"></MudCheckBox>
-                            </MudItem>
-                            <MudItem xs="12" md="1">
-                                <MudCheckBox @bind-Value="item.isWrong" T="bool?" Disabled="item.isCorrect.Value" Color="Color.Error" Dense="true" CheckedIcon="@Icons.Material.Filled.Cancel" Label="Wrong"></MudCheckBox>
-                            </MudItem>
-                            <MudItem xs="12">
-                                <MudText Typo="Typo.body2"><b><i>Answer: @item.AnswerText</i></b></MudText>
+                        <MudItem xs="12" md="6">
+                            <MudText>Exam Title: <b>@LessonService.ExamDetails.Title</b></MudText>
                         </MudItem>
-
+                        <MudItem xs="12" md="6">
+                            <MudText>Type: <b>@LessonService.ExamDetails.ExamType</b></MudText>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudText>Exam Subject: <b>@LessonService.ExamDetails.ClassName</b></MudText>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudText>Student Info: <b>@($"{LessonService.ExamDetails.FirstName} {LessonService.ExamDetails.LastName} : {LessonService.ExamDetails.StudentNumber}")</b></MudText>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudText>Total Marks: <b>@LessonService.ExamDetails.TotalMarks</b></MudText>
+                        </MudItem>
                     </MudGrid>
-                </MudItem>
-            </MudGrid>
-        }
-        <MudButton Color="Color.Success" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Checklist">Complete Marking</MudButton>
+                </CardHeaderContent>
+            </MudCardHeader>
 
+            <MudCardContent>
+                <MudDivider Class="my-6"></MudDivider>
+                <MudText Typo="Typo.body1" Align="Align.Left"><b>Exam Answers</b></MudText>
+
+                @foreach (var item in answers)
+                {
+                    <MudGrid Class="mb-3">
+                        @if (item.Question?.isMultipleChoice == true)
+                        {
+                            <MudItem xs="10">
+                                <MudText Typo="Typo.body1">
+                                    Q @item.Question.QuestionNumber @item.Question.QuestionText (@item.Question.Marks)
+                                </MudText>
+                            </MudItem>
+
+                            <MudItem xs="12" md="1">
+                                <!-- Use Checked + CheckedChanged handler so we can control the other flag -->
+                                <MudCheckBox Value="@(item.isCorrect ?? false)"
+                                             ValueChanged="@(v => SetCorrect(item, v.Value))"
+                                             T="bool?"
+                                             Color="Color.Success"
+                                             Dense="true"
+                                             Label="Correct"
+                                             Disabled="@((item.isWrong ?? false))" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="1">
+                                <MudCheckBox Value="@(item.isWrong ?? false)"
+                                             ValueChanged="@(v => SetWrong(item, v.Value))"
+                                             T="bool?"
+                                             Color="Color.Error"
+                                             Dense="true"
+                                             CheckedIcon="@Icons.Material.Filled.Cancel"
+                                             Label="Wrong"
+                                             Disabled="@((item.isCorrect ?? false))" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudList T="string" Disabled="true">
+                                    @foreach (var Aitem in LessonService.ExamAnswerChoices
+                                                                .Where(a => a.ExamTestQuizQuestionID == item.QuestionID)
+                                                                .OrderBy(x => x.MultipleChoiceLetter))
+                                    {
+                                        <MudListItem>
+                                            <MudCheckBox Disabled="true"
+                                                         Value="@(Aitem.MultipleChoiceLetter == item.AnswerText)">
+                                                <span><strong>@Aitem.MultipleChoiceLetter)</strong> @Aitem.MuiltpleChoiceAnswer</span>
+                                            </MudCheckBox>
+                                        </MudListItem>
+
+                                    }
+                                </MudList>
+                            </MudItem>
+                        }
+                        else
+                        {
+                            <MudItem xs="12">
+                                <MudGrid>
+                                    <MudItem xs="12" md="10">
+                                        <MudText Typo="Typo.body1">Q @item.Question?.QuestionNumber: @item.Question?.QuestionText (@item.Question?.Marks)</MudText>
+                                    </MudItem>
+
+                                    <MudItem xs="12" md="1">
+                                        <MudCheckBox Value="@(item.isCorrect ?? false)"
+                                                     ValueChanged="@(v => SetCorrect(item, v.Value))"
+                                                     T="bool?"
+                                                     Color="Color.Success"
+                                                     Dense="true"
+                                                     Label="Correct"
+                                                     Disabled="@((item.isWrong ?? false))" />
+                                    </MudItem>
+
+                                    <MudItem xs="12" md="1">
+                                        <MudCheckBox Value="@(item.isWrong ?? false)"
+                                                     ValueChanged="@(v => SetWrong(item, v.Value))"
+                                                     T="bool?"
+                                                     Color="Color.Error"
+                                                     Dense="true"
+                                                     CheckedIcon="@Icons.Material.Filled.Cancel"
+                                                     Label="Wrong"
+                                                     Disabled="@((item.isCorrect ?? false))" />
+                                    </MudItem>
+
+                                    <MudItem xs="12">
+                                        <MudText Typo="Typo.body2"><b><i>Answer: @item.AnswerText</i></b></MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+
+                <MudButton Color="Color.Success"
+                           Variant="Variant.Filled"
+                           EndIcon="@Icons.Material.Filled.Checklist"
+                           OnClick="CompleteExamTestQuizMarking">
+                    Complete Marking
+                </MudButton>
+
+            </MudCardContent>
+        </MudCard>
     </MudCardContent>
+
     <MudSpacer />
-  <MudCardActions>
-      <MudText></MudText>
-      <MudSpacer />
-      <MudText></MudText>
-  </MudCardActions>
+    <MudCardActions>
+        <MudText></MudText>
+        <MudSpacer />
+        <MudText></MudText>
+    </MudCardActions>
 </MudCard>
 
 @code {
     protected bool isLoading = false;
     protected List<StudentExamQuizAndTestAnswer> answers = new();
     [Inject] LessonService LessonService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
         await Task.Delay(1000);
-        answers = LessonService.studentExamAnswers;
+
+        // Ensure answers are ordered by question number (safe if Question may be null)
+        answers = LessonService.studentExamAnswers?
+                    .OrderBy(a => a.Question?.QuestionNumber ?? int.MaxValue)
+                    .ToList() ?? new List<StudentExamQuizAndTestAnswer>();
+
         isLoading = false;
+    }
+
+    // Ensures only one of isCorrect/isWrong is true and avoids null problems
+    private void SetCorrect(StudentExamQuizAndTestAnswer item, bool value)
+    {
+        item.isCorrect = value;
+        if (value)
+            item.isWrong = false;
+    }
+
+    private void SetWrong(StudentExamQuizAndTestAnswer item, bool value)
+    {
+        item.isWrong = value;
+        if (value)
+            item.isCorrect = false;
+    }
+
+    protected async Task CompleteExamTestQuizMarking()
+    {
+        // Calculate total possible: sum unique questions' marks (safe if Question null)
+        var totalPossible = answers
+            .GroupBy(a => a.QuestionID)
+            .Select(g => g.First().Question?.Marks ?? 0)
+            .Sum();
+
+        // If there are no marks, avoid divide-by-zero
+        if (totalPossible <= 0)
+            totalPossible = 1;
+
+        // Assign marks obtained per answer
+        foreach (var item in answers)
+        {
+            if (item.isCorrect == true)
+            {
+                item.MarksObtained = item.Question?.Marks ?? 0;
+                // Do NOT set item.Question = null here; we'll null only for the API payload below if needed
+            }
+            else
+            {
+                item.MarksObtained = 0;
+            }
+        }
+
+        var totalObtained = answers.Sum(c => c.MarksObtained);
+
+        var studentExam = LessonService.ExamQuizTest;
+        studentExam.Grade = ((decimal)totalObtained / (decimal)totalPossible) * 100m;
+        studentExam.Status = "Graded";
+
+        var SAService = GenericService.GetService<StudentExamsTestsAndQuiz>();
+        var SAResult = await SAService.UpdateAsync("api/Dynamic/UpdateEntity", "studentexamsheader", studentExam);
+
+        if (!SAResult.IsSuccess)
+        {
+            Snackbar.Add("Error saving exam header. Check your internet.", Severity.Error);
+            return;
+        }
+
+        // Prepare answers payload: temporarily null Question navigation property to avoid circular/virtual issues
+        var originalQuestions = answers.Select(a => a.Question).ToList();
+        try
+        {
+            foreach (var a in answers)
+                a.Question = null;
+
+            var answerService = GenericService.GetService<List<StudentExamQuizAndTestAnswer>>();
+            var result = await answerService.UpdateAsync("api/Dynamic/UpdateEntities", "examanswers", answers);
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add($"Marking of Student Exam Completed!", Severity.Success);
+                NavigationManager.NavigateTo("/ExamMarking");
+            }
+            else
+            {
+                Snackbar.Add("Error saving answers. Check your internet.", Severity.Error);
+            }
+        }
+        finally
+        {
+            // Restore question navigation props for UI after update attempt
+            for (int i = 0; i < answers.Count && i < originalQuestions.Count; i++)
+            {
+                answers[i].Question = originalQuestions[i];
+            }
+        }
     }
 }

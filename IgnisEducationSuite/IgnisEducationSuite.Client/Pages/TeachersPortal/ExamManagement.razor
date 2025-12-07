@@ -30,6 +30,7 @@
                     <MudItem Class="mb-3" xs="12">
                         <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Filled">Exam Information</MudAlert>
                     </MudItem>
+
                     <MudItem xs="12">
                         <MudTextField @bind-Value="@examQuizTestHeader.Title" Label="Exam Title" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Enter Exam Title"></MudTextField>
                     </MudItem>
@@ -46,7 +47,7 @@
                         <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeConverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var item in vw_Classes)
                             {
-                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.AcademicLevel @item.ClassName</MudSelectItem>
+                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.LevelName @item.ClassName</MudSelectItem>
 
                             }
                         </MudSelect>
@@ -71,8 +72,8 @@
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
                         <ActivatorContent>
                             <MudButton Variant="Variant.Filled"
-                            Color="Color.Primary"
-                            StartIcon="@Icons.Material.Filled.CloudUpload">
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload">
                                 Upload Question
                             </MudButton>
                         </ActivatorContent>
@@ -95,8 +96,8 @@
                     @if (questions.Any())
                     {
                         <MudDataGrid T="ExamQuizTestQuestion" Items="@questions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
-                        StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
-                        Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
+                                     StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                                     Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
                             <Columns>
                                 <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
                                 <PropertyColumn Property="x => x.QuestionText" />
@@ -105,7 +106,7 @@
                                     <CellTemplate>
                                         <MudStack Row>
                                             <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="() => OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
                                         </MudStack>
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -138,7 +139,7 @@
                         <MudSelect T="vw_ClassTeacherDetail" Placeholder="Select Subject" Label="Subject" ToStringFunc="ClassTypeConverter" @bind-Value="vw_Class" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var item in vw_Classes)
                             {
-                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.AcademicLevel @item.ClassName</MudSelectItem>
+                                <MudSelectItem T="vw_ClassTeacherDetail" Value="item">Grade: @item.LevelName @item.ClassName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
@@ -162,8 +163,8 @@
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
                         <ActivatorContent>
                             <MudButton Variant="Variant.Filled"
-                            Color="Color.Primary"
-                            StartIcon="@Icons.Material.Filled.CloudUpload">
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload">
                                 Upload Lesson
                             </MudButton>
                         </ActivatorContent>
@@ -186,8 +187,8 @@
                     @if (questions.Any())
                     {
                         <MudDataGrid T="ExamQuizTestQuestion" Items="@questions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
-                        StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
-                        Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
+                                     StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                                     Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
                             <Columns>
                                 <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
                                 <PropertyColumn Property="x => x.QuestionText" />
@@ -196,7 +197,7 @@
                                     <CellTemplate>
                                         <MudStack Row>
                                             <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="() => OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
                                         </MudStack>
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -254,8 +255,8 @@
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload">
                         <ActivatorContent>
                             <MudButton Variant="Variant.Filled"
-                            Color="Color.Primary"
-                            StartIcon="@Icons.Material.Filled.CloudUpload">
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload">
                                 Upload Lesson
                             </MudButton>
                         </ActivatorContent>
@@ -278,8 +279,8 @@
                     @if (questions.Any())
                     {
                         <MudDataGrid T="ExamQuizTestQuestion" Items="@questions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
-                        StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
-                        Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
+                                     StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
+                                     Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
                             <Columns>
                                 <PropertyColumn Property="x => x.QuestionNumber" Title="#" Editable="false" />
                                 <PropertyColumn Property="x => x.QuestionText" />
@@ -288,7 +289,7 @@
                                     <CellTemplate>
                                         <MudStack Row>
                                             <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="() => OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
                                         </MudStack>
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -330,8 +331,10 @@
     protected ExamQuizTestHeader examQuizTestHeader = new();
     protected ExamQuizTestQuestion examQuizTestQuestion = new();
     protected QuestionParser questionParser = new();
+    protected Teacher teacher = new();
     private DateTime? _date = DateTime.Today;
     protected List<vw_ClassTeacherDetail> vw_Classes = new();
+    protected List<Class> classes = new();
     protected List<ExamQuizTestQuestion> questions = new();
     protected string UserID = string.Empty;
     protected vw_ClassTeacherDetail vw_Class = new();
@@ -339,7 +342,7 @@
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     [Inject] ChatClientService ChatClientService { get; set; } = default!;
-
+    protected Class selectedClass = new();
     protected List<ExamTestQuizMultipleChoiceAnswer> QuestionOptions = new();
     [Inject] HttpClient Http { get; set; } = default!;
     protected bool examCreated = false;
@@ -353,9 +356,53 @@
     {
         isLoading = true;
         await GetClassTeacherDetails();
+
+        await GetTeachers();
+        await GetClasses();
         isLoading = false;
     }
+    protected async Task GetClasses()
+    {
+        var result = _genericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{teacher.SchoolID}", true);
 
+        if (service?.Data == null) return; // Null safety check
+
+        // Filter only relevant classes
+        var filteredClasses = service.Data
+            .Where(item => item.TeacherID == teacher.TeacherID)
+            .ToList();
+
+        // Assign teacher before adding
+        foreach (var item in filteredClasses)
+        {
+            item.Teacher = teacher;
+            if (string.IsNullOrEmpty(item.LevelName))
+            {
+                item.LevelName = academicLevels.Where(x => x.LevelInt == item.AcademicLevel)
+                                .Select(a => a.LevelName).First();
+            }
+            classes.Add(item);
+        }
+    }
+
+    protected async Task GetTeachers()
+    {
+
+        UserID = AppState.UserID;
+
+        if (UserID != string.Empty || UserID != null)
+        {
+            var result = _genericService.GetService<Teacher>();
+            var service = await result.GetAllAsync($"api/Dynamic/GetTeacherByUserID/{UserID}", true);
+            var teachers = service.Data.ToList();
+            if (teachers.Any())
+            {
+                teacher = teachers.FirstOrDefault();
+            }
+        }
+
+    }
     protected async Task GetClassTeacherDetails()
     {
 
@@ -370,6 +417,12 @@
             if (result.IsSuccess)
             {
                 vw_Classes = result.Data.Where(x => x.UserID == UserID).ToList();
+                foreach (var item in vw_Classes)
+                {
+                    item.LevelName = academicLevels.Where(x => x.LevelInt == item.AcademicLevel)
+                    .Select(c => c.LevelName)
+                    .First();
+                }
             }
         }
 
@@ -384,6 +437,9 @@
         }
         examQuizTestHeader.EndDate = examQuizTestHeader.StartDate;
         examQuizTestHeader.CreatedDate = DateTime.Today;
+        examQuizTestHeader.Teacher = teacher;
+        examQuizTestHeader.Class = classes.Where(x => x.ClassID == vw_Class.ClassID).FirstOrDefault();
+
         switch (type)
         {
             case 1: //Exam Entered
@@ -443,6 +499,10 @@
         examQuizTestHeader.ExamQuizID = Guid.NewGuid();
         examQuizTestHeader.StartDate = _date.Value;
         examQuizTestHeader.EndDate = examQuizTestHeader.StartDate;
+        examQuizTestHeader.TeacherID = examQuizTestHeader.Teacher.TeacherID;
+        examQuizTestHeader.ClassID = examQuizTestHeader.Class.ClassID;
+        examQuizTestHeader.Teacher = null;
+        examQuizTestHeader.Class = null;
         var serviceHeader = _genericService.GetService<ExamQuizTestHeader>();
         var headerResult = await serviceHeader.PostAsync("api/Dynamic/PostEntity", "examquiztestheader", examQuizTestHeader);
         if (headerResult.IsSuccess)
@@ -472,6 +532,10 @@
             {
                 item.ExamQuizID = headerID;
                 item.QuestionType = "ShortAnswer";
+                if (item.isMultipleChoice == true)
+                {
+                    item.Options = "HasOptions";
+                }
                 finalList.Add(item);
             }
         }
@@ -498,12 +562,15 @@
         }
     }
     //Save Multiple Choice Options
-    protected async Task SaveExamMultipleChoices(){
-        if (QuestionOptions.Any()) {
+    protected async Task SaveExamMultipleChoices()
+    {
+        if (QuestionOptions.Any())
+        {
             var service = _genericService.GetService<List<ExamTestQuizMultipleChoiceAnswer>>();
             var result = await service.PostAsync("api/Dynamic/PostEntities", "exammultiplechoices", QuestionOptions);
-            if(result.IsSuccess){
-                 Snackbar.Add("Options Saved Successfully", Severity.Success);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Options Saved Successfully", Severity.Success);
                 QuestionOptions.Clear();
                 StateHasChanged();
             }
@@ -511,20 +578,27 @@
     }
     protected void AddQuestionManually()
     {
-        if (examQuizTestQuestion.QuestionText != null & examQuizTestQuestion.Marks != null)
+        if (!string.IsNullOrWhiteSpace(examQuizTestQuestion.QuestionText) && examQuizTestQuestion.Marks != null)
         {
             examQuizTestQuestion.QuestionID = Guid.NewGuid();
+
+            // Assign next question number
+            examQuizTestQuestion.QuestionNumber = questions.Count + 1;
+
             questions.Add(examQuizTestQuestion);
+
+            // Reset the form
             examQuizTestQuestion = new();
+
             StateHasChanged();
             Snackbar.Add("Question Added Successfully", Severity.Success);
         }
         else
         {
             Snackbar.Add("Fill in both Question and Marks to add question", Severity.Error);
-            return;
         }
     }
+
     protected async Task OpenMultipleChoiceDialog(Guid QuestionID)
     {
         var parameters = new DialogParameters<MultipleChoiceManagementDialog>
@@ -607,7 +681,7 @@
 
     #region To String Func
 
-    protected Func<Class, string> ClassTypeConverter = p =>
+    protected Func<vw_ClassTeacherDetail, string> ClassTypeConverter = p =>
    {
        if (p == null)
        {
@@ -615,8 +689,8 @@
        }
 
        var className = p.ClassName ?? "";
-       var teacherFirstName = p.Teacher?.FirstName ?? "";
-       var teacherLastName = p.Teacher?.LastName ?? "Teacher";
+       var teacherFirstName = p.FirstName ?? "";
+       var teacherLastName = p.LastName ?? "Teacher";
        var gradeName = p.LevelName ?? "";
 
        return $"{className}:{gradeName},{teacherFirstName.Substring(0, 1)}.{teacherLastName}";

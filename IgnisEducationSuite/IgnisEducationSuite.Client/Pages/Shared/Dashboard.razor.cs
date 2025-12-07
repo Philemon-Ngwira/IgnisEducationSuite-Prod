@@ -153,23 +153,26 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 // ----------------------------------------------------------
                 if (AppState.UserRole is "Student" or "Parent")
                 {
+
                     var studentTasks = new[]
                     {
-                GetTimeSlots(),
-                GetDaysOfWeek(),
+                        GetTimeSlots(),
+                        GetDaysOfWeek(),
                 GetStudentPerfomanceData(),
                 GetUnCompletedClasses(),
-                GetClassSchedule(),
                 GetAttendances()
             };
 
                     await Task.WhenAll(studentTasks);
+                    await GetClassSchedule(timeSlots, daysofTheWeek);
+
                 }
 
                 // ----------------------------------------------------------
                 // 6. Subscribe to State Changes
                 // ----------------------------------------------------------
                 AppState.OnChange += StateHasChanged;
+                await Task.Delay(1000);
             }
             catch (Exception ex)
             {
@@ -228,13 +231,14 @@ namespace IgnisEducationSuite.Client.Pages.Shared
 
                     if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
                     {
-                        await GetTimeSlots();
-                        await GetDaysOfWeek();
+                        var timeSlotavailable = await GetTimeSlots();
+                        var DOW = await GetDaysOfWeek();
+                        await GetClassSchedule(timeSlotavailable, DOW);
                         await GetStudentPerfomanceData();
                         await GetUnCompletedClasses();
-                        await GetClassSchedule();
                         await GetAttendances();
                         await GetBadges();
+
                     }
                 }
                 catch (Exception ex)
@@ -407,7 +411,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 return new List<UserActivity>();
             }
         }
-        protected async Task GetTimeSlots()
+        protected async Task<List<TimeSlot>> GetTimeSlots()
         {
             try
             {
@@ -417,13 +421,16 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 {
                     if (service.Data != null)
                     {
-                        timeSlots = service.Data.ToList();
+                        timeSlots = service.Data.Where(x => x.SchoolID == Guid.Parse(AppState.SchoolID)).ToList();
+                        return timeSlots;
                     }
                     else
                     {
                         timeSlots = new();
+                        return timeSlots;
                     }
                 }
+                return new List<TimeSlot>();
             }
             catch (Exception ex)
             {
@@ -432,7 +439,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             }
 
         }
-        protected async Task GetDaysOfWeek()
+        protected async Task<List<DayofTheWeek>> GetDaysOfWeek()
         {
             try
             {
@@ -443,8 +450,11 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                     if (service.Data != null)
                     {
                         daysofTheWeek = service.Data.ToList();
+                        return daysofTheWeek;
                     }
+
                 }
+                return new List<DayofTheWeek>();
             }
             catch (Exception ex)
             {
@@ -818,7 +828,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 }
             }
         }
-        protected async Task GetClassSchedule()
+        protected async Task GetClassSchedule(List<TimeSlot> timeSlots, List<DayofTheWeek> daysofTheWeek)
         {
             var service = _genericService.GetService<GetStudentClassScheduleResult>();
             var result = await service.GetAllAsync($"api/Dynamic/GetActiveStudentTimeTable/{AppState.UserID}", true);

@@ -45,6 +45,8 @@ public partial class ReportCard
 
     public string ApprovalStatus { get; set; }
 
+    public string ReportCardType { get; set; }
+
     public virtual ICollection<ReportCardDetail> ReportCardDetails { get; set; } = new List<ReportCardDetail>();
 
     public virtual Student Student { get; set; }

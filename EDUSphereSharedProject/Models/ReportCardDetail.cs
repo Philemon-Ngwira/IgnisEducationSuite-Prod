@@ -18,6 +18,8 @@ public partial class ReportCardDetail
 
     public string Grade { get; set; }
 
+    public double? GPA { get; set; }
+
     public virtual Class Class { get; set; }
 
     public virtual ReportCard ReportCard { get; set; }

@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using EduSphereDomain.Models;
-using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,6 +45,14 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<BestLessonPerformer> BestLessonPerformers { get; set; }
 
+    public virtual DbSet<Bus> Buses { get; set; }
+
+    public virtual DbSet<BusAssignment> BusAssignments { get; set; }
+
+    public virtual DbSet<BusRoute> BusRoutes { get; set; }
+
+    public virtual DbSet<BusStop> BusStops { get; set; }
+
     public virtual DbSet<Class> Classes { get; set; }
 
     public virtual DbSet<ClassSchedule> ClassSchedules { get; set; }
@@ -54,11 +61,29 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<ClientsWithoutStudentDashboard> ClientsWithoutStudentDashboards { get; set; }
 
+    public virtual DbSet<Clinic> Clinics { get; set; }
+
+    public virtual DbSet<ClinicMedication> ClinicMedications { get; set; }
+
+    public virtual DbSet<ClinicMedicationLog> ClinicMedicationLogs { get; set; }
+
+    public virtual DbSet<ClinicStaff> ClinicStaffs { get; set; }
+
+    public virtual DbSet<ClinicVisit> ClinicVisits { get; set; }
+
     public virtual DbSet<Course> Courses { get; set; }
 
     public virtual DbSet<CourseDetail> CourseDetails { get; set; }
 
     public virtual DbSet<DayofTheWeek> DayofTheWeeks { get; set; }
+
+    public virtual DbSet<DiningAttendance> DiningAttendances { get; set; }
+
+    public virtual DbSet<DiningHall> DiningHalls { get; set; }
+
+    public virtual DbSet<DiningMenu> DiningMenus { get; set; }
+
+    public virtual DbSet<DiningSpecialDiet> DiningSpecialDiets { get; set; }
 
     public virtual DbSet<ExamQuizTestHeader> ExamQuizTestHeaders { get; set; }
 
@@ -72,11 +97,15 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<GradingScale> GradingScales { get; set; }
 
+    public virtual DbSet<Hostel> Hostels { get; set; }
+
     public virtual DbSet<Lesson> Lessons { get; set; }
 
     public virtual DbSet<LessonMedium> LessonMedia { get; set; }
 
     public virtual DbSet<LiveMeeting> LiveMeetings { get; set; }
+
+    public virtual DbSet<Meal> Meals { get; set; }
 
     public virtual DbSet<MultipleChoiceAssignmentAnswer> MultipleChoiceAssignmentAnswers { get; set; }
 
@@ -87,6 +116,14 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<ReportCard> ReportCards { get; set; }
 
     public virtual DbSet<ReportCardDetail> ReportCardDetails { get; set; }
+
+    public virtual DbSet<ReportCardState> ReportCardStates { get; set; }
+
+    public virtual DbSet<Room> Rooms { get; set; }
+
+    public virtual DbSet<RoomAllocation> RoomAllocations { get; set; }
+
+    public virtual DbSet<RoomsWithOccupancy> RoomsWithOccupancies { get; set; }
 
     public virtual DbSet<School> Schools { get; set; }
 
@@ -114,11 +151,9 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<TeacherSubjectNormalized> TeacherSubjectNormalizeds { get; set; }
 
+    public virtual DbSet<TermSetting> TermSettings { get; set; }
+
     public virtual DbSet<TimeSlot> TimeSlots { get; set; }
-
-    public virtual DbSet<UserActivity> UserActivities { get; set; }
-
-    public virtual DbSet<UserBadge> UserBadges { get; set; }
 
     public virtual DbSet<WorldCity> WorldCities { get; set; }
 
@@ -305,7 +340,7 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasNoKey()
                 .ToView("BestAssignmentPerformers");
 
-            entity.Property(e => e.AvgAssignmentGrade).HasColumnType("numeric(38, 6)");
+            entity.Property(e => e.AvgAssignmentGrade).HasColumnType("decimal(38, 6)");
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.LastName).HasMaxLength(50);
         });
@@ -334,7 +369,7 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasNoKey()
                 .ToView("BestExamPerformers");
 
-            entity.Property(e => e.AvgExamGrade).HasColumnType("numeric(38, 6)");
+            entity.Property(e => e.AvgExamGrade).HasColumnType("decimal(38, 6)");
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.LastName).HasMaxLength(50);
         });
@@ -344,6 +379,71 @@ public partial class PhoenixEdusphereContext : DbContext
             entity
                 .HasNoKey()
                 .ToView("BestLessonPerformers");
+        });
+
+        modelBuilder.Entity<Bus>(entity =>
+        {
+            entity.HasKey(e => e.BusId).HasName("PK__Buses__6A0F60B5AD6AC489");
+
+            entity.ToTable("Buses", "SchoolOps");
+
+            entity.Property(e => e.BusId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.RegistrationNumber)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.HasOne(d => d.School).WithMany(p => p.Buses)
+                .HasForeignKey(d => d.SchoolId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Buses__SchoolId__0E8E2250");
+        });
+
+        modelBuilder.Entity<BusAssignment>(entity =>
+        {
+            entity.HasKey(e => e.AssignmentId).HasName("PK__BusAssig__32499E77CE1C4C7C");
+
+            entity.ToTable("BusAssignments", "SchoolOps");
+
+            entity.Property(e => e.AssignmentId).HasDefaultValueSql("(newid())");
+
+            entity.HasOne(d => d.Bus).WithMany(p => p.BusAssignments)
+                .HasForeignKey(d => d.BusId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__BusAssign__BusId__19FFD4FC");
+        });
+
+        modelBuilder.Entity<BusRoute>(entity =>
+        {
+            entity.HasKey(e => e.RouteId).HasName("PK__BusRoute__80979B4D19B7C6FC");
+
+            entity.ToTable("BusRoutes", "SchoolOps");
+
+            entity.Property(e => e.RouteId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.HasOne(d => d.Bus).WithMany(p => p.BusRoutes)
+                .HasForeignKey(d => d.BusId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__BusRoutes__BusId__125EB334");
+        });
+
+        modelBuilder.Entity<BusStop>(entity =>
+        {
+            entity.HasKey(e => e.StopId).HasName("PK__BusStops__EB6A38F4C028A9AF");
+
+            entity.ToTable("BusStops", "SchoolOps");
+
+            entity.Property(e => e.StopId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.HasOne(d => d.Route).WithMany(p => p.BusStops)
+                .HasForeignKey(d => d.RouteId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__BusStops__RouteI__162F4418");
         });
 
         modelBuilder.Entity<Class>(entity =>
@@ -430,6 +530,98 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.ID).ValueGeneratedOnAdd();
         });
 
+        modelBuilder.Entity<Clinic>(entity =>
+        {
+            entity.HasKey(e => e.ClinicId).HasName("PK__Clinics__3347C2DD1D656EE6");
+
+            entity.ToTable("Clinics", "SchoolOps");
+
+            entity.Property(e => e.ClinicId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Location).HasMaxLength(100);
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.HasOne(d => d.School).WithMany(p => p.Clinics)
+                .HasForeignKey(d => d.SchoolId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Clinics__SchoolI__7A8729A3");
+        });
+
+        modelBuilder.Entity<ClinicMedication>(entity =>
+        {
+            entity.HasKey(e => e.MedicationId).HasName("PK__ClinicMe__62EC1AFAFEDC893D");
+
+            entity.ToTable("ClinicMedications", "SchoolOps");
+
+            entity.Property(e => e.MedicationId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(e => e.Unit).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<ClinicMedicationLog>(entity =>
+        {
+            entity.HasKey(e => e.LogId).HasName("PK__ClinicMe__5E548648E69D7813");
+
+            entity.ToTable("ClinicMedicationLogs", "SchoolOps");
+
+            entity.Property(e => e.LogId).HasDefaultValueSql("(newid())");
+
+            entity.HasOne(d => d.Medication).WithMany(p => p.ClinicMedicationLogs)
+                .HasForeignKey(d => d.MedicationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__ClinicMed__Medic__06ED0088");
+
+            entity.HasOne(d => d.Visit).WithMany(p => p.ClinicMedicationLogs)
+                .HasForeignKey(d => d.VisitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__ClinicMed__Visit__05F8DC4F");
+        });
+
+        modelBuilder.Entity<ClinicStaff>(entity =>
+        {
+            entity.HasKey(e => e.StaffId).HasName("PK__ClinicSt__96D4AB17CC33C843");
+
+            entity.ToTable("ClinicStaff", "SchoolOps");
+
+            entity.Property(e => e.StaffId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Contact).HasMaxLength(50);
+            entity.Property(e => e.FullName)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(e => e.Role).HasMaxLength(50);
+
+            entity.HasOne(d => d.Clinic).WithMany(p => p.ClinicStaffs)
+                .HasForeignKey(d => d.ClinicId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__ClinicSta__Clini__0ABD916C");
+        });
+
+        modelBuilder.Entity<ClinicVisit>(entity =>
+        {
+            entity.HasKey(e => e.VisitId).HasName("PK__ClinicVi__4D3AA1DED94BA5B0");
+
+            entity.ToTable("ClinicVisits", "SchoolOps");
+
+            entity.Property(e => e.VisitId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Diagnosis).HasMaxLength(255);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.Symptoms)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.Treatment).HasMaxLength(255);
+            entity.Property(e => e.VisitDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.Clinic).WithMany(p => p.ClinicVisits)
+                .HasForeignKey(d => d.ClinicId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__ClinicVis__Clini__7F4BDEC0");
+        });
+
         modelBuilder.Entity<Course>(entity =>
         {
             entity.Property(e => e.CourseID).ValueGeneratedNever();
@@ -475,6 +667,75 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.DayName)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<DiningAttendance>(entity =>
+        {
+            entity.HasKey(e => e.AttendanceId).HasName("PK__DiningAt__8B69261C1A0F5EDB");
+
+            entity.ToTable("DiningAttendance", "SchoolOps");
+
+            entity.Property(e => e.AttendanceId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Date).HasColumnType("date");
+            entity.Property(e => e.MarkedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.Meal).WithMany(p => p.DiningAttendances)
+                .HasForeignKey(d => d.MealId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__DiningAtt__MealI__73DA2C14");
+        });
+
+        modelBuilder.Entity<DiningHall>(entity =>
+        {
+            entity.HasKey(e => e.DiningHallId).HasName("PK__DiningHa__7EBEC0289C9015F2");
+
+            entity.ToTable("DiningHalls", "SchoolOps");
+
+            entity.Property(e => e.DiningHallId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Location).HasMaxLength(100);
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.HasOne(d => d.School).WithMany(p => p.DiningHalls)
+                .HasForeignKey(d => d.SchoolId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__DiningHal__Schoo__6774552F");
+        });
+
+        modelBuilder.Entity<DiningMenu>(entity =>
+        {
+            entity.HasKey(e => e.MenuId).HasName("PK__DiningMe__C99ED23025918EF5");
+
+            entity.ToTable("DiningMenu", "SchoolOps");
+
+            entity.Property(e => e.MenuId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.DayOfWeek)
+                .IsRequired()
+                .HasMaxLength(10);
+            entity.Property(e => e.Drink).HasMaxLength(100);
+            entity.Property(e => e.MainDish).HasMaxLength(100);
+            entity.Property(e => e.SideDish).HasMaxLength(100);
+
+            entity.HasOne(d => d.Meal).WithMany(p => p.DiningMenus)
+                .HasForeignKey(d => d.MealId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__DiningMen__MealI__6F1576F7");
+        });
+
+        modelBuilder.Entity<DiningSpecialDiet>(entity =>
+        {
+            entity.HasKey(e => e.DietId).HasName("PK__DiningSp__AB42F69EA0E3293B");
+
+            entity.ToTable("DiningSpecialDiets", "SchoolOps");
+
+            entity.Property(e => e.DietId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.DietType)
+                .IsRequired()
+                .HasMaxLength(50);
         });
 
         modelBuilder.Entity<ExamQuizTestHeader>(entity =>
@@ -580,6 +841,26 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.GPA).HasColumnType("decimal(3, 2)");
         });
 
+        modelBuilder.Entity<Hostel>(entity =>
+        {
+            entity.HasKey(e => e.HostelId).HasName("PK__Hostels__677EEB28CB8532AD");
+
+            entity.ToTable("Hostels", "SchoolOps");
+
+            entity.Property(e => e.HostelId).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.HostelName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.HasOne(d => d.School).WithMany(p => p.Hostels)
+                .HasForeignKey(d => d.SchoolId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Hostels_School");
+        });
+
         modelBuilder.Entity<Lesson>(entity =>
         {
             entity.HasKey(e => e.LessonID).HasName("PK__Lessons__B084ACB08BA07F8D");
@@ -629,6 +910,23 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.ScheduledDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<Meal>(entity =>
+        {
+            entity.HasKey(e => e.MealId).HasName("PK__Meals__ACF6A63DD03EDEAA");
+
+            entity.ToTable("Meals", "SchoolOps");
+
+            entity.Property(e => e.MealId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasOne(d => d.DiningHall).WithMany(p => p.Meals)
+                .HasForeignKey(d => d.DiningHallId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Meals__DiningHal__6B44E613");
         });
 
         modelBuilder.Entity<MultipleChoiceAssignmentAnswer>(entity =>
@@ -712,6 +1010,7 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.PrinciplesComment)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+            entity.Property(e => e.ReportCardType).HasMaxLength(50);
             entity.Property(e => e.Term).HasMaxLength(20);
             entity.Property(e => e.TermEndDate).HasColumnType("datetime");
             entity.Property(e => e.TermStartDate).HasColumnType("datetime");
@@ -735,6 +1034,66 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.HasOne(d => d.ReportCard).WithMany(p => p.ReportCardDetails)
                 .HasForeignKey(d => d.ReportCardID)
                 .HasConstraintName("FK_ReportCardDetails_ReportCards");
+        });
+
+        modelBuilder.Entity<ReportCardState>(entity =>
+        {
+            entity.HasKey(e => e.StateID);
+
+            entity.Property(e => e.StateID).ValueGeneratedNever();
+            entity.Property(e => e.State).HasMaxLength(255);
+        });
+
+        modelBuilder.Entity<Room>(entity =>
+        {
+            entity.HasKey(e => e.RoomId).HasName("PK__Rooms__32863939A74CE7B9");
+
+            entity.ToTable("Rooms", "SchoolOps");
+
+            entity.Property(e => e.RoomId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.RoomNumber)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.RoomType).HasMaxLength(50);
+
+            entity.HasOne(d => d.Hostel).WithMany(p => p.Rooms)
+                .HasForeignKey(d => d.HostelId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Rooms__HostelId__5C02A283");
+        });
+
+        modelBuilder.Entity<RoomAllocation>(entity =>
+        {
+            entity.HasKey(e => e.AllocationId).HasName("PK__RoomAllo__B3C6D64B94D29F4D");
+
+            entity.ToTable("RoomAllocations", "SchoolOps");
+
+            entity.Property(e => e.AllocationId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CheckInDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.CheckOutDate).HasColumnType("datetime");
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasDefaultValueSql("('Active')");
+
+            entity.HasOne(d => d.Room).WithMany(p => p.RoomAllocations)
+                .HasForeignKey(d => d.RoomId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__RoomAlloc__RoomI__61BB7BD9");
+        });
+
+        modelBuilder.Entity<RoomsWithOccupancy>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("RoomsWithOccupancy", "SchoolOps");
+
+            entity.Property(e => e.RoomNumber)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.RoomType).HasMaxLength(50);
         });
 
         modelBuilder.Entity<School>(entity =>
@@ -885,6 +1244,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.Property(e => e.StudentExamID).ValueGeneratedNever();
             entity.Property(e => e.Grade).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.SubmissionDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.Exam).WithMany(p => p.StudentExamsTestsAndQuizzes)
@@ -960,31 +1320,34 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasConstraintName("FK_TeacherSubjectNormalized_Teacher");
         });
 
+        modelBuilder.Entity<TermSetting>(entity =>
+        {
+            entity.Property(e => e.TermSettingID).ValueGeneratedNever();
+            entity.Property(e => e.ActualEndTermDate).HasColumnType("datetime");
+            entity.Property(e => e.ActualStartTermDate).HasColumnType("datetime");
+            entity.Property(e => e.DeanEnd).HasColumnType("datetime");
+            entity.Property(e => e.DeanStart).HasColumnType("datetime");
+            entity.Property(e => e.FinalTermEnd).HasColumnType("datetime");
+            entity.Property(e => e.FinalTermStart).HasColumnType("datetime");
+            entity.Property(e => e.MidTermStart).HasColumnType("datetime");
+            entity.Property(e => e.MidtermEnd).HasColumnType("datetime");
+            entity.Property(e => e.PrincipleEnd).HasColumnType("datetime");
+            entity.Property(e => e.PrincipleStart).HasColumnType("datetime");
+            entity.Property(e => e.TermName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.School).WithMany(p => p.TermSettings)
+                .HasForeignKey(d => d.SchoolID)
+                .HasConstraintName("FK_TermSettings_Schools");
+        });
+
         modelBuilder.Entity<TimeSlot>(entity =>
         {
             entity.Property(e => e.TimeslotID).ValueGeneratedNever();
             entity.Property(e => e.Description)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-        });
-
-        modelBuilder.Entity<UserActivity>(entity =>
-        {
-            entity.HasKey(e => e.ActivityId);
-
-            entity.Property(e => e.ActivityId).ValueGeneratedNever();
-            entity.Property(e => e.ActivityDate).HasColumnType("datetime");
-            entity.Property(e => e.ActivityType)
-                .IsRequired()
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.UserId).HasMaxLength(255);
-        });
-
-        modelBuilder.Entity<UserBadge>(entity =>
-        {
-            entity.Property(e => e.UserBadgeID).ValueGeneratedNever();
-            entity.Property(e => e.DateEarned).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<WorldCity>(entity =>

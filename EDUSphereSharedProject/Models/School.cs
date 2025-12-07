@@ -15,13 +15,23 @@ public partial class School
 
     public bool? HasplagerismEnaabled { get; set; }
 
+    public virtual ICollection<Bus> Buses { get; set; } = new List<Bus>();
+
     public virtual ICollection<Class> Classes { get; set; } = new List<Class>();
 
     public virtual ICollection<ClientAdmin> ClientAdmins { get; set; } = new List<ClientAdmin>();
 
+    public virtual ICollection<Clinic> Clinics { get; set; } = new List<Clinic>();
+
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
+
+    public virtual ICollection<DiningHall> DiningHalls { get; set; } = new List<DiningHall>();
+
+    public virtual ICollection<Hostel> Hostels { get; set; } = new List<Hostel>();
 
     public virtual ICollection<Parent> Parents { get; set; } = new List<Parent>();
 
     public virtual ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
+
+    public virtual ICollection<TermSetting> TermSettings { get; set; } = new List<TermSetting>();
 }

@@ -47,6 +47,14 @@
     <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.4.5/css/bootstrap.css" />
     <link type="text/css" rel="stylesheet" href="https://source.zoom.us/3.4.5/css/react-select.css" />
 
+    <link href="manifest.json" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-apple-180.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icon-apple-152.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="icon-apple-120.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="icon-apple-76.png">
+
     <HeadOutlet @rendermode="RenderModeForPage" />
 </head>
 
@@ -102,12 +110,13 @@
 
     <!-- For Client View -->
     <script src="https://source.zoom.us/4.0.0/zoom-meeting-embedded-4.0.0.min.js"></script>
-  
+
 
 
     <!-- Zoom Initialization -->
     <script src="/js/Zoom.js"></script>
 
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
 
 
 </body>

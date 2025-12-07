@@ -66,32 +66,33 @@
             </GroupHeaderTemplate>
             <RowTemplate>
                 <MudTd DataLabel="First Name">@context.FirstName</MudTd>
-                    <MudTd DataLabel="Last Name">@context.LastName</MudTd>
-                    <MudTd DataLabel="Score">@context.Grade</MudTd>
-                    <MudTd DataLabel="Class">@context.ClassName</MudTd>
-                    <MudTd DataLabel="Assignment Marks">@context.TotalMarks</MudTd>
-                    <MudTd DataLabel="Grader">@context.GradeLevel</MudTd>
-                    <MudTd DataLabel="SubmissionDate">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
-                    <MudTd DataLabel="SubmissionStatus">
-                        @if (context.Overdue == 1)
+                <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                <MudTd DataLabel="Score">@context.Grade</MudTd>
+                <MudTd DataLabel="Class">@context.ClassName</MudTd>
+                <MudTd DataLabel="Assignment Marks">@context.TotalMarks</MudTd>
+                <MudTd DataLabel="Grader">@context.GradeLevel</MudTd>
+                <MudTd DataLabel="SubmissionDate">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
+                <MudTd DataLabel="SubmissionStatus">
+                    @if (context.Overdue == 1)
                     {
                         <MudChip T="string" Variant="Variant.Outlined" Color="Color.Error">Overdue</MudChip>
                     }
                     else
                     {
-                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">Pending</MudChip>
+
+                        <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">@context.Status</MudChip>
                     }
                 </MudTd>
-                <MudTd DataLabel="SubmissionStatus"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="()=>NavigateToDetails(context)" /></MudTd>
+                <MudTd DataLabel="SubmissionStatus"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="() => NavigateToDetails(context)" /></MudTd>
             </RowTemplate>
             <GroupFooterTemplate>
                 <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="9">Total Submitted Assignments: @context.Items.Count())</MudTh>
-                </GroupFooterTemplate>
-            </MudTable>
-        </MudCardContent>
-    </MudCard>
+            </GroupFooterTemplate>
+        </MudTable>
+    </MudCardContent>
+</MudCard>
 
-    @code {
+@code {
     protected List<GetTeacherAssignmentsResult> assignmentsResults = new();
 
     private MudTable<GetTeacherAssignmentsResult> _tableRef;
@@ -102,21 +103,21 @@
     protected string UserID = string.Empty;
     protected bool isLoading = false;
     private TableGroupDefinition<GetTeacherAssignmentsResult> _groupDefinition = new()
-        {
-            GroupName = "Class",
-            Indentation = false,
-            Expandable = true,
-            IsInitiallyExpanded = false,
-            Selector = (e) => e.ClassName
-        };
+    {
+        GroupName = "Class",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = false,
+        Selector = (e) => e.ClassName
+    };
 
 
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-        
-            UserID = AppState.UserID;
-        
+
+        UserID = AppState.UserID;
+
         if (UserID != string.Empty || UserID != null)
         {
             await GetAssignments();
@@ -141,10 +142,22 @@
         await GetAssignmentDetails(result.StudentAssignmentID);
         LessonService.studentID = result.StudentID.Value;
         LessonService.assignmentID = result.AssignmentID.Value;
+        var SA = new StudentAssignment()
+        {
+            StudentAssignmentID = result.StudentAssignmentID,
+            StudentID = result.StudentID,
+            AssignmentID = result.AssignmentID,
+            SubmissionDate = result.SubmissionDate,
+            Grade = 0,
+            Status = result.Status,
+            QuestionID = result.QuestionID
+        };
+        LessonService.Assignment = SA;
+       
         isLoading = false;
         _navigationManager.NavigateTo("/MarkingAssignmentDetails");
     }
-
+   
     protected async Task GetAssignmentDetails(Guid id)
     {
 

@@ -5,9 +5,13 @@ using System.Collections.Generic;
 
 namespace EDUSphereSharedProject.Models;
 
-public partial class BadgeLevel
+public partial class DiningSpecialDiet
 {
-    public Guid BadgeLevelID { get; set; }
+    public Guid DietId { get; set; }
 
-    public string LevelDescription { get; set; }
+    public Guid StudentId { get; set; }
+
+    public string DietType { get; set; }
+
+    public string Description { get; set; }
 }

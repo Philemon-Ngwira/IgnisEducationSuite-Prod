@@ -27,7 +27,7 @@ namespace IgnisEducationSuite.Controllers
             return (IGenericRepository<T>)_serviceProvider.GetService(typeof(IGenericRepository<T>));
         }
 
-        #region Non Generic
+        #region Non Generic  Old Modules
 
         [HttpGet("GetInitializationData/{ID}")]
         public async Task<IActionResult> GetInitializationData(string ID)
@@ -189,10 +189,10 @@ namespace IgnisEducationSuite.Controllers
             return Ok(result);
         }
 
-        [HttpGet("GetStudentsOfClassDetail/{grade}")]
-        public async Task<IActionResult> GetStudentsInGradeDetailed(int grade)
+        [HttpGet("GetStudentsOfClassDetail/{grade}/{SchoolID}")]
+        public async Task<IActionResult> GetStudentsInGradeDetailed(int grade, string SchoolID)
         {
-            var result = await _repository.GetStudentsByGrade(grade);
+            var result = await _repository.GetStudentsByGrade(grade, SchoolID);
             return Ok(result);
         }
         [HttpGet("GetStudentsInGradeWithoutSchedule/{grade}/{schoolID}/{ClassSection}")]
@@ -528,7 +528,7 @@ namespace IgnisEducationSuite.Controllers
                 "assignment" => GetRepository<Assignment>(),
                 "assignmentquestions" => GetRepository<AssignmentQuestion>(), //assignmentQuestions
                 "studentassignment" => GetRepository<StudentAssignment>(),
-                "studentassignmentasnwers" => GetRepository<StudentAssignmentAnswer>(),
+                "studentassignmentanswers" => GetRepository<StudentAssignmentAnswer>(),
                 "studentgrowth" => GetRepository<vw_StudentGrowth>(),
                 "highratedclasses" => GetRepository<vw_ClassLessonSummary>(),
                 "timeslot" => GetRepository<TimeSlot>(),
@@ -577,7 +577,7 @@ namespace IgnisEducationSuite.Controllers
                 "assignment" => JsonSerializer.Deserialize<Assignment>(obj.ToString()),
                 "assignmentquestions" => JsonSerializer.Deserialize<AssignmentQuestion>(obj.ToString()),
                 "studentassignment" => JsonSerializer.Deserialize<StudentAssignment>(obj.ToString()),
-                "studentassignmentasnwers" => JsonSerializer.Deserialize<StudentAssignmentAnswer>(obj.ToString()),
+                "studentassignmentanswers" => JsonSerializer.Deserialize<StudentAssignmentAnswer>(obj.ToString()),
                 "studentgrowth" => JsonSerializer.Deserialize<vw_StudentGrowth>(obj.ToString()),
                 "highratedclasses" => JsonSerializer.Deserialize<vw_ClassLessonSummary>(obj.ToString()),
                 "timeslot" => JsonSerializer.Deserialize<TimeSlot>(obj.ToString()),
@@ -610,7 +610,7 @@ namespace IgnisEducationSuite.Controllers
 
         #endregion
 
-        #region Non Generic
+        #region Non Generic New Modules
         [HttpGet("GetLicenseStatus/{companyId}")]
         public async Task<IActionResult> GetLicenseByCompany(Guid companyId)
         {
@@ -627,6 +627,31 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetAcademicLevel(string schoolID)
         {
             var result = await _repository.GetAcademicLevelsAsync(schoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetStudentGradedExams/{StudentID}")]
+        public async Task<IActionResult> GetStudentGradedExams(string StudentID)
+        {
+            var result = await _repository.GetGradedExamsByStudent(StudentID);
+            return Ok(result);
+        }
+        [HttpGet("GetStudentGradedAssignments/{StudentID}")]
+        public async Task<IActionResult> GetStudentGradedAssignments(string StudentID)
+        {
+            var result = await _repository.GetGradedAssignmentsByStudent(StudentID);
+            return Ok(result);
+        }
+
+        [HttpGet("GetStudentsByUser/{UserID}")]
+        public async Task<IActionResult> GetStudentByUserID(string UserID)
+        {
+            var result = await _repository.GetStudentByUserID(UserID);
+            return Ok(result);
+        }
+        [HttpGet("GetStudentsBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetStudentsBySchool(string SchoolID)
+        {
+            var result = await _repository.GetStudentsBySchool(SchoolID);
             return Ok(result);
         }
         #endregion

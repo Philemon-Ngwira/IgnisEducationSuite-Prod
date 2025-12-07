@@ -1,0 +1,258 @@
+﻿@page "/StudentResults"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@using IgnisEducationSuite.Client.Pages.StudentPortal.Dialog
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5">RESULTS</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTabs Outlined="true">
+            <MudTabPanel Text="Exams Tests And Quizzes" Icon="@MaterialDesignIcons.Normal.FileDocumentMultiple">
+                <MudTable Items="@studentTestAndExamResults" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" LoadingProgressColor="Color.Info">
+                    <HeaderContent>
+                        <MudTh>Teacher Name</MudTh>
+                        <MudTh>Exam</MudTh>
+                        <MudTh>Total Marks</MudTh>
+                        <MudTh>Score (%)</MudTh>
+                        <MudTh>Submission Date</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name">@context.TeacherFirstName.Substring(0, 1) @context.TeacherLastName</MudTd>
+                        <MudTd DataLabel="Exam">@context.Title</MudTd>
+                        <MudTd DataLabel="Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="Score">@context.Grade%</MudTd>
+                        <MudTd DataLabel="Submission Date">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Action">
+                            <MudIconButton Icon="@MaterialDesignIcons.Normal.OpenInNew" OnClick="() => OpenResultDetails(context)"></MudIconButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+            </MudTabPanel>
+            <MudTabPanel Text="Assignments" Icon="@Icons.Material.Filled.Assignment">
+                <MudTable Items="@studentGradedAssignmentResults" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" LoadingProgressColor="Color.Info">
+                    <HeaderContent>
+                        <MudTh>Teacher Name</MudTh>
+                        <MudTh>Title</MudTh>
+                        <MudTh>Total Marks</MudTh>
+                        <MudTh>Grade (%)</MudTh>
+                        <MudTh>Submission Date</MudTh>
+                        <MudTh>Action</MudTh>
+
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name">@context.TeacherFirstName.Substring(0, 1) @context.TeacherLastName</MudTd>
+                        <MudTd DataLabel="Title">@context.Title</MudTd>
+                        <MudTd DataLabel="Marks">@context.AssignmentTotalMarks</MudTd>
+                        <MudTd DataLabel="Grade">@context.Grade%</MudTd>
+                        <MudTd DataLabel="Submission Date">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Action">
+                            <MudIconButton Icon="@MaterialDesignIcons.Normal.OpenInNew" OnClick="() => OpenResultDetails(context)"></MudIconButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+            </MudTabPanel>
+        </MudTabs>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    protected List<StudentGradedExamsTestsAndQuizzes> studentTestAndExamResults = new();
+    protected List<StudentGradedAssignments> studentGradedAssignmentResults = new();
+    protected Student loggedInStudent = new();
+    protected bool isLoading = false;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        var firstTask = new List<Task>();
+        firstTask.Add(GetLoggedInStudent());
+        await Task.WhenAll(firstTask);
+        var finalTasks = new List<Task>
+        {
+            GetstudentAssignmentResults(),
+            GetStudentExamResults()
+        };
+
+        await Task.WhenAll(finalTasks);
+        isLoading = false;
+
+    }
+
+
+    protected async Task GetLoggedInStudent()
+    {
+        var service = GenericService.GetService<Student>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsByUser/{AppState.UserID}", true);
+        if (result.IsSuccess)
+        {
+            loggedInStudent = result.Data.First();
+        }
+    }
+
+    protected async Task GetstudentAssignmentResults()
+    {
+        var service = GenericService.GetService<StudentGradedAssignments>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentGradedAssignments/{loggedInStudent.StudentID}", true);
+        if (result.IsSuccess)
+        {
+            studentGradedAssignmentResults = result.Data.ToList();
+        }
+    }
+
+    protected async Task GetStudentExamResults()
+    {
+        var service = GenericService.GetService<StudentGradedExamsTestsAndQuizzes>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentGradedExams/{loggedInStudent.StudentID}", true);
+        if (result.IsSuccess)
+        {
+            studentTestAndExamResults = result.Data.ToList();
+        }
+    }
+    protected async Task<List<StudentExamQuizAndTestAnswer>> GetStudentExamQuizAndTestAnswers(Guid? ExamID)
+    {
+        var service = GenericService.GetService<StudentExamQuizAndTestAnswer>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentExamAnswers/{ExamID}", true);
+        if (result.IsSuccess)
+        {
+
+            return result.Data.ToList();
+        }
+        else
+        {
+
+            return new List<StudentExamQuizAndTestAnswer>();
+        }
+    }
+    protected async Task<List<ExamQuizTestQuestion>> GetExamQuizTestQuestionsAsync(Guid ExamID)
+    {
+        var service = GenericService.GetService<ExamQuizTestQuestion>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetExamTestQuizQuestions/{ExamID}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        else
+        {
+            //Snackbar.Add("Falied to Fetch Students Answers");
+            return new List<ExamQuizTestQuestion>();
+        }
+    }
+    protected async Task<IEnumerable<ExamTestQuizMultipleChoiceAnswer>> GetMultipleChoiceAnswersExam(Guid QuestionID)
+    {
+
+        var service = GenericService.GetService<ExamTestQuizMultipleChoiceAnswer>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetQuestionChoicesExams/{QuestionID}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        return new List<ExamTestQuizMultipleChoiceAnswer>();
+
+
+    }
+    protected async Task<IEnumerable<MultipleChoiceAssignmentAnswer>> GetQuestionChoicesAssignment(Guid Id)
+    {
+        var service = GenericService.GetService<MultipleChoiceAssignmentAnswer>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetQuestionChoicesAssignment/{Id}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        return new List<MultipleChoiceAssignmentAnswer>();
+    }
+    protected async Task<List<StudentAssignmentAnswer>> GetAssignmentDetails(Guid id)
+    {
+
+        var service = GenericService.GetService<StudentAssignmentAnswer>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetAssignmentAnswers/{id}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+
+        }
+        else
+        {
+            return new List<StudentAssignmentAnswer>();
+            //Snackbar.Add("Failed to Assignment Details, Please refresh and try again", Severity.Error);
+        }
+
+    }
+    protected async Task<List<AssignmentQuestion>> GetAssignmentQuestions(Guid id)
+    {
+        var service = GenericService.GetService<AssignmentQuestion>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetAssignmentQuestions/{id}", true);
+        return result.Data.ToList();
+
+    }
+    private async Task OpenResultDetails<T>(T model)
+    {
+        var parameters = new DialogParameters<ResultsViewDialog>();
+        if (model is StudentGradedExamsTestsAndQuizzes)
+        {
+            var SExamModel = model as StudentGradedExamsTestsAndQuizzes;
+            var ExamAnwers = await GetStudentExamQuizAndTestAnswers(SExamModel.StudentExamID);
+            var ExamQuestions = await GetExamQuizTestQuestionsAsync(SExamModel.ExamID.Value);
+            foreach (var item in ExamAnwers)
+            {
+                item.Question = ExamQuestions.Where(x => x.QuestionID == item.QuestionID).First();
+            }
+            var ExamAnswerChoices = new List<ExamTestQuizMultipleChoiceAnswer>();
+            foreach (var item in ExamQuestions)
+            {
+                if (item.isMultipleChoice == true)
+                {
+                    ExamAnswerChoices.AddRange(await GetMultipleChoiceAnswersExam(item.QuestionID));
+                }
+            }
+
+            parameters = new()
+            {
+                {x=>x.answers , ExamAnwers},
+                {c => c.ExamAnswerChoices, ExamAnswerChoices},
+                {d => d.Grade , SExamModel.Grade.ToString()},
+                {t => t.contentType, "ETQ"}
+            };
+        }
+        else
+        {
+            var SAssignmentModel = model as StudentGradedAssignments;
+            var AssignmentAnwers = await GetAssignmentDetails(SAssignmentModel.StudentAssignmentID);
+            var AssignmentQuestions = await GetAssignmentQuestions(SAssignmentModel.AssignmentID.Value);
+            foreach (var item in AssignmentAnwers)
+            {
+                item.Question = AssignmentQuestions.Where(x => x.QuestionID == item.QuestionID).First();
+            }
+            var AssignmentAnswerChoices = new List<MultipleChoiceAssignmentAnswer>();
+            foreach (var item in AssignmentQuestions)
+            {
+                if (item.isMultipleChoice == true)
+                {
+                    AssignmentAnswerChoices.AddRange(await GetQuestionChoicesAssignment(item.QuestionID));
+                }
+            }
+
+            parameters = new()
+            {
+                {x=>x.assignmentAnswers , AssignmentAnwers},
+                {c => c.AssignmentAnswerChoices, AssignmentAnswerChoices},
+                {d => d.Grade , SAssignmentModel.Grade.ToString()},
+                {t => t.contentType, "Assignment"}
+            };
+        }
+
+
+
+
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true, Position = DialogPosition.TopCenter };
+
+        var result = await DialogService.ShowAsync<ResultsViewDialog>("", parameters, options);
+    }
+
+}

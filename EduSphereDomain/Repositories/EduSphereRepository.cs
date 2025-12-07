@@ -1,4 +1,8 @@
-﻿using DocumentFormat.OpenXml.Office2010.Excel;
+﻿using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Office2010.Excel;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using EduSphereDomain.AchievementData;
 using EduSphereDomain.ChatData;
 using EduSphereDomain.Data;
@@ -7,6 +11,7 @@ using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.Metrics;
 
 namespace EduSphereDomain.Repositories
 {
@@ -24,6 +29,8 @@ namespace EduSphereDomain.Repositories
             _achievementContextProcedures = achievementContextProcedures;
         }
 
+
+        #region Main Modules
         public async Task<IEnumerable<Class>> GetTeacherSubjectsByID(Guid id)
         {
             var result = await _context.Classes.Where(x => x.TeacherID == id).ToListAsync();
@@ -402,10 +409,10 @@ namespace EduSphereDomain.Repositories
             return result;
         }
 
-        public async Task<IEnumerable<Student>> GetStudentsByGrade(int grade)
+        public async Task<IEnumerable<Student>> GetStudentsByGrade(int grade, string SchoolID)
         {
             List<Student> stds = new();
-            var result = await _contextProcedures.GetStudentsInGradeDetailsAsync(grade);
+            var result = await _contextProcedures.GetStudentsInGradeDetailsAsync(grade, Guid.Parse(SchoolID));
             foreach (var item in result)
             {
                 Student student = new()
@@ -671,6 +678,7 @@ namespace EduSphereDomain.Repositories
                     GradeLevel = item.GradeLevel,
                     ClassName = item.ClassName,
                     ExamQuizID = item.ExamQuizID,
+                    StudentID = item.StudentID,
                 };
                 studentExams.Add(studentExam);
             }
@@ -964,6 +972,97 @@ namespace EduSphereDomain.Repositories
             }
             return activeClassScheduleResults;
         }
+        #endregion
+
+
+        #region New Modules
+        public async Task<IEnumerable<StudentGradedExamsTestsAndQuizzes>> GetGradedExamsByStudent(string StudentID)
+        {
+            var result = await _contextProcedures.GetGradedStudentExamsAsync(Guid.Parse(StudentID));
+            return result.Select(x => new StudentGradedExamsTestsAndQuizzes
+            {
+                StudentID = x.StudentID,
+                ExamID = x.ExamID,
+                Status = x.Status,
+                StudentExamID = x.StudentExamID,
+                SubmissionDate = x.SubmissionDate,
+                Grade = x.Grade,
+                TeacherFirstName = x.TeacherFirstName,
+                TeacherLastName = x.TeacherLastName,
+                Title = x.Title,
+                TotalMarks = x.TotalMarks,
+
+            }).ToList();
+        }
+
+        public async Task<IEnumerable<StudentGradedAssignments>> GetGradedAssignmentsByStudent(string StudentID)
+        {
+            var result = await _contextProcedures.GetGradedStudentAssignmentsAsync(Guid.Parse(StudentID));
+            return result.Select(a => new StudentGradedAssignments
+            {
+                StudentID = a.StudentID,
+                AssignmentID = a.AssignmentID,
+                StudentAssignmentID = a.StudentAssignmentID,
+                Grade = a.Grade,
+                Status = a.Status,
+                SubmissionDate = a.SubmissionDate,
+                QuestionID = a.QuestionID,
+                AssignmentTotalMarks = a.AssignmentTotalMarks,
+                TeacherFirstName = a.TeacherFirstName,
+                TeacherLastName = a.TeacherLastName,
+                Title = a.Title,
+
+
+            }).ToList();
+        }
+
+        public async Task<IEnumerable<Student>> GetStudentsBySchool(string SchoolID)
+        {
+            var result = await _contextProcedures.GetStudentsBySchoolAsync(Guid.Parse(SchoolID));
+            return result.Select(s => new Student
+            {
+                StudentID = s.StudentID,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                AcademicLevel = s.AcademicLevel,
+                ParentID = s.ParentID,
+                Gender = s.Gender,
+                Address = s.Address,
+                StudentNumber = s.StudentNumber,
+                ProfilePic = s.ProfilePic,
+                UserID = s.UserID,
+                DateOnBoarded = s.DateOnBoarded,
+                Country = s.Country,
+                City = s.City,
+                SchoolID = s.SchoolID,
+                GradeSection = s.GradeSection,
+                LevelName = s.LevelName,
+            }).ToList();
+        }
+        public async Task<IEnumerable<Student>> GetStudentByUserID(string UserID)
+        {
+            var result = await _contextProcedures.GetStudentByUserIDAsync(Guid.Parse(UserID));
+            return result.Select(s => new Student
+            {
+                StudentID = s.StudentID,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                AcademicLevel = s.AcademicLevel,
+                ParentID = s.ParentID,
+                Gender = s.Gender,
+                Address = s.Address,
+                StudentNumber = s.StudentNumber,
+                ProfilePic = s.ProfilePic,
+                UserID = s.UserID,
+                DateOnBoarded = s.DateOnBoarded,
+                Country = s.Country,
+                City = s.City,
+                SchoolID = s.SchoolID,
+                GradeSection = s.GradeSection,
+                LevelName = s.LevelName,
+            }).ToList();
+        }
+        #endregion
 
     }
 

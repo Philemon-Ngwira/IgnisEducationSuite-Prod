@@ -14,6 +14,7 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public string StudentNumber { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        public Guid StudentID { get; set; }
         public Guid ExamQuizID { get; set; }
         public string ExamType { get; set; }
         public string Title { get; set; }
@@ -21,5 +22,8 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public DateTime StartDate { get; set; }
         public int? GradeLevel { get; set; }
         public string ClassName { get; set; }
+
+        [NotMapped]
+        public string LevelName { get; set; }
     }
 }

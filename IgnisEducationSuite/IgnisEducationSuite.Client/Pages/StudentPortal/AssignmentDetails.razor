@@ -40,11 +40,16 @@
                             {
                                 <MudListItem>
                                     <MudCheckBox T="bool"
-                                                 Label="@Aitem.MultipleChoiceLetter"
-                                                 Value="IsChecked(item.QuestionID, Aitem.MultipleChoiceLetter)"
-                                                 ValueChanged="(e) => HandleMultipleChoiceSelection(item.QuestionID, Aitem.MultipleChoiceLetter, Aitem.MuiltpleChoiceAnswer, e)">
-                                        <span class="bullet-answer"> @Aitem.MuiltpleChoiceAnswer</span>
-                                    </MudCheckBox>
+                                                 Label="@Aitem.MuiltpleChoiceAnswer"
+                                                 Value="@IsChecked(item.QuestionID, Aitem.MultipleChoiceLetter)"
+                                                 ValueChanged="@(checkedValue => HandleMultipleChoiceSelection(
+                                                                                         item.QuestionID,
+                                                                                         Aitem.MultipleChoiceLetter,
+                                                                                         Aitem.MuiltpleChoiceAnswer,
+                                                                                         checkedValue))">
+                            <span class="bullet-answer">@Aitem.MuiltpleChoiceAnswer</span>
+                        </MudCheckBox>
+
                                 </MudListItem>
                             }
 

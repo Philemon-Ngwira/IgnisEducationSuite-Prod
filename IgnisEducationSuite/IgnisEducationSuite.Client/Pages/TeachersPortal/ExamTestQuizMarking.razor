@@ -27,7 +27,7 @@
             <MudTabPanel Text="Exams">
 
                 <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
-                          Items="@studentExams.Where(x=>x.ExamType == "Exam")"
+                          Items="@studentExams.Where(x => x.ExamType == "Exam")"
                           GroupBy="@_groupDefinition"
                           GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
                           GroupFooterClass="mb-4"
@@ -60,8 +60,9 @@
                         <MudTd DataLabel="Score">@context.Grade</MudTd>
                         <MudTd DataLabel="Class">@context.ClassName</MudTd>
                         <MudTd DataLabel="Exam Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="Grade">@context.LevelName</MudTd>
                         <MudTd DataLabel="SubmissionDate">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
-                        <MudTd DataLabel="Action"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="()=>NavigateToDetails(context)" /></MudTd>
+                        <MudTd DataLabel="Action"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="() => NavigateToDetails(context)" /></MudTd>
                     </RowTemplate>
                     <GroupFooterTemplate>
                         <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="9">Total Submitted Assignments: @context.Items.Count())</MudTh>
@@ -71,7 +72,7 @@
             <MudTabPanel Text="Tests">
 
                 <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
-                          Items="@studentExams.Where(x=>x.ExamType == "Test")"
+                          Items="@studentExams.Where(x => x.ExamType == "Test")"
                           GroupBy="@_groupDefinition"
                           GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
                           GroupFooterClass="mb-4"
@@ -104,8 +105,9 @@
                         <MudTd DataLabel="Score">@context.Grade</MudTd>
                         <MudTd DataLabel="Class">@context.ClassName</MudTd>
                         <MudTd DataLabel="Exam Marks">@context.TotalMarks</MudTd>
+                        <MudTd DataLabel="Grade">@context.LevelName</MudTd>
                         <MudTd DataLabel="SubmissionDate">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
-                        <MudTd DataLabel="Action"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="()=>NavigateToDetails(context)" /></MudTd>
+                        <MudTd DataLabel="Action"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="() => NavigateToDetails(context)" /></MudTd>
                     </RowTemplate>
                     <GroupFooterTemplate>
                         <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="9">Total Submitted Assignments: @context.Items.Count())</MudTh>
@@ -115,7 +117,7 @@
             <MudTabPanel Text="Quizzes">
 
                 <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
-                          Items="@studentExams.Where(x=>x.ExamType == "Quiz")"
+                          Items="@studentExams.Where(x => x.ExamType == "Quiz")"
                           GroupBy="@_groupDefinition"
                           GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
                           GroupFooterClass="mb-4"
@@ -148,9 +150,9 @@
                         <MudTd DataLabel="Score">@context.Grade</MudTd>
                         <MudTd DataLabel="Class">@context.ClassName</MudTd>
                         <MudTd DataLabel="Exam Marks">@context.TotalMarks</MudTd>
-                        <MudTd DataLabel="Grade">Grade:@context.GradeLevel</MudTd>
+                        <MudTd DataLabel="Grade">Grade:@context.LevelName</MudTd>
                         <MudTd DataLabel="SubmissionDate">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
-                        <MudTd DataLabel="Action"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="()=>NavigateToDetails(context)" /></MudTd>
+                        <MudTd DataLabel="Action"><MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="() => NavigateToDetails(context)" /></MudTd>
                     </RowTemplate>
                     <GroupFooterTemplate>
                         <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="9">Total Submitted Assignments: @context.Items.Count())</MudTh>
@@ -158,7 +160,7 @@
                 </MudTable>
             </MudTabPanel>
         </MudTabs>
-      </MudCardContent>
+    </MudCardContent>
 </MudCard>
 @code {
     protected bool isLoading = false;
@@ -172,14 +174,16 @@
     ///Strings Numbers And bools///
     protected string UserID = string.Empty;
     private MudTable<GetStudentExamDetailsByTeacherResult> _tableRef;
-    private TableGroupDefinition<GetStudentExamDetailsByTeacherResult> _groupDefinition = new()
-        {
-            GroupName = "Class",
-            Indentation = false,
-            Expandable = true,
-            IsInitiallyExpanded = false,
-            Selector = (e) => e.ClassName
-        };
+    private TableGroupDefinition<GetStudentExamDetailsByTeacherResult> _groupDefinition =
+    new()
+    {
+        GroupName = "Group",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = false,
+        Selector = (e) => new { e.ClassName, e.LevelName }
+    };
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -202,6 +206,13 @@
         if (result.IsSuccess)
         {
             studentExams = result.Data.ToList();
+            foreach (var item in studentExams)
+            {
+                if (string.IsNullOrEmpty(item.LevelName))
+                {
+                    item.LevelName = academicLevels.Where(x => x.LevelInt == item.GradeLevel).Select(x => x.LevelName).FirstOrDefault();
+                }
+            }
         }
     }
     #endregion
@@ -234,23 +245,62 @@
             return new List<ExamQuizTestQuestion>();
         }
     }
+
+    protected async Task GetMultipleChoiceAnswers(Guid QuestionID)
+    {
+
+        var service = _genericService.GetService<ExamTestQuizMultipleChoiceAnswer>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetQuestionChoicesExams/{QuestionID}", true);
+        if (result.IsSuccess)
+        {
+            LS.ExamAnswerChoices.AddRange(result.Data.ToList());
+        }
+
+
+
+    }
+
     protected async Task NavigateToDetails(GetStudentExamDetailsByTeacherResult selectedExam)
     {
+        // Load answers
         LS.studentExamAnswers = await GetStudentExamQuizAndTestAnswers(selectedExam);
-        var questions = await GetExamQuizTestQuestionsAsync(selectedExam.ExamQuizID);
 
-        if (LS.studentExamAnswers.Any() & questions.Any())
+        // Load and order questions
+        var questions = (await GetExamQuizTestQuestionsAsync(selectedExam.ExamQuizID))
+                            .OrderBy(q => q.QuestionNumber)
+                            .ToList();
+        foreach (var item in questions)
         {
-            foreach (var item in LS.studentExamAnswers)
+            if (item.isMultipleChoice == true)
             {
-                item.Question = questions.Where(x => x.QuestionID == item.QuestionID).FirstOrDefault();
+                await GetMultipleChoiceAnswers(item.QuestionID);
             }
+        }
+        // Set current exam header
+        LS.ExamQuizTest = new StudentExamsTestsAndQuiz()
+        {
+            StudentExamID = selectedExam.StudentExamID,
+            StudentID = selectedExam.StudentID,
+            Grade = 0,
+            SubmissionDate = selectedExam.SubmissionDate,
+            ExamID = selectedExam.ExamQuizID
+        };
+
+        // Save exam details
+        LS.ExamDetails = selectedExam;
+
+        // If answers and questions exist, match them
+        if (LS.studentExamAnswers.Any() && questions.Any())
+        {
+            foreach (var ans in LS.studentExamAnswers)
+            {
+                ans.Question = questions.FirstOrDefault(q => q.QuestionID == ans.QuestionID);
+            }
+
+            // Now questions are guaranteed sorted before navigation
             _navigationManager.NavigateTo("/ExamAnswers");
         }
-        else
-        {
-            return;
-        }
     }
+
 
 }

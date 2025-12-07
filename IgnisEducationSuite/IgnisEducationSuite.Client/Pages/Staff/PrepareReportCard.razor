@@ -2,6 +2,7 @@
 @using EDUSphereSharedProject.Models
 @using IgnisEducationSuite.Client.Pages.Staff.Dialogs
 @inject IDialogService DialogService
+@inherits AppBaseComponent
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
@@ -98,7 +99,7 @@
     {
         isLoading = true;
         var service = _genericService.GetService<Student>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsOfClassDetail/{GradeLevel}", true);
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsOfClassDetail/{GradeLevel}/{AppState.SchoolID}", true);
         if (result.IsSuccess)
         {
             students = result.Data.ToList();
