@@ -23,5 +23,6 @@ public partial class ReportCardDetail
     public virtual Class Class { get; set; }
 
     public virtual ReportCard ReportCard { get; set; }
-   
+    [NotMapped]
+    public bool CanBeEditied { get; set; } = true;
 }

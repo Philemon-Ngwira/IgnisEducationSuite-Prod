@@ -125,7 +125,7 @@ namespace IgnisEducationSuite
             #endregion
             //--------------------------------------------------------------
             #region Controllers
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllers();
             #endregion
             //--------------------------------------------------------------
             #region SignalR

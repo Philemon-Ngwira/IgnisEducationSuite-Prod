@@ -38,6 +38,7 @@
                     else if (AppState.UserRole == "Admin")
                     {
                         <MudNavGroup Disabled="!AppState.LicenseIsActive" Icon="@Icons.Material.Filled.SupervisorAccount" Title="Administration" Expanded="true">
+                            <MudNavLink Href="term-settings" Icon="@Icons.Material.Filled.EditCalendar" ForceLoad="true" Match="NavLinkMatch.Prefix">Term Settings</MudNavLink>
                             <MudNavLink Href="UserManagement" Icon="@Icons.Material.Filled.SupervisedUserCircle" Match="NavLinkMatch.Prefix">User Management</MudNavLink>
                             <MudNavLink Href="StudentManagement" Icon="@MaterialDesignIcons.Normal.HumanMaleFemaleChild" Match="NavLinkMatch.Prefix">Student Management</MudNavLink>
                             <MudNavLink Href="TeacherManagement" Icon="@Icons.Material.Filled.Person" Match="NavLinkMatch.Prefix">Teacher Management</MudNavLink>
@@ -47,7 +48,6 @@
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book" Match="NavLinkMatch.Prefix">Report Cards</MudNavLink>
                             <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubble" Match="NavLinkMatch.Prefix">Ignnis Communcation Hub</MudNavLink>
-                            @* <MudNavLink Href="reportcarddesigner" Icon="@Icons.Material.Filled.DesignServices" ForceLoad="true" Match="NavLinkMatch.Prefix">ReportCard Designer</MudNavLink> *@
                         </MudNavGroup>
 
                     }
@@ -58,10 +58,11 @@
                             <MudNavLink Href="LessonManagement" Icon="@Icons.Material.Filled.School" Match="NavLinkMatch.Prefix">Lesson Management</MudNavLink>
                             <MudNavLink Href="AsssignmentManagement" Icon="@Icons.Material.Filled.Work" Match="NavLinkMatch.Prefix">Assignment Management</MudNavLink>
                             <MudNavLink Href="AssingmentChecking" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Mark Assignments</MudNavLink>
+                            <MudNavLink Href="ExamQuizTestManagement" Icon="@Icons.Custom.FileFormats.FileDocument" Match="NavLinkMatch.Prefix">Exam Management</MudNavLink>
                             <MudNavLink Href="ExamMarking" Icon="@Icons.Material.Filled.Checklist" Match="NavLinkMatch.Prefix">Mark Exams, Tests,Quizzes</MudNavLink>
                             <MudNavLink Href="StudentAttendance" Icon="@Icons.Custom.Uncategorized.AlertSuccess" Match="NavLinkMatch.Prefix">Mark Attendance</MudNavLink>
-                            <MudNavLink Href="ExamQuizTestManagement" Icon="@Icons.Custom.FileFormats.FileDocument" Match="NavLinkMatch.Prefix">Exam Management</MudNavLink>
                             <MudNavLink Href="CourseManagement" Icon="@Icons.Material.Filled.LibraryBooks" Match="NavLinkMatch.Prefix">Course Management</MudNavLink>
+                            <MudNavLink Href="ReportCardManagement" Icon="@MaterialDesignIcons.Normal.CardAccountDetails" Match="NavLinkMatch.Prefix">Report Card Preperations</MudNavLink>
                             <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary" Match="NavLinkMatch.Prefix">Library</MudNavLink>
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline" Match="NavLinkMatch.Prefix">Communication Center</MudNavLink>
 

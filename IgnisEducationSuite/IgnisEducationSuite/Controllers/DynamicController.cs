@@ -552,6 +552,7 @@ namespace IgnisEducationSuite.Controllers
                 "exammultiplechoices" => GetRepository<ExamTestQuizMultipleChoiceAnswer>(),
                 "lessonmedia" => GetRepository<LessonMedium>(),
                 "livemeeting" => GetRepository<LiveMeeting>(),
+                "termsetting" => GetRepository<TermSetting>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -601,6 +602,7 @@ namespace IgnisEducationSuite.Controllers
                 "exammultiplechoices" => JsonSerializer.Deserialize<ExamTestQuizMultipleChoiceAnswer>(obj.ToString()),
                 "lessonmedia" => JsonSerializer.Deserialize<LessonMedium>(obj.ToString()),
                 "livemeeting" => JsonSerializer.Deserialize<LiveMeeting>(obj.ToString()),
+                "termsetting" => JsonSerializer.Deserialize<TermSetting>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -652,6 +654,44 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetStudentsBySchool(string SchoolID)
         {
             var result = await _repository.GetStudentsBySchool(SchoolID);
+            return Ok(result);
+        }
+
+        [HttpGet("GetTermSettings/{SchoolID}")]
+        public async Task<IActionResult> GetTermSetting(Guid SchoolID)
+        {
+            var result = await _repository.GetCurrentActiveTermsAsync(SchoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetTeachersBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetTeachersBySchool(string SchoolID)
+        {
+            var result = await _repository.GetTeachersBySchool(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+        [HttpGet("GetClassesBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetClassesBySchool(string SchoolID)
+        {
+            var result = await _repository.GetClassesBySchool(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+        [HttpGet("GetGradingScaleBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetGradingScaleBySchool(string SchoolID)
+        {
+            var result = await _repository.GetGradingScalesBySchoolAsync(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+        [HttpGet("GetStudentsAndStudentClasses/{SchoolID}")]
+        public async Task<IActionResult> GetStudentsAndStudentClasses(string SchoolID)
+        {
+            var result = await _repository.GetStudentsWithClassesBySchoolAsync(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+
+        [HttpGet("GetStudentReportCardHeader/{StudentID}")]
+        public async Task<IActionResult> GetStudentReportCardHeader(string StudentID)
+        {
+            var result = await _repository.GetReportCardHeaderByStudent(Guid.Parse(StudentID));
             return Ok(result);
         }
         #endregion

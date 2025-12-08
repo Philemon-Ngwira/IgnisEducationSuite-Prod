@@ -1062,6 +1062,94 @@ namespace EduSphereDomain.Repositories
                 LevelName = s.LevelName,
             }).ToList();
         }
+
+        private static readonly Func<PhoenixEdusphereContext, Guid, DateTime, CancellationToken, Task<TermSetting?>> _getCurrentActiveTermCompiled
+     = EF.CompileAsyncQuery((PhoenixEdusphereContext ctx, Guid schoolId, DateTime today, CancellationToken ct) =>
+         ctx.TermSettings
+            .AsNoTracking()
+            .Where(t => t.SchoolID == schoolId
+                     && t.ActualStartTermDate <= today
+                     && t.ActualEndTermDate >= today)
+            .OrderByDescending(t => t.ActualStartTermDate)
+            .FirstOrDefault());
+
+        public async Task<List<TermSetting>> GetCurrentActiveTermsAsync(Guid schoolId, CancellationToken cancellationToken = default)
+        {
+            var today = DateTime.Now.Date;
+
+            var termSetting = await _getCurrentActiveTermCompiled(_context, schoolId, today, cancellationToken);
+
+            // Return as a list, empty if no term is active
+            return termSetting != null
+                ? new List<TermSetting> { termSetting }
+                : new List<TermSetting>();
+        }
+        private static readonly Func<PhoenixEdusphereContext, Guid, CancellationToken, Task<List<Teacher>>> _getTeachersBySchoolCompiled
+    = EF.CompileAsyncQuery((PhoenixEdusphereContext ctx, Guid schoolId, CancellationToken ct) =>
+        ctx.Teachers
+           .AsNoTracking()
+           .Where(t => t.SchoolID == schoolId)
+           .OrderBy(t => t.LastName)
+           .ToList());
+
+
+        public async Task<List<Teacher>> GetTeachersBySchoolAsync(Guid schoolId, CancellationToken cancellationToken = default)
+        {
+            return await _getTeachersBySchoolCompiled(_context, schoolId, cancellationToken);
+        }
+        private static readonly Func<PhoenixEdusphereContext, Guid, CancellationToken, Task<List<Class>>> _getClassesBySchoolCompiled
+    = EF.CompileAsyncQuery((PhoenixEdusphereContext ctx, Guid schoolId, CancellationToken ct) =>
+        ctx.Classes
+           .AsNoTracking()
+           .Where(c => c.SChoolID == schoolId)
+           .Include(c => c.Teacher)  // pre-load teacher
+           .OrderBy(c => c.ClassName)
+           .ToList());
+
+
+        public async Task<List<Class>> GetClassesBySchoolAsync(Guid schoolId, CancellationToken cancellationToken = default)
+        {
+            return await _getClassesBySchoolCompiled(_context, schoolId, cancellationToken);
+        }
+        public Task<List<GradingScale>> GetGradingScalesBySchoolAsync(Guid schoolId)
+        {
+            return _context.GradingScales
+                .AsNoTracking()
+                .Where(g => g.SchoolID == schoolId)
+                .OrderBy(g => g.LoweScore)
+                .ToListAsync();
+        }
+
+        public async Task<List<StudentWithClassesDTO>> GetStudentsWithClassesBySchoolAsync(Guid schoolId)
+        {
+            // Project only the necessary fields
+            return await _context.Students
+                .AsNoTracking()
+                .Where(s => s.SchoolID == schoolId)
+                .Select(s => new StudentWithClassesDTO
+                {
+                    StudentID = s.StudentID,
+                    FirstName = s.FirstName,
+                    LastName = s.LastName,
+                    AcademicLevel = s.AcademicLevel.Value,
+                    LevelName = s.LevelName ?? "", // fallback if null
+                    StudentNumber = s.StudentNumber,
+                    ClassNames = s.StudentClasses
+                                  .Select(sc => sc.Class.ClassName)
+                                  .ToList()
+                })
+                .ToListAsync();
+        }
+
+        public async Task<List<ReportCard>> GetReportCardHeaderByStudent(Guid StudentID)
+        {
+            var today = DateTime.Now.Date;
+            return await _context.ReportCards
+                .Where(s => s.StudentID == StudentID
+                 && s.TermStartDate <= today
+                     && s.TermEndDate >= today
+                ).ToListAsync();
+        }
         #endregion
 
     }

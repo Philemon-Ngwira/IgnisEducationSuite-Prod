@@ -1,144 +1,363 @@
 ﻿@page "/ReportCardManagement"
 @using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@using EDUSphereSharedProject.UniversalModels
 @using IgnisEducationSuite.Client.Pages.Staff.Dialogs
 @inject IDialogService DialogService
 @inherits AppBaseComponent
+
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
             <MudText Align="Align.Center" Typo="Typo.h4"><b>Report Card Management</b></MudText>
         </CardHeaderContent>
     </MudCardHeader>
+
     <MudCardContent>
         <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+
         @if (isLoading)
         {
             <div id="loader-overlay" class="loader-overlay">
                 <div class="loader-container">
-                    <!-- Spinner -->
                     <div class="spinner"></div>
-                    <!-- Loader Icon -->
                     <div class="loader-icon">🔄</div>
-                    <!-- Loading Text -->
                     <p class="loading-text">Loading, please wait...</p>
                 </div>
             </div>
         }
 
-
         <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Book">Prepare Report Cards</MudAlert>
-        <MudGrid>
-            <MudItem xs="12">
-                <MudNumericField @bind-Value="GradeLevel" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Enter Grade to get Students" Label="Grade"></MudNumericField>
+
+        <MudGrid Class="mb-3">
+            <MudItem xs="12" md="6">
+                <MudAutocomplete T="string"
+                                 Variant="Variant.Outlined"
+                                 Label="Filter By Academic Level"
+                                 Value="AcademicLvlFilterValue"
+                                 ValueChanged="FilterResultsByAcademicLevel"
+                                 SearchFunc="AcademicLvlFilter"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true"
+                                 SelectValueOnTab="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 AdornmentColor="Color.Primary" />
             </MudItem>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Search" Color="Color.Primary" OnClick="GetStudents">Get Students</MudButton>
-            </MudItem>
-            <MudItem xs="12" Class="mb-3">
-                <MudDataGrid Items="@students" Filterable="false" SortMode="@SortMode.None" Groupable="false">
-                    <Columns>
-                        <PropertyColumn Property="x => x.FirstName" />
-                        <PropertyColumn Property="x => x.LastName" />
-                        <PropertyColumn Property="x => x.LevelName" Title="Academic Level" />
-                        <PropertyColumn Property="x => x.Gender" />
-                        <PropertyColumn Property="x => x.StudentNumber" />
-                        <TemplateColumn CellClass="d-flex justify-end">
-                            <CellTemplate>
-                                <MudStack Row>
-                                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary" OnClick="()=>OpenDetailsDialogAsync(context.Item)">Prepare Report Card</MudButton>
-                                </MudStack>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                </MudDataGrid>
+
+            <MudItem xs="12" md="6">
+                <MudAutocomplete T="string"
+                                 Variant="Variant.Outlined"
+                                 Label="Filter By Class"
+                                 Value="SelectedClass"
+                                 ValueChanged="FilterResultsByClass"
+                                 SearchFunc="ClassFilter"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true"
+                                 SelectValueOnTab="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 AdornmentColor="Color.Primary" />
             </MudItem>
         </MudGrid>
-    </MudCardContent>
 
+        <MudDataGrid Items="filteredStudents" Filterable="false" SortMode="SortMode.None" Groupable="false">
+            <Columns>
+                <PropertyColumn Property="x => x.FirstName" />
+                <PropertyColumn Property="x => x.LastName" />
+                <PropertyColumn Property="x => x.LevelName" Title="Academic Level" />
+                <PropertyColumn Property="x => x.StudentNumber" />
+                <TemplateColumn CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudStack Row>
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Disabled="!context.Item.isInteractable" Color="Color.Primary" OnClick="@(() => OpenDetailsDialogAsync(context.Item))">
+                                Prepare Report Card
+                            </MudButton>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudCardContent>
 </MudCard>
+
 @code {
     protected bool isLoading = false;
-    protected int GradeLevel;
     protected List<Teacher> teachers = new();
-    protected List<Student> students = new();
-    protected List<GradingScale> gradingScales = new();
     protected List<Class> classes = new();
+    protected List<StudentWithClassesDTO> students = new();
+    protected List<StudentWithClassesDTO> filteredStudents = new();
+    protected List<GradingScale> gradingScales = new();
+    protected List<string> TeacherGrades = new();
+    protected List<string> ClassNames = new();
+    protected string AcademicLvlFilterValue = string.Empty;
+    protected string SelectedClass = string.Empty;
+    protected string searchString = string.Empty;
+
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-        await GetTeachers();
-        await GetClasses();
-        await GetScoreGrading();
+
+        var initTasks = new List<Task>
+        {
+            GetTeachers(),
+            GetClasses(),
+            GetScoreGrading(),
+            GetStudents()
+        };
+
+        await Task.WhenAll(initTasks);
+
+        ApplyTeacherFiltering();
+        PrepareFilterLists();
+
         isLoading = false;
     }
 
-    protected async Task GetTeachers()
+    private void ApplyTeacherFiltering()
     {
-        var result = _genericService.GetService<Teacher>();
-        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"teacher"}", true);
-        teachers = service.Data.ToList();
-
-    }
-    protected async Task GetClasses()
-    {
-
-        var result = _genericService.GetService<Class>();
-        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"class"}", true);
-        classes = service.Data.ToList();
-
-        foreach (var item in classes)
+        // If user is a teacher, show only their students
+        if (AppState.UserRole == "Teacher")
         {
-            item.Teacher = teachers.Where(x => x.TeacherID == item.TeacherID).FirstOrDefault();
+            var teacherClassNames = classes
+                .Where(c => c.Teacher != null && c.Teacher.UserID == AppState.UserID)
+                .Select(c => c.ClassName)
+                .ToHashSet();
+
+            students = students
+                .Where(s => s.ClassNames.Any(cn => teacherClassNames.Contains(cn)))
+                .ToList();
         }
 
+        filteredStudents = new List<StudentWithClassesDTO>(students);
     }
+
+    private void PrepareFilterLists()
+    {
+        TeacherGrades = students.Select(s => s.LevelName).Distinct().ToList();
+        ClassNames = students.SelectMany(s => s.ClassNames).Distinct().ToList();
+    }
+
+    #region API Calls
+    protected async Task GetTeachers()
+    {
+        var service = _genericService.GetService<Teacher>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetTeachersBySchool/{AppState.SchoolID}", true);
+        teachers = result.Data.ToList();
+    }
+
+    protected async Task GetClasses()
+    {
+        var service = _genericService.GetService<Class>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetClassesBySchool/{AppState.SchoolID}", true);
+        classes = result.Data.ToList();
+
+        foreach (var c in classes)
+            c.Teacher = teachers.FirstOrDefault(t => t.TeacherID == c.TeacherID);
+    }
+
     protected async Task GetStudents()
     {
-        isLoading = true;
-        var service = _genericService.GetService<Student>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsOfClassDetail/{GradeLevel}/{AppState.SchoolID}", true);
+        var service = _genericService.GetService<StudentWithClassesDTO>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsAndStudentClasses/{AppState.SchoolID}", true);
+
         if (result.IsSuccess)
         {
             students = result.Data.ToList();
-            isLoading = false;
+
+            // Fill missing LevelName
+            foreach (var s in students)
+            {
+                if (string.IsNullOrEmpty(s.LevelName))
+                    s.LevelName = academicLevels.First(x => x.LevelInt == s.AcademicLevel).LevelName;
+            }
         }
-        isLoading = false;
     }
+
     protected async Task GetScoreGrading()
     {
         var service = _genericService.GetService<GradingScale>();
-        bool shouldrecall = gradingScales.Any();
-        var result = await service.GetAllAsync($"api/Dynamic/GetEntity/{"gradingscale"}", !shouldrecall);
+        bool shouldRecall = gradingScales.Any();
+        var result = await service.GetAllAsync($"api/Dynamic/GetGradingScaleBySchool/{AppState.SchoolID}", !shouldRecall);
+        if (result.IsSuccess)
+            gradingScales = result.Data.ToList();
+    }
+
+    protected async Task<ReportCard> GetReportCardHeader(string StudentID)
+    {
+        var service = _genericService.GetService<ReportCard>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentReportCardHeader/{StudentID}", true);
         if (result.IsSuccess)
         {
-            gradingScales = result.Data.ToList();
+            return result.Data.First();
+        }
+        else
+        {
+            return new ReportCard();
         }
     }
-  
+
+    protected async Task<List<ReportCardDetail>> GetReportCardDetails(Guid ReportCardID)
+    {
+        var service = _genericService.GetService<GetReportCardDetailsResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetReportCardDetailsByReportCardID/{ReportCardID}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data
+            .Select(x => new ReportCardDetail
+            {
+                ReportCardDetailID = x.ReportCardDetailID,
+                ReportCardID = x.ReportCardID,
+                ClassID = classes.FirstOrDefault(c => c.ClassName == x.ClassName)?.ClassID ?? Guid.Empty,
+                Score = x.Score,
+                Grade = x.Grade,
+
+            })
+            .ToList();
+        }
+        else
+        {
+            return new List<ReportCardDetail>();
+        }
+    }
+    #endregion
 
     #region Dialog
-    private async Task OpenDetailsDialogAsync(Student student)
+    private async Task OpenDetailsDialogAsync(StudentWithClassesDTO student)
     {
-        var parameters = new DialogParameters<CreateStudentReportCardDialog> { { x => x.student, student }, { c => c.Classes, classes },{ g => g.GradingScales , gradingScales} };
-        var opt = new DialogOptions { MaxWidth = MaxWidth.Medium, CloseButton = true, NoHeader = true, Position = DialogPosition.Center };
-        var dialog = await DialogService.ShowAsync<CreateStudentReportCardDialog>("", parameters,opt);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
+        // Load report card header first
+        var reportCardHeader = await GetReportCardHeader(student.StudentID.ToString());
+        if (reportCardHeader.ReportCardID == Guid.Empty)
         {
-            var data = result.Data;
-            if(data is bool)
+            Snackbar.Configuration.VisibleStateDuration = 5;
+            Snackbar.Add("No Report Card Found For Student. Please contact your system admin.", Severity.Error);
+            student.isInteractable = false;
+            return;
+        }
+
+        // Extract state ID once
+        var state = reportCardHeader.ApprovalStatus;
+
+        // ----------------------------------------------
+        // ROLE/STATE ACCESS LOGIC
+        // ----------------------------------------------
+
+        bool canProceed = false;
+
+        if (state == "DCB75F3C-FF7C-4472-AAEB-667DB7BC86A0") // TeacherEntryOpen
+        {
+            canProceed = AppState.UserRole is "Teacher" or "Staff" or "Admin";
+        }
+        else if (state == "40CF47A6-705F-4432-9DF7-38776A7DE5C0") // DeanEntryOpen
+        {
+            canProceed = AppState.UserRole == "Dean";
+        }
+        else if (state == "4B571B0A-9CC0-42E4-BDB6-5A143124BC52") // PrincipalEntryOpen
+        {
+            canProceed = AppState.UserRole == "Principal";
+        }
+
+        if (!canProceed)
+        {
+            Snackbar.Add("You do not have permission to enter results at this stage.", Severity.Error);
+            student.isInteractable = false;
+            return;
+        }
+
+        // ----------------------------------------------
+        // TEACHER SPECIFIC VALIDATION (only when teacher)
+        // ----------------------------------------------
+        List<Class> classesToSend;
+
+        if (AppState.UserRole == "Teacher")
+        {
+            classesToSend = classes
+                .Where(c => c.Teacher != null && c.Teacher.UserID == AppState.UserID)
+                .ToList();
+
+            var teacherClassNames = classesToSend.Select(c => c.ClassName).ToHashSet();
+
+            if (!student.ClassNames.Any(cn => teacherClassNames.Contains(cn)))
             {
-                bool returned = (bool)data;
-                if (returned)
-                {
-                    Snackbar.Add($"Report Card for {student.FirstName} {student.LastName} has been generated successfully", Severity.Success);
-                }
+                Snackbar.Add("You do not have permission to prepare a report card for this student.", Severity.Error);
+                return;
             }
         }
+        else
+        {
+            classesToSend = classes;
+        }
+        var reportCardDetails = await GetReportCardDetails(reportCardHeader.ReportCardID);
+        // ----------------------------------------------
+        // OPEN DIALOG
+        // ----------------------------------------------
+        var parameters = new DialogParameters<CreateStudentReportCardDialog>
+    {
+        { x => x.student, student },
+        { c => c.Classes, classesToSend },
+        { g => g.GradingScales, gradingScales },
+        { r => r.newReportCard, reportCardHeader },
+        { d => d.reportCardDetails, reportCardDetails }
+    };
+
+        var opt = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            CloseButton = true,
+            NoHeader = true,
+            Position = DialogPosition.Center
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateStudentReportCardDialog>("", parameters, opt);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is bool returned && returned)
+            Snackbar.Add($"Report Card for {student.FirstName} {student.LastName} has been generated successfully", Severity.Success);
+    }
+
+
+    #endregion
+
+    #region Filters
+    private void ApplyFilters()
+    {
+        IEnumerable<StudentWithClassesDTO> query = students;
+
+        if (!string.IsNullOrEmpty(AcademicLvlFilterValue))
+            query = query.Where(s => s.LevelName == AcademicLvlFilterValue);
+
+        if (!string.IsNullOrEmpty(SelectedClass))
+            query = query.Where(s => s.ClassNames.Contains(SelectedClass));
+
+        if (!string.IsNullOrWhiteSpace(searchString))
+            query = query.Where(s =>
+                s.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                s.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
+
+        filteredStudents = query.ToList();
+    }
+
+    private void FilterResultsByAcademicLevel(string value)
+    {
+        AcademicLvlFilterValue = value;
+        ApplyFilters();
+    }
+
+    private void FilterResultsByClass(string value)
+    {
+        SelectedClass = value;
+        ApplyFilters();
+    }
+
+    private Task<IEnumerable<string>> AcademicLvlFilter(string value, CancellationToken token)
+    {
+        return Task.FromResult(TeacherGrades.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase)));
+    }
+
+    private Task<IEnumerable<string>> ClassFilter(string value, CancellationToken token)
+    {
+        return Task.FromResult(ClassNames.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase)));
     }
     #endregion
 }

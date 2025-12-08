@@ -1,0 +1,85 @@
+﻿@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<!-- Dialog for Add/Edit -->
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
+    <DialogContent>
+        <MudGrid>
+            <!-- Form Column -->
+            <MudItem xs="12" md="7">
+                <MudTextField @bind-Value="editTerm.TermName" Label="Term Name" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.ActualStartTermDate" Label="Term Start" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.ActualEndTermDate" Label="Term Start" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.MidTermStart" Label="Mid Term Start" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.MidtermEnd" Label="Mid Term End" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.FinalTermStart" Label="Final Term Start" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.FinalTermEnd" Label="Final Term End" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.DeanStart" Label="Dean Start" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.DeanEnd" Label="Dean End" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.PrincipleStart" Label="Principal Start" Required="true" />
+                <MudDatePicker @bind-Date="editTerm.PrincipleEnd" Label="Principal End" Required="true" />
+
+            </MudItem>
+
+            <!-- Instructions Column -->
+            <MudItem xs="12" md="5">
+                <MudPaper Class="pa-4" Elevation="1" Style="background-color:#f5f5f5;">
+                    <MudText Typo="Typo.h6">Instructions</MudText>
+                    <MudDivider Class="my-2" />
+                    <MudText>
+                        • Enter the term name (e.g., "Term 1 2025").<br />
+                        • The Term Start and End Dates indicate when this term begins and ends.<br />
+                        • Mid Term dates define when mid-term report cards can be created.<br />
+                        • Final Term dates define when end-term report cards are created.<br />
+                        • Dean dates define the window for dean comments.<br />
+                        • Principal dates define the window for principal approval.<br />
+                        • Ensure dates do not overlap incorrectly with other terms.<br />
+                        • All fields are required for proper automation of report cards.
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="SaveTerm">Save</MudButton>
+        <MudButton Color="Color.Secondary" OnClick="MudDialog.Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public TermSetting editTerm { get; set; } = new TermSetting();
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private async Task SaveTerm()
+    {
+
+        bool workLoadCompleted = false;
+        if (editTerm.TermSettingID == Guid.Empty)
+        {
+
+            editTerm.TermSettingID = Guid.NewGuid();
+            editTerm.SchoolID = Guid.Parse(AppState.SchoolID);
+            var service = GenericService.GetService<TermSetting>();
+            var result = await service.PostAsync("api/Dynamic/PostEntity", "termsetting", editTerm);
+            if (result.IsSuccess)
+            {
+                workLoadCompleted = true;
+            }
+
+        }
+        else
+        {
+            var service = GenericService.GetService<TermSetting>();
+            var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "termsetting", editTerm);
+            if (result.IsSuccess)
+            {
+                workLoadCompleted = true;
+            }
+        }
+        if (workLoadCompleted)
+        {
+            //Close the dialog and return success
+            MudDialog.Close(DialogResult.Ok("Successful"));
+        }
+    }
+}

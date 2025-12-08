@@ -2,6 +2,7 @@
 using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using MudBlazor;
 
 public class AppBaseComponent : ComponentBase, IDisposable
 {
@@ -10,6 +11,7 @@ public class AppBaseComponent : ComponentBase, IDisposable
     [Inject] protected IJSRuntime JS { get; set; }
     [Inject] protected GenericServiceFactory GenericService { get; set; }
     [Inject] protected NavigationManager NavigationManager { get; set; } = default!;
+    [Inject] protected ISnackbar Snackbar { get; set; } = default!;
     protected List<AcademicLevel> academicLevels { get; set; } = new List<AcademicLevel>();
     protected override void OnInitialized()
     {

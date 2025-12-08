@@ -23,7 +23,6 @@ public partial class vw_ClassTeacherDetail
     public string Gender { get; set; }
 
     public string UserID { get; set; }
-
     [NotMapped]
     public string LevelName { get; set; }
 }

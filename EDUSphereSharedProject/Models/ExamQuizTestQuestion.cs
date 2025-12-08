@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -31,6 +30,4 @@ public partial class ExamQuizTestQuestion
     public virtual ICollection<ExamTestQuizMultipleChoiceAnswer> ExamTestQuizMultipleChoiceAnswers { get; set; } = new List<ExamTestQuizMultipleChoiceAnswer>();
 
     public virtual ICollection<StudentExamQuizAndTestAnswer> StudentExamQuizAndTestAnswers { get; set; } = new List<StudentExamQuizAndTestAnswer>();
-
-    
 }
