@@ -1,0 +1,287 @@
+﻿@page "/HostelRoomMaintainance"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@inherits AppBaseComponent
+
+<MudCard Class="mb-4">
+    <MudCardContent>
+        <MudText Typo="Typo.h5" Class="font-weight-bold">
+            Maintenance Requests
+        </MudText>
+    </MudCardContent>
+</MudCard>
+
+@if (AppState.UserRole == "Student")
+{
+    <MudCard Class="mb-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6" Class="font-weight-bold">
+                    New Maintenance Request
+                </MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+
+        <MudCardContent>
+
+            <!-- Room Selector -->
+            <MudAutocomplete T="GetRoomsBySchoolResult"
+                             Label="Select Room"
+                             @bind-Value="selectedRoom"
+                             SearchFunc="@SearchRooms"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="true"
+                             CoerceValue="true"
+                             SelectValueOnTab="true"
+                             AdornmentIcon="@Icons.Material.Filled.MeetingRoom"
+                             AdornmentColor="Color.Primary"
+                             Class="mb-3"
+                             ToStringFunc="RoomTypeconverter"
+                             Variant="Variant.Outlined"
+                             Margin="Margin.Dense" />
+
+            <!-- Problem Description -->
+            <MudTextField Lines="4"
+                          Variant="Variant.Outlined"
+                          @bind-Value="newRequest.ProblemDescription"
+                          Label="Problem Description"
+                          Placeholder="Describe the issue in detail"
+                          Margin="Margin.Dense"
+                          Class="mb-3" />
+
+            <!-- Reported By -->
+            <MudTextField Variant="Variant.Outlined"
+                          @bind-Value="newRequest.ReportedBy"
+                          Label="Reported By"
+                          Margin="Margin.Dense"
+                          Disabled="true"
+                          ReadOnly="true"
+                          Class="mb-2" />
+
+        </MudCardContent>
+
+        <MudCardActions Class="px-4 pb-3">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="SubmitRequest">
+                Submit Request
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+}
+
+<!-- ============================================
+     LIST OF MAINTENANCE REQUESTS (Student/Admin)
+     ============================================ -->
+<MudGrid>
+
+    @foreach (var item in maintainanceRequests)
+    {
+        <MudItem xs="12">
+            <MudCard Class="mb-3 elevation-1">
+
+                <MudCardHeader>
+                    <CardHeaderContent>
+
+                        <!-- STATUS CHIP -->
+                        @switch (item.Status)
+                        {
+                            case "Pending":
+                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled">@item.Status</MudChip>
+                                break;
+
+                            case "In Progress":
+                                <MudChip T="string" Color="Color.Info" Variant="Variant.Filled">@item.Status</MudChip>
+                                break;
+
+                            case "Completed":
+                                <MudChip T="string" Color="Color.Success" Variant="Variant.Filled">@item.Status</MudChip>
+                                break;
+                        }
+
+                        <!-- DATE REPORTED -->
+                        <MudText Typo="Typo.caption" Class="text-secondary">
+                            Reported: @item.DateReported?.ToShortDateString()
+                        </MudText>
+
+                        <MudSpacer />
+
+
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <!-- ACTION BUTTONS (Admin/Staff only) -->
+                        @if (AppState.UserRole != "Student")
+                        {
+                            var name = "In Progress";
+                            var mark = "completed";
+                            @switch (item.Status)
+                            {
+
+                                case "Pending":
+
+                                    <MudButtonGroup OverrideStyles="false">
+                                        <MudButton  Color="Color.Info"
+                                                   Variant="Variant.Text"
+                                                   Size="Size.Small"
+                                                   OnClick="() => UpdateMaintananceRequest(name, item)">
+                                            Mark In Progress
+                                        </MudButton>
+
+                                        <MudButton Class="text-success" Color="Color.Success"
+                                                   Variant="Variant.Text"
+                                                   Size="Size.Small"
+                                                   OnClick="() => UpdateMaintananceRequest(mark, item)">
+                                            Mark Complete
+                                        </MudButton>
+                                    </MudButtonGroup>
+                                    break;
+
+                                case "In Progress":
+                                    <MudButton Class="text-success" Color="Color.Success"
+                                               Variant="Variant.Text"
+                                               Size="Size.Small"
+                                               OnClick="() => UpdateMaintananceRequest(mark, item)">
+                                        Mark Complete
+                                    </MudButton>
+                                    break;
+
+                                case "completed":
+                                    <MudAlert Severity="Severity.Success" Class="text-success">
+                                        Resolved: @item.DateResolved?.ToShortDateString()
+                                    </MudAlert>
+                                    break;
+                            }
+                        }
+                    </CardHeaderActions>
+                </MudCardHeader>
+
+                <MudCardContent>
+
+                    <!-- PROBLEM DESCRIPTION -->
+                    <MudText Typo="Typo.body1" Class="mb-1">
+                        <b>Description: </b>@item.ProblemDescription
+                    </MudText>
+
+                    <!-- DETAILS -->
+                    <MudText Typo="Typo.body2" Class="text-secondary">
+                        <b>Hostel:</b> @item.HostelName
+                        &nbsp;•&nbsp;
+                        <b>Room:</b> @item.RoomNumber
+                        &nbsp;•&nbsp;
+                        <b>Reported By:</b> @item.ReportedBy
+                    </MudText>
+
+                </MudCardContent>
+
+            </MudCard>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    protected List<GetRoomsBySchoolResult> rooms = new();
+    protected GetRoomsBySchoolResult selectedRoom = new();
+    protected MaintainanceRequest newRequest = new();
+    protected List<MaintainanceRequestsDTO> maintainanceRequests = new();
+    protected Func<GetRoomsBySchoolResult, string> RoomTypeconverter = p => $"Room:{p?.RoomNumber}, Hostel-{p?.HostelName}";
+    bool isLoading = false;
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        if (AppState.UserRole == "Student")
+        {
+            newRequest.ReportedBy = AppState.FirstName + " " + AppState.LastName;
+
+        }
+        var tasks = new List<Task>(){
+          GetRooms(),
+          GetRequests()
+        };
+        await Task.WhenAll(tasks);
+        isLoading = false;
+    }
+    private async Task UpdateMaintananceRequest(string status, MaintainanceRequestsDTO request)
+    {
+        MaintainanceRequest requestToUpdate = new();
+        switch (status)
+        {
+            case "In Progress":
+                requestToUpdate.RequestID = request.RequestID;
+                requestToUpdate.RoomID = request.RoomID;
+                requestToUpdate.HostelID = request.HostelID;
+                requestToUpdate.ProblemDescription = request.ProblemDescription;
+                requestToUpdate.Status = status;
+                requestToUpdate.DateReported = request.DateReported;
+                requestToUpdate.DateResolved = request.DateResolved;
+                requestToUpdate.ReportedBy = request.ReportedBy;
+                break;
+            case "completed":
+                requestToUpdate.RequestID = request.RequestID;
+                requestToUpdate.RoomID = request.RoomID;
+                requestToUpdate.HostelID = request.HostelID;
+                requestToUpdate.ProblemDescription = request.ProblemDescription;
+                requestToUpdate.Status = status;
+                requestToUpdate.DateResolved = DateTime.UtcNow;
+                requestToUpdate.DateReported = request.DateReported;
+                requestToUpdate.ReportedBy = request.ReportedBy;
+                break;
+
+        }
+
+        var updateService = GenericService.GetService<MaintainanceRequest>();
+        var result = await updateService.UpdateAsync("api/Dynamic/UpdateEntity", "maintainancerequest", requestToUpdate);
+        if (result.IsSuccess)
+        {
+            await GetRequests();
+            StateHasChanged();
+        }
+    }
+    private async Task<IEnumerable<GetRoomsBySchoolResult>> SearchRooms(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return rooms;
+
+        return rooms.Where(s =>
+            s.RoomNumber.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            s.HostelName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+    private async Task GetRooms()
+    {
+
+        var service = GenericService.GetService<GetRoomsBySchoolResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetRoomsBySchool/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            rooms = result.Data.ToList();
+        }
+
+    }
+
+    private async Task GetRequests()
+    {
+        var service = GenericService.GetService<MaintainanceRequestsDTO>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetHostelMaintainanceRequests/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            maintainanceRequests = result.Data.ToList();
+        }
+
+    }
+
+    private async Task SubmitRequest()
+    {
+        newRequest.RequestID = Guid.NewGuid();
+        newRequest.RoomID = selectedRoom.RoomId;
+        newRequest.HostelID = selectedRoom.HostelId;
+        newRequest.Status = "Pending";
+        newRequest.DateReported = DateTime.Today;
+
+        var service = GenericService.GetService<MaintainanceRequest>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "maintainancerequest", newRequest);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Issue Successfully Reported");
+            await GetRequests();
+            StateHasChanged();
+        }
+    }
+}

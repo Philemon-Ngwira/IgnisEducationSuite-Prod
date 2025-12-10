@@ -1,0 +1,70 @@
+﻿@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<MudDialog>
+    <DialogContent>
+        <MudText Align="Align.Left">Add New Hostel</MudText>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField T="string"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              @bind-Value="newHostel.HostelName"
+                              Placeholder="e.g Male Main Hostel"
+                              Label="Hostel Name"></MudTextField>
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect T="Gender"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           @bind-Value="newHostel.GenderNavigation"
+                           Label="Gender"
+                           Placeholder="Select Gender"
+                           ToStringFunc="GenderTypeconverter">
+                    @foreach (var item in genders)
+                    {
+                        <MudSelectItem Value="item">@item.GenderDescription</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       OnClick="MudDialog.Cancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="SaveNewHostel">Create</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private Hostel newHostel = new()
+    {
+        GenderNavigation = new(),
+    };
+    [Parameter] public List<Gender> genders { get; set; } = new();
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    protected Func<Gender, string> GenderTypeconverter = p => p?.GenderDescription ?? "";
+
+
+    protected async Task SaveNewHostel()
+    {
+        newHostel.HostelId = Guid.NewGuid();
+        newHostel.CreatedAt = DateTime.UtcNow;
+        newHostel.Capacity = 0;
+        newHostel.SchoolId = Guid.Parse(AppState.SchoolID);
+        newHostel.Gender = newHostel.GenderNavigation.GenderId;
+        newHostel.GenderNavigation = null;
+        newHostel.isActive = true;
+
+        var service = GenericService.GetService<Hostel>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "hostel", newHostel);
+        if (result.IsSuccess)
+        {
+            MudDialog.Close(DialogResult.Ok(result.Data));
+        }
+    }
+}

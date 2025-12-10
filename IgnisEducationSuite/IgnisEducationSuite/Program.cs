@@ -1,24 +1,25 @@
-using DinkToPdf.Contracts;
 using DinkToPdf;
+using DinkToPdf.Contracts;
+using EduSphereDomain.AchievementData;
+using EduSphereDomain.ChatData;
 using EduSphereDomain.Data;
 using EduSphereDomain.MessagingData;
 using EduSphereDomain.Repositories;
+using IgnisEducationSuite.Client.Pages.Achievements;
+using IgnisEducationSuite.Client.Pages.Achievements.Interfaces;
+using IgnisEducationSuite.Client.Pages.Achievements.Services;
 using IgnisEducationSuite.Client.Services;
 using IgnisEducationSuite.Components;
 using IgnisEducationSuite.Components.Account;
 using IgnisEducationSuite.Data;
+using IgnisEducationSuite.Hubs;
 using IgnisEducationSuite.ServerServices;
 using IgnisEducationSuite.Settings;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using IgnisEducationSuite.Hubs;
-using IgnisEducationSuite.Client.Pages.Achievements.Interfaces;
-using IgnisEducationSuite.Client.Pages.Achievements.Services;
-using IgnisEducationSuite.Client.Pages.Achievements;
-using EduSphereDomain.AchievementData;
-using EduSphereDomain.ChatData;
+using QuestPDF.Infrastructure;
 
 namespace IgnisEducationSuite
 {
@@ -58,6 +59,10 @@ namespace IgnisEducationSuite
 
             #endregion
             builder.Services.AddHttpClient<GoogleBooksService>();
+           
+
+            // somewhere at app startup, e.g., Program.cs
+            QuestPDF.Settings.License = LicenseType.Community;
 
             //---------------------------------------------------------------
             #region DB CONTEXTS

@@ -37,7 +37,7 @@ namespace IgnisEducationSuite.Controllers
             }
 
             // Process the file to extract questions
-            var parser = new EduSphereDomain.Repositories.WordParser();
+            var parser = new WordParser();
             var questions = parser.ExtractQuestionsFromWord(filePath);
 
             // Delete the temporary file after use
@@ -123,7 +123,7 @@ namespace IgnisEducationSuite.Controllers
                     string endTimeStr = row.Cell(6).GetValue<string>()?.Trim() ?? "";
 
                     // Parse GradeLevel safely
-                   
+
                     var gradeLevel = schoolStructure.Where(x => x.LevelName.ToUpper() == gradeLevelStr.ToUpper()).Select(x => x.LevelInt).FirstOrDefault();
 
                     // Parse times safely
@@ -151,11 +151,12 @@ namespace IgnisEducationSuite.Controllers
 
         #region ReportCards
         [HttpPost("generatePDF")]
-        public IActionResult GeneratePdf([FromBody] string htmlContent)
+        public IActionResult GeneratePdf([FromBody] ReportCardPdfDTO reportCard)
         {
+            if (reportCard == null)
+                return BadRequest("Report card data is required.");
 
-
-            var pdfBytes = _pDFService.GeneratePdf(htmlContent);
+            var pdfBytes = _pDFService.GeneratePdf(reportCard);
 
             return File(pdfBytes, "application/pdf", "ReportCard.pdf");
         }

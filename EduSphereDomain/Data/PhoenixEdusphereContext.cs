@@ -105,6 +105,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<LiveMeeting> LiveMeetings { get; set; }
 
+    public virtual DbSet<MaintainanceRequest> MaintainanceRequests { get; set; }
+
     public virtual DbSet<Meal> Meals { get; set; }
 
     public virtual DbSet<MultipleChoiceAssignmentAnswer> MultipleChoiceAssignmentAnswers { get; set; }
@@ -855,6 +857,11 @@ public partial class PhoenixEdusphereContext : DbContext
                 .IsRequired()
                 .HasMaxLength(100);
 
+            entity.HasOne(d => d.GenderNavigation).WithMany(p => p.Hostels)
+                .HasForeignKey(d => d.Gender)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_Hostels_Gender");
+
             entity.HasOne(d => d.School).WithMany(p => p.Hostels)
                 .HasForeignKey(d => d.SchoolId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -910,6 +917,40 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.ScheduledDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<MaintainanceRequest>(entity =>
+        {
+            entity.HasKey(e => e.RequestID).HasName("PK__Maintain__33A8519ABF8FC206");
+
+            entity.ToTable("MaintainanceRequests", "SchoolOps");
+
+            entity.Property(e => e.RequestID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.DateReported)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.DateResolved).HasColumnType("datetime");
+            entity.Property(e => e.ProblemDescription)
+                .IsRequired()
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.ReportedBy)
+                .IsRequired()
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasDefaultValueSql("('Active')");
+
+            entity.HasOne(d => d.Hostel).WithMany(p => p.MaintainanceRequests)
+                .HasForeignKey(d => d.HostelID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MaintainanceRequests_Hostels");
+
+            entity.HasOne(d => d.Room).WithMany(p => p.MaintainanceRequests)
+                .HasForeignKey(d => d.RoomID)
+                .HasConstraintName("FK_MaintainanceRequests_Rooms");
         });
 
         modelBuilder.Entity<Meal>(entity =>
@@ -1033,6 +1074,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.ReportCard).WithMany(p => p.ReportCardDetails)
                 .HasForeignKey(d => d.ReportCardID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_ReportCardDetails_ReportCards");
         });
 
@@ -1055,11 +1097,6 @@ public partial class PhoenixEdusphereContext : DbContext
                 .IsRequired()
                 .HasMaxLength(20);
             entity.Property(e => e.RoomType).HasMaxLength(50);
-
-            entity.HasOne(d => d.Hostel).WithMany(p => p.Rooms)
-                .HasForeignKey(d => d.HostelId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Rooms__HostelId__5C02A283");
         });
 
         modelBuilder.Entity<RoomAllocation>(entity =>
@@ -1099,7 +1136,16 @@ public partial class PhoenixEdusphereContext : DbContext
         modelBuilder.Entity<School>(entity =>
         {
             entity.Property(e => e.SchoolID).ValueGeneratedNever();
+            entity.Property(e => e.SchoolEmail)
+                .HasMaxLength(255)
+                .IsUnicode(false);
             entity.Property(e => e.SchoolName).IsUnicode(false);
+            entity.Property(e => e.SchoolPhoneContact)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.SchoolWebsite)
+                .HasMaxLength(255)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<Student>(entity =>

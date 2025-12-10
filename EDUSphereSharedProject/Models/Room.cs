@@ -17,7 +17,9 @@ public partial class Room
 
     public string RoomType { get; set; }
 
-    public virtual Hostel Hostel { get; set; }
+    public bool? isActive { get; set; }
+
+    public virtual ICollection<MaintainanceRequest> MaintainanceRequests { get; set; } = new List<MaintainanceRequest>();
 
     public virtual ICollection<RoomAllocation> RoomAllocations { get; set; } = new List<RoomAllocation>();
 }

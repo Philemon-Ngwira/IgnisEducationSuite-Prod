@@ -21,7 +21,11 @@ public partial class Hostel
 
     public Guid SchoolId { get; set; }
 
-    public virtual ICollection<Room> Rooms { get; set; } = new List<Room>();
+    public bool? isActive { get; set; }
+
+    public virtual Gender GenderNavigation { get; set; }
+
+    public virtual ICollection<MaintainanceRequest> MaintainanceRequests { get; set; } = new List<MaintainanceRequest>();
 
     public virtual School School { get; set; }
 }

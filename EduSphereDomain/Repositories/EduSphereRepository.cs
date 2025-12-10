@@ -720,7 +720,8 @@ namespace EduSphereDomain.Repositories
                     ClassName = item.ClassName,
                     Score = item.Score,
                     Grade = item.Grade,
-                    Final = item.Final
+                    Final = item.Final,
+
                 };
                 reportCardDetailsResults.Add(detailsResult);
             }
@@ -738,12 +739,23 @@ namespace EduSphereDomain.Repositories
                     StudentID = item.StudentID,
                     FirstName = item.FirstName,
                     LastName = item.LastName,
-                    GradeLevel = item.AcademicLevel,
+                    AcademicLevel = item.AcademicLevel,
                     Term = item.Term,
                     GPA = item.GPA,
                     IssuedDate = item.IssuedDate,
                     TermStartDate = item.TermStartDate,
-                    TermEndDate = item.TermEndDate
+                    TermEndDate = item.TermEndDate,
+                    SchoolEmail = item.SchoolEmail,
+                    SchoolName = item.SchoolName,
+                    SchoolWebsite = item.SchoolWebsite,
+                    MarksInBestSix = item.MarksInBestSix,
+                    PointsInBestSix = item.PointsInBestSix,
+                    DeanName = item.DeanName,
+                    DeansComment = item.DeansComment,
+                    PositionInClass = item.PositionInClass,
+                    PrincipleName = item.PrincipleName,
+                    PrinciplesComment = item.PrinciplesComment,
+                    ReportCardType = item.ReportCardType,
                 };
                 stds.Add(reportCard);
             }
@@ -762,7 +774,7 @@ namespace EduSphereDomain.Repositories
                     StudentID = item.StudentID,
                     FirstName = item.FirstName,
                     LastName = item.LastName,
-                    GradeLevel = item.AcademicLevel,
+                    AcademicLevel = item.AcademicLevel,
                     Term = item.Term,
                     GPA = item.GPA,
                     IssuedDate = item.IssuedDate,
@@ -1149,6 +1161,129 @@ namespace EduSphereDomain.Repositories
                  && s.TermStartDate <= today
                      && s.TermEndDate >= today
                 ).ToListAsync();
+        }
+        public async Task<IEnumerable<GetRoomsBySchoolResult>> GetRoomsBySchools(Guid SchoolID)
+        {
+            try
+            {
+                var rooms = await _contextProcedures.GetRoomsBySchoolAsync(SchoolID);
+                return rooms.Select(r => new GetRoomsBySchoolResult
+                {
+                    RoomId = r.RoomId,
+                    HostelId = r.HostelId,
+                    RoomNumber = r.RoomNumber,
+                    MaxOccupancy = r.MaxOccupancy,
+                    RoomType = r.RoomType,
+                    HostelName = r.HostelName,
+                    GenderId = r.GenderId,
+                    GenderDescription = r.GenderDescription,
+                    OccupiedCount = r.OccupiedCount,
+                    IsFull = r.IsFull
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+        }
+        public async Task<IEnumerable<GetHostelsBySchoolResult>> GetHostelsBySchool(Guid SchoolID)
+        {
+            try
+            {
+                var hostels = await _contextProcedures.GetHostelsBySchoolAsync(SchoolID);
+                return hostels.Select(x => new GetHostelsBySchoolResult
+                {
+                    HostelId = x.HostelId,
+                    HostelName = x.HostelName,
+                    Gender = x.Gender,
+                    Capacity = x.Capacity,
+                    Supervisor = x.Supervisor,
+                    SchoolId = x.SchoolId,
+                    Occupied = x.Occupied,
+                    CreatedAt = x.CreatedAt,
+                    GenderID = x.GenderID,
+                    SupervisorID = x.SupervisorID,
+
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+
+        }
+        public async Task<IEnumerable<StudentsWithoutRoomDTO>> StudentsWithoutRooms(Guid GenderID, Guid SchoolID)
+        {
+            var result = await _contextProcedures.GetStudentsWithoutRoomsByGenderAsync(SchoolID, GenderID);
+            return result.Select(s => new StudentsWithoutRoomDTO
+            {
+                StudentID = s.StudentID,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                AcademicLevel = s.AcademicLevel,
+                ParentID = s.ParentID,
+                GenderId = s.GenderId,
+                GenderDescription = s.GenderDescription,
+                Address = s.Address,
+                StudentNumber = s.StudentNumber,
+                ProfilePic = s.ProfilePic,
+                UserID = s.UserID,
+                DateOnBoarded = s.DateOnBoarded,
+                Country = s.Country,
+                City = s.City,
+                SchoolID = s.SchoolID,
+                GradeSection = s.GradeSection,
+                LevelName = s.LevelName
+            }).ToList();
+        }
+
+        public async Task<IEnumerable<StudentsInRoomDTO>> StudentsInRoom(Guid RoomID)
+        {
+            var result = await _contextProcedures.GetStudentsInRoomAsync(RoomID);
+            return result.Select(s => new StudentsInRoomDTO
+            {
+                StudentID = s.StudentID,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                AcademicLevel = s.AcademicLevel,
+                ParentID = s.ParentID,
+                GenderId = s.GenderId,
+                GenderDescription = s.GenderDescription,
+                Address = s.Address,
+                StudentNumber = s.StudentNumber,
+                ProfilePic = s.ProfilePic,
+                UserID = s.UserID,
+                DateOnBoarded = s.DateOnBoarded,
+                Country = s.Country,
+                City = s.City,
+                SchoolID = s.SchoolID,
+                GradeSection = s.GradeSection,
+                LevelName = s.LevelName,
+                AllocationId = s.AllocationId,
+                CheckInDate = s.CheckInDate,
+                CheckOutDate = s.CheckOutDate,
+                Status = s.Status
+            }).ToList();
+        }
+        public async Task<IEnumerable<MaintainanceRequestsDTO>> GetMaintainanceRequests(Guid SchoolID)
+        {
+            var result = await _contextProcedures.GetHostelMaintainanceRequestsBySchoolAsync(SchoolID);
+            return result.Select(x => new MaintainanceRequestsDTO
+            {
+                RequestID = x.RequestID,
+                HostelID = x.HostelID,
+                RoomID = x.RoomID,
+                ProblemDescription = x.ProblemDescription,
+                ReportedBy = x.ReportedBy,
+                DateReported = x.DateReported,
+                DateResolved = x.DateResolved,
+                Status = x.Status,
+                HostelName = x.HostelName,
+                RoomNumber = x.RoomNumber
+
+            }).ToList();
         }
         #endregion
 

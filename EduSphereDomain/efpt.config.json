@@ -267,6 +267,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[SchoolOps].[MaintainanceRequests]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[SchoolOps].[Meals]",
          "ObjectType": 0
       },
@@ -419,6 +423,14 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[GetHostelMaintainanceRequestsBySchool]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[GetHostelsBySchool]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[GetInitializationData]",
          "ObjectType": 1
       },
@@ -452,6 +464,10 @@
       },
       {
          "Name": "[dbo].[GetReportCardsByTermAndStudent]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[GetRoomsBySchool]",
          "ObjectType": 1
       },
       {
@@ -516,6 +532,14 @@
       },
       {
          "Name": "[dbo].[GetStudentsInGradeWithoutSchedule]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[GetStudentsInRoom]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[GetStudentsWithoutRoomsByGender]",
          "ObjectType": 1
       },
       {

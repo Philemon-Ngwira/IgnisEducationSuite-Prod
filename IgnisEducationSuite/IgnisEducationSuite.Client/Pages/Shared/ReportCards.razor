@@ -110,7 +110,7 @@
         }
         foreach (var item in studentResults)
         {
-            item.LevelName = academicLevels.Where(x => x.LevelInt == item.GradeLevel).Select(s => s.LevelName).First();
+            item.LevelName = academicLevels.Where(x => x.LevelInt == item.AcademicLevel).Select(s => s.LevelName).First();
         }
     }
 
@@ -163,7 +163,7 @@
                 bool completed = (bool)data;
                 if (completed)
                 {
-                    Snackbar.Add("Check your email address for your/ your child's Report Card", Severity.Success);
+                    Snackbar.Add("Check your email address for your or  your child's Report Card", Severity.Success);
                 }
             }
         }

@@ -18,202 +18,105 @@ namespace IgnisEducationSuite.Client.Pages.Shared.Dialogs
         [Inject] AuthenticationStateProvider authenticationStateProvider { get; set; }
         [Inject] NavigationManager _navigationManager { get; set; } = default!;
         [Inject] ClientEmailService _emailService { get; set; } = default!;
+        [Inject] AppState AppState { get; set; } = default!;
+        [Inject] ISnackbar Snackbar { get; set; } = default!;
         protected bool isLoading = false;
         protected async Task PrepareAndMailDocument()
         {
-            isLoading = true;
-
-            string htmlContent = $@"
-<html>
-<head>
-    <style>
-        <style>
-        /* General dialog container styles */
-        .dialog-container {{
-            overflow-y: auto; /* Allow vertical scrolling if content overflows */
-            max-height: 80vh; /* Ensure the dialog fits the viewport */
-            padding: 20px;
-        }}
-
-        /* Styling for the report card */
-        .report-card {{
-            width: 100%;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 20px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-        }}
-
-        .header {{
-            text-align: center;
-            margin-bottom: 20px;
-        }}
-
-        .header img {{
-            width: 70px;
-            margin-bottom: 10px;
-        }}
-
-        .header h1 {{
-            font-size: 28px;
-            margin: 10px 0;
-        }}
-
-        .header p {{
-            font-size: 14px;
-            margin: 5px 0;
-            color: #555;
-        }}
-
-        .student-info, .grades, .attendance {{
-            margin-bottom: 20px;
-        }}
-
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-        }}
-
-        th, td {{
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }}
-
-        th {{
-            background-color: #f2f2f2;
-            font-weight: bold;
-            text-align: center;
-        }}
-
-        td {{
-            text-align: center;
-        }}
-
-        .grades th, .attendance th, .grades td, .attendance td {{
-            text-align: center;
-        }}
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {{
-            .report-card {{
-                padding: 10px;
-            }}
-
-            .header h1 {{
-                font-size: 20px;
-            }}
-
-            th, td {{
-                font-size: 12px;
-                padding: 5px;
-            }}
-        }}
-    </style>
-    </style>
-</head>
-<body>
-    <div class='dialog-container'>
-        <div class='report-card'>
-            <div class='header'>
-                <img src=""/images/LogoW.png"" alt='School Logo' />
-                <h2>Ignis Education Suite</h2>
-                <p>Phone: +260760581058</p>
-                <p>Email: philitiara.enterprises@gmail.com</p>
-                <p>Website: <a href=""www.philtiaraenterprises.com"">www.philtiaraenterprises.com</a></p>
-            </div>
-            <div class='student-info'>
-                <table>
-                    <tr>
-                        <th>Name of Student:</th>
-                        <td>{student.FirstName} {student.LastName}</td>
-                        <th>School Year:</th>
-                        <td>{student.IssuedDate.Value.Year}</td>
-                    </tr>
-                    <tr>
-                        <th>Grade Level:</th>
-                        <td>{student.GradeLevel}</td>
-                        <th>GPA:</th>
-                        <td>{student.GPA:F2}</td>
-                    </tr>
-                </table>
-            </div>
-            <div class='grades'>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>SUBJECT</th>
-                            <th>SCORE</th>
-                            <th>GRADE</th>
-                            <th>FINAL</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                {string.Join("", Results.Select(r => $@"
-                        <tr>
-                            <td>{r.ClassName}
-                </td>
-        <td>{r.Score}</td>
-        <td>{r.Grade}</td>
-        <td>{r.Final}</td>
-                                        </tr>
-                "))}
-            </ tbody >
-        </ table >
-    </ div >
-    < div class= 'attendance' >
-        < table >
-            < thead >
-                < tr >
-                    < th > ATTENDED </ th >
-                    < th > ABSENCES </ th >
-                </ tr >
-            </ thead >
-            < tbody >
-                {string.Join("", attendances.Select(a => $@"
-                        <tr>
-                            <td>{a.AttendanceCount}</td>
-                            <td>{a.ExpectedAttendances - a.AttendanceCount}</td>
-                        </tr>
-                        "))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </body>
-        </html>
-";
-            // Your dynamic HTML content
-
-            var httpClient = new HttpClient();
-
-            var response = await httpClient.PostAsJsonAsync($"{_navigationManager.BaseUri}api/Upload/generatePDF", htmlContent);
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var auth = await authenticationStateProvider.GetAuthenticationStateAsync();
-                var user = auth.User;
-                var pdfBytes = await response.Content.ReadAsByteArrayAsync();
-                ReportCardEmailDTO reportCardEmailDTO = new ReportCardEmailDTO();
+                isLoading = true;
 
-
-                reportCardEmailDTO.EmailTo = user.Identity.Name;
-                reportCardEmailDTO.PdfBytes = pdfBytes;
-
-                var emailSent = await _emailService.SendReportCardAsync(reportCardEmailDTO, _navigationManager.BaseUri);
-                if (emailSent == "Report Card Email Sent Successfully")
+                // Only allow Students/Parents to generate PDF
+                if (AppState.UserRole != "Student" && AppState.UserRole != "Parent")
                 {
-                    isLoading = false;
-                    MudDialog.Close(DialogResult.Ok(true));
+                    Snackbar.Add("Only students or parents can download their report card.", Severity.Warning);
+                    return;
                 }
 
+                // Build dynamic HTML or pass structured data to server
+                var dto = new ReportCardPdfDTO
+                {
+                    FirstName = student.FirstName ?? string.Empty,
+                    LastName = student.LastName ?? string.Empty,
+                    LevelName = student.LevelName ?? string.Empty,
+                    GPA = student.GPA,
+                    SchoolLogo = AppState.SchoolLogo ?? string.Empty,
+                    SchoolName = AppState.SchoolName ?? string.Empty,
+                    SchoolEmail = student.SchoolEmail ?? string.Empty,
+                    SchoolWebsite = student.SchoolWebsite ?? string.Empty,
+                    Results = Results.Select(r => new ReportCardResultDTO
+                    {
+                        ClassName = r.ClassName ?? string.Empty,
+                        Score = r.Score,
+                        Grade = r.Grade ?? string.Empty,
+                        Final = r.Final ?? string.Empty
+                    }).ToList(),
+                    Attendances = attendances.Select(a => new AttendanceDTO
+                    {
+                        AttendanceCount = a.AttendanceCount,
+                        ExpectedAttendances = a.ExpectedAttendances
+                    }).ToList(),
+                    PointsInBestSix = student.PointsInBestSix ?? 0,
+                    MarksInBestSix = student.MarksInBestSix ?? 0,
+                    PositionInClass = student.PositionInClass ?? 0,
+                    DeanName = student.DeanName ?? string.Empty,
+                    DeansComment = student.DeansComment ?? string.Empty,
+                    PrincipleName = student.PrincipleName ?? string.Empty,
+                    PrinciplesComment = student.PrinciplesComment ?? string.Empty,
+                    Term = student.Term ?? string.Empty,
+                    ReportCardType = student.ReportCardType ?? string.Empty
+                };
 
 
+
+                // Call API to generate PDF (server-side)
+                var httpClient = new HttpClient();
+                var response = await httpClient.PostAsJsonAsync(
+                    $"{_navigationManager.BaseUri}api/Upload/generatePDF", dto);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Failed to generate the report card PDF. Please try again.", Severity.Error);
+                    return;
+                }
+
+                // Get PDF bytes
+                var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+
+                // Send email
+                var auth = await authenticationStateProvider.GetAuthenticationStateAsync();
+                var user = auth.User;
+                var EmailToMail = "";
+                var emailDto = new ReportCardEmailDTO
+                {
+                    EmailTo = "ngwira.philemon@gmail.com",
+                    PdfBytes = pdfBytes
+                };
+
+                var emailSent = await _emailService.SendReportCardAsync(emailDto, _navigationManager.BaseUri);
+
+                if (emailSent == "Report Card Email Sent Successfully")
+                {
+                    Snackbar.Add("Report card sent to your email successfully.", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add("Failed to send the report card email. Please contact support.", Severity.Error);
+                }
             }
-
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex);
+                Snackbar.Add("An unexpected error occurred while sending the report card.", Severity.Error);
+            }
+            finally
+            {
+                isLoading = false;
+            }
         }
+
 
     }
 }

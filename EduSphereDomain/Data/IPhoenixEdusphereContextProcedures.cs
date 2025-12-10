@@ -28,6 +28,8 @@ namespace EduSphereDomain.Data
         Task<List<GetClassLessonSummaryBySchoolResult>> GetClassLessonSummaryBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetGradedStudentAssignmentsResult>> GetGradedStudentAssignmentsAsync(Guid? StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetGradedStudentExamsResult>> GetGradedStudentExamsAsync(Guid? StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetHostelMaintainanceRequestsBySchoolResult>> GetHostelMaintainanceRequestsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetHostelsBySchoolResult>> GetHostelsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetInitializationDataResult>> GetInitializationDataAsync(string UserId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetLessonCountBySchoolResult>> GetLessonCountBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetLessonsBySchoolResult>> GetLessonsBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
@@ -37,6 +39,7 @@ namespace EduSphereDomain.Data
         Task<List<GetReportCardsByParentResult>> GetReportCardsByParentAsync(string parentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetReportCardsByStudentResult>> GetReportCardsByStudentAsync(string StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetReportCardsByTermAndStudentResult>> GetReportCardsByTermAndStudentAsync(DateTime? TermStartDate, DateTime? TermEndDate, string StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetRoomsBySchoolResult>> GetRoomsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetStudentAssignmentsResult>> GetStudentAssignmentsAsync(string StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetStudentAttendanceByUserIDAndEventDateResult>> GetStudentAttendanceByUserIDAndEventDateAsync(string StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetStudentByUserIDResult>> GetStudentByUserIDAsync(Guid? UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
@@ -53,6 +56,8 @@ namespace EduSphereDomain.Data
         Task<List<GetStudentsInGradeResult>> GetStudentsInGradeAsync(int? GradeLevel, string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetStudentsInGradeDetailsResult>> GetStudentsInGradeDetailsAsync(int? GradeLevel, Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetStudentsInGradeWithoutScheduleResult>> GetStudentsInGradeWithoutScheduleAsync(int? GradeLevel, string SchoolID, string ClassSection, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetStudentsInRoomResult>> GetStudentsInRoomAsync(Guid? RoomID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetStudentsWithoutRoomsByGenderResult>> GetStudentsWithoutRoomsByGenderAsync(Guid? SchoolID, Guid? GenderId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetStudentUnCompletedLessonsResult>> GetStudentUnCompletedLessonsAsync(string StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTeacherAssignmentsResult>> GetTeacherAssignmentsAsync(string TeacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTeacherLessonsResult>> GetTeacherLessonsAsync(string TeacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);

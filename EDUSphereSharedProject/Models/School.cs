@@ -15,6 +15,12 @@ public partial class School
 
     public bool? HasplagerismEnaabled { get; set; }
 
+    public string SchoolPhoneContact { get; set; }
+
+    public string SchoolEmail { get; set; }
+
+    public string SchoolWebsite { get; set; }
+
     public virtual ICollection<Bus> Buses { get; set; } = new List<Bus>();
 
     public virtual ICollection<Class> Classes { get; set; } = new List<Class>();

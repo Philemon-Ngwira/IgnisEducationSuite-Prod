@@ -1,0 +1,104 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@inherits AppBaseComponent
+
+<MudDialog>
+    <DialogContent>
+        <MudText Align="Align.Left">Add New Room</MudText>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect T="Hostel"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           @bind-Value="selectedHostel"
+                           Label="Hostel"
+                           Placeholder="Select Hostel"
+                           ToStringFunc="HostelTypeconverter">
+                    @foreach (var item in hostels)
+                    {
+                        <MudSelectItem Value="item.HostelId">@item.HostelName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              @bind-Value="newRoom.RoomNumber"
+                              Placeholder="e.g 101"
+                              Label="Room Number"></MudTextField>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="int"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              @bind-Value="newRoom.MaxOccupancy"
+                              Placeholder="e.g 4"
+                              Label="Max Occupancy"></MudTextField>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       OnClick="MudDialog.Cancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="SaveNewRoom">Create</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private Room newRoom = new();
+    [Parameter] public List<GetHostelsBySchoolResult> hostels { get; set; } = default!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    protected Hostel selectedHostel = new();
+    protected Func<GetHostelsBySchoolResult, string> HostelTypeconverter = p => p?.HostelName ?? "";
+
+
+
+    protected async Task SaveNewRoom()
+    {
+        newRoom.RoomId = Guid.NewGuid();
+        newRoom.isActive = true;
+        newRoom.HostelId = selectedHostel.HostelId;
+        if(newRoom.HostelId == Guid.Empty)
+        {
+            Snackbar.Add("Please Select a hostel to add room to", Severity.Error);
+            return;
+        }
+        var service = GenericService.GetService<Room>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "room", newRoom);
+        if (result.IsSuccess)
+        {
+            await UpdateHostel(result.Data);
+            MudDialog.Close(DialogResult.Ok(result.Data));
+        }
+    }
+
+    protected async Task UpdateHostel(Room room)
+    {
+        var service = GenericService.GetService<GetHostelsBySchoolResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetHostelsBySchool/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            var hostel = result.Data.Where(x => x.HostelId == room.HostelId).First();
+            Hostel HostelToUpdate = new()
+            {
+                HostelId = hostel.HostelId,
+                HostelName = hostel.HostelName,
+                Gender = hostel.GenderID,
+                SupervisorStaffId = hostel.SupervisorID,
+                Capacity = hostel.Capacity,
+                CreatedAt = hostel.CreatedAt,
+                SchoolId = hostel.SchoolId,
+                isActive = true
+            };
+            HostelToUpdate.Capacity += room.MaxOccupancy;
+            var updateService = GenericService.GetService<Hostel>();
+            var updateResult = await updateService.UpdateAsync("api/Dynamic/UpdateEntity", "hostel", HostelToUpdate);
+        }
+    }
+}

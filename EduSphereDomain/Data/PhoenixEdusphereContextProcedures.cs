@@ -47,6 +47,8 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetClassLessonSummaryBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetGradedStudentAssignmentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetGradedStudentExamsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetHostelMaintainanceRequestsBySchoolResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetHostelsBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetInitializationDataResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetLessonCountBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetLessonsBySchoolResult>().HasNoKey().ToView(null);
@@ -56,6 +58,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetReportCardsByParentResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetReportCardsByStudentResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetReportCardsByTermAndStudentResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetRoomsBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentAssignmentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentAttendanceByUserIDAndEventDateResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentByUserIDResult>().HasNoKey().ToView(null);
@@ -72,6 +75,8 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetStudentsInGradeResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentsInGradeDetailsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentsInGradeWithoutScheduleResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetStudentsInRoomResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetStudentsWithoutRoomsByGenderResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentUnCompletedLessonsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetTeacherAssignmentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetTeacherLessonsResult>().HasNoKey().ToView(null);
@@ -541,6 +546,58 @@ namespace EduSphereDomain.Data
             return _;
         }
 
+        public virtual async Task<List<GetHostelMaintainanceRequestsBySchoolResult>> GetHostelMaintainanceRequestsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetHostelMaintainanceRequestsBySchoolResult>("EXEC @returnValue = [dbo].[GetHostelMaintainanceRequestsBySchool] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetHostelsBySchoolResult>> GetHostelsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetHostelsBySchoolResult>("EXEC @returnValue = [dbo].[GetHostelsBySchool] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
         public virtual async Task<List<GetInitializationDataResult>> GetInitializationDataAsync(string UserId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
@@ -789,13 +846,39 @@ namespace EduSphereDomain.Data
                 new SqlParameter
                 {
                     ParameterName = "StudentID",
-                    Size = -1,
+                    Size = 50,
                     Value = StudentID ?? Convert.DBNull,
                     SqlDbType = System.Data.SqlDbType.VarChar,
                 },
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetReportCardsByTermAndStudentResult>("EXEC @returnValue = [dbo].[GetReportCardsByTermAndStudent] @TermStartDate, @TermEndDate, @StudentID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetRoomsBySchoolResult>> GetRoomsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetRoomsBySchoolResult>("EXEC @returnValue = [dbo].[GetRoomsBySchool] @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 
@@ -1256,6 +1339,64 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetStudentsInGradeWithoutScheduleResult>("EXEC @returnValue = [dbo].[GetStudentsInGradeWithoutSchedule] @GradeLevel, @SchoolID, @ClassSection", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetStudentsInRoomResult>> GetStudentsInRoomAsync(Guid? RoomID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "RoomID",
+                    Value = RoomID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetStudentsInRoomResult>("EXEC @returnValue = [dbo].[GetStudentsInRoom] @RoomID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetStudentsWithoutRoomsByGenderResult>> GetStudentsWithoutRoomsByGenderAsync(Guid? SchoolID, Guid? GenderId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "GenderId",
+                    Value = GenderId ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetStudentsWithoutRoomsByGenderResult>("EXEC @returnValue = [dbo].[GetStudentsWithoutRoomsByGender] @SchoolID, @GenderId", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

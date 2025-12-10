@@ -553,6 +553,10 @@ namespace IgnisEducationSuite.Controllers
                 "lessonmedia" => GetRepository<LessonMedium>(),
                 "livemeeting" => GetRepository<LiveMeeting>(),
                 "termsetting" => GetRepository<TermSetting>(),
+                "hostel" => GetRepository<Hostel>(),
+                "room" => GetRepository<Room>(),
+                "roomallocation" => GetRepository<RoomAllocation>(),
+                "maintainancerequest" => GetRepository<MaintainanceRequest>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -603,6 +607,10 @@ namespace IgnisEducationSuite.Controllers
                 "lessonmedia" => JsonSerializer.Deserialize<LessonMedium>(obj.ToString()),
                 "livemeeting" => JsonSerializer.Deserialize<LiveMeeting>(obj.ToString()),
                 "termsetting" => JsonSerializer.Deserialize<TermSetting>(obj.ToString()),
+                "hostel" => JsonSerializer.Deserialize<Hostel>(obj.ToString()),
+                "room" => JsonSerializer.Deserialize<Room>(obj.ToString()),
+                "roomallocation" => JsonSerializer.Deserialize<RoomAllocation>(obj.ToString()),
+                "maintainancerequest" => JsonSerializer.Deserialize<MaintainanceRequest>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -692,6 +700,40 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetStudentReportCardHeader(string StudentID)
         {
             var result = await _repository.GetReportCardHeaderByStudent(Guid.Parse(StudentID));
+            return Ok(result);
+        }
+
+        [HttpGet("GetHostelsBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetHostelBySchool(string SchoolID)
+        {
+
+            var result = await _repository.GetHostelsBySchool(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+        [HttpGet("GetRoomsBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetRoomsBySchools(string SchoolID)
+        {
+            var result = await _repository.GetRoomsBySchools(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+
+        [HttpGet("GetStudentsInRoom/{RoomID}")]
+        public async Task<IActionResult> GetStudentsInRoom(Guid RoomID)
+        {
+            var result = await _repository.StudentsInRoom(RoomID);
+            return Ok(result);
+        }
+        [HttpGet("GetStudentsWithoutRoomByGender/{GenderID}/{SchoolID}")]
+        public async Task<IActionResult> GetStudentsWithoutRooms(Guid GenderID, string SchoolID)
+        {
+            var result = await _repository.StudentsWithoutRooms(GenderID, Guid.Parse(SchoolID));
+            return Ok(result);
+
+        }
+        [HttpGet("GetHostelMaintainanceRequests/{SchoolID}")]
+        public async Task<IActionResult> GetHostelMaintainanceRequests(string SchoolID)
+        {
+            var result = await _repository.GetMaintainanceRequests(Guid.Parse(SchoolID));
             return Ok(result);
         }
         #endregion

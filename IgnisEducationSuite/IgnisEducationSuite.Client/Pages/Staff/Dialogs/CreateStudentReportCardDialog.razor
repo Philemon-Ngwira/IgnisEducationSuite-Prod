@@ -57,7 +57,23 @@
                     <Columns>
                         <PropertyColumn Property="x => x.Class.ClassName" Title="Class" Editable="false" />
                         <!-- Score is editable -->
-                        <PropertyColumn Property="x => x.Score" Title="Score" @* Editable="@context.Item.CanBeEdited"  *@/>
+                        <TemplateColumn Title="Score">
+                            <CellTemplate>
+                                @if (CanEditScores && context.Item.CanBeEditied)
+                                {
+                                    <MudTextField @bind-Value="context.Item.Score"
+                                                  Immediate="true"
+                                                  Margin="Margin.Dense"
+                                                  Variant="Variant.Outlined"
+                                                  Style="width:80px" />
+                                }
+                                else
+                                {
+                                    @context.Item.Score
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+
                         <!-- Grade auto-fills, not editable -->
                         <PropertyColumn Property="x => x.Grade" Title="Grading" Editable="false" />
                     </Columns>

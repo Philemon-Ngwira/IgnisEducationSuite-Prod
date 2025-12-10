@@ -1,0 +1,567 @@
+﻿@page "/HostelManagement"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@using IgnisEducationSuite.Client.Pages.Management.SchoolOperations.HostelManagementDialogs
+@inherits AppBaseComponent
+<MudCard Class="mb-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5" Align="Align.Left">@PageTitle</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudSwitch Value="roomsSide"
+                       Disabled="!hostels.Any()"
+                       ValueChanged="HeaderActionHostelOrRoomsChanged"
+                       T="bool"
+                       ThumbIcon="@Icons.Material.Filled.KingBed"
+                       Label="@HeaderActionLabel">
+            </MudSwitch>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       OnClick="NavigateToDialogs"
+                       StartIcon="@Icons.Material.Filled.Add">
+                Add @buttonLabel
+            </MudButton>
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudCardContent>
+        @if (isLoading)
+        {
+            <div class="loader-overlay">
+                <div class="loader-container">
+                    <div class="spinner"></div>
+                    <div class="loader-icon">🔄</div>
+                    <p class="loading-text">Loading, please wait...</p>
+                </div>
+            </div>
+        }
+
+        <MudGrid Spacing="3">
+            @if (!roomsSide)
+            {
+                @if (hostels.Any())
+                {
+                    @foreach (var item in hostels)
+                    {
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudCard Elevation="4" Class="hover-card">
+                                <MudCardHeader>
+                                    <CardHeaderAvatar>
+                                        <MudIcon Icon="@Icons.Material.Filled.House"
+                                                 Color="@(item.Gender == "Male" ? Color.Info : Color.Secondary)">
+                                        </MudIcon>
+                                    </CardHeaderAvatar>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.subtitle1" Align="Align.Left">
+                                            <b>@item.HostelName</b>
+                                        </MudText>
+                                    </CardHeaderContent>
+                                    <CardHeaderActions>
+                                        <MudChip T="string" Color="@(item.Gender == "Male" ? Color.Info : Color.Secondary)"
+                                                 Variant="Variant.Outlined">
+                                            @item.Gender
+                                        </MudChip>
+                                    </CardHeaderActions>
+                                </MudCardHeader>
+
+                                <MudCardContent>
+                                    <MudGrid Spacing="2">
+                                        <MudItem xs="12" Class="d-flex justify-between align-center">
+                                            <MudText Typo="Typo.caption"><b>Occupancy</b></MudText>
+                                            <MudText Typo="Typo.caption"><b>@item.Occupied/@item.Capacity</b></MudText>
+                                        </MudItem>
+                                        <MudItem xs="12">
+                                            <MudProgressLinear Max="@item.Capacity.Value"
+                                                               Value="@item.Occupied"
+                                                               Color="Color.Secondary"
+                                                               Rounded="true">
+                                            </MudProgressLinear>
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudCardContent>
+
+                                <MudCardActions>
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Error"
+                                               StartIcon="@Icons.Material.Filled.Delete"
+                                               FullWidth="true" OnClick="()=>DeleteAsync(item)">
+                                        Delete
+                                    </MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+                }
+                else
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                            <MudText Typo="Typo.subtitle2">
+                                <b><i>No hostels added. Please add new hostels using the button above.</i></b>
+                            </MudText>
+                        </MudAlert>
+                    </MudItem>
+                }
+            }
+            else
+            {
+                @if (rooms.Any())
+                {
+                    @foreach (var item in rooms)
+                    {
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudCard @onclick="() => OpenManageRoomDialogAsync(item)" Elevation="4" Class="hover-card position-relative">
+                                <MudCardHeader>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.subtitle1"><b>@item.RoomNumber</b></MudText>
+                                        <MudText Typo="Typo.caption"><b>@item.HostelName</b></MudText>
+                                    </CardHeaderContent>
+                                    <CardHeaderActions>
+                                        <MudChip T="string" Color="@(item.GenderDescription == "Male" ? Color.Info : Color.Secondary)"
+                                                 Variant="Variant.Outlined">
+                                            @item.GenderDescription
+                                        </MudChip>
+                                    </CardHeaderActions>
+                                </MudCardHeader>
+
+                                <MudCardContent Class="position-relative">
+                                    <!-- Floating status badge -->
+                                    <div class="room-status-badge">
+                                        @if (item.OccupiedCount < item.MaxOccupancy)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="mr-1" />
+                                            <MudText Typo="Typo.caption" Color="Color.Success">Available</MudText>
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Block" Color="Color.Error" Size="Size.Small" Class="mr-1" />
+                                            <MudText Typo="Typo.caption" Color="Color.Error">Full</MudText>
+                                        }
+                                    </div>
+
+                                    <!-- Beds -->
+                                    <div class="d-flex justify-center mb-2">
+                                        <MudGrid Spacing="2" Class="justify-center">
+                                            @for (int i = 1; i <= item.MaxOccupancy; i++)
+                                            {
+                                                bool isTaken = i <= item.OccupiedCount;
+
+                                                <MudItem xs="4" sm="3" Class="d-flex justify-center">
+                                                    <MudIcon Icon="@MaterialDesignIcons.Normal.Bed"
+                                                             Color="@(isTaken ? Color.Error : Color.Success)"
+                                                             Size="Size.Large" />
+                                                </MudItem>
+                                            }
+                                        </MudGrid>
+                                    </div>
+
+                                    <!-- Occupancy -->
+                                    <MudGrid Spacing="1">
+                                        <MudItem xs="12" Class="d-flex justify-between align-center">
+                                            <MudText Typo="Typo.caption"><b>Occupancy</b></MudText>
+                                            <MudText Typo="Typo.caption"><b>@item.OccupiedCount/@item.MaxOccupancy</b></MudText>
+                                        </MudItem>
+                                        <MudItem xs="12">
+                                            <MudProgressLinear Max="@item.MaxOccupancy"
+                                                               Value="@item.OccupiedCount.Value"
+                                                               Color="Color.Secondary"
+                                                               Rounded="true">
+                                            </MudProgressLinear>
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudCardContent>
+
+                                <MudCardActions>
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Error"
+                                               StartIcon="@Icons.Material.Filled.Delete"
+                                               FullWidth="true" OnClick="()=>DeleteAsync(item)">
+                                        Delete
+                                    </MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+
+
+                }
+            }
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+<style>
+    .hover-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        transition: all 0.2s ease-in-out;
+    }
+
+    .d-flex {
+        display: flex;
+    }
+
+    .align-center {
+        align-items: center;
+    }
+
+    .justify-center {
+        justify-content: center;
+    }
+
+    .justify-between {
+        justify-content: space-between;
+    }
+
+    .mb-2 {
+        margin-bottom: 0.5rem;
+    }
+
+    .mb-4 {
+        margin-bottom: 1.5rem;
+    }
+
+    .mt-2 {
+        margin-top: 0.5rem;
+    }
+
+    .hover-card {
+        transition: all 0.2s ease-in-out;
+    }
+
+        .hover-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+    .position-relative {
+        position: relative;
+    }
+
+    .room-status-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background-color: rgba(255,255,255,0.9);
+        padding: 2px 6px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        z-index: 5;
+        font-weight: 500;
+    }
+
+</style>
+
+@code {
+    bool roomsSide = false;
+    string HeaderActionLabel = "Hostels";
+    string buttonLabel = "Hostel";
+    string PageTitle = "Hostel Management";
+    bool isLoading = false;
+
+    #region Collections
+    protected List<GetHostelsBySchoolResult> hostels = new();
+    protected List<GetRoomsBySchoolResult> rooms = new();
+    #endregion
+    [Inject] IDialogService DialogService { get; set; } = default!;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        var tasks = new List<Task>() {
+            GetHostels(),
+            GetRooms()
+        };
+        await Task.WhenAll(tasks);
+        isLoading = false;
+    }
+
+    private void HeaderActionHostelOrRoomsChanged(bool value)
+    {
+        roomsSide = value;
+        switch (roomsSide)
+        {
+            case true:
+                HeaderActionLabel = "Rooms";
+                buttonLabel = "Room";
+                PageTitle = "Room Management";
+                break;
+            case false:
+                HeaderActionLabel = "Hostels";
+                buttonLabel = "Hostel";
+                PageTitle = "Hostel Management";
+                break;
+        }
+    }
+    private async Task DeleteAsync<T>(T model)
+    {
+        if (model == null)
+            throw new ArgumentNullException(nameof(model));
+
+        try
+        {
+            switch (model)
+            {
+                case GetHostelsBySchoolResult hostelModel:
+                    await DeleteHostelAsync(hostelModel);
+                    break;
+
+                case GetRoomsBySchoolResult roomModel:
+                    await DeleteRoomAsync(roomModel);
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Unsupported model type: {typeof(T)}");
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Log exception or show a message to the user
+            Console.Error.WriteLine($"Error deleting {typeof(T)}: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteHostelAsync(GetHostelsBySchoolResult hostel)
+    {
+        if (hostel == null) return;
+
+        var hostelToUpdate = new Hostel
+        {
+            HostelId = hostel.HostelId,
+            HostelName = hostel.HostelName,
+            Gender = hostel.GenderID,
+            Capacity = hostel.Capacity,
+            SupervisorStaffId = hostel.SupervisorID,
+            CreatedAt = hostel.CreatedAt,
+            SchoolId = hostel.SchoolId,
+            isActive = false
+        };
+
+        var hostelService = GenericService.GetService<Hostel>();
+        var hostelResult = await hostelService.UpdateAsync("api/Dynamic/UpdateEntity", "hostel", hostelToUpdate);
+
+        if (!hostelResult.IsSuccess)
+            throw new InvalidOperationException($"Failed to delete hostel {hostel.HostelName}");
+
+        // Deactivate rooms in this hostel
+        var roomsInHostel = rooms.Where(r => r.HostelId == hostel.HostelId).ToList();
+        if (roomsInHostel.Any())
+        {
+            var roomsToUpdate = roomsInHostel.Select(r => new Room
+            {
+                RoomId = r.RoomId,
+                HostelId = r.HostelId,
+                RoomNumber = r.RoomNumber,
+                MaxOccupancy = r.MaxOccupancy,
+                RoomType = r.RoomType,
+                isActive = false
+            }).ToList();
+
+            var roomService = GenericService.GetService<List<Room>>();
+            var roomResult = await roomService.UpdateAsync("api/Dynamic/UpdateEntities", "room", roomsToUpdate);
+
+            if (!roomResult.IsSuccess)
+                throw new InvalidOperationException($"Failed to delete rooms for hostel {hostel.HostelName}");
+
+            rooms.RemoveAll(r => r.HostelId == hostel.HostelId);
+        }
+
+        hostels.Remove(hostel);
+    }
+
+    private async Task DeleteRoomAsync(GetRoomsBySchoolResult room)
+    {
+        if (room == null) return;
+
+        var roomToUpdate = new Room
+        {
+            RoomId = room.RoomId,
+            HostelId = room.HostelId,
+            RoomNumber = room.RoomNumber,
+            MaxOccupancy = room.MaxOccupancy,
+            RoomType = room.RoomType,
+            isActive = false
+        };
+
+        var roomService = GenericService.GetService<Room>();
+        var result = await roomService.UpdateAsync("api/Dynamic/UpdateEntity", "room", roomToUpdate);
+
+        if (!result.IsSuccess)
+            throw new InvalidOperationException($"Failed to delete room {room.RoomNumber}");
+
+        rooms.Remove(room);
+    }
+
+    private async Task GetHostels()
+    {
+
+        var service = GenericService.GetService<GetHostelsBySchoolResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetHostelsBySchool/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            hostels = result.Data.ToList();
+        }
+
+    }
+    private async Task GetRooms()
+    {
+
+        var service = GenericService.GetService<GetRoomsBySchoolResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetRoomsBySchool/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            rooms = result.Data.ToList();
+        }
+
+    }
+
+    private async Task NavigateToDialogs()
+    {
+        if (roomsSide)
+        {
+            await OpenAddNewHostelRoomDialogAsync();
+        }
+        else
+        {
+            await OpenAddNewHostelDialogAsync();
+        }
+    }
+    protected async Task<IEnumerable<Gender>> GetGenders()
+    {
+        var result = GenericService.GetService<Gender>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"genders"}", true);
+        return service.Data.ToList();
+
+    }
+    #region Dialogs
+    private async Task OpenAddNewHostelDialogAsync()
+    {
+        var genders = await GetGenders();
+        var parameters = new DialogParameters<AddNewHostelDialog>
+        {
+        {x=>x.genders, genders}
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true, NoHeader = true, Position = DialogPosition.Center };
+
+        var dialog = await DialogService.ShowAsync<AddNewHostelDialog>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = result.Data;
+            if (data is Hostel)
+            {
+                var newHostel = data as Hostel;
+                bool completed = true;
+                if (completed)
+                {
+                    Snackbar.Add("Hostel Added Successfully", Severity.Success);
+                    GetHostelsBySchoolResult recentlyAdded = new()
+                    {
+                        HostelId = newHostel.HostelId,
+                        HostelName = newHostel.HostelName,
+                        Gender = genders.Where(x => x.GenderId == newHostel.Gender).Select(x => x.GenderDescription).FirstOrDefault(),
+                        Capacity = newHostel.Capacity,
+                        Supervisor = "N/A",
+                        SchoolId = newHostel.SchoolId
+                    };
+                    hostels.Add(recentlyAdded);
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+    private async Task OpenAddNewHostelRoomDialogAsync()
+    {
+        var genders = await GetGenders();
+        var parameters = new DialogParameters<RoomManagement>
+        {
+            {x=>x.hostels, hostels}
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true, NoHeader = true, Position = DialogPosition.Center };
+
+        var dialog = await DialogService.ShowAsync<RoomManagement>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = result.Data;
+            if (data is Room)
+            {
+                var newRoom = data as Room;
+                bool completed = true;
+                if (completed)
+                {
+                    Snackbar.Add("Room Added Successfully", Severity.Success);
+                    GetRoomsBySchoolResult recentlyAdded = new()
+                    {
+                        RoomId = newRoom.RoomId,
+                        HostelId = newRoom.HostelId,
+                        RoomNumber = newRoom.RoomNumber,
+                        MaxOccupancy = newRoom.MaxOccupancy,
+                        RoomType = newRoom.RoomType,
+                        HostelName = hostels.Where(x => x.HostelId == newRoom.HostelId).Select(c => c.HostelName).First(),
+                        OccupiedCount = 0,
+                    };
+                    rooms.Add(recentlyAdded);
+                    for (int i = 0; i < hostels.Count; i++)
+                    {
+
+                        if (hostels[i].HostelId == recentlyAdded.HostelId)
+                        {
+                            hostels[i].Capacity += recentlyAdded.MaxOccupancy;
+                            return;
+                        }
+                    }
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+    private async Task OpenManageRoomDialogAsync(GetRoomsBySchoolResult room)
+    {
+
+        var parameters = new DialogParameters<RoomAllocations>
+{
+    { x => x.RoomID, room.RoomId },
+    { x => x.RoomNumber, room.RoomNumber },
+    { x => x.RoomGender, room.GenderDescription },
+    { x => x.GenderID, room.GenderId ?? Guid.Empty }, // cast to non-nullable
+    { x => x.MaxOccupancy, room.MaxOccupancy }
+};
+
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true, NoHeader = true, Position = DialogPosition.TopCenter };
+
+        var dialog = await DialogService.ShowAsync<RoomAllocations>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = result.Data;
+            if (data is bool)
+            {
+                var state = (bool)data;
+                if (state)
+                {
+                    Snackbar.Add("Room Allocations Done  Successfully", Severity.Success);
+                    isLoading = true;
+                    var tasks = new List<Task>() {
+            GetHostels(),
+            GetRooms()
+        };
+                    await Task.WhenAll(tasks);
+                    isLoading = false;
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+    #endregion
+}
