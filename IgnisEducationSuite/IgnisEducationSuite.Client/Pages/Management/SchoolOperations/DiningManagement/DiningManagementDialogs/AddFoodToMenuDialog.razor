@@ -1,0 +1,120 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@inherits AppBaseComponent
+
+<MudDialog>
+
+    <DialogContent>
+        <MudText Align="Align.Left" Typo="Typo.h5">Add New Menu Item</MudText>
+        <MudDivider />
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSelect Variant="Variant.Outlined"
+                           @bind-Value="selectedDay"
+                           Margin="Margin.Dense"
+                           ToStringFunc="DayTypeconverter"
+                           Label="Select Day">
+                    @foreach (var item in daysofTheWeek)
+                    {
+                        <MudSelectItem Value="item">@item.DayName</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" Variant="Variant.Outlined"
+                           @bind-Value="selectedAvailableSession"
+                           Margin="Margin.Dense"
+                           Label="Select Session">
+                    @foreach (var item in MealSessionsAvailable)
+                    {
+                        <MudSelectItem Value="item">@item</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="newMenuItem.MainDish"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Label="Main Dish"
+                              Placeholder="e.g Rice and Chicken">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="newMenuItem.SideDish"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Label="Side Dish"
+                              Placeholder="e.g Garlic Bread">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="newMenuItem.Drink"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Label="Drink"
+                              Placeholder="e.g Juice">
+                </MudTextField>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       OnClick="MudDialog.Cancel">
+                Cancel
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="SaveNewMenuItem">
+                Create
+            </MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    protected DiningMenu newMenuItem = new();
+    protected DayofTheWeek selectedDay = new();
+    [Parameter] public List<DayofTheWeek> daysofTheWeek { get; set; } = new();
+    [Parameter] public List<SchoolMealSessionsDTO> schoolMealSessions { get; set; } = default!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    protected Func<SchoolMealSessionsDTO, string> MealSessionTypeconverter = p => p?.Name ?? "";
+    protected Func<DayofTheWeek, string> DayTypeconverter = p => p?.DayName ?? "";
+
+    private List<string> MealSessionsAvailable = new();
+    private string selectedAvailableSession = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        MealSessionsAvailable = schoolMealSessions.Select(x => x.Name).Distinct().ToList();
+        await Task.Delay(10);
+    }
+    private async Task SaveNewMenuItem()
+    {
+        List<DiningMenu> menuItems = new();
+        foreach (var item in schoolMealSessions)
+        {
+            if (item.Name.ToUpper() == selectedAvailableSession.ToUpper())
+            {
+                newMenuItem.MenuId = Guid.NewGuid();
+                newMenuItem.DayOfWeek = selectedDay.DayName;
+                newMenuItem.MealId = item.MealId;
+                menuItems.Add(newMenuItem);
+            }
+        }
+
+        var service = GenericService.GetService<List<DiningMenu>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "menuitem", menuItems);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Menu Item Added Succesfully", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(menuItems));
+        }
+
+
+    }
+}

@@ -471,6 +471,14 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[GetSchoolDiningMenus]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[GetSchoolMealSessions]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[GetStudentAssignments]",
          "ObjectType": 1
       },

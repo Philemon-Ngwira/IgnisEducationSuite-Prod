@@ -557,6 +557,9 @@ namespace IgnisEducationSuite.Controllers
                 "room" => GetRepository<Room>(),
                 "roomallocation" => GetRepository<RoomAllocation>(),
                 "maintainancerequest" => GetRepository<MaintainanceRequest>(),
+                "dininghall" => GetRepository<DiningHall>(),
+                "meal" => GetRepository<Meal>(),
+                "menuitem" => GetRepository<DiningMenu>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -611,6 +614,9 @@ namespace IgnisEducationSuite.Controllers
                 "room" => JsonSerializer.Deserialize<Room>(obj.ToString()),
                 "roomallocation" => JsonSerializer.Deserialize<RoomAllocation>(obj.ToString()),
                 "maintainancerequest" => JsonSerializer.Deserialize<MaintainanceRequest>(obj.ToString()),
+                "dininghall" => JsonSerializer.Deserialize<DiningHall>(obj.ToString()),
+                "meal" => JsonSerializer.Deserialize<Meal>(obj.ToString()),
+                "menuitem" => JsonSerializer.Deserialize<DiningMenu>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -736,6 +742,28 @@ namespace IgnisEducationSuite.Controllers
             var result = await _repository.GetMaintainanceRequests(Guid.Parse(SchoolID));
             return Ok(result);
         }
+        #region DINING MANAGMENT
+        [HttpGet("GetSchoolDiningHalls/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolHalls(Guid SchoolID)
+        {
+            var result = await _repository.GetDiningHallsBySchoolAsync(SchoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetSchoolMealSession/{SchoolID}")]
+        public async Task<IActionResult> GetMealSessions(Guid SchoolID)
+        {
+            var result = await _repository.GetSchoolMealSessions(SchoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetSchoolDiningMenus/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolMenus(Guid SchoolID)
+        {
+            var result = await _repository.GetDiningMenus(SchoolID);
+            return Ok(result);
+        }
+        #endregion
+
+
         #endregion
     }
 }

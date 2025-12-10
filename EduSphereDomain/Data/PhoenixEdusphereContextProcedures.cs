@@ -59,6 +59,8 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetReportCardsByStudentResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetReportCardsByTermAndStudentResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetRoomsBySchoolResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetSchoolDiningMenusResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetSchoolMealSessionsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentAssignmentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentAttendanceByUserIDAndEventDateResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentByUserIDResult>().HasNoKey().ToView(null);
@@ -879,6 +881,58 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetRoomsBySchoolResult>("EXEC @returnValue = [dbo].[GetRoomsBySchool] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetSchoolDiningMenusResult>> GetSchoolDiningMenusAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetSchoolDiningMenusResult>("EXEC @returnValue = [dbo].[GetSchoolDiningMenus] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetSchoolMealSessionsResult>> GetSchoolMealSessionsAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetSchoolMealSessionsResult>("EXEC @returnValue = [dbo].[GetSchoolMealSessions] @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

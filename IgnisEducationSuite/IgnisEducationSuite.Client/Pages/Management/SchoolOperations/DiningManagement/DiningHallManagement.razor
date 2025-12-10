@@ -1,0 +1,283 @@
+﻿@page "/DiningManagement"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@using IgnisEducationSuite.Client.Pages.Management.SchoolOperations.DiningManagement.DiningManagementDialogs
+@inherits AppBaseComponent
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Left" Typo="Typo.h5"><b>Dining Hall Management</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <!--DINING HALL-->
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Dining"></MudIcon>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Align="Align.Left"><b>Dining Halls</b></MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           OnClick="OpenDiningDialog"></MudIconButton>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <!--List Of Available Dining Halls-->
+                        @foreach (var item in DiningHalls)
+                        {
+                            <MudCard Class="mb-3">
+                                <MudCardContent>
+                                    <MudText Typo="Typo.subtitle1"><b>@item.Name</b></MudText>
+                                    <MudText Typo="Typo.body1">@item.Location</MudText>
+                                    <MudText Typo="Typo.caption">Capacity: @item.Capacity</MudText>
+                                </MudCardContent>
+                            </MudCard>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <!--Meal Sessions-->
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Timer"></MudIcon>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Align="Align.Left"><b>Meal Session</b></MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           OnClick="OpenMealSessionDialog"></MudIconButton>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <!--List Of Available Meal Sessions-->
+                        @foreach (var item in mealSessions)
+                        {
+                            <MudCard Class="mb-3">
+                                <MudCardContent>
+                                    <MudText Typo="Typo.subtitle1"><b>@item.Name</b></MudText>
+                                    <MudText Typo="Typo.body1">@item.TimeStart - @item.TimeEnd</MudText>
+                                    <MudText Class="text-success" Typo="Typo.caption">Dining Hall: @item.DiningHallName</MudText>
+                                </MudCardContent>
+                            </MudCard>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <!--Menus-->
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@MaterialDesignIcons.Normal.Food"></MudIcon>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Align="Align.Left"><b>Menus</b></MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           OnClick="OpenDiningMenuDialog"></MudIconButton>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <!--List Of Available Dining Menus-->
+                        @foreach (var item in diningMenus)
+                        {
+                            <MudCard Class="mb-3">
+                                <MudCardHeader>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.subtitle1"><b>@item.MainDish</b></MudText>
+                                    </CardHeaderContent>
+                                    <CardHeaderActions>
+                                        <MudChip T="string" Color="Color.Warning">@item.DayOfWeek</MudChip>
+                                    </CardHeaderActions>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudText Typo="Typo.body1">@item.SideDish</MudText>
+                                    <MudText Class="text-success" Typo="Typo.caption">Meal: @item.MealName</MudText>
+                                </MudCardContent>
+                            </MudCard>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <!--Special Diets-->
+                <MudCard>
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@MaterialDesignIcons.Normal.Allergy"></MudIcon>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Align="Align.Left"><b>Diets</b></MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"></MudIconButton>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <!--List Of Available Dining Menus-->
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+
+
+
+@code {
+    protected List<DiningHall> DiningHalls = new();
+    protected List<SchoolMealSessionsDTO> mealSessions = new();
+    protected List<DiningMenuDTO> diningMenus = new();
+    protected List<DayofTheWeek> daysofTheWeek = new();
+    protected DiningSpecialDiet newStudentSpecialDiet = new();
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    bool isLoading = false;
+    private readonly List<string> dayOrder = new()
+    {
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+
+    };
+
+
+    private readonly List<string> MealOrder = new()
+    {
+        "Breakfast",
+        "Lunch",
+        "Dinner"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        var tasks = new List<Task>()
+        {
+            GetSchoolDiningHalls(),
+            GetDiningMealSessions(),
+            GetDiningMenus(),
+            GetDaysOfWeek()
+        };
+        await Task.WhenAll(tasks);
+        isLoading = false;
+    }
+    protected async Task GetDaysOfWeek()
+    {
+        var result = GenericService.GetService<DayofTheWeek>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"days"}", true);
+        daysofTheWeek = service.Data.OrderBy(cs => dayOrder.IndexOf(cs.DayName)).ToList();
+    }
+    protected async Task GetSchoolDiningHalls()
+    {
+        var service = GenericService.GetService<DiningHall>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolDiningHalls/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            DiningHalls = result.Data.ToList();
+        }
+    }
+    protected async Task GetDiningMealSessions()
+    {
+        var service = GenericService.GetService<SchoolMealSessionsDTO>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolMealSession/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            mealSessions = result.Data.OrderBy(cs => MealOrder.IndexOf(cs.Name)).ToList();
+        }
+
+    }
+    protected async Task GetDiningMenus()
+    {
+        var service = GenericService.GetService<DiningMenuDTO>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolDiningMenus/{Guid.Parse(AppState.SchoolID)}", true);
+
+        if (result.IsSuccess)
+        {
+            // Group by MealName to avoid duplicates across dining halls
+            diningMenus = result.Data
+                .GroupBy(x => x.MealName.Trim().ToLower())    // normalize name
+                .Select(g => g.First())                        // pick one representative
+                .OrderBy(cs => dayOrder.IndexOf(cs.DayOfWeek))//Sort By day
+                .ThenBy(cs => MealOrder.IndexOf(cs.MealName))// the by meal Type
+                .ToList();
+        }
+    }
+
+    protected async Task OpenMealSessionDialog()
+    {
+        var dialogParameters = new DialogParameters<AddMealSessionsDialog>()
+        {
+            {x=>x.DiningHalls , DiningHalls}
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, CloseButton = true, BackdropClick = false, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AddMealSessionsDialog>("", dialogParameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var data = result.Data as Meal;
+            SchoolMealSessionsDTO recentlyAdded = new()
+            {
+                MealId = data.MealId,
+                DiningHallId = data.DiningHallId,
+                Name = data.Name,
+                TimeStart = data.TimeStart,
+                TimeEnd = data.TimeEnd,
+                DiningHallName = data.DiningHall.Name
+            };
+            if (data != null)
+                mealSessions.Add(recentlyAdded);
+            StateHasChanged();
+        }
+    }
+    protected async Task OpenDiningDialog()
+    {
+        var dialogParameters = new DialogParameters<AddDiningDialog>()
+        {
+
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, CloseButton = true, BackdropClick = false, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AddDiningDialog>("", options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var data = result.Data as DiningHall;
+            if (data != null)
+                DiningHalls.Add(data);
+            StateHasChanged();
+        }
+    }
+    protected async Task OpenDiningMenuDialog()
+    {
+        var dialogParameters = new DialogParameters<AddFoodToMenuDialog>()
+        {
+            {x=>x.daysofTheWeek ,daysofTheWeek},
+            {c=>c.schoolMealSessions, mealSessions}
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, CloseButton = true, BackdropClick = false, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AddFoodToMenuDialog>("", dialogParameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var data = result.Data as List<DiningMenu>;
+            await GetDiningMenus();
+            StateHasChanged();
+        }
+    }
+}

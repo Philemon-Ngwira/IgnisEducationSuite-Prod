@@ -1,0 +1,82 @@
+﻿@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<MudDialog>
+    <DialogContent>
+        <MudText Align="Align.Left" Typo="Typo.h5">Add New Dining Hall</MudText>
+        <MudDivider />
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect Variant="Variant.Outlined"
+                           @bind-Value="selectedHall"
+                           Margin="Margin.Dense"
+                           ToStringFunc="DiningTypeconverter">
+                    @foreach (var item in DiningHalls)
+                    {
+                        <MudSelectItem Value="item">@item.Name</MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="newMealSession.Name"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Label="Enter Session Name"
+                              Placeholder="e.g Breakfast">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTimePicker Label="Start Time" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" @bind-Time="startTime" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTimePicker Label="End Time" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" @bind-Time="EndTime" />
+
+            </MudItem>
+        </MudGrid>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       OnClick="MudDialog.Cancel">
+                Cancel
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="SaveNewMealSession">
+                Create
+            </MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+@code {
+    protected Meal newMealSession = new();
+    protected DiningHall selectedHall = new();
+    protected TimeSpan? startTime = new TimeSpan(06, 45, 00);
+    protected TimeSpan? EndTime = new TimeSpan(09, 45, 00);
+    [Parameter] public List<DiningHall> DiningHalls { get; set; } = new();
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    protected Func<DiningHall, string> DiningTypeconverter = p => p?.Name ?? "";
+
+    private async Task SaveNewMealSession()
+    {
+        newMealSession.DiningHallId = selectedHall.DiningHallId;
+        newMealSession.MealId = Guid.NewGuid();
+        newMealSession.TimeStart = startTime.Value;
+        newMealSession.TimeEnd = EndTime.Value;
+
+        var service = GenericService.GetService<Meal>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "meal", newMealSession);
+        if (result.IsSuccess)
+        {
+            var returned = result.Data;
+            returned.DiningHall = selectedHall;
+            Snackbar.Add("New Meal Session Created", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(returned));
+        }
+    }
+
+
+
+}

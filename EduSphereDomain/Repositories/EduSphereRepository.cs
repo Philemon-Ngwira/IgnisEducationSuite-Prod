@@ -988,6 +988,8 @@ namespace EduSphereDomain.Repositories
 
 
         #region New Modules
+
+        #region  Improvements
         public async Task<IEnumerable<StudentGradedExamsTestsAndQuizzes>> GetGradedExamsByStudent(string StudentID)
         {
             var result = await _contextProcedures.GetGradedStudentExamsAsync(Guid.Parse(StudentID));
@@ -1162,6 +1164,9 @@ namespace EduSphereDomain.Repositories
                      && s.TermEndDate >= today
                 ).ToListAsync();
         }
+        #endregion
+        //-------------------------START-----------------------------------------------------------------\\
+        #region Hostel Management
         public async Task<IEnumerable<GetRoomsBySchoolResult>> GetRoomsBySchools(Guid SchoolID)
         {
             try
@@ -1285,6 +1290,47 @@ namespace EduSphereDomain.Repositories
 
             }).ToList();
         }
+        #endregion
+        //-------------------------END-----------------------------------------------------------------\\
+
+        //-------------------------START-----------------------------------------------------------------\\
+        #region Dining Management
+        public async Task<IEnumerable<DiningHall>> GetDiningHallsBySchoolAsync(Guid SchoolID)
+        {
+            var result = await _context.DiningHalls.Where(x => x.SchoolId == SchoolID).ToListAsync();
+            return result;
+        }
+        public async Task<IEnumerable<SchoolMealSessionsDTO>> GetSchoolMealSessions(Guid SchoolID)
+        {
+            var result = await _contextProcedures.GetSchoolMealSessionsAsync(SchoolID);
+            return result.Select(x => new SchoolMealSessionsDTO
+            {
+                MealId = x.MealId,
+                DiningHallId = x.DiningHallId,
+                Name = x.Name,
+                TimeStart = x.TimeStart,
+                TimeEnd = x.TimeEnd
+            }).ToList();
+        }
+        public async Task<IEnumerable<DiningMenuDTO>> GetDiningMenus(Guid SchoolID)
+        {
+            var result = await _contextProcedures.GetSchoolDiningMenusAsync(SchoolID);
+            return result.Select(x => new DiningMenuDTO
+            {
+                SideDish = x.SideDish,
+                DayOfWeek = x.DayOfWeek,
+                Drink = x.Drink,
+                MainDish = x.MainDish,
+                MealId = x.MealId,
+                MealName = x.MealName,
+                MenuId = x.MenuId,
+
+            }).ToList();
+        }
+        #endregion
+        //-------------------------END-----------------------------------------------------------------\\
+
+
         #endregion
 
     }
