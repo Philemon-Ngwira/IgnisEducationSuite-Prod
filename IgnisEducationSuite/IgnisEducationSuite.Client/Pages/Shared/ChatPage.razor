@@ -291,8 +291,8 @@
 
                 // Determine if message is for currently open chat
                 bool isForCurrentChat = selectedChat != null &&
-                    ((selectedChat.IsGroup && selectedChat.Name == receivedMessage.GroupName) ||
-                     (!selectedChat.IsGroup && selectedChat.id == receivedMessage.UserId));
+                    ((selectedChat.IsGroup && selectedChat.GroupIdentifier == receivedMessage.GroupIdentifier) ||
+                     (!selectedChat.IsGroup && selectedChat.id == receivedMessage.RecipientId));
 
                 if (isForCurrentChat)
                 {

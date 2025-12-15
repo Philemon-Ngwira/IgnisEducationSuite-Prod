@@ -1,4 +1,5 @@
-﻿using EduSphereDomain.Data;
+﻿
+using EduSphereDomain.Data;
 using EduSphereDomain.MessagingData;
 using EDUSphereSharedProject.ChatModels;
 using EDUSphereSharedProject.Zoom;
@@ -58,7 +59,7 @@ namespace IgnisEducationSuite.Controllers
 
             // 2. Get students
             var students = await _context.Students
-                .Where(s => s.AcademicLevel == int.Parse(request.Grade) &&
+                .Where(s => s.LevelName == request.Grade &&
                             s.StudentClasses.Any(sub => sub.Class.ClassName == request.Subject))
                 .Select(s => s.UserID)
                 .ToListAsync();
@@ -79,18 +80,28 @@ namespace IgnisEducationSuite.Controllers
                 });
             }
             await _Chatcontext.SaveChangesAsync();
-
-            // 5. Send system message via SignalR
-            var message = new ChatMessage
+            var message = new ChatMessage();
+            try
             {
-                Id = Guid.NewGuid(),
-                Message = $"📢 Your {request.Subject} live class is scheduled.\nJoin here: {request.MeetingLink}",
-                UserId = request.TeacherId,
-                GroupName = groupName,
-                Timestamp = DateTime.UtcNow
-            };
-            _Chatcontext.ChatMessages.Add(message);
-            await _Chatcontext.SaveChangesAsync();
+                // 5. Send system message via SignalR
+                message = new()
+                {
+                    Id = Guid.NewGuid(),
+                    Message = $"📢 Your {request.Subject} live class is scheduled.\nJoin here: {request.MeetingLink}",
+                    UserId = request.TeacherId,
+                    GroupName = groupName,
+                    Timestamp = DateTime.UtcNow,
+                    GroupIdentifier = $"{request.Grade}_{request.GradeSection}",
+                };
+                _Chatcontext.ChatMessages.Add(message);
+                await _Chatcontext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+
 
             await _hubContext.Clients.Group(groupName).SendAsync("ReceiveMessage", message);
 

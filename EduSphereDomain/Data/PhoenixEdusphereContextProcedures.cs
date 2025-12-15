@@ -79,6 +79,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetStudentsInGradeWithoutScheduleResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentsInRoomResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentsWithoutRoomsByGenderResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetStudentsWithSpecialDietsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetStudentUnCompletedLessonsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetTeacherAssignmentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetTeacherLessonsResult>().HasNoKey().ToView(null);
@@ -1457,6 +1458,32 @@ namespace EduSphereDomain.Data
             return _;
         }
 
+        public virtual async Task<List<GetStudentsWithSpecialDietsResult>> GetStudentsWithSpecialDietsAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetStudentsWithSpecialDietsResult>("EXEC @returnValue = [dbo].[GetStudentsWithSpecialDiets] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
         public virtual async Task<List<GetStudentUnCompletedLessonsResult>> GetStudentUnCompletedLessonsAsync(string StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
@@ -1658,6 +1685,46 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<RunDailyJobsResult>("EXEC @returnValue = [dbo].[RunDailyJobs]", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<int> SyncStudentAndParentAccountStatusAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                parameterreturnValue,
+            };
+            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[SyncStudentAndParentAccountStatus]", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<int> SyncStudentsToClassesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                parameterreturnValue,
+            };
+            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[SyncStudentsToClasses]", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

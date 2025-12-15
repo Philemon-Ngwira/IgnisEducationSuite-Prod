@@ -1,6 +1,7 @@
 ﻿using EduSphereDomain.Repositories;
 using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
+using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.ServerServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +29,59 @@ namespace IgnisEducationSuite.Controllers
         }
 
         #region Non Generic  Old Modules
+
+        public class StudentNumberLookupRequest
+        {
+            public Guid SchoolID { get; set; }
+            public List<string> StudentNumbers { get; set; } = new();
+        }
+
+        [HttpPost("GetStudentsByStudentNumbers")]
+        public async Task<IActionResult> GetStudentsByStudentNumbers(
+            [FromBody] StudentNumberLookupRequest request)
+        {
+            var students = await _repository
+                .GetStudentsByStudentNumbers(request.StudentNumbers, request.SchoolID);
+
+            return Ok(students);
+        }
+
+        [HttpGet("generateUsername")]
+        public async Task<IActionResult> GenerateUsername([FromQuery] string firstName, [FromQuery] string lastName)
+        {
+            try
+            {
+                var username = await _repository.GenerateNextUsernameAsync(firstName, lastName);
+                return Ok(username);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpPost("generateUsernames")]
+        public async Task<IActionResult> GenerateUsernames([FromBody] List<UserNameRequest> requests)
+        {
+            if (requests == null || !requests.Any())
+                return BadRequest("No names provided.");
+
+            var nameTuples = requests
+                .Select(x => (x.FirstName, x.LastName))
+                .ToList();
+
+            var usernames = await _repository.GenerateNextUsernamesAsync(nameTuples);
+
+            // Keep index alignment with incoming list
+            var response = usernames
+                .Select((username, index) => new UsernameResult
+                {
+                    Index = index,
+                    Username = username
+                })
+                .ToList();
+
+            return Ok(response);
+        }
 
         [HttpGet("GetInitializationData/{ID}")]
         public async Task<IActionResult> GetInitializationData(string ID)
@@ -560,6 +614,7 @@ namespace IgnisEducationSuite.Controllers
                 "dininghall" => GetRepository<DiningHall>(),
                 "meal" => GetRepository<Meal>(),
                 "menuitem" => GetRepository<DiningMenu>(),
+                "specialdiet" => GetRepository<DiningSpecialDiet>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -617,6 +672,7 @@ namespace IgnisEducationSuite.Controllers
                 "dininghall" => JsonSerializer.Deserialize<DiningHall>(obj.ToString()),
                 "meal" => JsonSerializer.Deserialize<Meal>(obj.ToString()),
                 "menuitem" => JsonSerializer.Deserialize<DiningMenu>(obj.ToString()),
+                "specialdiet" => JsonSerializer.Deserialize<DiningSpecialDiet>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -759,6 +815,12 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetSchoolMenus(Guid SchoolID)
         {
             var result = await _repository.GetDiningMenus(SchoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetSpecialDiets/{SchoolID}")]
+        public async Task<IActionResult> GetStudentsWithSpecialDiets(Guid SchoolID)
+        {
+            var result = await _repository.GetSpecialDiets(SchoolID);
             return Ok(result);
         }
         #endregion

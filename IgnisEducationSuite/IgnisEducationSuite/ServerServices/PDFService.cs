@@ -88,15 +88,21 @@ namespace IgnisEducationSuite.ServerServices
                         inner.Item().Text(reportCard.SchoolName)
                             .FontFamily("HeaderFont").Bold().FontSize(22).FontColor(Colors.Blue.Darken2).AlignCenter();
 
-                        inner.Item().Text($"Phone: {reportCard.SchoolPhone}").FontSize(11).AlignCenter();
-                        inner.Item().Text($"Email: {reportCard.SchoolEmail}").FontSize(11).AlignCenter();
-                        inner.Item().Text($"Website: {reportCard.SchoolWebsite}").FontSize(11).AlignCenter();
+                        if (!string.IsNullOrWhiteSpace(reportCard.SchoolPhone))
+                            inner.Item().Text($"Phone: {reportCard.SchoolPhone}").FontSize(11).AlignCenter();
+
+                        if (!string.IsNullOrWhiteSpace(reportCard.SchoolEmail))
+                            inner.Item().Text($"Email: {reportCard.SchoolEmail}").FontSize(11).AlignCenter();
+
+                        if (!string.IsNullOrWhiteSpace(reportCard.SchoolWebsite))
+                            inner.Item().Text($"Website: {reportCard.SchoolWebsite}").FontSize(11).AlignCenter();
                     });
                 });
 
                 col.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
             });
         }
+
 
         // ============================
         // CONTENT
@@ -202,15 +208,14 @@ namespace IgnisEducationSuite.ServerServices
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(3);
-                    columns.RelativeColumn();
-                    columns.RelativeColumn();
-                    columns.RelativeColumn(2);
+                    columns.RelativeColumn(3); // Subject
+                    columns.RelativeColumn();   // Score (%)
+                    columns.RelativeColumn();   // Grade
                 });
 
                 table.Header(header =>
                 {
-                    string[] headers = { "Subject", "Score", "Grade", "Final" };
+                    string[] headers = { "Subject", "Score (%)", "Grade" };
                     foreach (var h in headers)
                         header.Cell().Element(cell =>
                         {
@@ -224,10 +229,20 @@ namespace IgnisEducationSuite.ServerServices
                 bool gray = false;
                 foreach (var item in reportCard.Results)
                 {
-                    table.Cell().Element(c => c.Background(gray ? Colors.Grey.Lighten4 : Colors.White).Padding(6).Text(item.ClassName));
-                    table.Cell().Element(c => c.Background(gray ? Colors.Grey.Lighten4 : Colors.White).Padding(6).Text(item.Score?.ToString("F2") ?? "-"));
-                    table.Cell().Element(c => c.Background(gray ? Colors.Grey.Lighten4 : Colors.White).Padding(6).Text(item.Grade ?? "-"));
-                    table.Cell().Element(c => c.Background(gray ? Colors.Grey.Lighten4 : Colors.White).Padding(6).Text(item.Final ?? "-"));
+                    table.Cell().Element(c => c.Background(gray ? Colors.Grey.Lighten4 : Colors.White)
+                                                      .Padding(6)
+                                                      .Text(item.ClassName));
+
+                    // Append % to the existing Score
+                    var scoreText = item.Score.HasValue ? $"{item.Score:F2}%" : "-";
+                    table.Cell().Element(c => c.Background(gray ? Colors.Grey.Lighten4 : Colors.White)
+                                                      .Padding(6)
+                                                      .Text(scoreText));
+
+                    table.Cell().Element(c => c.Background(gray ? Colors.Grey.Lighten4 : Colors.White)
+                                                      .Padding(6)
+                                                      .Text(item.Grade ?? "-"));
+
                     gray = !gray;
                 }
             });

@@ -12,19 +12,7 @@
         </CardHeaderContent>
     </MudCardHeader>
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
+
     <MudCardContent>
         <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">School Material</MudAlert>
         <div class="library-page">
@@ -139,7 +127,6 @@
 
 
 @code {
-    protected bool isLoading = false;
     protected List<Course> courses = new();
     protected string searchString = string.Empty;
     [Inject] LessonService lessonService { get; set; } = default!;
@@ -151,7 +138,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Preparing Resources, please wait...");
         await GetCCourses();
         var DefaultQuery = string.Empty;
         if (AppState.HideStudentDashboard)
@@ -175,7 +162,7 @@
                 }
             }
         }
-        isLoading = false;
+        LoaderService.Hide();
     }
 
     protected async Task GetCCourses()

@@ -8,21 +8,6 @@
             <MudText Align="Align.Center" Typo="Typo.h4"><b>Assignments</b></MudText>
         </CardHeaderContent>
     </MudCardHeader>
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
-
-
     <MudCardContent>
         <style>
             .mud-table-cell-custom-group {
@@ -35,7 +20,7 @@
             }
         </style>
 
-        <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
+        <MudTable Class="mb-3" Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
                   Items="@assignmentsResults"
                   GroupBy="@_groupDefinition"
                   GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
@@ -114,7 +99,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Preparing Environment Please wait...");
 
         UserID = AppState.UserID;
 
@@ -122,7 +107,7 @@
         {
             await GetAssignments();
         }
-        isLoading = false;
+        LoaderService.Hide();
         //Elements = await httpClient.GetFromJsonAsync<List<Element>>("webapi/periodictable");
     }
 
@@ -138,7 +123,7 @@
 
     protected async Task NavigateToDetails(GetTeacherAssignmentsResult result)
     {
-        isLoading = true;
+        LoaderService.Show("Gathering data please wait...");
         await GetAssignmentDetails(result.StudentAssignmentID);
         LessonService.studentID = result.StudentID.Value;
         LessonService.assignmentID = result.AssignmentID.Value;
@@ -153,8 +138,8 @@
             QuestionID = result.QuestionID
         };
         LessonService.Assignment = SA;
-       
-        isLoading = false;
+
+        LoaderService.Hide();
         _navigationManager.NavigateTo("/MarkingAssignmentDetails");
     }
    

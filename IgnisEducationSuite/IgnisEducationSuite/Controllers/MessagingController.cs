@@ -1,4 +1,5 @@
 ﻿using EduSphereDomain.ChatData;
+using EduSphereDomain.Data;
 using EduSphereDomain.MessagingData;
 using EDUSphereSharedProject.ChatModels;
 using EDUSphereSharedProject.IdentitySharedModels;
@@ -13,9 +14,11 @@ namespace IgnisEducationSuite.Controllers
     public class MessagingController : ControllerBase
     {
         private readonly MessagingContext _context;
-        public MessagingController(MessagingContext context)
+        private readonly PhoenixEdusphereContext _mainContext;
+        public MessagingController(MessagingContext context, PhoenixEdusphereContext phoenix)
         {
             _context = context;
+            _mainContext = phoenix;
         }
 
         [HttpGet("getchats/{userId}")]
@@ -23,74 +26,104 @@ namespace IgnisEducationSuite.Controllers
         {
             try
             {
-                // Fetch individual user chats
+                // ===============================
+                // 1. Individual (1-to-1) chats
+                // ===============================
                 var userChats = await _context.ChatMessages
                     .Where(m => m.UserId == userId || m.ReciepientId == userId)
-                    .GroupBy(m => m.UserId == userId ? m.ReciepientId : m.UserId) // Group by the counterpart's ID
+                    .GroupBy(m => m.UserId == userId ? m.ReciepientId : m.UserId)
                     .Select(g => new Chat
                     {
-                        Reciepientid = g.OrderByDescending(m => m.Timestamp.Value)
-                        .Select(m => m.ReciepientId.ToString())
-                        .FirstOrDefault(),
+                        Reciepientid = g.OrderByDescending(m => m.Timestamp)
+                                         .Select(m => m.UserId == userId ? m.ReciepientId : m.UserId)
+                                         .FirstOrDefault(),
+
                         Name = _context.AspNetUsers
-                            .Where(u => u.Id == g.Key) // Get the counterpart's name
-                            .Select(u => u.UserName)
-                            .FirstOrDefault(),
+                                       .Where(u => u.Id == g.Key)
+                                       .Select(u => u.UserName)
+                                       .FirstOrDefault(),
+
                         IsGroup = false,
+
                         ProfilePic = _context.AspNetUsers
-                            .Where(u => u.Id == g.Key) // Get the counterpart's profile pic
-                            .Select(u => u.ProfilePic)
-                            .FirstOrDefault(),
+                                             .Where(u => u.Id == g.Key)
+                                             .Select(u => u.ProfilePic)
+                                             .FirstOrDefault(),
+
                         LastMessage = g.OrderByDescending(m => m.Timestamp)
-                            .Select(m => m.Message)
-                            .FirstOrDefault() ?? string.Empty, // Default to empty if no messages
-                        LastMessageTimestamp = g.OrderByDescending(m => m.Timestamp.Value)
-                            .Select(m => m.Timestamp.Value)
-                            .FirstOrDefault()
+                                       .Select(m => m.Message)
+                                       .FirstOrDefault() ?? string.Empty,
+
+                        LastMessageTimestamp = g.OrderByDescending(m => m.Timestamp)
+                                                .Select(m => m.Timestamp.Value)
+                                                .FirstOrDefault()
                     })
                     .ToListAsync();
 
-                // Fetch group chats
-                var groupChats = await _context.ChatMessages
-             .Where(m => !string.IsNullOrEmpty(m.GroupName))
-             .GroupBy(m => m.GroupName)
-             .Select(g => new Chat
-             {
-                 Reciepientid = null, // No single recipient for groups
+                // ===============================
+                // 2. Resolve student group identity (if student)
+                // ===============================
+                string? userGroupIdentifier = null;
 
-                 Name = g.Key, // Group name
-                 IsGroup = true,
-                 ProfilePic = new byte[0], // Default group profile
+                var student = await _mainContext.Students
+                    .Where(s => s.UserID == userId)
+                    .Select(s => new { s.LevelName, s.GradeSection })
+                    .FirstOrDefaultAsync();
 
-                 LastMessage = g.OrderByDescending(m => m.Timestamp)
-                                .Select(m => m.Message)
-                                .FirstOrDefault() ?? string.Empty,
-
-                 LastMessageTimestamp = g.OrderByDescending(m => m.Timestamp.Value)
-                                         .Select(m => m.Timestamp.Value)
-                                         .FirstOrDefault()
-             })
-             .ToListAsync();
-
-
-                // Combine user and group chats
-                var allChats = userChats.Concat(groupChats).ToList();
-
-                // Return an empty list if no chats exist
-                if (allChats == null || !allChats.Any())
+                if (student != null)
                 {
-                    return new List<Chat>();
+                    userGroupIdentifier = $"{student.LevelName}_{student.GradeSection ?? ""}";
                 }
+
+                // ===============================
+                // 3. Group chats (students + creators)
+                // ===============================
+                var groupChats = await _context.ChatMessages
+                    .Where(m =>
+                        !string.IsNullOrEmpty(m.GroupName) &&
+                        (
+                            // Student-based membership
+                            (userGroupIdentifier != null && m.GroupIdentifier == userGroupIdentifier)
+                            // Creator-based access (teachers/admins)
+                            || m.UserId == userId
+                        )
+                    )
+                    .GroupBy(m => m.GroupName)
+                    .Select(g => new Chat
+                    {
+                        Reciepientid = null,
+                        Name = g.Key,
+                        IsGroup = true,
+                        ProfilePic = Array.Empty<byte>(),
+
+                        LastMessage = g.OrderByDescending(m => m.Timestamp)
+                                       .Select(m => m.Message)
+                                       .FirstOrDefault() ?? string.Empty,
+
+                        LastMessageTimestamp = g.OrderByDescending(m => m.Timestamp)
+                                                .Select(m => m.Timestamp.Value)
+                                                .FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                // ===============================
+                // 4. Merge & return
+                // ===============================
+                var allChats = userChats
+                    .Concat(groupChats)
+                    .OrderByDescending(c => c.LastMessageTimestamp)
+                    .ToList();
 
                 return allChats;
             }
             catch (Exception ex)
             {
-                // Log or handle the exception as needed
-                var _ = ex.Message;
+                Console.WriteLine(ex.Message);
                 throw;
             }
         }
+
+
 
 
         [HttpGet("getmessages/{userId}/{chatIdentifier}")]

@@ -1,114 +1,92 @@
 ﻿@using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.Models.StoreProModels
 @inherits AppBaseComponent
-<MudDialog>
+<MudDialog >
     <DialogContent>
-        @if (isLoading)
-        {
-            <div id="loader-overlay" class="loader-overlay">
-                <div class="loader-container">
-                    <!-- Spinner -->
-                    <div class="spinner"></div>
-                    <!-- Loader Icon -->
-                    <div class="loader-icon">🔄</div>
-                    <!-- Loading Text -->
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
-        }
 
+        <MudText Class="mb-4" Align="Align.Center" Typo="Typo.h4"><b>Manage Student Details</b></MudText>
 
-        <MudText Class="mb-3" Align="Align.Center" Typo="Typo.h4"><b>Manage Student Details</b></MudText>
-        <MudGrid>
-            <MudItem xs="12">
+        <MudGrid GutterSize="3">
+            <!-- Profile Picture -->
+            <MudItem xs="12" Class="d-flex justify-center mb-3">
                 @if (selectedStudent.ProfilePic == null)
                 {
-                    @if (selectedStudent.Gender == "Male")
-                    {
-                        <MudImage Height="250" Src="images/Avatar/Man.png"></MudImage>
-                    }
-                    else
-                    {
-                        <MudImage Height="250" Src="images/Avatar/Woman.png"></MudImage>
-
-                    }
+                    <MudImage Height="250" Src="@(selectedStudent.Gender == "Male" ? "images/Avatar/Man.png" : "images/Avatar/Woman.png")" Class="profile-pic" />
                 }
                 else
                 {
-
-                    <MudImage Class="profile-pic" Width="100" Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedStudent.ProfilePic)}")"></MudImage>
-
-
-
+                    <MudImage Class="profile-pic" Width="250"
+                              Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(selectedStudent.ProfilePic)}")" />
                 }
-
             </MudItem>
+
+            <!-- Basic Info -->
             <MudItem xs="12" md="6">
-                <MudText> First Name:<b>@selectedStudent.FirstName</b></MudText>
+                <MudText>First Name: <b>@selectedStudent.FirstName</b></MudText>
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudText>Last Name: <b>@selectedStudent.LastName</b></MudText>
             </MudItem>
-
             <MudItem xs="12" md="6">
                 <MudText>Grade: <b>@selectedStudent.AcademicLevel</b></MudText>
             </MudItem>
             <MudItem xs="12" md="6">
-                @if (selectedStudent.StudentNumber == null)
-                {
-
-                    <MudText>Student ID: <b>Non Found</b></MudText>
-
-                }
-                else
-                {
-
-                    <MudText>Student ID: <b>@selectedStudent.StudentNumber</b></MudText>
-
-                }
+                <MudText>Student ID: <b>@(selectedStudent.StudentNumber ?? "Not Found")</b></MudText>
             </MudItem>
+
+            <!-- Editable Fields -->
             <MudItem xs="12" md="6">
-                <MudSelect Variant="Variant.Outlined"
-                           T="int?"
-                           @bind-Value="selectedStudent.AcademicLevel"
-                           Label="Change Academic Level">
+                <MudSelect Variant="Variant.Outlined" T="int?" Label="Change Academic Level" @bind-Value="selectedStudent.AcademicLevel">
                     @foreach (var a in academicLevels)
                     {
-                        <MudSelectItem T="AcademicLevel" Value="a">@a.LevelName</MudSelectItem>
+                        <MudSelectItem T="int?" Value="a.LevelInt">@a.LevelName</MudSelectItem>
                     }
                 </MudSelect>
-
             </MudItem>
+
             <MudItem xs="12" md="6">
-                <MudSelect Variant="Variant.Outlined" Margin="Margin.Dense" T="Class" ToStringFunc="ClassTypeconverter" Label="Assign Classes to Student" MultiSelection="true" @bind-Value="value" @bind-SelectedValues="options">
+                <MudSelect Variant="Variant.Outlined" T="Class" ToStringFunc="ClassTypeconverter"
+                           Label="Assign Classes" MultiSelection="true"
+                           @bind-Value="value" @bind-SelectedValues="options"
+                           Margin="Margin.Dense">
                     @foreach (var c in classes)
                     {
                         <MudSelectItem T="Class" Value="@c">@c.ClassName</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
-            <MudItem xs="12">
-                <MudButtonGroup OverrideStyles="false" FullWidth=true>
-                    <MudButton FullWidth="true" Class="form-control" Variant="Variant.Filled" Color="Color.Error" OnClick="CloseDialog">Close</MudButton>
-                    <MudButton FullWidth="true" Class="form-control" Variant="Variant.Filled" OnClick="ConfirmChanges" Color="Color.Success">Confirm Changes</MudButton>
-                </MudButtonGroup>
+
+            <!-- Action Buttons -->
+            <MudItem xs="12" Class="d-flex gap-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Error" FullWidth="true" OnClick="CloseDialog">
+                    Close
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" OnClick="ConfirmChanges">
+                    Confirm Changes
+                </MudButton>
             </MudItem>
+
+            <!-- Assigned Classes Table -->
             <MudItem xs="12">
-                <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">Assigned Classes</MudAlert>
+                <MudAlert Class="mb-3" Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">
+                    Assigned Classes
+                </MudAlert>
 
                 <MudTable Items="@newstudentClasses" Hover="true" Breakpoint="Breakpoint.Sm" LoadingProgressColor="Color.Info">
                     <HeaderContent>
                         <MudTh>ID</MudTh>
-                        <MudTh>ClassName</MudTh>
+                        <MudTh>Class Name</MudTh>
                         <MudTh>Teacher</MudTh>
                         <MudTh>Action</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="ID">@context.ClassID</MudTd>
-                        <MudTd DataLabel="ClassName">@context.ClassName</MudTd>
+                        <MudTd DataLabel="Class Name">@context.ClassName</MudTd>
                         <MudTd DataLabel="Teacher">@context.Teacher</MudTd>
                         <MudTd DataLabel="Action">
-                            <MudButton Variant="Variant.Filled" Color="Color.Error" EndIcon="@Icons.Material.Filled.Delete">Un-Assign Class</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" EndIcon="@Icons.Material.Filled.Delete">
+                                Un-Assign
+                            </MudButton>
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
@@ -116,26 +94,27 @@
         </MudGrid>
     </DialogContent>
 </MudDialog>
+
 <style>
-    /* Profile Picture Styles */
     .profile-pic {
-        border-radius: 10px; /* Rounded corners */
-        border: 3px solid #ccc; /* Gray border */
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-        object-fit: cover; /* Ensures the image scales nicely within the square */
-        display: block; /* Useful if nested inside flex or grid */
+        border-radius: 12px;
+        border: 2px solid #ccc;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        object-fit: cover;
+        display: block;
+        max-width: 100%;
+        transition: box-shadow 0.3s ease;
     }
 
-        /* Add hover effect */
         .profile-pic:hover {
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow on hover */
-            transition: box-shadow 0.3s ease; /* Smooth shadow change */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
         }
 
+ 
 </style>
+
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-    protected bool isLoading = false;
     [Parameter] public Student selectedStudent { get; set; } = new();
     [Parameter] public List<Class> classes { get; set; } = new();
     private IEnumerable<Class> options { get; set; } = new HashSet<Class>();
@@ -145,7 +124,7 @@
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     protected async Task ConfirmChanges()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait...");
         //Save Changes
         //Save Assigned Classes
         var serviceA = _genericService.GetService<List<StudentClass>>();
@@ -175,7 +154,7 @@
         var finalresult = await serviceB.UpdateAsync("api/Dynamic/UpdateEntity", "student", selectedStudent);
         if (finalresult.IsSuccess)
         {
-            isLoading = false;
+            LoaderService.Hide();
             Snackbar.Add("All Details Successfully Updated", Severity.Success);
             MudDialog.Close(DialogResult.Ok("Successful"));
         }

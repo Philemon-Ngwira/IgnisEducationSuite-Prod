@@ -2,6 +2,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -50,4 +51,6 @@ public partial class Teacher
     public virtual School School { get; set; }
 
     public virtual ICollection<TeacherSubjectNormalized> TeacherSubjectNormalizeds { get; set; } = new List<TeacherSubjectNormalized>();
+    [NotMapped]
+    public string GeneratedUserName {  get; set; }
 }

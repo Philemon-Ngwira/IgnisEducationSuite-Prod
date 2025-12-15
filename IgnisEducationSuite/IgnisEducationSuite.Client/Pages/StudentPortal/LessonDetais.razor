@@ -3,25 +3,15 @@
 @using EDUSphereSharedProject.Models
 @inject NavigationManager NavigationManager
 @inject LessonService LessonService
+@inherits AppBaseComponent
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
-            <MudText Align="Align.Center" Typo="Typo.h4"><b>@Lesson.Title</b></MudText>
+            <MudText Align="Align.Center" Typo="Typo.h4" Class="text-primary">
+                📚 @Lesson.Title
+            </MudText>
         </CardHeaderContent>
     </MudCardHeader>
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
 
 
     <div class="lesson-content">
@@ -29,25 +19,33 @@
         <MudCardContent>
 
             <MudGrid>
-                <MudItem xs="12" md="6">By: <b>@salutation @Lesson.Teacher.LastName</b></MudItem>
-                <MudItem xs="12" md="6">Date released: <b>@Lesson.DatePosted.Value.ToShortDateString()</b></MudItem>
+                <MudGrid Class="mb-3">
+                    <MudItem xs="12" md="6">
+                        <MudChip T="string" Color="Color.Primary" Icon="@Icons.Material.Filled.Person">
+                            By: @salutation @Lesson.Teacher.LastName
+                        </MudChip>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.CalendarToday">
+                            Released: @Lesson.DatePosted.Value.ToShortDateString()
+                        </MudChip>
+                    </MudItem>
+                </MudGrid>
+
                 <MudItem xs="12">
-                    @if (Lesson.LessonCompleted == 1)
-                    {
-                        <MudChip T="string" Variant="Variant.Text" Color="Color.Success">Completed</MudChip>
-                        <MudDivider></MudDivider>
-                        <MudChip T="string" Disabled="true" Variant="Variant.Text" Color="Color.Success">Completed</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Variant="Variant.Text" Color="Color.Warning">Pending</MudChip>
-                        <MudDivider></MudDivider>
-                        <MudChip T="string" Disabled="true" Variant="Variant.Text" Color="Color.Warning">Pending</MudChip>
-                    }
+                    <MudChip T="string" Color="@(Lesson.LessonCompleted == 1 ? Color.Success : Color.Warning)"
+                             Variant="Variant.Filled"
+                             ToolTip="Lesson Status">
+                        @(Lesson.LessonCompleted == 1 ? "Completed" : "Pending")
+                    </MudChip>
+
                 </MudItem>
             </MudGrid>
 
-            @((MarkupString)LessonFormatter.FormatLessonContent(Lesson.Content))
+            <MudPaper Class="pa-4 mb-4">
+                @((MarkupString)LessonFormatter.FormatLessonContent(Lesson.Content))
+            </MudPaper>
+
             <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
             @if (LessonService.LessonMedia.Any())
             {
@@ -55,46 +53,26 @@
                 <div class="gallery">
                     @foreach (var image in PagedImages)
                     {
-                        <img src="@image.Url" width="100" @onclick="() => OpenModal(image.Url)" alt="Gallery Image" />
+                        <img src="@image.Url" class="gallery-img" @onclick="() => OpenModal(image.Url)" />
                     }
                 </div>
                 <div class="pagination">
-                    <button @onclick="PrevPage" disabled="@(_currentPage == 1)">Prev</button>
+                    <MudButton Variant="Variant.Outlined" Disabled="@(_currentPage == 1)" OnClick="PrevPage">Prev</MudButton>
                     <span>Page @_currentPage of @_totalPages</span>
-                    <button @onclick="NextPage" disabled="@(_currentPage == _totalPages)">Next</button>
+                    <MudButton Variant="Variant.Outlined" Disabled="@(_currentPage == _totalPages)" OnClick="NextPage">Next</MudButton>
                 </div>
-                @if (IsModalOpen)
-                {
-                    <div class="modal" @onclick="CloseModal">
-                        <button class="modal-nav prev" @onclick:stopPropagation="true" @onclick="ShowPreviousImage">&#10094;</button>
 
-                        <div class="modal-content-wrapper" @onclick:stopPropagation="true">
-                            <img src="@SelectedImage" class="modal-content" />
-                        </div>
-
-                        <button class="modal-nav next" @onclick:stopPropagation="true" @onclick="ShowNextImage">&#10095;</button>
-                        <span class="close" @onclick:stopPropagation="true" @onclick="CloseModal">&times;</span>
-                    </div>
-
-                }
 
             }
         </MudCardContent>
         <MudCardActions>
-            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.DoneAll" OnClick="MarkLessonAsComplete" Color="Color.Success">Mark as complete</MudButton>
-            @if (LessonService.LessonCompleted)
-            {
-                <MudRating SelectedValue="Lesson.Rating.Value" />
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.DoneAll" Color="Color.Success" OnClick="MarkLessonAsComplete">
+                Mark as Complete
+            </MudButton>
 
-            }
+            <MudRating @bind-SelectedValue="Rating" HoveredValueChanged="HandleHoveredValueChanged" MaxValue="5" />
+            <MudText Typo="Typo.subtitle2" Class="mt-1">@LabelText</MudText>
 
-            else
-            {
-
-                <MudRating @bind-SelectedValue="Rating" HoveredValueChanged="HandleHoveredValueChanged" />
-
-            }
-            <MudText Typo="Typo.subtitle2" Class="deep-purple-text mt-2">@LabelText</MudText>
         </MudCardActions>
     </div>
 </MudCard>
@@ -133,6 +111,19 @@
         overflow-y: auto; /* Enable vertical scrolling for overflow content */
         overflow-x: hidden; /* Prevent horizontal scrolling */
     }
+
+    .gallery-img {
+        width: 100px;
+        margin: 5px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+        .gallery-img:hover {
+            transform: scale(1.05);
+        }
+
 </style>
 
 
@@ -159,7 +150,7 @@
     protected bool isLoading = false;
     protected override void OnInitialized()
     {
-        isLoading = true;
+        LoaderService.Show("Preparing lesson...");
         Lesson = LessonService.CurrentLesson;
         if (Lesson.Teacher.Gender == "Male")
         {
@@ -170,7 +161,7 @@
         {
             salutation = "Ms.";
         }
-        isLoading = false;
+        LoaderService.Hide();
     }
     private void OpenModal(string image)
     {
@@ -211,7 +202,7 @@
     }
     protected async Task MarkLessonAsComplete()
     {
-        isLoading = true;
+        LoaderService.Show("Completing...");
         completedLesson.StudentID = Lesson.StudentID;
         completedLesson.LessonID = Lesson.LessonID;
 
@@ -225,7 +216,7 @@
         //Update Rating
 
         await UpdateLessonRating();
-        isLoading = false;
+        LoaderService.Hide();
     }
     protected async Task UpdateLessonRating()
     {

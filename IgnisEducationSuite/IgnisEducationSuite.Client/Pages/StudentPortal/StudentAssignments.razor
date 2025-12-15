@@ -9,29 +9,25 @@
             <MudText Align="Align.Center" Typo="Typo.h4">Assignments</MudText>
         </CardHeaderContent>
     </MudCardHeader>
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
-
-
     <MudCardContent>
         @if (_studentAssignments.Any())
         {
-            <MudTable Items="_studentAssignments" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetStudentAssignmentsResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
+            <MudTable Items="_studentAssignments" Dense="true" Hover="true" Bordered="true" Striped="true"
+                      Filter="new Func<GetStudentAssignmentsResult, bool>(FilterFunc1)"
+                      @bind-SelectedItem="selectedItem"
+                      Breakpoint="Breakpoint.Sm">
+
                 <ToolBarContent>
                     <MudText Typo="Typo.h6">Available Assignments</MudText>
                     <MudSpacer />
-                    <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                    <MudTextField @bind-Value="searchString" Placeholder="Search"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Medium"
+                                  Clearable="true"
+                                  Class="mt-0">
+                    </MudTextField>
+
                 </ToolBarContent>
                 <HeaderContent>
                     <MudTh><b>Title</b></MudTh>
@@ -49,16 +45,20 @@
                     <MudTd DataLabel="Status">
                         @if (context.Overdue == 1)
                         {
-                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Error">Overdue</MudChip>
+                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Error" Icon="@Icons.Material.Filled.Warning">Overdue</MudChip>
                         }
                         else
                         {
-                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">Pending</MudChip>
+                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Success" Icon="@Icons.Material.Filled.Schedule">Pending</MudChip>
                         }
+
                     </MudTd>
 
                     <MudTd DataLabel="Action">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" aria-label="Edit" OnClick="()=>NavigateToDetails(context)" />
+                        <MudTooltip Text="View Assignment Details">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="() => NavigateToDetails(context)" />
+                        </MudTooltip>
+
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
@@ -83,9 +83,10 @@
     [Inject] AppState _appState { get; set; } = default!;
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     protected bool isLoading = false;
+    protected string noContentString = "Nothing To see here!";
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Loading assignments...");
 
         UserID = _appState.UserID;
 
@@ -93,7 +94,7 @@
         {
             await GetAssignments();
         }
-        isLoading = false;
+        LoaderService.Hide();
     }
     #region Get From Database
     protected async Task GetAssignments()
@@ -124,10 +125,12 @@
             Snackbar.Add("Failed to Assignment Details, Please refresh and try again", Severity.Error);
         }
     }
-    protected async Task GetAssignmentMultipleChoiceAnswers(){
+    protected async Task GetAssignmentMultipleChoiceAnswers()
+    {
         foreach (var item in LessonService.assignmentQuestions)
         {
-            if(item.isMultipleChoice == true){
+            if (item.isMultipleChoice == true)
+            {
                 var service = _genericService.GetService<MultipleChoiceAssignmentAnswer>();
                 var result = await service.GetAllAsync($"api/Dynamic/GetQuestionChoicesAssignment/{item.QuestionID}", true);
                 if (result.IsSuccess)
@@ -156,11 +159,11 @@
 
     protected async Task NavigateToDetails(GetStudentAssignmentsResult selectedAssignment)
     {
-        isLoading = true;
+        LoaderService.Show("Fetching assignment details...");
         await GetAssignmentQuestions(selectedAssignment.AssignmentID);
         await GetAssignmentMultipleChoiceAnswers();
         LessonService.studentID = selectedAssignment.StudentID;
-        isLoading = false;
+        LoaderService.Hide();
         _navigationManager.NavigateTo("/AssignmentDetails");
 
     }

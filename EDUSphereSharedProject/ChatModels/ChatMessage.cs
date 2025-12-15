@@ -18,4 +18,6 @@ public partial class ChatMessage
     public DateTime? Timestamp { get; set; }
 
     public string ReciepientId { get; set; }
+
+    public string GroupIdentifier { get; set; }
 }

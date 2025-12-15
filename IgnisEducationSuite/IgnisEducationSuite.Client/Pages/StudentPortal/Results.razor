@@ -12,7 +12,7 @@
     <MudCardContent>
         <MudTabs Outlined="true">
             <MudTabPanel Text="Exams Tests And Quizzes" Icon="@MaterialDesignIcons.Normal.FileDocumentMultiple">
-                <MudTable Items="@studentTestAndExamResults" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" LoadingProgressColor="Color.Info">
+                <MudTable Items="@studentTestAndExamResults" Hover="true" Dense=true Breakpoint="Breakpoint.Sm" Loading="@isLoading" LoadingProgressColor="Color.Info">
                     <HeaderContent>
                         <MudTh>Teacher Name</MudTh>
                         <MudTh>Exam</MudTh>
@@ -22,20 +22,27 @@
                         <MudTh>Action</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="Name">@context.TeacherFirstName.Substring(0, 1) @context.TeacherLastName</MudTd>
+                        <MudTd DataLabel="Name">
+                            <MudTooltip Text="@($"{context.TeacherFirstName} {context.TeacherLastName}")">
+                                <span>@context.TeacherFirstName.Substring(0, 1) @context.TeacherLastName</span>
+                            </MudTooltip>
+                        </MudTd>
                         <MudTd DataLabel="Exam">@context.Title</MudTd>
                         <MudTd DataLabel="Marks">@context.TotalMarks</MudTd>
                         <MudTd DataLabel="Score">@context.Grade%</MudTd>
                         <MudTd DataLabel="Submission Date">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
                         <MudTd DataLabel="Action">
-                            <MudIconButton Icon="@MaterialDesignIcons.Normal.OpenInNew" OnClick="() => OpenResultDetails(context)"></MudIconButton>
+                            <MudTooltip Text="View Result">
+                                <MudIconButton Icon="@MaterialDesignIcons.Normal.OpenInNew" Color="Color.Primary" OnClick="() => OpenResultDetails(context)" />
+                            </MudTooltip>
+
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
 
             </MudTabPanel>
             <MudTabPanel Text="Assignments" Icon="@Icons.Material.Filled.Assignment">
-                <MudTable Items="@studentGradedAssignmentResults" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" LoadingProgressColor="Color.Info">
+                <MudTable Items="@studentGradedAssignmentResults" Hover="true" Dense=true Breakpoint="Breakpoint.Sm" Loading="@isLoading" LoadingProgressColor="Color.Info">
                     <HeaderContent>
                         <MudTh>Teacher Name</MudTh>
                         <MudTh>Title</MudTh>
@@ -46,13 +53,20 @@
 
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="Name">@context.TeacherFirstName.Substring(0, 1) @context.TeacherLastName</MudTd>
+                        <MudTd DataLabel="Name">
+                            <MudTooltip Text="@($"{context.TeacherFirstName} {context.TeacherLastName}")">
+                                <span>@context.TeacherFirstName.Substring(0, 1) @context.TeacherLastName</span>
+                            </MudTooltip>
+                        </MudTd>
                         <MudTd DataLabel="Title">@context.Title</MudTd>
                         <MudTd DataLabel="Marks">@context.AssignmentTotalMarks</MudTd>
                         <MudTd DataLabel="Grade">@context.Grade%</MudTd>
                         <MudTd DataLabel="Submission Date">@context.SubmissionDate.Value.ToShortDateString()</MudTd>
                         <MudTd DataLabel="Action">
-                            <MudIconButton Icon="@MaterialDesignIcons.Normal.OpenInNew" OnClick="() => OpenResultDetails(context)"></MudIconButton>
+                            <MudTooltip Text="View Result">
+                                <MudIconButton Icon="@MaterialDesignIcons.Normal.OpenInNew" Color="Color.Primary" OnClick="() => OpenResultDetails(context)" />
+                            </MudTooltip>
+
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
@@ -70,7 +84,7 @@
     [Inject] IDialogService DialogService { get; set; } = default!;
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Initializing Please wait");
         var firstTask = new List<Task>();
         firstTask.Add(GetLoggedInStudent());
         await Task.WhenAll(firstTask);
@@ -81,7 +95,7 @@
         };
 
         await Task.WhenAll(finalTasks);
-        isLoading = false;
+        LoaderService.Hide();
 
     }
 
@@ -193,6 +207,7 @@
     }
     private async Task OpenResultDetails<T>(T model)
     {
+        LoaderService.Show("Loading result details...");
         var parameters = new DialogParameters<ResultsViewDialog>();
         if (model is StudentGradedExamsTestsAndQuizzes)
         {
@@ -253,6 +268,8 @@
         var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true, Position = DialogPosition.TopCenter };
 
         var result = await DialogService.ShowAsync<ResultsViewDialog>("", parameters, options);
+
+        LoaderService.Hide();
     }
 
 }

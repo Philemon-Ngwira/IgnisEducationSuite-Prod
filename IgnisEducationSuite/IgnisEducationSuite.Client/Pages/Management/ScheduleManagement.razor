@@ -3,6 +3,7 @@
 @using EDUSphereSharedProject.UniversalModels
 @using System.Net.Http.Headers
 @page "/ClassSchedules"
+@inherits AppBaseComponent
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
@@ -44,6 +45,9 @@
             </MudTabPanel>
             <MudTabPanel @ref="panel02" Text="Create New Schedule" Icon="@Icons.Material.Filled.Build">
                 <MudAlert Class="mb-3" Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true">Upload Excel Class Schedule</MudAlert>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DownloadScheduleTemplate" Class="mb-3">
+                  Download  Schedule Template
+                </MudButton>
                 <MudFileUpload T="IBrowserFile" FilesChanged="HandleFileUpload" Class="mb-3">
                     <ActivatorContent>
                         <MudButton Variant="Variant.Filled"
@@ -599,6 +603,32 @@
             isLoading = false;
             classSchedulestoSave.Clear();
             Snackbar.Add($"Failed to Save And Assign Timetable to students of Grade: {GradeInt}{GradeLevel}", Severity.Error);
+        }
+    }
+
+    protected async Task DownloadScheduleTemplate()
+    {
+        var response = await HttpClient.GetAsync($"api/Templates/DownloadScheduleTemplate");
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Read the file content as a byte array
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+            // Get file name from response header if present, fallback to default
+            var fileName = "ClassScheduleTemplate.xlsx";
+            if (response.Content.Headers.ContentDisposition != null)
+            {
+                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            }
+
+            // Use JSInterop to trigger the browser download
+            await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, fileBytes);
+        }
+        else
+        {
+            // Handle error (optional)
+            Console.WriteLine("Failed to download template: " + response.StatusCode);
         }
     }
     #endregion

@@ -4,168 +4,181 @@
 @using IgnisEducationSuite.Client.Pages.Shared.Dialogs
 @inherits AppBaseComponent
 @inject IDialogService DialogService
+@inject GenericServiceFactory _genericService
+@inject AppState _appState
+@inject ISnackbar Snackbar
+@inject NavigationManager _navigationManager
+
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
             <MudText Align="Align.Center" Typo="Typo.h4"><b>Report Cards</b></MudText>
         </CardHeaderContent>
     </MudCardHeader>
+
     <MudCardContent>
-        <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">Search for Report Cards</MudAlert>
-        @if (isLoading)
+
+
+        <!-- Empty state -->
+        @if (!studentResults.Any())
         {
-            <div id="loader-overlay" class="loader-overlay">
-                <div class="loader-container">
-                    <!-- Spinner -->
-                    <div class="spinner"></div>
-                    <!-- Loader Icon -->
-                    <div class="loader-icon">🔄</div>
-                    <!-- Loading Text -->
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Assignment">
+                No report cards available at the moment.
+            </MudAlert>
         }
-        <MudGrid>
-            <MudItem xs="12">
-                <MudDataGrid Items="@studentResults" Filterable="false" SortMode="@SortMode.None" Groupable="false">
-                    <Columns>
-                        <PropertyColumn Property="x => x.FirstName" />
-                        <PropertyColumn Property="x => x.LastName" />
-                        <PropertyColumn Property="x => x.LevelName" Title="Grade" />
-                        <PropertyColumn Property="x => x.GPA" />
-                        <PropertyColumn Property="x => x.IssuedDate.Value.ToShortDateString()" />
-                        <PropertyColumn Property="x => x.TermStartDate.Value.ToShortDateString()" Title="Term Start" />
-                        <PropertyColumn Property="x => x.TermEndDate.Value.ToShortDateString()" Title="Term End" />
-                        <TemplateColumn CellClass="d-flex justify-center">
-                            <CellTemplate>
-                                <MudStack Row>
-                                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary" OnClick="() => OpenDetailsDialogAsync(context.Item)">View Report Card</MudButton>
-                                </MudStack>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                </MudDataGrid>
-            </MudItem>
-        </MudGrid>
+
+        <!-- Search and Grid -->
+        @if (studentResults.Any())
+        {
+            <MudTextField @bind-Value="searchString"
+                          Placeholder="Search by student or grade"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Class="mb-3" />
+
+            <MudDataGrid Items="@FilteredResults"
+                         Hover="true"
+                         SortMode="@SortMode.None"
+                         Groupable="false"
+                         Breakpoint="Breakpoint.Sm">
+
+                <Columns>
+                    <PropertyColumn Property="x => x.FirstName" Title="First Name" />
+                    <PropertyColumn Property="x => x.LastName" Title="Last Name" />
+                    <PropertyColumn Property="x => x.LevelName" Title="Grade" />
+                    <PropertyColumn Property="x => x.GPA" Title="GPA" CellClass="text-end" />
+                    <PropertyColumn Property="x => x.IssuedDate.HasValue ? x.IssuedDate.Value.ToShortDateString() : string.Empty" Title="Issued Date" CellClass="text-center" />
+                    <PropertyColumn Property="x => x.TermStartDate.HasValue ? x.TermStartDate.Value.ToShortDateString() : string.Empty" Title="Term Start" CellClass="text-center" />
+                    <PropertyColumn Property="x => x.TermEndDate.HasValue ? x.TermEndDate.Value.ToShortDateString() : string.Empty" Title="Term End" CellClass="text-center" />
+
+                    <TemplateColumn CellClass="d-flex justify-center">
+                        <CellTemplate>
+                            <MudTooltip Text="View detailed report card">
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           OnClick="() => OpenDetailsDialogAsync(context.Item)">
+                                    View Report Card
+                                </MudButton>
+                            </MudTooltip>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        }
+
     </MudCardContent>
 </MudCard>
 
 @code {
     protected List<GetReportCardsByStudentResult> studentResults = new();
-    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
-    protected bool isLoading = false;
     protected string StudentID = string.Empty;
     protected string ParentID = string.Empty;
-    [Inject] AppState _appState { get; set; } = default!;
-    [Inject] NavigationManager _navigationManager { get; set; } = default!;
-    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    protected string searchString = string.Empty;
+
+    protected IEnumerable<GetReportCardsByStudentResult> FilteredResults =>
+        string.IsNullOrWhiteSpace(searchString)
+        ? studentResults
+        : studentResults.Where(x =>
+            (x.FirstName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (x.LastName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (x.LevelName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+        );
+
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait loading Cards...");
+
         if (_appState.UserRole == "Student")
         {
-
             StudentID = _appState.UserID;
-
-            if (StudentID != string.Empty || StudentID != null)
-            {
-
+            if (!string.IsNullOrEmpty(StudentID))
                 await GetStudentReportCards();
-            }
         }
         else if (_appState.UserRole == "Parent")
         {
-
             ParentID = _appState.UserID;
-
-            if (ParentID != string.Empty || ParentID != null)
-            {
-
+            if (!string.IsNullOrEmpty(ParentID))
                 await GetStudentReportCards();
-            }
         }
-        isLoading = false;
 
+        LoaderService.Hide();
     }
 
     protected async Task GetStudentReportCards()
     {
         var service = _genericService.GetService<GetReportCardsByStudentResult>();
-        if (StudentID == null || StudentID == string.Empty)
+
+        if (string.IsNullOrEmpty(StudentID))
         {
             var result = await service.GetAllAsync($"api/Dynamic/GetstudentReportCardsParent/{ParentID}", true);
             if (result.IsSuccess)
-            {
                 studentResults = result.Data.ToList();
-
-            }
         }
         else
         {
             var result = await service.GetAllAsync($"api/Dynamic/GetstudentReportCards/{StudentID}", true);
             if (result.IsSuccess)
-            {
                 studentResults = result.Data.ToList();
-            }
         }
+
+        // Map LevelName from academic levels safely
         foreach (var item in studentResults)
         {
-            item.LevelName = academicLevels.Where(x => x.LevelInt == item.AcademicLevel).Select(s => s.LevelName).First();
+            item.LevelName = academicLevels.FirstOrDefault(x => x.LevelInt == item.AcademicLevel)?.LevelName ?? string.Empty;
         }
     }
 
     protected async Task<IEnumerable<GetAttendanceSummaryResult>> GetReportCardAttendanceSummary(GetReportCardsByStudentResult student)
     {
-        string formattedStartDate = student.TermStartDate.Value.ToString("yyyy-MM-ddTHH:mm:ss");
-        string formattedEndDate = student.TermEndDate.Value.ToString("yyyy-MM-ddTHH:mm:ss");
+        string formattedStartDate = student.TermStartDate?.ToString("yyyy-MM-ddTHH:mm:ss") ?? string.Empty;
+        string formattedEndDate = student.TermEndDate?.ToString("yyyy-MM-ddTHH:mm:ss") ?? string.Empty;
+
         var service = _genericService.GetService<GetAttendanceSummaryResult>();
         var result = await service.GetAllAsync($"api/Dynamic/GetReportCardAttendanceDate/{student.StudentID}/{formattedStartDate}/{formattedEndDate}", true);
-        if (result.IsSuccess)
-        {
-            return result.Data.ToList();
-        }
-        else
-        {
-            return new List<GetAttendanceSummaryResult>();
-        }
+
+        return result.IsSuccess ? result.Data.ToList() : new List<GetAttendanceSummaryResult>();
     }
 
     protected async Task<IEnumerable<GetReportCardDetailsResult>> GetReportCardDetailsResults(GetReportCardsByStudentResult student)
     {
         var service = _genericService.GetService<GetReportCardDetailsResult>();
         var result = await service.GetAllAsync($"api/Dynamic/GetReportCardDetailsByReportCardID/{student.ReportCardID}", true);
-        if (result.IsSuccess)
-        {
-            return result.Data.ToList();
-        }
-        else
-        {
-            return new List<GetReportCardDetailsResult>();
-        }
+        return result.IsSuccess ? result.Data.ToList() : new List<GetReportCardDetailsResult>();
     }
+
     #region Dialog
     private async Task OpenDetailsDialogAsync(GetReportCardsByStudentResult student)
     {
+        LoaderService.Show("Please wait getting details");
 
         var attendances = await GetReportCardAttendanceSummary(student);
         var details = await GetReportCardDetailsResults(student);
-        var parameters = new DialogParameters<ReportCardDetails> { { x => x.attendances, attendances }, { r => r.Results, details }, { rp => rp.student, student } };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true, NoHeader = true, Position = DialogPosition.Center };
+
+        LoaderService.Hide();
+
+        var parameters = new DialogParameters<ReportCardDetails>
+        {
+            { x => x.attendances, attendances },
+            { r => r.Results, details },
+            { rp => rp.student, student }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true,
+            NoHeader = true,
+            Position = DialogPosition.Center
+        };
 
         var dialog = await DialogService.ShowAsync<ReportCardDetails>("", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (!result.Canceled && result.Data is bool completed && completed)
         {
-            var data = result.Data;
-            if (data is bool)
-            {
-                bool completed = (bool)data;
-                if (completed)
-                {
-                    Snackbar.Add("Check your email address for your or  your child's Report Card", Severity.Success);
-                }
-            }
+            Snackbar.Add("Check your email address for your or your child's Report Card", Severity.Success);
         }
     }
     #endregion

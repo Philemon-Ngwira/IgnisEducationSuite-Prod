@@ -59,7 +59,7 @@ namespace IgnisEducationSuite
 
             #endregion
             builder.Services.AddHttpClient<GoogleBooksService>();
-           
+
 
             // somewhere at app startup, e.g., Program.cs
             QuestPDF.Settings.License = LicenseType.Community;
@@ -92,6 +92,7 @@ namespace IgnisEducationSuite
             #endregion
             //--------------------------------------------------------------
             #region Custom Services
+            builder.Services.AddScoped<LoaderService>();
             builder.Services.AddScoped<IBadgeService, BadgeService>();
             builder.Services.AddScoped<IUserActivityService, UserActivityService>();
             builder.Services.AddScoped<IActivityService, ActivityService>();
@@ -117,11 +118,12 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<RolesService>();
             builder.Services.AddScoped<LicenseService>();
             builder.Services.AddScoped<LessonService>();
-            builder.Services.AddSingleton<AppState>();
+            builder.Services.AddScoped<AppState>();
             builder.Services.AddScoped<ILessonMediaClientService, LessonMediaClientService>();
             builder.Services.AddScoped<LessonMediaService>();
             builder.Services.AddScoped<ZoomService>();
             builder.Services.AddScoped<ZoomInteropBridge>();
+            builder.Services.AddScoped<StudentPaymentUploadTemplate>();
 
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory
 

@@ -13,7 +13,7 @@
         <MudGrid>
             <MudItem xs="12" md="3">
                 <!--DINING HALL-->
-                <MudCard>
+                <MudCard Style="max-height: 500px; overflow-y: auto;">
                     <MudCardHeader>
                         <CardHeaderAvatar>
                             <MudIcon Icon="@Icons.Material.Filled.Dining"></MudIcon>
@@ -43,7 +43,7 @@
             </MudItem>
             <MudItem xs="12" md="3">
                 <!--Meal Sessions-->
-                <MudCard>
+                <MudCard Style="max-height: 500px; overflow-y: auto;">
                     <MudCardHeader>
                         <CardHeaderAvatar>
                             <MudIcon Icon="@Icons.Material.Filled.Timer"></MudIcon>
@@ -73,59 +73,104 @@
             </MudItem>
             <MudItem xs="12" md="3">
                 <!--Menus-->
-                <MudCard>
+                <MudCard Style="max-height: 500px; overflow-y: auto;">
                     <MudCardHeader>
                         <CardHeaderAvatar>
-                            <MudIcon Icon="@MaterialDesignIcons.Normal.Food"></MudIcon>
+                            <MudIcon Icon="@MaterialDesignIcons.Normal.Food" />
                         </CardHeaderAvatar>
                         <CardHeaderContent>
                             <MudText Align="Align.Left"><b>Menus</b></MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
                             <MudIconButton Icon="@Icons.Material.Filled.Add"
-                                           OnClick="OpenDiningMenuDialog"></MudIconButton>
+                                           OnClick="OpenDiningMenuDialog" />
                         </CardHeaderActions>
                     </MudCardHeader>
+
                     <MudCardContent>
-                        <!--List Of Available Dining Menus-->
-                        @foreach (var item in diningMenus)
-                        {
-                            <MudCard Class="mb-3">
-                                <MudCardHeader>
-                                    <CardHeaderContent>
-                                        <MudText Typo="Typo.subtitle1"><b>@item.MainDish</b></MudText>
-                                    </CardHeaderContent>
-                                    <CardHeaderActions>
-                                        <MudChip T="string" Color="Color.Warning">@item.DayOfWeek</MudChip>
-                                    </CardHeaderActions>
-                                </MudCardHeader>
-                                <MudCardContent>
-                                    <MudText Typo="Typo.body1">@item.SideDish</MudText>
-                                    <MudText Class="text-success" Typo="Typo.caption">Meal: @item.MealName</MudText>
-                                </MudCardContent>
-                            </MudCard>
-                        }
+                        <MudTabs>
+                            @foreach (var day in Enum.GetValues<DayOfWeek>())
+                            {
+                                <MudTabPanel Text="@day.ToString()">
+                                    @foreach (var item in diningMenus.Where(x => x.DayOfWeek == day.ToString()))
+                                    {
+                                        <MudCard Class="mb-3">
+                                            <MudCardHeader>
+                                                <CardHeaderContent>
+                                                    <MudText Typo="Typo.subtitle1"><b>@item.MainDish</b></MudText>
+                                                </CardHeaderContent>
+                                                <CardHeaderActions>
+                                                    <MudChip T="string" Color="Color.Info">@item.MealName</MudChip>
+                                                </CardHeaderActions>
+                                            </MudCardHeader>
+
+                                            <MudCardContent>
+                                                <MudText Typo="Typo.body1">@item.SideDish</MudText>
+                                            </MudCardContent>
+                                        </MudCard>
+                                    }
+                                </MudTabPanel>
+                            }
+                        </MudTabs>
                     </MudCardContent>
                 </MudCard>
+
             </MudItem>
             <MudItem xs="12" md="3">
                 <!--Special Diets-->
-                <MudCard>
+                <MudCard Style="max-height: 600px; overflow-y: auto;">
                     <MudCardHeader>
                         <CardHeaderAvatar>
-                            <MudIcon Icon="@MaterialDesignIcons.Normal.Allergy"></MudIcon>
+                            <MudIcon Icon="@MaterialDesignIcons.Normal.Allergy" />
                         </CardHeaderAvatar>
                         <CardHeaderContent>
                             <MudText Align="Align.Left"><b>Diets</b></MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
-                            <MudIconButton Icon="@Icons.Material.Filled.Add"></MudIconButton>
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           OnClick="OpenSpecialDietsDialog" />
                         </CardHeaderActions>
                     </MudCardHeader>
+
                     <MudCardContent>
-                        <!--List Of Available Dining Menus-->
+                        <MudTabs>
+                            @foreach (var level in specialDiets.Select(x => x.AcademicLevel).Distinct())
+                            {
+                                <MudTabPanel Text="@level">
+                                    @foreach (var item in specialDiets.Where(x => x.AcademicLevel == level))
+                                    {
+                                        <MudCard Class="mb-3">
+                                            <MudCardHeader>
+                                                <CardHeaderAvatar>
+                                                    <MudAvatar>
+                                                        <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.ProfilePic)}")" />
+                                                    </MudAvatar>
+                                                </CardHeaderAvatar>
+
+                                                <CardHeaderContent>
+                                                    <MudText Typo="Typo.subtitle1"><b>@item.FirstName @item.LastName</b></MudText>
+                                                </CardHeaderContent>
+
+                                                <CardHeaderActions>
+                                                    <MudChip T="string" Color="Color.Warning">@item.DietType</MudChip>
+                                                </CardHeaderActions>
+                                            </MudCardHeader>
+
+                                            <MudCardContent>
+                                                <MudText Typo="Typo.body1">@item.Description</MudText>
+                                                <MudText Typo="Typo.caption" Class="text-success">
+                                                    <b>Gender:</b> @item.Gender &nbsp;•&nbsp;
+                                                    <b>Student #:</b> @item.StudentNumber
+                                                </MudText>
+                                            </MudCardContent>
+                                        </MudCard>
+                                    }
+                                </MudTabPanel>
+                            }
+                        </MudTabs>
                     </MudCardContent>
                 </MudCard>
+
             </MudItem>
         </MudGrid>
     </MudCardContent>
@@ -139,7 +184,8 @@
     protected List<SchoolMealSessionsDTO> mealSessions = new();
     protected List<DiningMenuDTO> diningMenus = new();
     protected List<DayofTheWeek> daysofTheWeek = new();
-    protected DiningSpecialDiet newStudentSpecialDiet = new();
+    protected List<Student> Students = new();
+    protected List<StudentsWithSpecialDietsDTO> specialDiets = new();
     [Inject] IDialogService DialogService { get; set; } = default!;
     bool isLoading = false;
     private readonly List<string> dayOrder = new()
@@ -155,12 +201,6 @@
     };
 
 
-    private readonly List<string> MealOrder = new()
-    {
-        "Breakfast",
-        "Lunch",
-        "Dinner"
-    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -170,10 +210,31 @@
             GetSchoolDiningHalls(),
             GetDiningMealSessions(),
             GetDiningMenus(),
-            GetDaysOfWeek()
+            GetDaysOfWeek(),
+            GetStudent(),
+            GetSpecialDiets()
+
         };
         await Task.WhenAll(tasks);
         isLoading = false;
+    }
+    protected async Task GetSpecialDiets()
+    {
+        var service = GenericService.GetService<StudentsWithSpecialDietsDTO>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSpecialDiets/{Guid.Parse(AppState.SchoolID)}", true);
+
+        if (result.IsSuccess)
+        {
+            specialDiets = result.Data.ToList();
+
+        }
+    }
+    protected async Task GetStudent()
+    {
+        var result = GenericService.GetService<Student>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetStudentsBySchoolID/{AppState.SchoolID}", true);
+        Students = service.Data.ToList();
+
     }
     protected async Task GetDaysOfWeek()
     {
@@ -207,12 +268,17 @@
 
         if (result.IsSuccess)
         {
-            // Group by MealName to avoid duplicates across dining halls
+            // Remove true duplicates but keep same meal repeated on different days
             diningMenus = result.Data
-                .GroupBy(x => x.MealName.Trim().ToLower())    // normalize name
-                .Select(g => g.First())                        // pick one representative
-                .OrderBy(cs => dayOrder.IndexOf(cs.DayOfWeek))//Sort By day
-                .ThenBy(cs => MealOrder.IndexOf(cs.MealName))// the by meal Type
+                .GroupBy(x => new
+                {
+                    x.DayOfWeek,
+                    Meal = x.MealName.Trim().ToLower(),
+                    Main = x.MainDish.Trim().ToLower()
+                })
+                .Select(g => g.First()) // keeps one per Day+Meal+MainDish combo
+                .OrderBy(x => dayOrder.IndexOf(x.DayOfWeek))
+                .ThenBy(x => MealOrder.IndexOf(x.MealName))
                 .ToList();
         }
     }
@@ -277,6 +343,23 @@
         {
             var data = result.Data as List<DiningMenu>;
             await GetDiningMenus();
+            StateHasChanged();
+        }
+    }
+    protected async Task OpenSpecialDietsDialog()
+    {
+        var dialogParameters = new DialogParameters<AddSpecialDiets>()
+        {
+            {x=>x.StudentsInSchool ,Students},
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, CloseButton = true, BackdropClick = false, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AddSpecialDiets>("", dialogParameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var data = result.Data as StudentsWithSpecialDietsDTO;
+            specialDiets.Add(data);
             StateHasChanged();
         }
     }

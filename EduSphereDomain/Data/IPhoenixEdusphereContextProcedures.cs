@@ -60,6 +60,7 @@ namespace EduSphereDomain.Data
         Task<List<GetStudentsInGradeWithoutScheduleResult>> GetStudentsInGradeWithoutScheduleAsync(int? GradeLevel, string SchoolID, string ClassSection, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetStudentsInRoomResult>> GetStudentsInRoomAsync(Guid? RoomID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetStudentsWithoutRoomsByGenderResult>> GetStudentsWithoutRoomsByGenderAsync(Guid? SchoolID, Guid? GenderId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetStudentsWithSpecialDietsResult>> GetStudentsWithSpecialDietsAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetStudentUnCompletedLessonsResult>> GetStudentUnCompletedLessonsAsync(string StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTeacherAssignmentsResult>> GetTeacherAssignmentsAsync(string TeacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTeacherLessonsResult>> GetTeacherLessonsAsync(string TeacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
@@ -68,6 +69,8 @@ namespace EduSphereDomain.Data
         Task<List<GetUpcomingExamsOrQuizzesResult>> GetUpcomingExamsOrQuizzesAsync(int? StudentGrade, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetUserBadgesByUserIDResult>> GetUserBadgesByUserIDAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<RunDailyJobsResult>> RunDailyJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<int> SyncStudentAndParentAccountStatusAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<int> SyncStudentsToClassesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> UpdateEndTermReportCardStatusAsync(Guid? TermSettingID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
     }
 }

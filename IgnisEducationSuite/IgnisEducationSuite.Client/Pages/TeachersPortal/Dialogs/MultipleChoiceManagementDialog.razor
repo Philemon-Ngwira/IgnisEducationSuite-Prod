@@ -1,41 +1,60 @@
 ﻿@using EDUSphereSharedProject.Models
-<MudDialog>
-    <DialogContent>
-            <MudNumericField T="int"
-            Variant="Variant.Outlined"
-            Value="NumberofOptions"
-            ValueChanged="OnNumberOfOptionsChanged"
-            Margin="Margin.Dense"
-            Label="Enter Number Of Options"
-            Min="1" Max="10">
-            </MudNumericField>
 
-            @if (Options.Count > 0)
-            {
+<MudDialog>
+
+    <DialogContent >
+
+        <!-- Title -->
+        <MudText Typo="Typo.h6" Class="mb-4 font-weight-bold">
+            Add Multiple Choice Options
+        </MudText>
+
+        <!-- Number Picker -->
+        <MudNumericField T="int"
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense"
+                         Label="Number of Options"
+                         Value="NumberofOptions"
+                         ValueChanged="OnNumberOfOptionsChanged"
+                         Min="1" Max="10"
+                         Class="mb-4" />
+
+        <!-- Option Fields -->
+        @if (Options.Count > 0)
+        {
+            <MudGrid GutterSize="2">
                 @for (int i = 0; i < Options.Count; i++)
                 {
-                    var index = i;  // Store `i` in a local variable
-                    <MudTextField T="string"
-                    Variant="Variant.Outlined"
-                    Label=@($"Option {OptionLabels[index]}")
-                    Value="@Options[index].Text"
-                    ValueChanged="@(text => OnOptionTextChanged(index, text))">
-                    </MudTextField>
-                }
+                    var index = i;
 
-            }
-            <MudButton Variant="Variant.Filled"
-            Color="Color.Success"
-            EndIcon="@Icons.Material.Filled.SaveAlt"
-            OnClick="SaveQuestionOptions"
-            Disabled="@(!AllOptionsFilled())">
-                Submit Options
-            </MudButton>
-       
+                    <MudItem xs="12">
+                        <MudTextField T="string"
+                                      Variant="Variant.Outlined"
+                                      Label=@($"Option {OptionLabels[index]}")
+                                      Value="@Options[index].Text"
+                                      ValueChanged="@(text => OnOptionTextChanged(index, text))"
+                                      Margin="Margin.Dense"
+                                      Required="true"
+                                      RequiredError="Option cannot be empty" />
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+
+        <!-- Submit Button -->
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   EndIcon="@Icons.Material.Filled.Check"
+                   OnClick="SaveQuestionOptions"
+                   Disabled="@(!AllOptionsFilled())"
+                   Class="mt-4">
+            Submit Options
+        </MudButton>
+
     </DialogContent>
 
-
 </MudDialog>
+
 
 @code {
     [Parameter] public bool isExam { get; set; } = false;

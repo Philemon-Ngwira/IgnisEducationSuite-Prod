@@ -13,7 +13,13 @@
             <MudCardHeader>
                 <CardHeaderAvatar>
                     <MudAvatar Size="Size.Large" Color="Color.Secondary">
-                        <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(LoggedInUser.ProfilePic)}")"></MudImage>
+                        @if (LoggedInUser.ProfilePic == null)
+                        {
+                        }
+                        else
+                        {
+                            <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(LoggedInUser.ProfilePic)}")"></MudImage>
+                        }
                     </MudAvatar>
                     @if (isInEditMode)
                     {

@@ -19,10 +19,10 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
         protected bool isLoading = false;
         protected override async Task OnInitializedAsync()
         {
-            isLoading = true;
+            LoaderService.Show("Preparing, Please wait...");
             assignmentQuestions = LessonService.assignmentQuestions.OrderBy(x => x.QuestionNumber).ToList();
             studentID = LessonService.studentID;
-            isLoading = false;
+            LoaderService.Hide();
 
         }
         private StudentAssignmentAnswer GetOrCreateAnswer(Guid questionId)
@@ -67,7 +67,7 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
         }
 
 
-        
+
         //protected async Task ValidateAnswersWithChatGPT()
         //{
         //    foreach (var item in assignmentAnswers)
@@ -113,7 +113,7 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
 
         protected async Task SaveAssignment()
         {
-            isLoading = true;
+            LoaderService.Show("Saving Please wait....");
             //save Student Assignment
             studentAssignment.StudentAssignmentID = Guid.NewGuid();
             studentAssignment.StudentID = studentID;
@@ -156,7 +156,7 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
                 Snackbar.Add("Error Saving Assignment refresh your page and try again", Severity.Error);
                 return;
             }
-            isLoading = false;
+            LoaderService.Hide();
         }
     }
 }

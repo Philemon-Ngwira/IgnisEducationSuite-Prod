@@ -1,29 +1,24 @@
 ﻿@page "/AssignmentDetails"
+@using IgnisEducationSuite.Client.Pages.Shared
+@inject LoaderService LoaderService
+
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
             <MudText Align="Align.Center" Typo="Typo.h4">Assignment Details</MudText>
         </CardHeaderContent>
     </MudCardHeader>
+
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
 
 
     <MudCardContent>
-        <MudAlert Severity="Severity.Normal" NoIcon="true" Variant="Variant.Filled">Please answer all questions below before submitting</MudAlert>
+        <MudAlert Severity="Severity.Normal" NoIcon="true" Variant="Variant.Filled">
+            Please answer all questions below before submitting
+        </MudAlert>
+
         <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+
         <MudGrid>
             @foreach (var item in assignmentQuestions)
             {
@@ -35,24 +30,22 @@
                     <MudItem xs="12">
                         <MudList T="string">
                             @foreach (var Aitem in LessonService.AssignmentAnswerChoices
-                           .Where(a => a.AssignmentQuestionID == item.QuestionID)
-                           .OrderBy(a => a.MultipleChoiceLetter)) // Ordering by letter
+                                                .Where(a => a.AssignmentQuestionID == item.QuestionID)
+                                                .OrderBy(a => a.MultipleChoiceLetter))
                             {
                                 <MudListItem>
                                     <MudCheckBox T="bool"
                                                  Label="@Aitem.MuiltpleChoiceAnswer"
                                                  Value="@IsChecked(item.QuestionID, Aitem.MultipleChoiceLetter)"
                                                  ValueChanged="@(checkedValue => HandleMultipleChoiceSelection(
-                                                                                         item.QuestionID,
-                                                                                         Aitem.MultipleChoiceLetter,
-                                                                                         Aitem.MuiltpleChoiceAnswer,
-                                                                                         checkedValue))">
+                                                                                                                                      item.QuestionID,
+                                                                                                                                      Aitem.MultipleChoiceLetter,
+                                                                                                                                      Aitem.MuiltpleChoiceAnswer,
+                                                                                                                                      checkedValue))">
                             <span class="bullet-answer">@Aitem.MuiltpleChoiceAnswer</span>
                         </MudCheckBox>
-
-                                </MudListItem>
-                            }
-
+                    </MudListItem>
+                                        }
                         </MudList>
                     </MudItem>
                 }
@@ -68,19 +61,21 @@
                                       Placeholder="Enter your answer here" />
                     </MudItem>
                 }
-
             }
         </MudGrid>
     </MudCardContent>
+
     <MudCardActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Send" OnClick="SaveAssignment">Finish And Submit</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Send"
+                   OnClick="SaveAssignment">
+            Finish And Submit
+        </MudButton>
     </MudCardActions>
 </MudCard>
+
 <style>
     .bullet-answer::before {
         content: "•";
         margin-right: 5px;
     }
-
 </style>
-

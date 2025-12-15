@@ -21,7 +21,7 @@ namespace IgnisEducationSuite.Controllers
             _userManager = userManager;
             _roleManager = roleManager;
         }
-
+       
         // API endpoint to get all users grouped by role
         [HttpGet("GetChatUsers/{SchoolID}")]
         public async Task<IActionResult> GetChatUsers(Guid SchoolID)

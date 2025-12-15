@@ -3,40 +3,28 @@
 @inject ChatClientService ChatClientService
 @inject HttpClient Http
 @inherits AppBaseComponent
-
 @using Blazored.TextEditor
 @using EDUSphereSharedProject.Models
 @inject ISnackbar SnackBar
+
 <MudCard>
+
+    <!-- Header -->
     <MudCardHeader Class="mb-3">
-        <CardHeaderContent>
-            <MudText Align="Align.Center" Typo="Typo.h5"><b>Lesson Management</b></MudText>
-        </CardHeaderContent>
+        <MudText Align="Align.Center" Typo="Typo.h5"><b>Lesson Management</b></MudText>
     </MudCardHeader>
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
 
-
+    <!-- Lesson Creation / GPT -->
     <MudCardContent Class="mb-3">
-        <MudCheckBox Label="Use ChatGPT" @bind-Value="useGPT"></MudCheckBox>
+        <MudCheckBox Label="Use ChatGPT" @bind-Value="useGPT" />
+
         @if (useGPT)
         {
             <MudPaper Class="p-4 mb-4" Elevation="2">
                 <MudGrid Spacing="3" Justify="Justify.Center">
 
-                    <!-- Query Input -->
+                    <!-- GPT Query -->
                     <MudItem xs="12" md="8">
                         <MudTextField T="string"
                                       Variant="Variant.Outlined"
@@ -67,46 +55,41 @@
 
                 </MudGrid>
 
-                <!-- Ask GPT Button -->
+                <!-- GPT Action Button -->
                 <MudGrid Class="mt-3">
                     <MudItem xs="12">
                         <MudButton OnClick="SendMessage"
                                    Variant="Variant.Filled"
                                    Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Send">
+                                   StartIcon="@Icons.Material.Filled.Send"
+                                   FullWidth="false">
                             Ask ChatGPT
                         </MudButton>
                     </MudItem>
                 </MudGrid>
             </MudPaper>
 
-            <!-- Lesson Content Editor -->
+            <!-- Lesson Editor -->
             <MudPaper Class="p-4 mb-4" Elevation="2">
                 <BlazoredTextEditor @ref="@richTextEditor">
-                    <ToolbarContent>
-                        @((MarkupString)toolbar)
-                    </ToolbarContent>
-                    <EditorContent>
-                        @((MarkupString)body)
-                    </EditorContent>
+                    <ToolbarContent>@((MarkupString)toolbar)</ToolbarContent>
+                    <EditorContent>@((MarkupString)body)</EditorContent>
                 </BlazoredTextEditor>
             </MudPaper>
 
-            <!-- Lesson Metadata -->
+            <!-- Metadata & Uploads -->
             <MudPaper Class="p-4 mb-4" Elevation="2">
                 <MudGrid Spacing="3">
 
-                    <!-- Lesson Title -->
                     <MudItem xs="12" md="6">
                         <MudTextField T="string"
                                       Variant="Variant.Outlined"
                                       Margin="Margin.Dense"
-                                      Label="Add a Lesson Title"
+                                      Label="Add Lesson Title"
                                       @bind-Value="newLesson.Title"
                                       FullWidth="true" />
                     </MudItem>
 
-                    <!-- File Upload -->
                     <MudItem xs="12">
                         <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
                             <ActivatorContent>
@@ -142,63 +125,59 @@
                 </MudButtonGroup>
             </MudPaper>
         }
-
         else
         {
-
             <div class="upload-container">
-                <MudGrid>
+                <!-- Lesson Topic -->
+                <MudGrid Spacing="3">
                     <MudItem xs="12">
-                        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Title" Variant="Variant.Filled">Enter Lesson Topic</MudAlert>
-
-                        <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newLesson.Title" Label="Lesson Topic">
-                        </MudTextField>
-
+                        <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Title">Enter Lesson Topic</MudAlert>
+                        <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newLesson.Title" Label="Lesson Topic" FullWidth="true" />
                     </MudItem>
 
                     <MudItem xs="12">
-                        <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
+                        <MudAutocomplete T="Class"
+                                         Label="Select Class"
+                                         @bind-Value="selectedClass"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         ToStringFunc="ClassTypeConverter"
+                                         SearchFunc="@Search"
                                          ResetValueOnEmptyText="true"
-                                         CoerceText="true" CoerceValue="true"
-                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-                    </MudItem>
-                </MudGrid>
-                <MudGrid>
-                    <MudItem xs="12">
-                        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Input" Variant="Variant.Filled">Upload Lesson Contents from PDF</MudAlert>
-
+                                         CoerceText="true"
+                                         CoerceValue="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search"
+                                         AdornmentColor="Color.Primary"
+                                         FullWidth="true" />
                     </MudItem>
                 </MudGrid>
 
-                <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChange">
-                    <ActivatorContent>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.CloudUpload">
-                            Upload Lesson
-                        </MudButton>
-                    </ActivatorContent>
-                </MudFileUpload>
-                <MudGrid>
+                <!-- Upload PDF -->
+                <MudGrid Spacing="3" Class="mt-3">
                     <MudItem xs="12">
-                        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Input" Variant="Variant.Filled">Manually Type Lesson</MudAlert>
-                        <br />
+                        <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Input">Upload Lesson Contents from PDF</MudAlert>
+                        <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChange">
+                            <ActivatorContent>
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">Upload Lesson</MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Manual Entry & Images -->
+                <MudGrid Spacing="3" Class="mt-3">
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Input">Manually Type Lesson</MudAlert>
                         <BlazoredTextEditor @ref="@richTextEditor">
-                            <ToolbarContent>
-                                @((MarkupString)toolbar)
-                            </ToolbarContent>
-                            <EditorContent>
-                                @((MarkupString)body)
-                            </EditorContent>
+                            <ToolbarContent>@((MarkupString)toolbar)</ToolbarContent>
+                            <EditorContent>@((MarkupString)body)</EditorContent>
                         </BlazoredTextEditor>
-
                     </MudItem>
+
                     <MudItem xs="12">
                         <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
                             <ActivatorContent>
-                                <MudButton Variant="Variant.Filled"
-                                           Color="Color.Primary"
-                                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
                                     Upload Any Lesson Images
                                 </MudButton>
                             </ActivatorContent>
@@ -206,25 +185,30 @@
                     </MudItem>
                 </MudGrid>
 
-
+                <!-- Action Buttons -->
+                <MudGrid Class="mt-3" Justify="Justify.FlexEnd">
+                    <MudItem>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="true" StartIcon="@Icons.Material.Filled.Done" OnClick="FinishEditing">Finish Editing</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="true" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveLesson">Save Lesson</MudButton>
+                    </MudItem>
+                </MudGrid>
             </div>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow=true StartIcon="@Icons.Material.Filled.Done" OnClick="FinishEditing">Finish Editing</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow=true StartIcon="@Icons.Material.Filled.Save" OnClick="SaveLesson">Save Lesson</MudButton>
         }
-
-
     </MudCardContent>
+
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
 
+    <!-- Current Lessons -->
     <MudCardContent Class="mb-3">
-        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.List" Variant="Variant.Filled">Current Available Lessons</MudAlert>
+        <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.List">Current Available Lessons</MudAlert>
+
         <MudDataGrid Items="@teacherLessons" Filterable="false" SortMode="@SortMode.None" Groupable="false">
             <ToolBarContent>
                 <MudText Typo="Typo.h6"><b>Your Lessons</b></MudText>
                 <MudSpacer />
-                <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
-                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
             </ToolBarContent>
+
             <Columns>
                 <PropertyColumn Property="x => x.Title" />
                 <PropertyColumn Property="x => x.DatePosted.Value.ToShortDateString()" Title="Created Date" />
@@ -233,96 +217,16 @@
                         <MudStack Row>
                             <MudRating Size="@Size.Small" SelectedValue="@context.Item.Rating.Value" />
                             <MudSpacer />
-                            <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Error" OnClick="() => TaskRemoveLesson(context.Item)">Remove</MudButton>
+                            <MudButton Size="@Size.Small" Variant="Variant.Filled" Color="Color.Error" OnClick="() => TaskRemoveLesson(context.Item)">Remove</MudButton>
                         </MudStack>
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
         </MudDataGrid>
     </MudCardContent>
+
 </MudCard>
-<style>
-    /* Container for overall layout alignment */
-    .upload-container {
-        display: flex;
-        flex-direction: column;
-        align-items: start;
-        gap: 1rem;
-        max-width: 100%;
-        margin: 2rem auto;
-    }
 
-    /* File input styling */
-    input[type="file"] {
-        display: block;
-        font-family: Arial, sans-serif;
-        background-color: #4CAF50;
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-
-        input[type="file"]:hover {
-            background-color: #45a049;
-        }
-
-        input[type="file"]::file-selector-button {
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            background-color: #4CAF50;
-            color: white;
-            cursor: pointer;
-            border: none;
-        }
-
-            input[type="file"]::file-selector-button:hover {
-                background-color: #45a049;
-            }
-
-    /* Textarea styling */
-    textarea {
-        width: 100%;
-        height: 150px;
-        padding: 1rem;
-        font-size: 1rem;
-        font-family: Arial, sans-serif;
-        color: #333;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-        resize: vertical;
-        transition: border-color 0.3s;
-    }
-
-        textarea:focus {
-            outline: none;
-            border-color: #4CAF50;
-        }
-
-    /* Button styling */
-    button {
-        font-family: Arial, sans-serif;
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        padding: 0.75rem 2rem;
-        font-size: 1rem;
-        border-radius: 8px;
-        cursor: pointer;
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-        transition: background-color 0.3s, transform 0.2s;
-    }
-
-        button:hover {
-            background-color: #45a049;
-            transform: translateY(-2px);
-        }
-
-</style>
 @code {
     protected List<Lesson> teacherLessons = new();
     protected string Query = string.Empty;
@@ -347,13 +251,13 @@
     protected string UserID = string.Empty;
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait while we prepare your environment...");
         InitializeToolbar();
         await GetTeachers();
         await GetClasses();
         await GetTeacherLessons();
         StateHasChanged();
-        isLoading = false;
+        LoaderService.Hide();
     }
 
     protected void InitializeToolbar()
@@ -489,7 +393,7 @@
 
     private async Task OnFileChange(IBrowserFile file)
     {
-        isLoading = true;
+        LoaderService.Show("Hang in tight as we process your file...");
         var content = new MultipartFormDataContent();
         content.Add(new StreamContent(file.OpenReadStream()), "file", file.Name);
         var absoluteUri = new Uri(new Uri(_navigationManager.BaseUri), "api/Upload/uploadLesson");
@@ -509,11 +413,11 @@
         {
             body = "Error reading file.";
         }
-        isLoading = false;
+        LoaderService.Hide();
     }
     private async Task SendMessage()
     {
-        isLoading = true;
+        LoaderService.Show("Thinking....Please wait");
         if (!string.IsNullOrEmpty(Query))
         {
             var message = EnhanceTeacherQuery(Query, selectedClass.ClassName);
@@ -529,7 +433,7 @@
             Query = string.Empty;
             StateHasChanged();
         }
-        isLoading = false;
+        LoaderService.Hide();
     }
     private string EnhanceTeacherQuery(string rawQuery, string subject = "General")
     {
@@ -572,7 +476,7 @@ Write the best possible educational lesson.
         bool NotreadyToSave = responseisEmpty;
         if (!NotreadyToSave)
         {
-            isLoading = true;
+            LoaderService.Show("Please wait while your data is commited...");
             if (!string.IsNullOrEmpty(newLesson.Title))
             {
                 if (!string.IsNullOrEmpty(ResponseMessage) && selectedClass.ClassName != null)
@@ -592,7 +496,7 @@ Write the best possible educational lesson.
                     if (result.IsSuccess)
                     {
                         await SaveLessonMedia(newLesson.LessonID);
-                        isLoading = false;
+                        LoaderService.Hide();
                         SnackBar.Add("Lesson Added Successfully", Severity.Success);
                         newLesson.Class = classes.Where(x => x.ClassID == newLesson.ClassID).FirstOrDefault();
                         newLesson.Teacher = teachers.Where(x => x.TeacherID == newLesson.TeacherID).FirstOrDefault();
@@ -606,7 +510,7 @@ Write the best possible educational lesson.
                 }
                 else
                 {
-                    isLoading = false;
+                    LoaderService.Hide();
                     SnackBar.Add("Lesson Body Missing", Severity.Error);
 
                     return;
@@ -614,7 +518,7 @@ Write the best possible educational lesson.
             }
             else
             {
-                isLoading = false;
+                LoaderService.Hide();
                 SnackBar.Add("Title Missing, Please add Lesson Title", Severity.Error);
 
                 return;
@@ -625,7 +529,7 @@ Write the best possible educational lesson.
             SnackBar.Add("Please Click Finish Editing Before continuing", Severity.Warning);
             return;
         }
-        isLoading = false;
+        LoaderService.Hide();
     }
     protected async Task SaveLessonMedia(Guid LessonID)
     {

@@ -6,7 +6,7 @@
 @inject IDialogService DialogService
 @inherits AppBaseComponent
 
-<MudCard>
+<MudCard Class="mb-4">
     <MudCardHeader>
         <CardHeaderContent>
             <MudText Align="Align.Center" Typo="Typo.h4"><b>Report Card Management</b></MudText>
@@ -14,64 +14,61 @@
     </MudCardHeader>
 
     <MudCardContent>
-        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+        <MudDivider Class="border border-secondary border-2 opacity-50 mb-4" />
 
-        @if (isLoading)
-        {
-            <div id="loader-overlay" class="loader-overlay">
-                <div class="loader-container">
-                    <div class="spinner"></div>
-                    <div class="loader-icon">🔄</div>
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
-        }
+        <MudPaper Class="p-4 mb-4" Elevation="2">
+            <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Book">
+                Prepare Report Cards
+            </MudAlert>
 
-        <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Book">Prepare Report Cards</MudAlert>
+            <MudGrid Spacing="3" Class="mt-2">
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="string"
+                                     Variant="Variant.Outlined"
+                                     Label="Filter By Academic Level"
+                                     Value="AcademicLvlFilterValue"
+                                     ValueChanged="FilterResultsByAcademicLevel"
+                                     SearchFunc="AcademicLvlFilter"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true"
+                                     SelectValueOnTab="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     AdornmentColor="Color.Primary"
+                                     FullWidth="true" />
+                </MudItem>
 
-        <MudGrid Class="mb-3">
-            <MudItem xs="12" md="6">
-                <MudAutocomplete T="string"
-                                 Variant="Variant.Outlined"
-                                 Label="Filter By Academic Level"
-                                 Value="AcademicLvlFilterValue"
-                                 ValueChanged="FilterResultsByAcademicLevel"
-                                 SearchFunc="AcademicLvlFilter"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true"
-                                 SelectValueOnTab="true"
-                                 AdornmentIcon="@Icons.Material.Filled.Search"
-                                 AdornmentColor="Color.Primary" />
-            </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="string"
+                                     Variant="Variant.Outlined"
+                                     Label="Filter By Class"
+                                     Value="SelectedClass"
+                                     ValueChanged="FilterResultsByClass"
+                                     SearchFunc="ClassFilter"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true"
+                                     SelectValueOnTab="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     AdornmentColor="Color.Primary"
+                                     FullWidth="true" />
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
 
-            <MudItem xs="12" md="6">
-                <MudAutocomplete T="string"
-                                 Variant="Variant.Outlined"
-                                 Label="Filter By Class"
-                                 Value="SelectedClass"
-                                 ValueChanged="FilterResultsByClass"
-                                 SearchFunc="ClassFilter"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true"
-                                 SelectValueOnTab="true"
-                                 AdornmentIcon="@Icons.Material.Filled.Search"
-                                 AdornmentColor="Color.Primary" />
-            </MudItem>
-        </MudGrid>
-
-        <MudDataGrid Items="filteredStudents" Filterable="false" SortMode="SortMode.None" Groupable="false">
+        <MudDataGrid Items="filteredStudents" Filterable="false" SortMode="SortMode.None" Groupable="false" Class="mt-4">
             <Columns>
-                <PropertyColumn Property="x => x.FirstName" />
-                <PropertyColumn Property="x => x.LastName" />
+                <PropertyColumn Property="x => x.FirstName" Title="First Name" />
+                <PropertyColumn Property="x => x.LastName" Title="Last Name" />
                 <PropertyColumn Property="x => x.LevelName" Title="Academic Level" />
-                <PropertyColumn Property="x => x.StudentNumber" />
+                <PropertyColumn Property="x => x.StudentNumber" Title="Student ID" />
                 <TemplateColumn CellClass="d-flex justify-end">
                     <CellTemplate>
-                        <MudStack Row>
-                            <MudButton Size="Size.Small" Variant="Variant.Filled" Disabled="!context.Item.isInteractable" Color="Color.Primary" OnClick="@(() => OpenDetailsDialogAsync(context.Item))">
-                                Prepare Report Card
-                            </MudButton>
-                        </MudStack>
+                        <MudButton Size="Size.Small"
+                                   Variant="Variant.Filled"
+                                   Disabled="!context.Item.isInteractable"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => OpenDetailsDialogAsync(context.Item))">
+                            Prepare Report Card
+                        </MudButton>
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
@@ -79,8 +76,10 @@
     </MudCardContent>
 </MudCard>
 
+
+
+
 @code {
-    protected bool isLoading = false;
     protected List<Teacher> teachers = new();
     protected List<Class> classes = new();
     protected List<StudentWithClassesDTO> students = new();
@@ -97,7 +96,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait, we are preparing your work environment");
 
         var initTasks = new List<Task>
         {
@@ -112,7 +111,7 @@
         ApplyTeacherFiltering();
         PrepareFilterLists();
 
-        isLoading = false;
+        LoaderService.Hide();
     }
 
     private void ApplyTeacherFiltering()

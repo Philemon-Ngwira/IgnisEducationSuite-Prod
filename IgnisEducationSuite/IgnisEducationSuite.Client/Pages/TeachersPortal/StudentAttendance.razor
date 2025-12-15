@@ -2,82 +2,156 @@
 @using EDUSphereSharedProject.Models.StoreProModels
 @using IgnisEducationSuite.Client.Pages.TeachersPortal.Dialogs
 @inherits AppBaseComponent
-<MudCard>
-    <MudCardHeader>
+
+<MudCard Class="pa-4">
+
+    <!-- HEADER -->
+    <MudCardHeader Class="mb-2">
         <CardHeaderContent>
-            <MudText Align="Align.Center" Typo="Typo.h4"><b>Student Attendance</b></MudText>
+            <MudText Align="Align.Center" Typo="Typo.h4">
+                <b>Student Attendance</b>
+            </MudText>
         </CardHeaderContent>
     </MudCardHeader>
+
+    <MudDivider Class="mb-4" />
+
     <MudCardContent>
-        <MudGrid>
+
+        <!-- DATE PICKER + SEARCH BUTTON -->
+        <MudGrid Class="mb-4" AlignItems="Center">
+
             <MudItem xs="12" md="9">
-                <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Enter Attendace Date" @bind-Date="_date" />
-            </MudItem>
-            <MudItem xs="3">
-                <MudButton OnClick="GetTimeSheets" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Search">Get Attendance Schedule</MudButton>
-            </MudItem>
-            <MudDivider />
-            <MudItem xs="12">
-                @if (isLoading)
-                {
-                    <div id="loader-overlay" class="loader-overlay">
-                        <div class="loader-container">
-                            <!-- Spinner -->
-                            <div class="spinner"></div>
-                            <!-- Loader Icon -->
-                            <div class="loader-icon">🔄</div>
-                            <!-- Loading Text -->
-                            <p class="loading-text">Loading, please wait...</p>
-                        </div>
-                    </div>
-                }
-
-
-                <MudTable Items="FilteredAttendances" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetAttendanceByTeacherAndDateResult, bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
-                    <ToolBarContent>
-                        <MudText Typo="Typo.h6">Student Attendance</MudText>
-                        <MudSpacer />
-                        <MudAutocomplete T="string" Variant="Variant.Outlined"
-                                         Margin="Margin.Dense" Label="Filter By Academic Level" ValueChanged="(e) => FilterResultsByAcademicLevel(e)" Value="AcademicLvlFilterValue" SearchFunc="@AcademicLvlFilter"
-                                         ResetValueOnEmptyText="true"
-                                         CoerceText="true" CoerceValue="true" SelectValueOnTab="true"
-                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-                        <MudAutocomplete T="string" Variant="Variant.Outlined"
-                                         Margin="Margin.Dense" Label="Filter By Class Level" ValueChanged="(e) => FilterResultsByClass(e)" Value="SelectedClass" SearchFunc="@ClassFilter"
-                                         ResetValueOnEmptyText="true"
-                                         CoerceText="true" CoerceValue="true" SelectValueOnTab="true"
-                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-                        <MudSpacer />
-                        <MudButton Color="Color.Primary" OnClick="UpdateAttendance" Variant="Variant.Filled">Submit Attendance</MudButton>
-                        <MudSpacer />
-                        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-                    </ToolBarContent>
-                    <HeaderContent>
-                        <MudTh>First Name</MudTh>
-                        <MudTh>Last Name</MudTh>
-                        <MudTh>Class Name</MudTh>
-                        <MudTh>Attendance Status</MudTh>
-                        <MudTh>Late ?</MudTh>
-                        <MudTh>Date</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="First Name">@context.FirstName</MudTd>
-                        <MudTd DataLabel="Last Name">@context.LastName</MudTd>
-                        <MudTd DataLabel="Class Name">@context.ClassName</MudTd>
-                        <MudTd DataLabel="Attendance Status"><MudCheckBox @bind-Value="context.AttendanceStatus" Label="Attendance Status"></MudCheckBox></MudTd>
-                        <MudTd DataLabel="Late Status"><MudCheckBox @bind-Value="context.LateStatus" Label="Lateness Status"></MudCheckBox></MudTd>
-                        <MudTd DataLabel="Late Status">@context.AttendanceDate.Value.ToShortDateString()</MudTd>
-                    </RowTemplate>
-                    <PagerContent>
-                        <MudTablePager />
-                    </PagerContent>
-                </MudTable>
+                <MudDatePicker Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Label="Select Attendance Date"
+                               @bind-Date="_date"
+                               Class="w-100" />
             </MudItem>
 
+            <MudItem xs="12" md="3" Class="d-flex justify-end">
+                <MudButton OnClick="GetTimeSheets"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           EndIcon="@Icons.Material.Filled.Search"
+                           Class="w-100">
+                    Get Attendance
+                </MudButton>
+            </MudItem>
 
         </MudGrid>
+
+        <!-- ATTENDANCE TABLE -->
+        <MudTable Items="FilteredAttendances"
+                  Dense="true"
+                  Hover="true"
+                  Bordered="true"
+                  Striped="true"
+                  Breakpoint="Breakpoint.Sm"
+                  @bind-SelectedItem="selectedItem"
+                  Filter="new Func<GetAttendanceByTeacherAndDateResult, bool>(FilterFunc1)">
+
+            <!-- TOOLBAR -->
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Attendance Records</MudText>
+
+                <MudSpacer />
+
+                <!-- Academic Level Filter -->
+                <MudAutocomplete T="string"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Label="Filter by Academic Level"
+                                 ValueChanged="(e) => FilterResultsByAcademicLevel(e)"
+                                 Value="AcademicLvlFilterValue"
+                                 SearchFunc="@AcademicLvlFilter"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true"
+                                 AdornmentIcon="@Icons.Material.Filled.School"
+                                 AdornmentColor="Color.Primary"
+                                 Class="mr-2" />
+
+                <!-- Class Filter -->
+                <MudAutocomplete T="string"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Label="Filter by Class"
+                                 ValueChanged="(e) => FilterResultsByClass(e)"
+                                 Value="SelectedClass"
+                                 SearchFunc="@ClassFilter"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Class"
+                                 AdornmentColor="Color.Primary"
+                                 Class="mr-2" />
+
+                <MudSpacer />
+
+                <!-- Submit Attendance -->
+                <MudButton Color="Color.Success"
+                           Variant="Variant.Filled"
+                           OnClick="UpdateAttendance"
+                           StartIcon="@Icons.Material.Filled.DoneAll"
+                           Class="mr-2">
+                    Submit Attendance
+                </MudButton>
+
+                <!-- Search -->
+                <MudTextField @bind-Value="searchString"
+                              Placeholder="Search Students..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              IconSize="Size.Medium" />
+            </ToolBarContent>
+
+            <!-- HEADER -->
+            <HeaderContent>
+                <MudTh>First Name</MudTh>
+                <MudTh>Last Name</MudTh>
+                <MudTh>Class</MudTh>
+                <MudTh>Present</MudTh>
+                <MudTh>Late</MudTh>
+                <MudTh>Date</MudTh>
+            </HeaderContent>
+
+            <!-- ROW TEMPLATE -->
+            <RowTemplate>
+                <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                <MudTd DataLabel="Class">@context.ClassName</MudTd>
+
+                <MudTd DataLabel="Attendance">
+                    <MudCheckBox @bind-Value="context.AttendanceStatus"
+                                 Color="Color.Success"
+                                 Label="Present"
+                                 Dense="true" />
+                </MudTd>
+
+                <MudTd DataLabel="Late">
+                    <MudCheckBox @bind-Value="context.LateStatus"
+                                 Color="Color.Warning"
+                                 Label="Late"
+                                 Dense="true" />
+                </MudTd>
+
+                <MudTd DataLabel="Date">
+                    @context.AttendanceDate.Value.ToShortDateString()
+                </MudTd>
+            </RowTemplate>
+
+            <!-- PAGER -->
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+
+        </MudTable>
+
     </MudCardContent>
+
 </MudCard>
+
 
 @code {
 
@@ -108,7 +182,7 @@
     // GET SCHEDULE
     protected async Task GetTimeSheets()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait.....");
 
         UserID = AppState.UserID;
 
@@ -142,7 +216,7 @@
             }
         }
 
-        isLoading = false;
+        LoaderService.Hide();
     }
 
 

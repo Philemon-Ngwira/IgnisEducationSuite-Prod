@@ -1,36 +1,25 @@
 ﻿@page "/ExamDetails"
 @using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
 <MudCard>
     <MudCardHeader>
         <CardHeaderContent>
-            <MudText Align="Align.Center" Typo="Typo.h4"><b>Questions</b></MudText>
+            <MudText Align="Align.Center" Typo="Typo.h4" Class="text-primary">
+                📝 Questions
+            </MudText>
         </CardHeaderContent>
     </MudCardHeader>
+
     <MudCardContent>
-        @if (isLoading)
-        {
-            <div id="loader-overlay" class="loader-overlay">
-                <div class="loader-container">
-                    <!-- Spinner -->
-                    <div class="spinner"></div>
-                    <!-- Loader Icon -->
-                    <div class="loader-icon">🔄</div>
-                    <!-- Loading Text -->
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
-        }
         @foreach (var item in examQuizTestQuestions)
         {
-            @if (item.isMultipleChoice == true)
-            {
-                <MudItem xs="12">
-                    <MudText Typo="Typo.body1">
-                        Q @item.QuestionNumber @item.QuestionText
-                    </MudText>
-                </MudItem>
+            <MudPaper Class="pa-4 mb-3" Elevation="2">
+                <MudText Typo="Typo.body1" Class="font-weight-bold mb-2">
+                    Q @item.QuestionNumber: @item.QuestionText
+                </MudText>
 
-                <MudItem xs="12">
+                @if (item.isMultipleChoice == true)
+                {
                     <MudList T="string">
                         @foreach (var Aitem in LS.ExamAnswerChoices
                                         .Where(a => a.ExamTestQuizQuestionID == item.QuestionID)
@@ -40,38 +29,38 @@
                                 <MudCheckBox T="bool"
                                              Label="@Aitem.MuiltpleChoiceAnswer"
                                              Value="@IsChecked(item.QuestionID, Aitem.MultipleChoiceLetter)"
-                                            ValueChanged="@(checkedValue => HandleMultipleChoiceSelection(
-                                                                                      item.QuestionID,
-                                                                                      Aitem.MultipleChoiceLetter,
-                                                                                      Aitem.MuiltpleChoiceAnswer,
-                                                                                      checkedValue))">
-                        <span class="bullet-answer">@Aitem.MuiltpleChoiceAnswer</span>
-                    </MudCheckBox>
+                                             ValueChanged="@(checkedValue => HandleMultipleChoiceSelection(
+                                                                                                                                                                       item.QuestionID,
+                                                                                                                                                                       Aitem.MultipleChoiceLetter,
+                                                                                                                                                                       Aitem.MuiltpleChoiceAnswer,
+                                                                                                                                                                       checkedValue))" />
                 </MudListItem>
                                 }
                     </MudList>
-                </MudItem>
-            }
-            else
-            {
-                <MudItem xs="12">
-                    <MudText Typo="Typo.body1">
-                        Q @item.QuestionNumber @item.QuestionText
-                    </MudText>
-                </MudItem>
-
-                <MudItem xs="12">
+                }
+                else
+                {
                     <MudTextField @bind-Value="GetOrCreateAnswer(item.QuestionID).AnswerText"
                                   Variant="Variant.Outlined"
                                   Margin="Margin.Dense"
+                                  FullWidth="true"
                                   Placeholder="Enter your answer here" />
-                </MudItem>
-            }
+                }
+            </MudPaper>
         }
+
 
     </MudCardContent>
     <MudCardActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAnswers">Submit</MudButton>
+        <MudCardActions Class="justify-end">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       EndIcon="@Icons.Material.Filled.Send"
+                       OnClick="SubmitAnswers">
+                Submit All Answers
+            </MudButton>
+        </MudCardActions>
+
     </MudCardActions>
 </MudCard>
 <style>
@@ -96,15 +85,18 @@
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
-        await Task.Delay(1000);
+        LoaderService.Show("Preparing exam questions...");
+
+        await Task.Delay(1000); // optional: simulate load
         examQuizTestQuestions = LS.examQuizTestQuestions;
-        isLoading = false;
+
+        LoaderService.Hide();
     }
+
 
     private async Task SubmitAnswers()
     {
-        isLoading = true;
+        LoaderService.Show("Submitting your answers...");
 
         await SaveExamHeader();
 
@@ -120,15 +112,16 @@
         {
             answers.Clear();
             Snackbar.Add("Submitted Successfully", Severity.Success);
-            isLoading = false;
             _navigationManager.NavigateTo(_navigationManager.BaseUri, true);
         }
         else
         {
-            Snackbar.Add("Error Saving please check your internet and try again.", Severity.Error);
-            isLoading = false;
+            Snackbar.Add("Error Saving, please check your internet and try again.", Severity.Error);
         }
+
+        LoaderService.Hide();
     }
+
 
     private void HandleMultipleChoiceSelection(Guid questionId, string selectedLetter, string answerText, bool isChecked)
     {

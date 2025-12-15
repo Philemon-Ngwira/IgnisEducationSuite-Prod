@@ -1,0 +1,247 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@inherits AppBaseComponent
+
+
+<MudCard Class="p-4 rounded-xl">
+
+    <!-- HEADER -->
+    <MudCardHeader Class="pb-0">
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5" Class="font-weight-bold">
+                👨‍🍳 Kitchen Dashboard
+            </MudText>
+            <MudText Typo="Typo.body2" Class="text-secondary mt-n1">
+                Meals & dietary alerts for today
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudDivider Class="mt-2" />
+    <MudCardContent Class="pt-4">
+
+        @if (schoolMenu.Any())
+        {
+            <!-- MAIN DAY TABS -->
+            <MudTabs @bind-ActivePanelIndex="activeDayIndex" Rounded="true" Elevation="0" Centered="true">
+
+                @for (int i = 0; i < dayOrder.Count; i++)
+                {
+                    var day = dayOrder[i];
+
+                    <MudTabPanel Text="@day">
+
+                        <MudGrid Spacing="3" Class="mt-2">
+
+                            <!-- OVERVIEW CARDS -->
+                            <MudItem xs="12" md="6">
+                                <MudPaper Elevation="1" Class="pa-4 rounded-lg border d-flex flex-column">
+                                    <MudText Typo="Typo.caption" Class="text-secondary">Total Expected</MudText>
+                                    <MudText Typo="Typo.h4" Class="mt-1 font-weight-bold">
+                                        @students.Count
+                                    </MudText>
+                                    <MudText Typo="Typo.caption">Registered Students</MudText>
+                                </MudPaper>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudPaper Elevation="1" Class="pa-4 rounded-lg border-left border-primary d-flex flex-column">
+                                    <MudText Typo="Typo.caption" Class="text-secondary">Special Diets</MudText>
+                                    <MudText Typo="Typo.h4" Class="mt-1 text-primary font-weight-bold">
+                                        @specialDiets.Count
+                                    </MudText>
+                                    <MudText Typo="Typo.caption">Students needing special meals</MudText>
+                                </MudPaper>
+                            </MudItem>
+
+                            <!-- MEAL CARDS -->
+                            @foreach (var item in schoolMenu.Where(x => x.DayOfWeek == day))
+                            {
+                                <MudItem xs="12" md="4">
+                                    <MudCard Elevation="1" Class="rounded-xl mb-3">
+
+                                        <MudCardHeader>
+                                            <CardHeaderAvatar>
+                                                <MudIcon Icon="@Icons.Material.Filled.RamenDining" Color="Color.Primary" />
+                                            </CardHeaderAvatar>
+
+                                            <CardHeaderContent>
+                                                <MudText Typo="Typo.h6" Class="font-weight-bold">
+                                                    @item.MealName
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Class="text-secondary">@day</MudText>
+                                            </CardHeaderContent>
+                                        </MudCardHeader>
+
+                                        <MudDivider />
+
+                                        <MudCardContent Class="mt-2">
+                                            <MudText Typo="Typo.caption" Class="text-secondary">Main Dish</MudText>
+                                            <MudText Typo="Typo.subtitle1" Class="mb-2 font-weight-bold">@item.MainDish</MudText>
+
+                                            <MudGrid>
+                                                <MudItem xs="12" sm="6">
+                                                    <MudText Typo="Typo.caption" Class="text-secondary">Side</MudText>
+                                                    <MudText Typo="Typo.body1" Class="font-weight-bold">@item.SideDish</MudText>
+                                                </MudItem>
+
+                                                <MudItem xs="12" sm="6">
+                                                    <MudText Typo="Typo.caption" Class="text-secondary">Drink</MudText>
+                                                    <MudText Typo="Typo.body1" Class="font-weight-bold">@item.Drink</MudText>
+                                                </MudItem>
+                                            </MudGrid>
+                                        </MudCardContent>
+
+                                    </MudCard>
+                                </MudItem>
+                            }
+
+                            <!-- SPECIAL DIETS -->
+                            <MudItem xs="12" Class="mt-2">
+                                <MudAlert Severity="Severity.Info"
+                                          Icon="@Icons.Material.Filled.PriorityHigh"
+                                          Variant="Variant.Outlined"
+                                          Dense="true"
+                                          Class="rounded-lg">
+                                    <b>Special Diets</b> — Students requiring alternate meals today
+                                </MudAlert>
+                            </MudItem>
+
+                            <MudItem xs="12" Class="mt-2">
+                                <MudTabs Elevation="0" Rounded="true">
+
+                                    @foreach (var level in specialDiets.Select(x => x.AcademicLevel).Distinct())
+                                    {
+                                        <MudTabPanel Text="@level">
+
+                                            <MudGrid Spacing="3" Class="mt-1">
+
+                                                @foreach (var s in specialDiets.Where(x => x.AcademicLevel == level))
+                                                {
+                                                    <MudItem xs="12" md="4">
+                                                        <MudCard Elevation="1" Class="rounded-xl border border-warning mb-3">
+
+                                                            <MudCardHeader>
+                                                                <CardHeaderAvatar>
+                                                                    <MudAvatar Size="Size.Medium">
+                                                                        @if (s.ProfilePic != null)
+                                                                        {
+                                                                            <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(s.ProfilePic)}")" />
+                                                                        }
+                                                                    </MudAvatar>
+                                                                </CardHeaderAvatar>
+
+                                                                <CardHeaderContent>
+                                                                    <MudText Typo="Typo.subtitle1" Class="font-weight-bold">
+                                                                        @s.FirstName @s.LastName
+                                                                    </MudText>
+                                                                    <MudChip T="string" Color="Color.Warning"
+                                                                             Variant="Variant.Filled"
+                                                                             Class="mt-1">
+                                                                        @s.DietType
+                                                                    </MudChip>
+                                                                </CardHeaderContent>
+                                                            </MudCardHeader>
+
+                                                            <MudCardContent>
+                                                                <MudText Typo="Typo.body2">@s.Description</MudText>
+                                                                <MudText Typo="Typo.caption" Class="text-secondary mt-2 d-block">
+                                                                    <b>Gender:</b> @s.Gender • <b>Student #:</b> @s.StudentNumber
+                                                                </MudText>
+                                                            </MudCardContent>
+
+                                                        </MudCard>
+                                                    </MudItem>
+                                                }
+
+                                            </MudGrid>
+
+                                        </MudTabPanel>
+                                    }
+
+                                </MudTabs>
+                            </MudItem>
+
+                        </MudGrid>
+                    </MudTabPanel>
+                }
+
+            </MudTabs>
+        }
+
+    </MudCardContent>
+
+</MudCard>
+
+
+
+@code {
+    protected int activeDayIndex = 0;
+    protected List<DiningMenuDTO> schoolMenu = new();
+    protected List<Student> students = new();
+
+    protected List<StudentsWithSpecialDietsDTO> specialDiets = new();
+    private readonly List<string> dayOrder = new List<string>
+
+{
+    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+};
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        LoaderService.Show("Please wait Loading....");
+        var today = DateTime.Now.DayOfWeek.ToString(); // e.g. "Monday", "Tuesday"
+
+        // Find index in your dayOrder list
+        activeDayIndex = dayOrder.IndexOf(today);
+
+        // Fallback to 0 if not found (shouldn't happen if weekday names match)
+        if (activeDayIndex < 0)
+            activeDayIndex = 0;
+        await GetStudent();
+        await GetSpecialDiets();
+        await GetDiningMenus();
+        LoaderService.Hide();
+    }
+    protected async Task GetStudent()
+    {
+        var result = GenericService.GetService<Student>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetStudentsBySchoolID/{Guid.Parse(AppState.SchoolID)}", true);
+        students = service.Data.ToList();
+
+    }
+    protected async Task GetDiningMenus()
+    {
+        var service = GenericService.GetService<DiningMenuDTO>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolDiningMenus/{Guid.Parse(AppState.SchoolID)}", true);
+
+        if (result.IsSuccess)
+        {
+            // Group by MealName to avoid duplicates across dining halls
+            var today = DateTime.Now.DayOfWeek.ToString();
+            schoolMenu = result.Data
+                  .GroupBy(x => new
+                  {
+                      x.DayOfWeek,
+                      Meal = x.MealName.Trim().ToLower(),
+                      Main = x.MainDish.Trim().ToLower()
+                  })
+            .Select(g => g.First()) // keeps one per Day+Meal+MainDish combo
+            .OrderBy(x => dayOrder.IndexOf(x.DayOfWeek))
+            .ThenBy(x => MealOrder.IndexOf(x.MealName))
+            .ToList();
+        }
+    }
+    protected async Task GetSpecialDiets()
+    {
+        var service = GenericService.GetService<StudentsWithSpecialDietsDTO>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSpecialDiets/{Guid.Parse(AppState.SchoolID)}", true);
+
+        if (result.IsSuccess)
+        {
+            specialDiets = result.Data.ToList();
+
+        }
+    }
+}

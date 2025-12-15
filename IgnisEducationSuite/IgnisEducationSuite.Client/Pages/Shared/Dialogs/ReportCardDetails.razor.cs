@@ -90,7 +90,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared.Dialogs
                 var EmailToMail = "";
                 var emailDto = new ReportCardEmailDTO
                 {
-                    EmailTo = "ngwira.philemon@gmail.com",
+                    EmailTo = AppState.UserEmail,
                     PdfBytes = pdfBytes
                 };
 

@@ -2,6 +2,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -39,6 +40,8 @@ public partial class Student
 
     public string LevelName { get; set; }
 
+    public bool? PaymentStatus { get; set; }
+
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
 
     public virtual ICollection<Grade> Grades { get; set; } = new List<Grade>();
@@ -56,4 +59,9 @@ public partial class Student
     public virtual ICollection<StudentCompletedLesson> StudentCompletedLessons { get; set; } = new List<StudentCompletedLesson>();
 
     public virtual ICollection<StudentExamsTestsAndQuiz> StudentExamsTestsAndQuizzes { get; set; } = new List<StudentExamsTestsAndQuiz>();
+
+    [NotMapped]
+    public string Email { get; set; }
+    [NotMapped]
+    public string GeneratedUserName { get; set; }
 }

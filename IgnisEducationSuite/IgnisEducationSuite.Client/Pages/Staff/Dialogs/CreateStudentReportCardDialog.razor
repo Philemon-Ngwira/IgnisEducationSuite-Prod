@@ -4,18 +4,7 @@
 
 <MudDialog>
     <DialogContent>
-        @if (isLoading)
-        {
-            <div id="loader-overlay" class="loader-overlay">
-                <div class="loader-container">
-                    <div class="spinner"></div>
-                    <div class="loader-icon">🔄</div>
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
-        }
-
-        <MudGrid>
+        <MudGrid Spacing="3">
             <MudItem xs="12">
                 <MudText Align="Align.Center" Typo="Typo.h4">@($"{AppState.SchoolName ?? "IGNIS EDUCATION SUITE"}")</MudText>
             </MudItem>
@@ -65,7 +54,7 @@
                                                   Immediate="true"
                                                   Margin="Margin.Dense"
                                                   Variant="Variant.Outlined"
-                                                  Style="width:80px" />
+                                                  Style="max-width:80px" />
                                 }
                                 else
                                 {
@@ -208,7 +197,7 @@
 
     private async void SubmitReportCard()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait while we create the report card...");
 
         var service = _genericService.GetService<ReportCard>();
 
@@ -231,7 +220,7 @@
                 MudDialog.Close(DialogResult.Ok(true));
         }
 
-        isLoading = false;
+        LoaderService.Hide();
     }
 
     public (string Grade, double? GPA) GetGradeAndCalculateGPA(ReportCardDetail detail, List<GradingScale> gradingScales)

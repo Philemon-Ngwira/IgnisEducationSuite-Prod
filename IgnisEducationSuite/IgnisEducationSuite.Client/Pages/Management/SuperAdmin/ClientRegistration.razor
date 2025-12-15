@@ -20,6 +20,15 @@
                     <MudTextField Variant="Variant.Outlined" @bind-Value="@newSchool.SchoolName" T="string" Label="Enter School Name" Placeholder="School Name" Margin="Margin.Dense"></MudTextField>
                 </MudItem>
                 <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" @bind-Value="@newSchool.SchoolPhoneContact" T="string" Label="Enter School Contact #" Placeholder="School Contact #" Margin="Margin.Dense"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" @bind-Value="@newSchool.SchoolEmail" T="string" Label="Enter School Email Address" Placeholder="School Email Address" Margin="Margin.Dense"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" @bind-Value="@newSchool.SchoolWebsite" T="string" Label="Enter School Website" Placeholder="School Website" Margin="Margin.Dense"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
                     <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                         <ActivatorContent>
                             <MudFab Color="Color.Secondary"
@@ -43,10 +52,10 @@
                                 <TemplateColumn CellClass="d-flex justify-end">
                                     <CellTemplate>
                                         <MudStack Row>
-                                     <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="()=>ManageSchoolDetailsAsync(context.Item)" Color="@Color.Primary">Manage</MudButton>
-                                 </MudStack>
-                             </CellTemplate>
-                         </TemplateColumn>
+                                            <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="() => ManageSchoolDetailsAsync(context.Item)" Color="@Color.Primary">Manage</MudButton>
+                                        </MudStack>
+                                    </CellTemplate>
+                                </TemplateColumn>
                             }
                             else
                             {
@@ -118,7 +127,7 @@
         if (!result.Canceled)
         {
             var data = result.Data;
-            if(data is string)
+            if (data is string)
             {
                 Snackbar.Add((string)data, Severity.Success);
                 await GetSchools();

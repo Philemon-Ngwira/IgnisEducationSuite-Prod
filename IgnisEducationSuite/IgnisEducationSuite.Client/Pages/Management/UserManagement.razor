@@ -4,89 +4,395 @@
 @using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.UniversalModels
 @using IgnisEducationSuite.Client.Pages.Management.Dialog
+@using System.Text.Json
+
+@using System.Security.Cryptography;
+@using System.Text
 @inject HttpClient Http
 @inject IDialogService DialogService
 @inherits AppBaseComponent
 @inject AppState appState
-<MudCard>
+@inject StudentNumberGenerator StudentNumberGenerator
+<MudCard Class="mb-4">
     <MudCardHeader>
         <CardHeaderContent>
             <MudText Align="Align.Center" Typo="Typo.h4"><b>User Management</b></MudText>
         </CardHeaderContent>
     </MudCardHeader>
+
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
 
+    <!-- Section: Current Users -->
+    <MudPaper Class="p-4 mb-4" Elevation="1">
+        <MudAlert Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true" Class="mb-3">
+            Current System Users
+        </MudAlert>
 
-    <MudAlert Class="mb-3" Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true">Current System Users</MudAlert>
-    <MudTabs Elevation="4" Rounded="true" Centered="true" Color="@Color.Primary">
-        @if (userRoles.Keys.Any())
-        {
-            @foreach (var item in userRoles)
+        <MudTabs Elevation="4" Rounded="true" Centered="true" Color="@Color.Primary">
+            @if (userRoles.Keys.Any())
             {
-                <MudTabPanel Text="@item.Key">
-                    <MudDataGrid Items="@item.Value">
-                        <ToolBarContent>
-                            <MudButton Size="@Size.Small" OnClick="() => CreateUserAsync(item.Key)" Variant="@Variant.Filled" Color="@Color.Primary">Create New User</MudButton>
+                @foreach (var role in userRoles)
+                {
+                    if (role.Key != "SuperAdmin")
+                    {
+                        <MudTabPanel Text="@role.Key">
+                            @if (role.Key == "Student")
+                            {
+                                <!-- Section: Bulk Upload Users -->
+                                <MudCard Class="mb-4 p-4" Elevation="4">
 
-                        </ToolBarContent>
-                        <Columns>
-                            <PropertyColumn Property="x => x.UserName" Title="User Name" />
-                            <PropertyColumn Property="x => x.Email" />
-                            <PropertyColumn Property="x => x.Id" Title="UserId" />
-                            <PropertyColumn Property="x => x.requiresPasswordReset" />
-                            <PropertyColumn Property="x => x.AccountActive" Title="Account Status" />
-                            <TemplateColumn CellClass="d-flex justify-end">
-                                <CellTemplate>
-                                    <MudStack Row>
-                                        <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary" OnClick="() => EditUserAsync(context.Item)">Edit</MudButton>
-                                        <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Error">Remove</MudButton>
+                                    <MudCardHeader>
+                                        <MudText Typo="Typo.h5" Align="Align.Center"><b>Bulk Upload Students</b></MudText>
+                                    </MudCardHeader>
+
+                                    <MudDivider Class="my-2" />
+
+                                    <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                        <MudFileUpload T="IBrowserFile" FilesChanged="UploadStudentFile">
+                                            <ActivatorContent>
+                                                <MudButton Variant="Variant.Filled"
+                                                           Color="Color.Primary"
+                                                           StartIcon="@Icons.Material.Filled.UploadFile">
+                                                    Bulk upload Students
+                                                </MudButton>
+                                            </ActivatorContent>
+                                        </MudFileUpload>
+                                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => DownloadTemplate(role.Key)">
+                                            Download Student Template
+                                        </MudButton>
+                                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(!selectedFileReady)" OnClick="ConfirmUploadStudent">
+                                            Confirm Upload
+                                        </MudButton>
                                     </MudStack>
-                                </CellTemplate>
-                            </TemplateColumn>
-                        </Columns>
 
-                    </MudDataGrid>
 
-                </MudTabPanel>
 
+
+                                    @if (uploadedStudents != null && uploadedStudents.Any())
+                                    {
+                                        @if (uploadedStudents.Count <= 50)
+                                        {
+                                            <!-- Use cards for small batches -->
+                                            <MudStack Spacing="3">
+                                                @foreach (var student in uploadedStudents)
+                                                {
+                                                    <MudCard Elevation="2" Class="p-3">
+                                                        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                                            <MudStack Spacing="1">
+                                                                <MudText Typo="Typo.subtitle1"><b>@student.FirstName @student.LastName</b></MudText>
+                                                                <MudText Typo="Typo.body2">Gender: @student.Gender</MudText>
+                                                                <MudText Typo="Typo.body2">Student Number: @student.StudentNumber</MudText>
+                                                                <MudText Typo="Typo.body2">Level: @student.LevelName</MudText>
+                                                                <MudText Typo="Typo.body2">Payment Status: @(student.PaymentStatus == true ? "Paid" : "Pending")</MudText>
+                                                            </MudStack>
+                                                            <MudAvatar Size="Size.Medium">
+                                                                <MudIcon Icon="@Icons.Material.Filled.Person"></MudIcon>
+                                                            </MudAvatar>
+                                                        </MudStack>
+                                                    </MudCard>
+                                                }
+                                            </MudStack>
+                                        }
+                                        else
+                                        {
+                                            <!-- Use table for larger batches -->
+                                            <MudTable Items="uploadedStudents" Hover="true" Bordered="true" Striped="true">
+                                                <HeaderContent>
+                                                    <MudTh>Full Name</MudTh>
+                                                    <MudTh>Gender</MudTh>
+                                                    <MudTh>Student Number</MudTh>
+                                                    <MudTh>Level</MudTh>
+                                                    <MudTh>Payment Status</MudTh>
+                                                </HeaderContent>
+                                                <RowTemplate>
+                                                    <MudTd>@context.FirstName @context.LastName</MudTd>
+                                                    <MudTd>@context.Gender</MudTd>
+                                                    <MudTd>@context.StudentNumber</MudTd>
+                                                    <MudTd>@context.LevelName</MudTd>
+                                                    <MudTd>
+                                                        <MudChip T="string" Color="@(context.PaymentStatus == true ? Color.Success : Color.Warning)" Variant="Variant.Filled">
+                                                            @(context.PaymentStatus == true ? "Paid" : "Pending")
+                                                        </MudChip>
+                                                    </MudTd>
+                                                </RowTemplate>
+                                                <PagerContent>
+                                                    <MudTablePager />
+                                                </PagerContent>
+                                            </MudTable>
+                                        }
+                                    }
+
+
+                                    else if (_files != null)
+                                    {
+                                        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2 text-secondary">
+                                            No valid students found in the uploaded file.
+                                        </MudText>
+                                    }
+                                </MudCard>
+                            }
+                            else if (role.Key == "Teacher")
+                            {
+                                <MudCard Class="mb-4 p-4" Elevation="4">
+
+                                    <MudCardHeader>
+                                        <MudText Typo="Typo.h5" Align="Align.Center"><b>Bulk Upload Teachers</b></MudText>
+                                    </MudCardHeader>
+
+                                    <MudDivider Class="my-2" />
+
+                                    <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                        <MudFileUpload T="IBrowserFile" FilesChanged="UploadTeacherFile">
+                                            <ActivatorContent>
+                                                <MudButton Variant="Variant.Filled"
+                                                           Color="Color.Primary"
+                                                           StartIcon="@Icons.Material.Filled.UploadFile">
+                                                    Bulk upload Teachers
+                                                </MudButton>
+                                            </ActivatorContent>
+                                        </MudFileUpload>
+                                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => DownloadTemplate(role.Key)">
+                                            Download Teacher Template
+                                        </MudButton>
+                                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(!selectedFileReady)" OnClick="ConfirmUploadTeacher">
+                                            Confirm Upload
+                                        </MudButton>
+                                    </MudStack>
+
+
+
+
+                                    @if (uploadedTeachers != null && uploadedTeachers.Any())
+                                    {
+                                        @if (uploadedTeachers.Count <= 50)
+                                        {
+                                            <!-- Use cards for small batches -->
+                                            <MudStack Spacing="3">
+                                                @foreach (var teacher in uploadedTeachers)
+                                                {
+                                                    <MudCard Elevation="2" Class="p-3">
+                                                        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                                            <MudStack Spacing="1">
+                                                                <MudText Typo="Typo.subtitle1"><b>@teacher.FirstName @teacher.LastName</b></MudText>
+                                                                <MudText Typo="Typo.body2">Gender: @teacher.Gender</MudText>
+                                                                <MudText Typo="Typo.body2">EmployeeID: @teacher.EmployeeID</MudText>
+                                                            </MudStack>
+                                                            <MudAvatar Size="Size.Medium">
+                                                                <MudIcon Icon="@Icons.Material.Filled.Person"></MudIcon>
+                                                            </MudAvatar>
+                                                        </MudStack>
+                                                    </MudCard>
+                                                }
+                                            </MudStack>
+                                        }
+                                        else
+                                        {
+                                            <!-- Use table for larger batches -->
+                                            <MudTable Items="uploadedTeachers" Hover="true" Bordered="true" Striped="true">
+                                                <HeaderContent>
+                                                    <MudTh>Full Name</MudTh>
+                                                    <MudTh>Gender</MudTh>
+                                                    <MudTh>EmployeeID</MudTh>
+                                                </HeaderContent>
+                                                <RowTemplate>
+                                                    <MudTd>@context.FirstName @context.LastName</MudTd>
+                                                    <MudTd>@context.Gender</MudTd>
+                                                    <MudTd>@context.EmployeeID</MudTd>
+
+                                                </RowTemplate>
+                                                <PagerContent>
+                                                    <MudTablePager />
+                                                </PagerContent>
+                                            </MudTable>
+                                        }
+                                    }
+
+
+                                    else if (_files != null)
+                                    {
+                                        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2 text-secondary">
+                                            No valid Teachers found in the uploaded file.
+                                        </MudText>
+                                    }
+                                </MudCard>
+                            }
+                            else if (role.Key == "Parent")
+                            {
+                                <MudCard Class="mb-4 p-4" Elevation="4">
+
+                                    <MudCardHeader>
+                                        <MudText Typo="Typo.h5" Align="Align.Center">
+                                            <b>Bulk Upload Parents</b>
+                                        </MudText>
+                                    </MudCardHeader>
+
+                                    <MudDivider Class="my-2" />
+
+                                    <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                        <MudFileUpload T="IBrowserFile" FilesChanged="UploadParentFile">
+                                            <ActivatorContent>
+                                                <MudButton Variant="Variant.Filled"
+                                                           Color="Color.Primary"
+                                                           StartIcon="@Icons.Material.Filled.UploadFile">
+                                                    Bulk upload Parents
+                                                </MudButton>
+                                            </ActivatorContent>
+                                        </MudFileUpload>
+
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   OnClick="() => DownloadTemplate(role.Key)">
+                                            Download Parent Template
+                                        </MudButton>
+
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Secondary"
+                                                   Disabled="@(!selectedFileReady)"
+                                                   OnClick="ConfirmUploadParents">
+                                            Confirm Upload
+                                        </MudButton>
+                                    </MudStack>
+
+                                    @if (uploadedParents != null && uploadedParents.Any())
+                                    {
+                                        @if (uploadedParents.Count <= 50)
+                                        {
+                                            <!-- CARD VIEW -->
+                                            <MudStack Spacing="3">
+                                                @foreach (var parent in uploadedParents)
+                                                {
+                                                    <MudCard Elevation="2" Class="p-3">
+                                                        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                                            <MudStack Spacing="1">
+                                                                <MudText Typo="Typo.subtitle1">
+                                                                    <b>@parent.FirstName @parent.LastName</b>
+                                                                </MudText>
+                                                                <MudText Typo="Typo.body2">Gender: @parent.Gender</MudText>
+                                                                <MudText Typo="Typo.body2">Email: @parent.Email</MudText>
+                                                                <MudText Typo="Typo.body2">
+                                                                    Students: @parent.StudentNumbersRaw
+                                                                </MudText>
+                                                            </MudStack>
+
+                                                            <MudAvatar Size="Size.Medium">
+                                                                <MudIcon Icon="@Icons.Material.Filled.FamilyRestroom" />
+                                                            </MudAvatar>
+                                                        </MudStack>
+                                                    </MudCard>
+                                                }
+                                            </MudStack>
+                                        }
+                                        else
+                                        {
+                                            <!-- TABLE VIEW -->
+                                            <MudTable Items="uploadedParents" Hover="true" Bordered="true" Striped="true">
+                                                <HeaderContent>
+                                                    <MudTh>Full Name</MudTh>
+                                                    <MudTh>Gender</MudTh>
+                                                    <MudTh>Email</MudTh>
+                                                    <MudTh>Student Numbers</MudTh>
+                                                </HeaderContent>
+
+                                                <RowTemplate>
+                                                    <MudTd>@context.FirstName @context.LastName</MudTd>
+                                                    <MudTd>@context.Gender</MudTd>
+                                                    <MudTd>@context.Email</MudTd>
+                                                    <MudTd>
+                                                        <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined">
+                                                            @context.StudentNumbersRaw
+                                                        </MudChip>
+                                                    </MudTd>
+                                                </RowTemplate>
+
+                                                <PagerContent>
+                                                    <MudTablePager />
+                                                </PagerContent>
+                                            </MudTable>
+                                        }
+                                    }
+                                    else if (_files != null)
+                                    {
+                                        <MudText Typo="Typo.body2"
+                                                 Align="Align.Center"
+                                                 Class="mt-2 text-secondary">
+                                            No valid parents found in the uploaded file.
+                                        </MudText>
+                                    }
+                                </MudCard>
+                            }
+
+                            <MudDataGrid Items="@role.Value">
+                                <ToolBarContent>
+                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateUserAsync(role.Key)">
+                                        Create New User
+                                    </MudButton>
+                                </ToolBarContent>
+
+                                <Columns>
+                                    @if (role.Value.Any())
+                                    {
+                                        <PropertyColumn Property="x => x.UserName" Title="User Name" />
+                                        <PropertyColumn Property="x => x.Email" Title="Email" />
+                                        <PropertyColumn Property="x => x.Id" Title="User ID" />
+                                        <PropertyColumn Property="x => x.requiresPasswordReset" Title="Password Reset Required" />
+                                        <PropertyColumn Property="x => x.AccountActive" Title="Account Status" />
+                                        <TemplateColumn Title="Actions" CellClass="d-flex justify-end">
+                                            <CellTemplate>
+                                                <MudStack Row Spacing="1">
+                                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => EditUserAsync(context.Item)">
+                                                        Edit
+                                                    </MudButton>
+                                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Error">
+                                                        Remove
+                                                    </MudButton>
+                                                </MudStack>
+                                            </CellTemplate>
+                                        </TemplateColumn>
+                                    }
+                                    else
+                                    {
+                                        <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Info">
+                                            No users found for this role
+                                        </MudAlert>
+                                    }
+                                </Columns>
+
+                            </MudDataGrid>
+                        </MudTabPanel>
+                    }
+                }
             }
-
-        }
-    </MudTabs>
-
+        </MudTabs>
+    </MudPaper>
 </MudCard>
 
 @code {
-    protected bool isLoading = false;
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; }
+
+    [Inject] ClientEmailService _emailService { get; set; } = default!;
     private Dictionary<string, List<ApplicationUser>> userRoles = new();
     private string newUserName = string.Empty;
     private string newUserPassword = string.Empty;
     private string newUserRole = string.Empty;
     protected List<Gender> genders = new();
+    protected List<Student> uploadedStudents = new();
+    protected List<Student> studentsToUpdate = new();
+    protected List<Teacher> uploadedTeachers = new();
+    protected List<Parent> uploadedParents = new();
+    protected List<string> uploadErrors = new();
     protected List<string> Roles = new();
     protected string UserID = string.Empty;
     protected ClientAdmin loggedInAdmin = new();
     protected LicenseSlots LicenseUserLimit = new();
+    protected bool selectedFileReady = false;
+
+    protected UniversalUser newUser = new();
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
-        if (!AppState.IsInitialized)
+        LoaderService.Show("Please wait while we load users...");
+        if (!AppState.IsFullyInitialized)
         {
             Snackbar.Add("App reinitializing");
             _navigationManager.NavigateTo("/", true);
@@ -95,8 +401,574 @@
         await GetAdminData();
         await GetUsersWithRoles();
         await GetGenders();
-        isLoading = false;
+        LoaderService.Hide();
     }
+    IList<IBrowserFile> _files = new List<IBrowserFile>();
+    #region ParentBulkUpload
+
+    private async Task UploadParentFile(IBrowserFile file)
+    {
+        if (file == null || file.Size == 0) return;
+
+        LoaderService.Show("Validating parent file, please wait...");
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream(10 * 1024 * 1024);
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType =
+                new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await Http.PostAsync("api/upload/uploadParents", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<UploadPreviewResult>();
+
+                if (result != null)
+                {
+                    uploadedParents = result.ParentPreview;
+                    uploadErrors = result.Errors
+                        .Select(e => $"Row {e.RowIndex}: {e.Message}")
+                        .ToList();
+
+                    selectedFileReady = true;
+                }
+            }
+            else
+            {
+                uploadErrors.Add("Failed to upload parent file.");
+            }
+        }
+        catch (Exception ex)
+        {
+            uploadErrors.Add($"Error uploading parent file: {ex.Message}");
+        }
+        finally
+        {
+            LoaderService.Hide();
+            StateHasChanged();
+        }
+    }
+
+    private async Task GenerateUsernamesForUploadedParents()
+    {
+        var payload = uploadedParents
+            .Select((p, i) => new UserNameRequest
+            {
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                Index = i
+            })
+            .ToList();
+
+        var response = await Http.PostAsJsonAsync(
+            "api/Dynamic/generateUsernames",
+            payload);
+
+        if (!response.IsSuccessStatusCode)
+            throw new Exception("Failed to generate usernames.");
+
+        var results = await response.Content
+            .ReadFromJsonAsync<List<UsernameResult>>();
+
+        foreach (var result in results!)
+        {
+            uploadedParents[result.Index].GeneratedUserName = result.Username;
+        }
+    }
+
+    private async Task ConfirmUploadParents()
+    {
+        LoaderService.Show("Creating parent accounts, please wait...");
+
+        await GenerateUsernamesForUploadedParents();
+        studentsToUpdate.Clear();
+
+        foreach (var parent in uploadedParents)
+        {
+            newUser = new UniversalUser
+            {
+                UserName = parent.GeneratedUserName,
+                FirstName = parent.FirstName,
+                LastName = parent.LastName,
+                profilePic = Array.Empty<byte>()
+            };
+
+            parent.ParentID = Guid.NewGuid();
+            parent.SchoolID = Guid.Parse(AppState.SchoolID);
+
+            parent.UserId = await CreateNewUser(
+                parent.Email,
+                parent.ParentID,
+                "Parent");
+
+            // ✅ Always send credentials
+            await SendOneTimePasswordEmail(
+                parent.Email,
+                newUser.Password,
+                newUser.UserName,
+                $"{parent.FirstName} {parent.LastName}",
+                "N/A");
+
+            // 🔗 Resolve students (bulk-safe)
+            if (!string.IsNullOrWhiteSpace(parent.StudentNumbersRaw))
+            {
+                var numbers = parent.StudentNumbersRaw
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .ToList();
+
+                var response = await Http.PostAsJsonAsync(
+                    "api/Dynamic/GetStudentsByStudentNumbers",
+                    new
+                    {
+                        SchoolID = parent.SchoolID,
+                        StudentNumbers = numbers
+                    });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var students = await response.Content.ReadFromJsonAsync<List<Student>>();
+
+                    foreach (var student in students!)
+                    {
+                        student.ParentID = parent.ParentID;
+                        studentsToUpdate.Add(student);
+                    }
+                }
+                else
+                {
+                    uploadErrors.Add(
+                        $"Failed to resolve students for parent {parent.FirstName} {parent.LastName}");
+                }
+            }
+        }
+
+        var parentsToSend = uploadedParents
+            .Where(p => !string.IsNullOrEmpty(p.UserId))
+            .ToList();
+
+        await CreateNewParents(parentsToSend);
+        await GetUsersWithRoles();
+
+        LoaderService.Hide();
+        StateHasChanged();
+    }
+
+    private async Task CreateNewParents(List<Parent> parents)
+    {
+        var service = _genericService.GetService<List<Parent>>();
+        var result = await service.PostAsync(
+            "api/Dynamic/PostEntities",
+            "parent",
+            parents);
+
+        if (result.IsSuccess)
+        {
+            uploadedParents.Clear();
+
+            if (studentsToUpdate.Any())
+            {
+                var studentService = _genericService.GetService<List<Student>>();
+                await studentService.UpdateAsync(
+                    "api/Dynamic/UpdateEntities",
+                    "student",
+                    studentsToUpdate);
+
+                studentsToUpdate.Clear();
+            }
+
+            Snackbar.Add("Parents created successfully", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to create parents", Severity.Error);
+        }
+    }
+
+    #endregion
+
+    #region TeacherBulkUpload
+    private async Task UploadTeacherFile(IBrowserFile file)
+    {
+        if (file == null || file.Size == 0) return;
+
+        LoaderService.Show("Processing the student file, please wait...");
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10 MB max
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            // Call the UploadStudents API
+            var response = await Http.PostAsync("api/upload/uploadTeachers", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Read the preview list and errors
+                var result = await response.Content.ReadFromJsonAsync<UploadPreviewResult>();
+                if (result != null)
+                {
+                    uploadedTeachers = result.TeacherPreview;
+                    uploadErrors = result.Errors.Select(e => $"Row {e.RowIndex}: {e.Message}").ToList();
+                    selectedFileReady = true;
+                }
+            }
+            else
+            {
+                var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+                if (json.TryGetProperty("errors", out var errors))
+                {
+                    uploadErrors = errors.EnumerateArray().Select(x => x.GetString() ?? "").ToList();
+                }
+                else
+                {
+                    uploadErrors.Add("Failed to upload student file.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            uploadErrors.Add($"Error uploading student file: {ex.Message}");
+        }
+        finally
+        {
+            LoaderService.Hide();
+            StateHasChanged();
+        }
+    }
+
+    private async Task GenerateUsernamesForUploadedTeachers()
+    {
+        var payload = uploadedTeachers
+            .Select(s => new UserNameRequest
+            {
+                FirstName = s.FirstName,
+                LastName = s.LastName
+            })
+            .ToList();
+
+        var response = await Http.PostAsJsonAsync(
+            "api/Dynamic/generateUsernames",
+            payload);
+
+        if (!response.IsSuccessStatusCode)
+            throw new Exception("Failed to generate usernames.");
+
+        var results = await response.Content
+            .ReadFromJsonAsync<List<UsernameResult>>();
+
+        foreach (var result in results!)
+        {
+            uploadedTeachers[result.Index].GeneratedUserName = result.Username;
+        }
+    }
+    private async Task ConfirmUploadTeacher()
+    {
+        LoaderService.Show("Creating teacher accounts, please wait...");
+        //Create
+        await GenerateUsernamesForUploadedTeachers();
+        foreach (var item in uploadedTeachers)
+        {
+            newUser = new UniversalUser()
+            {
+                UserName = item.GeneratedUserName,
+                FirstName = item.FirstName,
+                LastName = item.LastName,
+                profilePic = item.ProfilePic ?? Array.Empty<byte>(),
+            };
+            item.SchoolID = Guid.Parse(AppState.SchoolID);
+            item.TeacherID = Guid.NewGuid();
+            item.CreatedBy = $"{AppState.FirstName} {AppState.LastName}";
+            item.CreatedDate = DateTime.UtcNow;
+            item.UserID = await CreateNewUser(item.EmailAddress, item.TeacherID, "Teacher");
+
+            await SendOneTimePasswordEmail(item.EmailAddress, newUser.Password, newUser.UserName, $"{item.FirstName} {item.LastName}", "N/A");
+        }
+
+        //Create Student Details
+        var teachersToSend = uploadedTeachers.Where(x => x.UserID != string.Empty).ToList();
+        await CreateNewTeachers(teachersToSend);
+        await GetUsersWithRoles();
+        StateHasChanged();
+        LoaderService.Hide();
+    }
+
+    private async Task CreateNewTeachers(List<Teacher> teachers)
+    {
+        var service = _genericService.GetService<List<Teacher>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "teacher", teachers);
+        if (result.IsSuccess)
+        {
+            uploadedTeachers.Clear();
+            Snackbar.Add("Students created successfully", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to create students", Severity.Error);
+        }
+    }
+    #endregion
+    #region Student Bulk Upload
+    private async Task UploadStudentFile(IBrowserFile file)
+    {
+        if (file == null || file.Size == 0) return;
+
+        LoaderService.Show("Processing the student file, please wait...");
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10 MB max
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            // Call the UploadStudents API
+            var response = await Http.PostAsync("api/upload/uploadStudents", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Read the preview list and errors
+                var result = await response.Content.ReadFromJsonAsync<UploadPreviewResult>();
+                if (result != null)
+                {
+                    uploadedStudents = result.Preview;
+                    uploadErrors = result.Errors.Select(e => $"Row {e.RowIndex}: {e.Message}").ToList();
+                    selectedFileReady = true;
+                }
+            }
+            else
+            {
+                var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+                if (json.TryGetProperty("errors", out var errors))
+                {
+                    uploadErrors = errors.EnumerateArray().Select(x => x.GetString() ?? "").ToList();
+                }
+                else
+                {
+                    uploadErrors.Add("Failed to upload student file.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            uploadErrors.Add($"Error uploading student file: {ex.Message}");
+        }
+        finally
+        {
+            LoaderService.Hide();
+            StateHasChanged();
+        }
+    }
+    private async Task ConfirmUploadStudent()
+    {
+        LoaderService.Show("Creating student accounts, please wait...");
+        //Create
+        await GenerateUsernamesForUploadedStudents();
+        foreach (var item in uploadedStudents)
+        {
+            newUser = new UniversalUser()
+            {
+                UserName = item.GeneratedUserName,
+                FirstName = item.FirstName,
+                LastName = item.LastName,
+                profilePic = item.ProfilePic ?? Array.Empty<byte>(),
+            };
+            item.SchoolID = Guid.Parse(AppState.SchoolID);
+            item.AcademicLevel = academicLevels.Where(x => x.LevelName == item.LevelName).Select(x => x.LevelInt).FirstOrDefault();
+            item.StudentID = Guid.NewGuid();
+            var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
+            if (count >= LicenseUserLimit.UserLimit) // Corrected condition
+            {
+                Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
+                return;
+            }
+            item.UserID = await CreateNewUser(item.Email, item.StudentID, "Student");
+
+            await SendOneTimePasswordEmail(item.Email, newUser.Password, newUser.UserName, $"{item.FirstName} {item.LastName}", item.StudentNumber);
+        }
+
+        //Create Student Details
+        var studentsToSend = uploadedStudents.Where(x => x.UserID != string.Empty).ToList();
+        await CreateNewStudents(studentsToSend);
+        await GetUsersWithRoles();
+        StateHasChanged();
+        LoaderService.Hide();
+    }
+    private async Task CreateNewStudents(List<Student> students)
+    {
+        var service = _genericService.GetService<List<Student>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "student", students);
+        if (result.IsSuccess)
+        {
+            uploadedStudents.Clear();
+            Snackbar.Add("Students created successfully", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to create students", Severity.Error);
+        }
+    }
+    private async Task DownloadTemplate(string role)
+    {
+        LoaderService.Show("Preparing download...");
+        var path = "";
+        var fileName = "";
+        switch (role)
+        {
+            case "Student":
+                path = "api/Templates/DownloadStudentTemplate";
+                fileName = "Student_Upload_Template.xlsx";
+                break;
+            case "Teacher":
+                path = "api/Templates/DownloadTeacherTemplate";
+                fileName = "Teacher_Upload_Template.xlsx";
+                break;
+            case "Parent":
+                path = "api/Templates/DownloadParentTemplate";
+                fileName = "Parent_Upload_Template.xlsx";
+                break;
+            default:
+                break;
+        }
+        var response = await HttpClient.GetAsync(path);
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Read the file content as a byte array
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+            // Get file name from response header if present, fallback to default
+            if (response.Content.Headers.ContentDisposition != null)
+            {
+                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            }
+
+            // Use JSInterop to trigger the browser download
+            await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, fileBytes);
+        }
+        else
+        {
+            // Handle error (optional)
+            Console.WriteLine("Failed to download template: " + response.StatusCode);
+        }
+        LoaderService.Hide();
+
+    }
+    private async Task GenerateUsernamesForUploadedStudents()
+    {
+        var payload = uploadedStudents
+            .Select(s => new UserNameRequest
+            {
+                FirstName = s.FirstName,
+                LastName = s.LastName
+            })
+            .ToList();
+
+        var response = await Http.PostAsJsonAsync(
+            "api/Dynamic/generateUsernames",
+            payload);
+
+        if (!response.IsSuccessStatusCode)
+            throw new Exception("Failed to generate usernames.");
+
+        var results = await response.Content
+            .ReadFromJsonAsync<List<UsernameResult>>();
+
+        foreach (var result in results!)
+        {
+            uploadedStudents[result.Index].GeneratedUserName = result.Username;
+        }
+    }
+
+    #endregion
+    private async Task SendOneTimePasswordEmail(string ToEmail, string Password, string UserName, string recipientName, string studentID)
+    {
+        try
+        {
+            var emailRequest = new EmailRequest
+            {
+                To = ToEmail,
+                Reciepient = recipientName,
+                Password = Password,
+                UserName = UserName,
+                StudentID = studentID,
+                isFirstMail = true
+            };
+
+            var emailResult = await _emailService.SendPasswordResetEmailAsync(emailRequest, NavigationManager.BaseUri);
+            if (emailResult == "Password reset email sent successfully!")
+            {
+                Snackbar.Add($"One time password sent successfully to {recipientName}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"Email failed to send: {emailResult}", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error sending email: {ex.Message}", Severity.Error);
+        }
+    }
+    protected async Task<string> CreateNewUser(string Email, Guid ModelID, string Role)
+    {
+        try
+        {
+            LoaderService.Show("Please wait, creating user!");
+            StateHasChanged();
+
+            // Generate credentials
+            newUser.Password = StudentNumberGenerator.GenerateOneTimePassword();
+            newUser.Role = Role;
+
+
+            var createUserModel = new CreateUserModel
+            {
+                UserName = newUser.UserName,
+                Password = newUser.Password,
+                Email = Email,
+                Role = newUser.Role,
+                SchoolID = Guid.Parse(AppState.SchoolID),
+                UserID = ModelID.ToString(),
+                ProfilePic = newUser.profilePic,
+                FirstName = newUser.FirstName,
+                LastName = newUser.LastName
+            };
+
+            // Create Identity User
+            var result = await Http.PostAsJsonAsync($"{NavigationManager.BaseUri}api/Admin/createUser", createUserModel);
+            if (!result.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Error: Saving user failed", Severity.Error);
+                return string.Empty;
+            }
+
+            var createdUser = await result.Content.ReadFromJsonAsync<ApplicationUser>();
+            newUser.UserID = createdUser.Id;
+            return createdUser.Id;
+
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
+            return string.Empty;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+
     protected async Task GetUserLimit()
     {
         var result = await Http.GetFromJsonAsync<LicenseSlots>($"api/Verification/GetLicenseLimit/{Guid.Parse(AppState.SchoolID)}");
@@ -191,10 +1063,10 @@
                 var message = (string)dt;
                 if (message == "Successful")
                 {
-                    isLoading = true;
+                    LoaderService.Show("Fininshing Process please wait...");
                     await GetUsersWithRoles();
                     StateHasChanged();
-                    isLoading = false;
+                    LoaderService.Hide();
                 }
             }
         }

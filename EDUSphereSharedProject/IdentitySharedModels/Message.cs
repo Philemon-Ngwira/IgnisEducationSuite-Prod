@@ -13,5 +13,7 @@ namespace EDUSphereSharedProject.IdentitySharedModels
         public string RecipientId { get; set; }
         public string GroupName { get; set; }
         public DateTime? Timestamp { get; set; }
+
+        public string GroupIdentifier { get; set; }
     }
 }

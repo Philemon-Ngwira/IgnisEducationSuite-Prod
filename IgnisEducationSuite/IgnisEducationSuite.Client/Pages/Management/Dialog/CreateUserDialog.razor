@@ -12,75 +12,67 @@
 @inherits AppBaseComponent
 <MudDialog>
     <DialogContent>
-        @if (isLoading)
-        {
-            <!-- HTML Structure -->
-            <div id="loader-overlay" class="fixed inset-0 bg-primary/80 backdrop-blur-md flex items-center justify-center z-50">
-                <div class="loader-container text-center">
-                    <!-- Spinner with glowing and spinning effects -->
-                    <div class="spinner relative w-16 h-16 rounded-full border-4 border-transparent border-t-accent animate-spin">
-                        <div class="absolute inset-0 rounded-full animate-pulse glow"></div>
-                    </div>
-                    <!-- Loader Icon -->
-                    <div class="loader-icon text-4xl mt-6 animate-pulse text-accent-light">🔄</div>
-                    <!-- Loading Text -->
-                    <p class="loading-text text-accent-light mt-4 text-lg font-semibold animate-bounce">
-                        Loading, please wait...
-                    </p>
-                </div>
-            </div>
-        }
+        <MudText Class="mb-4" Align="Align.Center" Typo="Typo.h4"><b>Manage User Account</b></MudText>
 
-        <MudGrid>
-            <MudItem xs="12" Class="mb-3">
-                <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">User Account Detaails</MudAlert>
+        <MudGrid Spacing="3">
+
+            <!-- Section: Account Details -->
+            <MudItem xs="12" Class="mb-2">
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">User Account Details</MudAlert>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.UserName" Label="UserName"></MudTextField>
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.UserName" Label="Username" />
             </MudItem>
             <MudItem xs="12" md="6">
                 @if (AppState.HideStudentDashboard && Role == "Student")
                 {
-                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Enter Parent Email For Password"></MudTextField>
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Parent Email for Password" />
                 }
                 else
                 {
-
-                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Email"></MudTextField>
-
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Email" />
                 }
             </MudItem>
 
-            <MudItem xs="12" Class="mb-3">
+            <!-- Section: Personal Information -->
+            <MudItem xs="12" Class="mb-2 mt-3">
                 <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">User Information</MudAlert>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.FirstName" Label="FirstName"></MudTextField>
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.FirstName" Label="First Name" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.LastName" Label="LastName"></MudTextField>
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.LastName" Label="Last Name" />
             </MudItem>
+
+            <!-- Location: Country & City -->
             <MudItem xs="12" md="6">
-                <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter" Margin="Margin.Dense" T="CountryDTO" Label="Countries" Value="Country" Placeholder="Select Country" SearchFunc="@SearchCountry"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true" CoerceValue="true"
+                <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter"
+                                 T="CountryDTO" Label="Country" Placeholder="Select Country"
+                                 SearchFunc="@SearchCountry" Margin="Margin.Dense"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true"
                                  AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter" Margin="Margin.Dense" T="CityDTO" Label="Cities" Disabled="Country.CountryName == null" SearchFunc="@SearchCity"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true" CoerceValue="true"
+                <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter"
+                                 T="CityDTO" Label="City" Disabled="Country.CountryName == null"
+                                 SearchFunc="@SearchCity" Margin="Margin.Dense"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true"
                                  AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
             </MudItem>
+
+            <!-- Student-specific fields -->
             @if (Role == "Student")
             {
                 <MudItem xs="12" md="6">
-                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="int" @bind-Value="newUser.GradeLevel" Label="Grade Level"></MudTextField>
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="int" @bind-Value="newUser.GradeLevel" Label="Grade Level" />
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.GradeSection" Placeholder="Enter Grade Section e.g for 10A enter 'A'" Label="Grade Section"></MudTextField>
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.GradeSection" Label="Grade Section" Placeholder="e.g., A for 10A" />
                 </MudItem>
             }
+
+            <!-- Gender & Address -->
             <MudItem xs="12" md="6">
                 <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newUser.Gender">
                     @foreach (var item in genders)
@@ -88,66 +80,93 @@
                         <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
                     }
                 </MudSelect>
-
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Address" Label="Address"></MudTextField>
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Address" Label="Address" />
             </MudItem>
+
+            <!-- Teacher-specific -->
             @if (Role == "Teacher")
             {
                 <MudItem xs="12" md="6">
                     <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Engagement Date" @bind-Date="newUser.DateEngaged" />
                 </MudItem>
             }
-            @if (Role == "Teacher" || Role == "Student" || Role == "Student")
+
+            <!-- ID Prefix -->
+            @if (Role == "Teacher" || Role == "Student")
             {
                 <MudItem xs="12" md="6">
-                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="IDPrefix" Disabled="string.IsNullOrEmpty(PrefixLabel)" Label="@PrefixLabel"></MudTextField>
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="IDPrefix" Disabled="string.IsNullOrEmpty(PrefixLabel)" Label="@PrefixLabel" />
                 </MudItem>
             }
+
+            <!-- Parent-specific -->
             @if (Role == "Parent")
             {
-                <MudItem xs="12" md="6">
-                    <MudAutocomplete Variant="Variant.Outlined" @bind-Value="selectedStudent" Placeholder="Search Student" ToStringFunc="StudentTypeconverter" Margin="Margin.Dense" T="Student" Label="Students" SearchFunc="@SearchStudent"
+                <MudItem xs="12">
+                    <MudAutocomplete T="Student"
+                                     Label="Search & Add Child"
+                                     Placeholder="Type student name"
+                                     ToStringFunc="StudentTypeconverter"
+                                     SearchFunc="@SearchStudent"
+                                     ValueChanged="AddChildToParent"
+                                     CoerceText="true"
                                      ResetValueOnEmptyText="true"
-                                     CoerceText="true" CoerceValue="true"
-                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                                     Clearable="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     AdornmentColor="Color.Primary" />
+
                 </MudItem>
+
+                <MudItem xs="12">
+                    @if (parentsChildren.Any())
+                    {
+                        <MudChipSet T="string">
+                            @foreach (var child in parentsChildren)
+                            {
+                                <MudChip Color="Color.Primary" OnCloseClicked="@(() => RemoveChild(child))" Closeable="true">
+                                    @child.FirstName @child.LastName
+                                </MudChip>
+                            }
+                        </MudChipSet>
+                    }
+                    else
+                    {
+                        <MudText>No children selected</MudText>
+                    }
+                </MudItem>
+
             }
 
-
+            <!-- Contact Number -->
             @if (Role == "Parent" || Role == "Teacher")
             {
                 <MudItem xs="12" md="6">
-                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.ContactNo" Label="Contact Number"></MudTextField>
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.ContactNo" Label="Contact Number" />
                 </MudItem>
             }
+
+            <!-- Profile Picture Upload -->
             <MudItem xs="12" md="6">
                 <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                     <ActivatorContent>
-                        <MudFab Color="Color.Secondary"
-                                StartIcon="@Icons.Material.Filled.Image"
-                                Label="Load Profile Picture" />
+                        <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Image" Label="Load Profile Picture" />
                     </ActivatorContent>
                 </MudFileUpload>
             </MudItem>
         </MudGrid>
-
-
-
-
-
-
-
     </DialogContent>
+
     <DialogActions>
-        <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false">
-            <MudButton Color="Color.Primary" OnClick="CreateNewUser" Variant="Variant.Outlined">Add New User</MudButton>
-            <MudButton Color="Color.Warning" Variant="Variant.Outlined" OnClick="Clear">Clear</MudButton>
-            <MudButton Color="Color.Error" Variant="Variant.Outlined" OnClick="CloseDialog">Close</MudButton>
+        <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false" FullWidth="true" Class="gap-2">
+            <MudButton Color="Color.Primary" OnClick="CreateNewUser" Variant="Variant.Filled">Add New User</MudButton>
+            <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="Clear">Clear</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="CloseDialog">Close</MudButton>
         </MudButtonGroup>
     </DialogActions>
 </MudDialog>
+
 
 @code {
 
@@ -156,6 +175,7 @@
     [Parameter] public List<CountryDTO> countries { get; set; } = new();
     [Parameter] public List<Gender> genders { get; set; } = new();
     [Parameter] public ClientAdmin LoggedAdmin { get; set; } = new();
+    private List<Student> parentsChildren = new();
     protected List<CityDTO> Cities = new();
     protected UniversalUser newUser = new();
     protected string IDPrefix = string.Empty;
@@ -166,12 +186,11 @@
     [Inject] ClientEmailService _emailService { get; set; } = default!;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     IList<IBrowserFile> _files = new List<IBrowserFile>();
-    protected bool isLoading = false;
     protected List<Student> students = new();
     protected Student selectedStudent = new();
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait a moment...");
         if (Role == "Student")
         {
             PrefixLabel = "StudentNumber Prefix";
@@ -185,8 +204,7 @@
             await GetStudent();
             PrefixLabel = "";
         }
-        await Task.Delay(1000);
-        isLoading = false;
+        LoaderService.Hide();
     }
     protected async Task GetStudent()
     {
@@ -194,6 +212,23 @@
         var service = await result.GetAllAsync($"api/Dynamic/GetStudentsBySchool/{AppState.SchoolID}", true);
         students = service.Data.ToList();
 
+    }
+    private void AddChildToParent(Student student)
+    {
+        if (student != null && !parentsChildren.Contains(student))
+        {
+            parentsChildren.Add(student);
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveChild(Student student)
+    {
+        if (parentsChildren.Contains(student))
+        {
+            parentsChildren.Remove(student);
+            StateHasChanged();
+        }
     }
     protected async Task GetCities(CountryDTO selectedCountry)
     {
@@ -276,7 +311,7 @@
     {
         try
         {
-            isLoading = true;
+            LoaderService.Show("Please wait, creating user!");
             StateHasChanged();
 
             // 1️⃣ Generate credentials
@@ -338,7 +373,7 @@
         }
         finally
         {
-            isLoading = false;
+            LoaderService.Hide();
             StateHasChanged();
         }
     }
@@ -467,10 +502,12 @@
         }
 
         // Link parent to student
-        selectedStudent.ParentID = saved.Data.ParentID;
-        selectedStudent.Parent = saved.Data;
-        var updateService = genericService.GetService<Student>();
-        var updatedStudent = await updateService.UpdateAsync("api/Dynamic/UpdateEntity", "student", selectedStudent);
+        foreach (var item in parentsChildren)
+        {
+            item.ParentID = parent.ParentID;
+        }
+        var updateService = genericService.GetService<List<Student>>();
+        var updatedStudent = await updateService.UpdateAsync("api/Dynamic/UpdateEntities", "student", parentsChildren);
 
         if (!updatedStudent.IsSuccess)
         {
@@ -514,7 +551,7 @@
 
     protected Func<CountryDTO, string> CountryTypeconverter = p => p?.CountryCode + ":" + p?.CountryName;
     protected Func<CityDTO, string> CityTypeconverter = p => p?.CityName;
-    protected Func<Student, string> StudentTypeconverter = p => p?.FirstName + " " + p?.LastName;
+    protected Func<Student, string> StudentTypeconverter = p => p?.FirstName + " " + p?.LastName + "-" + p?.LevelName;
     #endregion
 
     private void CloseDialog()

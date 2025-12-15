@@ -12,18 +12,24 @@ public class AppBaseComponent : ComponentBase, IDisposable
     [Inject] protected GenericServiceFactory GenericService { get; set; }
     [Inject] protected NavigationManager NavigationManager { get; set; } = default!;
     [Inject] protected ISnackbar Snackbar { get; set; } = default!;
+    [Inject] protected LoaderService LoaderService { get; set; } = default!;
     protected List<AcademicLevel> academicLevels { get; set; } = new List<AcademicLevel>();
     protected override void OnInitialized()
     {
         AppState.OnChange += StateHasChanged;
-        academicLevels = AppState.academicLevels;
+        academicLevels = AppState.AcademicLevels;
     }
-
+    protected readonly List<string> MealOrder = new()
+    {
+        "Breakfast",
+        "Lunch",
+        "Dinner"
+    };
     public void Dispose()
     {
         AppState.OnChange -= StateHasChanged;
     }
 
 
-   
+
 }

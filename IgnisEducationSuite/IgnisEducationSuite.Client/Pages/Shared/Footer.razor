@@ -1,0 +1,116 @@
+﻿<footer id="ignis-footer" class="footer">
+    <div class="footer-content d-flex justify-space-between align-center flex-wrap">
+
+        <!-- Left: Company -->
+        <div class="footer-left">
+            &copy; @DateTime.Now.Year <b>Philtiara Enterprises</b>. All rights reserved.
+        </div>
+
+        <!-- Middle: Links -->
+        <div class="footer-center">
+            <a href="/privacy" class="footer-link">Privacy</a>
+            <span class="separator">|</span>
+            <a href="/terms" class="footer-link">Terms</a>
+            <span class="separator">|</span>
+            <a href="/contact" class="footer-link">Contact</a>
+        </div>
+
+        <!-- Right: Version & Environment -->
+        <div class="footer-right">
+            Version @Version
+            @if (!string.IsNullOrEmpty(Environment))
+            {
+                <span class="env-tag">@Environment</span>
+            }
+        </div>
+
+    </div>
+</footer>
+<style>
+
+    /* Sticky Footer Container */
+    .ignis-footer {
+        background: linear-gradient(180deg, rgba(16, 13, 22, 0.97), rgba(13, 10, 18, 0.99));
+        border-top: 1px solid rgba(212, 175, 55, 0.45);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), inset -8px 0 22px rgba(0,0,0,0.6);
+        color: rgba(237, 231, 246, 0.78);
+        padding: 1rem 2rem;
+        font-size: 0.9rem;
+        flex-shrink: 0; /* prevents shrinking in flex layouts */
+    }
+
+    /* Footer Content Layout */
+    .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+    }
+
+    /* Left / Middle / Right Sections */
+    .footer-left {
+        flex: 1 1 auto;
+    }
+
+    .footer-center {
+        flex: 2 1 auto;
+        text-align: center;
+    }
+
+    .footer-right {
+        flex: 1 1 auto;
+        text-align: right;
+    }
+
+    /* Links */
+    .footer-link {
+        color: rgba(237, 231, 246, 0.78);
+        text-decoration: none;
+        margin: 0 0.25rem;
+        transition: color 0.2s, box-shadow 0.2s;
+    }
+
+        .footer-link:hover {
+            color: #fff;
+            text-decoration: underline;
+            box-shadow: inset 0 0 8px rgba(212, 175, 55, 0.12);
+        }
+
+    /* Separator styling */
+    .separator {
+        color: rgba(212, 175, 55, 0.35);
+        margin: 0 0.25rem;
+    }
+
+    /* Environment Tag */
+    .env-tag {
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.22), rgba(122, 77, 187, 0.22));
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+        padding: 0.1rem 0.4rem;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        margin-left: 0.5rem;
+        color: #fff;
+    }
+
+    /* Sticky Footer Layout: applied on layout container */
+    .ignis-layout {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh; /* full viewport height */
+    }
+
+    .ignis-main-content {
+        flex: 1 0 auto; /* grows to fill space above footer */
+    }
+
+
+</style>
+@code {
+    [Parameter]
+    public string Version { get; set; } = "1.0.1";
+
+    [Parameter]
+    public string Environment { get; set; } = "TEST"; // DEV, TEST, PROD
+}

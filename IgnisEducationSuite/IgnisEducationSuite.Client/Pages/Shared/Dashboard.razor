@@ -12,6 +12,7 @@
 @using System.Security.Claims
 @inject HttpClient httpClient
 @inherits AppBaseComponent
+
 <MudCard>
     <MudCardHeader Class="mb-3">
         <CardHeaderContent>
@@ -35,7 +36,7 @@
         }
         <AuthorizeView>
             <Authorized>
-                @if (AppState.IsInitialized)
+                @if (AppState.IsFullyInitialized)
                 {
                     @if (!AppState.LicenseIsActive)
                     {
@@ -483,6 +484,118 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <!--==========================Food Time Table===============================-->
+                                    <div class="col-xxl-12 col-md-12">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                    <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Dining Menu</h6>
+                                                </div>
+                                            </div>
+
+                                            <div class="card-body">
+                                                @if (schoolMenu.Any())
+                                                {
+                                                    <MudTabs @bind-ActivePanelIndex="activeDayIndex">
+                                                        @for (int i = 0; i < dayOrder.Count; i++)
+                                                        {
+                                                            var day = dayOrder[i];
+                                                            <MudTabPanel Text="@day">
+                                                                <MudGrid>
+                                                                    @foreach (var item in schoolMenu.Where(x => x.DayOfWeek == day))
+                                                                    {
+                                                                        <MudItem xs="12" md="4">
+                                                                            <MudCard Class="mb-3">
+                                                                                <MudCardHeader>
+                                                                                    <CardHeaderAvatar>
+                                                                                        <MudIcon Icon="@Icons.Material.Filled.Dining" />
+                                                                                    </CardHeaderAvatar>
+                                                                                    <CardHeaderContent>
+                                                                                        <MudText Typo="Typo.h6"><b>@item.MealName</b></MudText>
+                                                                                    </CardHeaderContent>
+                                                                                </MudCardHeader>
+                                                                                <MudCardContent>
+                                                                                    <MudText Typo="Typo.body2">Main Dish</MudText>
+                                                                                    <MudText Typo="Typo.subtitle1"><b>@item.MainDish</b></MudText>
+                                                                                    <MudGrid>
+                                                                                        <MudItem xs="12" sm="6">
+                                                                                            <MudText Typo="Typo.body2">Side Dish</MudText>
+                                                                                            <MudText Typo="Typo.body1"><b>@item.SideDish</b></MudText>
+                                                                                        </MudItem>
+                                                                                        <MudItem xs="12" sm="6">
+                                                                                            <MudText Typo="Typo.body2">Drink</MudText>
+                                                                                            <MudText Typo="Typo.body1"><b>@item.Drink</b></MudText>
+                                                                                        </MudItem>
+                                                                                    </MudGrid>
+                                                                                </MudCardContent>
+                                                                            </MudCard>
+                                                                        </MudItem>
+                                                                    }
+                                                                </MudGrid>
+                                                            </MudTabPanel>
+                                                        }
+                                                    </MudTabs>
+                                                }
+                                                else
+                                                {
+                                                    <MudAlert Severity="Severity.Info">No menu available this week</MudAlert>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @* <div class="col-xxl-12 col-md-12">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                    <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Dining Menu</h6>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                @if (schoolMenu.Any())
+                                                {
+                                                    <MudGrid>
+                                                        @foreach (var item in schoolMenu)
+                                                        {
+
+                                                            <MudItem xs="12" md="4">
+                                                                <MudCard Class="mb-3">
+                                                                    <MudCardHeader>
+                                                                        <CardHeaderAvatar>
+                                                                            <MudIcon Icon="@Icons.Material.Filled.Dining"></MudIcon>
+                                                                        </CardHeaderAvatar>
+                                                                        <CardHeaderContent>
+                                                                            <MudText Typo="Typo.h6"><b>@item.MealName</b></MudText>
+                                                                        </CardHeaderContent>
+                                                                    </MudCardHeader>
+                                                                    <MudCardContent>
+                                                                        <MudText Typo="Typo.body2">Main Dish</MudText>
+                                                                        <MudText Typo="Typo.subtitle1"><b>@item.MainDish</b></MudText>
+                                                                        <MudGrid>
+                                                                            <MudItem xs="12" sm="6">
+                                                                                <MudText Typo="Typo.body2">Side Dish</MudText>
+                                                                                <MudText Typo="Typo.body1"><b>@item.SideDish</b></MudText>
+                                                                            </MudItem>
+                                                                            <MudItem xs="12" sm="6">
+                                                                                <MudText Typo="Typo.body2">Drink</MudText>
+                                                                                <MudText Typo="Typo.body1"><b>@item.Drink</b></MudText>
+                                                                            </MudItem>
+                                                                        </MudGrid>
+                                                                    </MudCardContent>
+                                                                </MudCard>
+                                                            </MudItem>
+
+
+                                                        }
+                                                    </MudGrid>
+                                                }
+                                                else
+                                                {
+
+                                                }
+                                            </div>
+                                        </div>
+                                    </div> *@
                                 </div>
                             }
                         }
@@ -785,6 +898,10 @@
 
                             </div>
                         }
+                        else if (AppState.UserRole == "Chef/Cook")
+                        {
+                            <IgnisEducationSuite.Client.Pages.Staff.Kitchen></IgnisEducationSuite.Client.Pages.Staff.Kitchen>
+                        }
                     }
                 }
 
@@ -806,4 +923,3 @@
 
     </MudCardContent>
 </MudCard>
-

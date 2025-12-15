@@ -12,6 +12,9 @@ namespace EDUSphereSharedProject.ChatModels
         public string Subject { get; set; }
         public string TeacherId { get; set; }
         public string MeetingLink { get; set; }
+        public string GradeSection { get; set; }
         public DateTime StartTime { get; set; }
+
+        
     }
 }

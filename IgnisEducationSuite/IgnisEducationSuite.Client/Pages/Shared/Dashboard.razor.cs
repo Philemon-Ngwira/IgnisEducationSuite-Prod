@@ -16,8 +16,9 @@ namespace IgnisEducationSuite.Client.Pages.Shared
 {
     public partial class Dashboard : AppBaseComponent
     {
-        private bool isLoading = false;
-        private bool isAuthenticated = false;
+        protected int activeDayIndex = 0;
+        protected bool isLoading = false;
+        protected bool isAuthenticated = false;
         private BarConfig StudentPerformanceChartConfig { get; set; }
         private BarConfig StudentCountryChartConfig { get; set; }
         private PieConfig StudentCityChartConfig { get; set; }
@@ -36,6 +37,13 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         protected List<GetStudentDemographicsResult> StudentDemographicsCity = new();
         protected List<GetTop5TeachersByHighRatedLessonsResult> _top5Teachers = new();
         protected List<GetBestPerformingStudentsBySchoolResult> bestPerformingStudents = new();
+
+        //--------------------------------DINING---------------------------------------------\\
+        protected List<DiningMenuDTO> schoolMenu = new();
+
+
+        //-----------------------------DINING END---------------------------------------------\\
+
         [Inject] ISnackbar Snackbar { get; set; }
         private readonly List<string> dayOrder = new List<string>
 
@@ -63,11 +71,13 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         protected List<DayofTheWeek> daysofTheWeek = new();
         [Inject] AuthenticationStateProvider _authenticationStateProvider { get; set; } = default!;
         protected string SchoolID = string.Empty;
+        private bool _prerendered = true;
 
         public void Dispose()
         {
             AppState.OnChange -= StateHasChanged;
         }
+        
         protected override async Task OnInitializedAsync()
         {
             isLoading = true;
@@ -75,12 +85,12 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             try
             {
                 // ----------------------------------------------------------
-                // 1. AUTH CHECK (Fast)
+                // 1. Authenticate User
                 // ----------------------------------------------------------
                 var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
                 var user = authState.User;
 
-                if (!user.Identity?.IsAuthenticated ?? false)
+                if (!(user.Identity?.IsAuthenticated ?? false))
                 {
                     _navigationManager.NavigateTo(
                         $"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}",
@@ -89,31 +99,18 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                     return;
                 }
 
+                // ----------------------------------------------------------
+                // 2. Extract User ID
+                // ----------------------------------------------------------
                 var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    Console.WriteLine("No UserID found in claims.");
+                    Console.WriteLine("Missing UserID claim.");
+                    _navigationManager.NavigateTo("Account/Login", true);
                     return;
                 }
-
                 // ----------------------------------------------------------
-                // 2. Initialize AppState (Single call, no retry spam)
-                // ----------------------------------------------------------
-                if (!AppState.IsInitialized)
-                {
-                    Console.WriteLine("Initializing AppState...");
-                    var initSuccess = await AppState.InitializeAsync(userId, true, _navigationManager, http);
-
-                    if (!initSuccess)
-                    {
-                        Console.WriteLine("AppState failed to initialize.");
-                        _navigationManager.NavigateTo("/", true);
-                        return;
-                    }
-                }
-
-                // ----------------------------------------------------------
-                // 3. Handle First Login (Only non-admins)
+                // 4. Handle First Login (non-admins only, after initialize)
                 // ----------------------------------------------------------
                 if (AppState.UserRole is not ("SuperAdmin" or "Admin"))
                 {
@@ -126,63 +123,67 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                     }
                 }
 
-                // ----------------------------------------------------------
-                // 4. Load Core Dashboard Data (PARALLEL = FAST)
-                // ----------------------------------------------------------
                 SchoolID = AppState.SchoolID;
 
+                // ----------------------------------------------------------
+                // 5. Load Core Dashboard Data (Lessons + Student first)
+                // ----------------------------------------------------------
                 Console.WriteLine("Loading core data...");
 
-                // Must run first (because other tasks depend on lesson/student data)
-                await Task.WhenAll(GetAllLessons(), GetStudentDetails());
+                await Task.WhenAll(
+                    GetAllLessons(),
+                    GetStudentDetails()
+                );
 
-                // Now load the rest in parallel
-                var dashboardTasks = new[]
-                {
-            GetTopLessons(),
-            GetStudentDemoGraphicCountry(),
-            GetStudentDemographicCity(),
-            GetTopTeachers(),
-            GetBestPerformingStudents()
-        };
-
-                await Task.WhenAll(dashboardTasks);
+                // Then load secondary dashboard data
+                await Task.WhenAll(
+                    GetTopLessons(),
+                    GetStudentDemoGraphicCountry(),
+                    GetStudentDemographicCity(),
+                    GetTopTeachers(),
+                    GetBestPerformingStudents()
+                );
 
                 // ----------------------------------------------------------
-                // 5. Student/Parent Extra Data (Parallel too)
+                // 6. Student / Parent Extra Data
                 // ----------------------------------------------------------
                 if (AppState.UserRole is "Student" or "Parent")
                 {
-
-                    var studentTasks = new[]
-                    {
+                    await Task.WhenAll(
                         GetTimeSlots(),
                         GetDaysOfWeek(),
-                GetStudentPerfomanceData(),
-                GetUnCompletedClasses(),
-                GetAttendances()
-            };
+                        GetStudentPerfomanceData(),
+                        GetUnCompletedClasses(),
+                        GetAttendances(),
+                        GetDiningMenus()
+                    );
 
-                    await Task.WhenAll(studentTasks);
+                    // This MUST run AFTER timeSlots + daysOfWeek load
                     await GetClassSchedule(timeSlots, daysofTheWeek);
 
+                    // Now set today’s tab
+                    var today = DateTime.Now.DayOfWeek.ToString();
+                    activeDayIndex = dayOrder.IndexOf(today);
+                    if (activeDayIndex < 0)
+                        activeDayIndex = 0;
                 }
 
                 // ----------------------------------------------------------
-                // 6. Subscribe to State Changes
+                // 7. Listen for State Change Events
                 // ----------------------------------------------------------
+                AppState.OnChange -= StateHasChanged; // avoid double subscription
                 AppState.OnChange += StateHasChanged;
-                await Task.Delay(1000);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during initialization: {ex.Message}");
+                Console.WriteLine($"Initialization error: {ex}");
             }
             finally
             {
                 isLoading = false;
             }
         }
+
 
         protected async Task GetBestPerformingStudents()
         {
@@ -200,7 +201,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             await InvokeAsync(StateHasChanged); // Show loading state
 
 
-            if (!AppState.IsInitialized)
+            if (!AppState.IsFullyInitialized)
             {
                 Console.WriteLine("AppState failed to initialize after retries.");
                 isLoading = false;
@@ -237,7 +238,6 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                         await GetStudentPerfomanceData();
                         await GetUnCompletedClasses();
                         await GetAttendances();
-                        await GetBadges();
 
                     }
                 }
@@ -265,6 +265,28 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             if (result.IsSuccess)
             {
                 _top5Teachers = result.Data.ToList();
+            }
+        }
+        protected async Task GetDiningMenus()
+        {
+            var service = GenericService.GetService<DiningMenuDTO>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetSchoolDiningMenus/{Guid.Parse(AppState.SchoolID)}", true);
+
+            if (result.IsSuccess)
+            {
+                // Group by MealName to avoid duplicates across dining halls
+                var today = DateTime.Now.DayOfWeek.ToString();
+                schoolMenu = result.Data
+                      .GroupBy(x => new
+                      {
+                          x.DayOfWeek,
+                          Meal = x.MealName.Trim().ToLower(),
+                          Main = x.MainDish.Trim().ToLower()
+                      })
+                .Select(g => g.First()) // keeps one per Day+Meal+MainDish combo
+                .OrderBy(x => dayOrder.IndexOf(x.DayOfWeek))
+                .ThenBy(x => MealOrder.IndexOf(x.MealName))
+                .ToList();
             }
         }
         protected async Task GetStudentDetails()
@@ -381,16 +403,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             }
         }
 
-        protected async Task GetBadges()
-        {
-            var service = _genericService.GetService<Badge>();
-            var result = await service.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
-            if (result.IsSuccess)
-            {
-                AppState.Badges = result.Data.ToList();
-                AppState.UserActivities = await GetUserActivitiesDone(AppState.UserRole, AppState.UserID);
-            }
-        }
+      
         private async Task<List<UserActivity>> GetUserActivitiesDone(string UserRole, string UserID)
         {
             if (UserRole == "Student")

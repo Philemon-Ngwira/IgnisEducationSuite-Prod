@@ -1,90 +1,102 @@
 ﻿@page "/ClassManagement"
 @using EDUSphereSharedProject.Models
 @inherits AppBaseComponent
-<MudCard>
+<MudCard Class="mb-4">
     <MudCardHeader>
         <CardHeaderContent>
             <MudText Align="Align.Center" Typo="Typo.h4"><b>Class Management</b></MudText>
         </CardHeaderContent>
     </MudCardHeader>
+
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+
     <MudCardContent>
-        @if (isLoading)
-        {
-            <div id="loader-overlay" class="loader-overlay">
-                <div class="loader-container">
-                    <!-- Spinner -->
-                    <div class="spinner"></div>
-                    <!-- Loader Icon -->
-                    <div class="loader-icon">🔄</div>
-                    <!-- Loading Text -->
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
-        }
 
+        <!-- Section: Add New Class -->
+        <MudPaper Class="p-4 mb-4" Elevation="1">
+            <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Class" Variant="Variant.Filled">
+                Create New Class
+            </MudAlert>
 
-        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Class" Variant="Variant.Filled">Create New Class</MudAlert>
-        <MudGrid Class="mb-3">
-            <MudItem xs="12" md="6">
-                <MudTextField T="string" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.ClassName" Label="Enter Class Name"></MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect Variant="Variant.Outlined"
-                           T="int?"
-                           Label="Select Academic Level"
-                           @bind-Value="newClass.AcademicLevel"
-                           Margin="Margin.Dense">
-                    @foreach (var a in academicLevels)
-                    {
-                        <MudSelectItem T="int?" Value="a.LevelInt">@a.LevelName</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField T="string" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.GradeSection" Label="Enter Grade Section" Placeholder="Enter Section e.g For 10A Enter 'A'"></MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudAutocomplete T="Teacher" Label="Assign Teacher" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="TeacherTypeconverter" @bind-Value="newClass.Teacher" SearchFunc="@Search2"
-                                 ResetValueOnEmptyText="true"
-                                 CoerceText="true" CoerceValue="true"
-                                 AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-            </MudItem>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddNewClass">Add Class</MudButton>
-            </MudItem>
-        </MudGrid>
+            <MudGrid Class="mt-3" GutterSize="3">
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.ClassName" Label="Class Name" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="int?" Variant="Variant.Outlined" Label="Select Academic Level" @bind-Value="newClass.AcademicLevel" Margin="Margin.Dense">
+                        @foreach (var a in academicLevels)
+                        {
+                            <MudSelectItem T="int?" Value="a.LevelInt">@a.LevelName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string" Margin="Margin.Dense" Variant="Variant.Outlined" @bind-Value="newClass.GradeSection" Label="Grade Section" Placeholder="Enter Section e.g. For 10A enter 'A'" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="Teacher"
+                                     Label="Assign Teacher"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="TeacherTypeconverter"
+                                     @bind-Value="newClass.Teacher"
+                                     SearchFunc="@Search2"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true"
+                                     CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     AdornmentColor="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-end">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddNewClass">Add Class</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
         <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Class" Variant="Variant.Filled">Available classes</MudAlert>
 
-        <MudDataGrid Items="classes" Filterable="false" SortMode="@SortMode.Multiple" Groupable="false">
-            <Columns>
-                @if (classes.Any())
-                {
-                    <PropertyColumn Property="x => x.Teacher.FirstName" />
-                    <PropertyColumn Property="x => x.Teacher.LastName" />
-                    <PropertyColumn Property="x => x.ClassName" />
-                    <PropertyColumn Property="x => x.LevelName" />
-                    <TemplateColumn CellClass="d-flex justify-end">
-                        <CellTemplate>
-                            <MudStack Row>
-                                <MudButton Size="@Size.Small" Variant="@Variant.Filled" Color="@Color.Primary">Manage</MudButton>
-                            </MudStack>
-                        </CellTemplate>
-                    </TemplateColumn>
-                }
-                else
-                {
-                    <MudAlert Severity="Severity.Info" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">No classes found</MudAlert>
-                }
-            </Columns>
-        </MudDataGrid>
+        <!-- Section: Class Table -->
+        <MudPaper Class="p-4 mb-4" Elevation="1">
+            <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Class" Variant="Variant.Filled">
+                Available Classes
+            </MudAlert>
+
+            <MudDataGrid Items="classes" Filterable="false" SortMode="@SortMode.Multiple" Groupable="false">
+                <Columns>
+                    @if (classes.Any())
+                    {
+                        <PropertyColumn Property="x => x.Teacher.FirstName" Title="Teacher First Name" />
+                        <PropertyColumn Property="x => x.Teacher.LastName" Title="Teacher Last Name" />
+                        <PropertyColumn Property="x => x.ClassName" Title="Class Name" />
+                        <PropertyColumn Property="x => x.LevelName" Title="Level" />
+                        <TemplateColumn Title="Actions" CellClass="d-flex justify-end">
+                            <CellTemplate>
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">
+                                    Manage
+                                </MudButton>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">
+                            No classes found
+                        </MudAlert>
+                    }
+                </Columns>
+            </MudDataGrid>
+        </MudPaper>
+
     </MudCardContent>
 </MudCard>
 
+
 @code {
 
-    protected bool isLoading = false;
     protected Class newClass = new();
     protected Teacher teacherSelected = new();
     protected ClientAdmin loggedInAdmin = new();
@@ -96,13 +108,11 @@
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait...");
         await GetLoggedInAdmin();
         await GetTeachers();
         await GetClasses();
-
-
-        isLoading = false;
+        LoaderService.Hide();
     }
     #region Get From Database
     protected async Task GetTeachers()

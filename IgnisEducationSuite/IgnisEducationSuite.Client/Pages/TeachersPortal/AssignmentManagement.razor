@@ -12,20 +12,7 @@
         </CardHeaderContent>
     </MudCardHeader>
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
-
+  
     <MudCardContent Class="mb-3">
         <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Title" Variant="Variant.Filled">Define Assignment</MudAlert>
         <MudGrid Class="mb-3">
@@ -108,7 +95,7 @@
                 <MudPaper Width="100%">
                     @if (assignmentQuestionsCollected)
                     {
-                        <MudDataGrid T="AssignmentQuestion" Items="@assignmentQuestions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
+                        <MudDataGrid Breakpoint="Breakpoint.Sm" T="AssignmentQuestion" Items="@assignmentQuestions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
                                      StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
                                      Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
                             <Columns>
@@ -281,10 +268,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait....");
         await GetTeachers();
         await GetClasses();
-        isLoading = false;
+        LoaderService.Hide();
     }
 
     #region Get From Database

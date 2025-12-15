@@ -62,7 +62,10 @@ public partial class PhoenixEdusphereChatContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__ChatMess__3214EC07EAD34E62");
 
             entity.Property(e => e.Id).ValueGeneratedNever();
-            entity.Property(e => e.GroupName).HasMaxLength(50);
+            entity.Property(e => e.GroupIdentifier)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.GroupName).HasMaxLength(255);
             entity.Property(e => e.ReciepientId).HasMaxLength(255);
             entity.Property(e => e.Timestamp).HasColumnType("datetime");
             entity.Property(e => e.UserId).HasMaxLength(255);

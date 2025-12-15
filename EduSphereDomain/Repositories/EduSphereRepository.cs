@@ -87,21 +87,30 @@ namespace EduSphereDomain.Repositories
         }
         public async Task<IEnumerable<GetInitializationDataResult>> GetInitializationDataResults(string ID)
         {
-            var result = await _contextProcedures.GetInitializationDataAsync(ID);
-            return result.Select(x => new GetInitializationDataResult
+            try
             {
-                StudentID = x.StudentID,
-                RoleName = x.RoleName,
-                HideStudentDashboard = x.HideStudentDashboard,
-                UserName = x.UserName,
-                Email = x.Email,
-                SchoolID = x.SchoolID,
-                SchoolName = x.SchoolName,
-                SchoolLogo = x.SchoolLogo,
-                HasplagerismEnaabled = x.HasplagerismEnaabled,
-                FirstName = x.FirstName,
-                LastName = x.LastName,
-            });
+                var result = await _contextProcedures.GetInitializationDataAsync(ID);
+                return result.Select(x => new GetInitializationDataResult
+                {
+                    StudentID = x.StudentID,
+                    RoleName = x.RoleName,
+                    HideStudentDashboard = x.HideStudentDashboard,
+                    UserName = x.UserName,
+                    Email = x.Email,
+                    SchoolID = x.SchoolID,
+                    SchoolName = x.SchoolName,
+                    SchoolLogo = x.SchoolLogo,
+                    HasplagerismEnaabled = x.HasplagerismEnaabled,
+                    FirstName = x.FirstName,
+                    LastName = x.LastName,
+                });
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+
         }
         public async Task<IEnumerable<LessonMedium>> GetLessonMedia(Guid Id)
         {
@@ -1327,8 +1336,120 @@ namespace EduSphereDomain.Repositories
 
             }).ToList();
         }
+
+        public async Task<IEnumerable<StudentsWithSpecialDietsDTO>> GetSpecialDiets(Guid SchoolID)
+        {
+            var result = await _contextProcedures.GetStudentsWithSpecialDietsAsync(SchoolID);
+            return result.Select(x => new StudentsWithSpecialDietsDTO
+            {
+                AcademicLevel = x.AcademicLevel,
+                Description = x.Description,
+                DietId = x.DietId,
+                StudentId = x.StudentId,
+                StudentNumber = x.StudentNumber,
+                DietType = x.DietType,
+                FirstName = x.FirstName,
+                Gender = x.Gender,
+                LastName = x.LastName,
+                ProfilePic = x.ProfilePic
+
+            }).ToList();
+        }
         #endregion
         //-------------------------END-----------------------------------------------------------------\\
+        public async Task UpdateStudentPaymentStatus(string studentNumber, bool isPaid)
+        {
+            // Get the student by student number
+            var student = await _context.Students
+                .FirstOrDefaultAsync(s => s.StudentNumber == studentNumber);
+
+            if (student == null)
+                throw new ArgumentException($"Student with number {studentNumber} not found.");
+
+            // Update payment status
+            student.PaymentStatus = isPaid;
+
+            // Save changes
+            await _context.SaveChangesAsync();
+        }
+        /// <summary>
+        /// Generates a unique username for a single user.
+        /// </summary>
+        public async Task<string> GenerateNextUsernameAsync(string firstName, string lastName)
+        {
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+                throw new ArgumentException("Invalid names.");
+
+            string baseUsername = (firstName[0] + lastName).ToLower();
+
+            var existingUsernames = await _context.AspNetUsers
+                .Where(u => u.UserName.StartsWith(baseUsername))
+                .Select(u => u.UserName)
+                .ToListAsync();
+
+            if (!existingUsernames.Contains(baseUsername))
+                return baseUsername;
+
+            int suffix = 1;
+            string candidate;
+            do
+            {
+                candidate = baseUsername + suffix;
+                suffix++;
+            } while (existingUsernames.Contains(candidate));
+
+            return candidate;
+        }
+
+        /// <summary>
+        /// Generates unique usernames for a list of students in bulk.
+        /// </summary>
+        public async Task<List<string>> GenerateNextUsernamesAsync(
+     List<(string FirstName, string LastName)> names)
+        {
+            // Fetch ALL usernames once
+            var existingUsernames = await _context.AspNetUsers
+                .Select(u => u.UserName.ToLower())
+                .ToListAsync();
+
+            var result = new List<string>();
+
+            foreach (var (firstName, lastName) in names)
+            {
+                if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+                {
+                    result.Add(string.Empty);
+                    continue;
+                }
+
+                string baseUsername = (firstName[0] + lastName).ToLower();
+                string candidate = baseUsername;
+                int suffix = 1;
+
+                while (existingUsernames.Contains(candidate))
+                {
+                    candidate = baseUsername + suffix;
+                    suffix++;
+                }
+
+                result.Add(candidate);
+                existingUsernames.Add(candidate); // reserve it
+            }
+
+            return result;
+        }
+
+
+        public async Task<List<Student>> GetStudentsByStudentNumbers(
+     List<string> studentNumbers,
+     Guid schoolId)
+        {
+            return await _context.Students
+                .Where(s =>
+                    studentNumbers.Contains(s.StudentNumber) &&
+                    s.SchoolID == schoolId)
+                .ToListAsync();
+        }
 
 
         #endregion

@@ -7,7 +7,7 @@
         <MudText Align="Align.Left">Add New Room</MudText>
         <MudGrid>
             <MudItem xs="12">
-                <MudSelect T="Hostel"
+                <MudSelect T="GetHostelsBySchoolResult"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            @bind-Value="selectedHostel"
@@ -16,7 +16,7 @@
                            ToStringFunc="HostelTypeconverter">
                     @foreach (var item in hostels)
                     {
-                        <MudSelectItem Value="item.HostelId">@item.HostelName</MudSelectItem>
+                        <MudSelectItem Value="item">@item.HostelName</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -54,7 +54,7 @@
     private Room newRoom = new();
     [Parameter] public List<GetHostelsBySchoolResult> hostels { get; set; } = default!;
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
-    protected Hostel selectedHostel = new();
+    protected GetHostelsBySchoolResult selectedHostel = new();
     protected Func<GetHostelsBySchoolResult, string> HostelTypeconverter = p => p?.HostelName ?? "";
 
 

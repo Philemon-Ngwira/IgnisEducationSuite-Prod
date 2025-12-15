@@ -1,4 +1,6 @@
-﻿using MudBlazor;
+﻿using ChartJs.Blazor.Common;
+using MudBlazor;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace IgnisEducationSuite.Client.Layout
 {
@@ -6,6 +8,20 @@ namespace IgnisEducationSuite.Client.Layout
     {
         public Theme()
         {
+
+            PaletteLight = new PaletteLight()
+            {
+                Primary = "#29104A",
+                PrimaryLighten = "#7A4DBB",
+                Background = "#F6F1FA",
+                Surface = "#F0E6F6",
+                TextPrimary = "#1B0F28",
+                TextSecondary = "#4D3A5A",
+                Success = "#4CAF50",
+                Warning = "#F7B74A",
+                Error = "#E53935",
+                Info = " #5C6BC0",
+            };
             Typography = new Typography()
             {
                 Default = new DefaultTypography()

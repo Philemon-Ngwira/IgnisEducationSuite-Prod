@@ -4,100 +4,110 @@ using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components;
-using MudBlazor;
 
 public class AppState
 {
     private readonly IServiceProvider _serviceProvider;
-    private IHttpClientFactory _httpClientFactory;
-    private RolesAndLicensingService _rolesAndLicensing;
-    private GenericServiceFactory _genericService;
+    private readonly RolesAndLicensingService _rolesAndLicensing;
+    private readonly GenericServiceFactory _genericService;
 
-    public usp_GetPharmacyLicenseStatusResult License { get; private set; } = new();
-
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string UserEmail { get; set; } = string.Empty;
+    // --- User & School Info ---
     public string UserID { get; private set; } = string.Empty;
-    public string SchoolID { get; private set; } = string.Empty;
-    public bool LicenseIsActive { get; private set; }
     public string UserRole { get; private set; } = "Guest";
+    public string SchoolID { get; private set; } = string.Empty;
     public string SchoolName { get; private set; } = string.Empty;
+    public string FirstName { get; private set; } = string.Empty;
+    public string LastName { get; private set; } = string.Empty;
+    public string UserEmail { get; private set; } = string.Empty;
     public string SchoolLogo { get; private set; } = string.Empty;
     public bool HideStudentDashboard { get; private set; }
-    public List<Badge> Badges { get; set; } = new();
-    public List<UserActivity> UserActivities { get; set; } = new();
-    public bool IsInitialized { get; private set; }
+    public bool LicenseIsActive { get; private set; }
+    public usp_GetPharmacyLicenseStatusResult License { get; private set; } = new();
 
-    public List<AcademicLevel> academicLevels { get; set; } = new List<AcademicLevel>();
-    public int newAssignmentsCount { get; private set; }
+    // --- Global Data ---
+    public List<Badge> Badges { get; private set; } = new();
+    public List<UserActivity> UserActivities { get; private set; } = new();
+    public List<AcademicLevel> AcademicLevels { get; private set; } = new();
+    public int NewAssignmentsCount { get; private set; }
+
+    // --- Initialization State ---
+    public bool IsFullyInitialized { get; private set; } = false;
 
     public event Action OnChange;
 
-    public AppState(IServiceProvider serviceProvider)
+    public AppState(IServiceProvider serviceProvider,
+                    RolesAndLicensingService rolesAndLicensing,
+                    GenericServiceFactory genericService)
     {
         _serviceProvider = serviceProvider;
+        _rolesAndLicensing = rolesAndLicensing;
+        _genericService = genericService;
     }
 
-    public async Task<bool> InitializeAsync(string userName, bool isAuthenticated, NavigationManager nav, HttpClient http)
+    /// <summary>
+    /// Fully initializes AppState: essential + non-critical data.
+    /// </summary>
+    public async Task<bool> InitializeAsync(string userName, bool isAuthenticated, NavigationManager nav)
     {
-        if (IsInitialized)
-            return true;
-
-        if (!isAuthenticated)
+        if (!isAuthenticated || string.IsNullOrEmpty(userName))
         {
-            Console.WriteLine("User not authenticated. Initialization cancelled.");
+            Console.WriteLine("[AppState] User not authenticated. Initialization aborted.");
             return false;
         }
 
+        if (IsFullyInitialized) return true;
+
+        UserID = userName;
+
         try
         {
-            using var scope = _serviceProvider.CreateScope();
-
-            // Resolve once
-            _httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-            _rolesAndLicensing = scope.ServiceProvider.GetRequiredService<RolesAndLicensingService>();
-            _genericService = scope.ServiceProvider.GetRequiredService<GenericServiceFactory>();
-
-            UserID = userName;
-
+            // 1️⃣ Load Initialization Data
             var initService = _genericService.GetService<GetInitializationDataResult>();
             var initResult = await initService.GetAllAsync($"api/Dynamic/GetInitializationData/{UserID}", true);
 
             if (!initResult.IsSuccess || !initResult.Data.Any())
             {
-                Console.WriteLine("Initialization data unavailable.");
+                await Task.Delay(1000);
+                nav.NavigateTo("/", true);
                 return false;
             }
 
-            var d = initResult.Data.ToList();
-            var data = d[0];
-
+            var data = initResult.Data.First();
             SchoolID = data.SchoolID.ToString();
-            UserRole = data.RoleName;
-            SchoolName = data.SchoolName;
-            UserEmail = data.Email;
-            FirstName = data.FirstName;
-            LastName = data.LastName;
-            // Convert once, avoid unnecessary null/empty operations
-            SchoolLogo = data.SchoolLogo is { Length: > 0 }
-                ? Convert.ToBase64String(data.SchoolLogo)
-                : string.Empty;
-
+            UserRole = data.RoleName ?? "Guest";
+            SchoolName = data.SchoolName ?? "";
+            UserEmail = data.Email ?? "";
+            FirstName = data.FirstName ?? "";
+            LastName = data.LastName ?? "";
+            SchoolLogo = data.SchoolLogo?.Length > 0 ? Convert.ToBase64String(data.SchoolLogo) : string.Empty;
             HideStudentDashboard = data.HideStudentDashboard == 1;
 
-            await LoadLicenseAsync(SchoolID);
-            await LoadUserBadgesAndActivitiesAsync();
-            academicLevels = await getAcademicLevels();
-            if (UserRole == "Student")
+            if (UserRole != "SuperAdmin")
             {
-                await GetAssignments();
+                // 2️⃣ Load License
+                var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
+                var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
+                License = licenseResult.IsSuccess && licenseResult.Data.Any()
+                    ? licenseResult.Data.First()
+                    : new usp_GetPharmacyLicenseStatusResult();
+                LicenseIsActive = License?.IsValid == 1;
+
+                // 3️⃣ Load Non-Critical Data Immediately
+
+                await LoadBadgesAsync();
+                await LoadAcademicLevelsAsync();
+                if (UserRole == "Student")
+                {
+                    await LoadUserActivitiesAsync();
+                    await LoadAssignmentsAsync();
+                }
             }
-            LicenseIsActive = License?.IsValid == 1;
-
-            IsInitialized = true;
+            else
+            {
+                LicenseIsActive = true;
+            }
+                IsFullyInitialized = true;
             NotifyStateChanged();
-
             return true;
         }
         catch (Exception ex)
@@ -106,69 +116,75 @@ public class AppState
             return false;
         }
     }
-    protected async Task<List<AcademicLevel>> getAcademicLevels()
-    {
-        var service = _genericService.GetService<AcademicLevel>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolAcademicStructure/{SchoolID}", true);
-        if (result.IsSuccess)
-        {
-            return result.Data.ToList();
-        }
-        return new List<AcademicLevel>();
-    }
-    protected async Task GetAssignments()
-    {
-        var service = _genericService.GetService<GetStudentAssignmentsResult>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetAssignment/{UserID}", true);
-        if (result.IsSuccess)
-        {
-            newAssignmentsCount = result.Data.Where(c => c.Overdue != 1).Count();
-        }
 
-    }
-    private async Task LoadLicenseAsync(string tenantId)
-    {
-        try
-        {
-            var service = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
-            var result = await service.GetAllAsync($"api/Dynamic/GetLicenseStatus/{tenantId}", true);
+    #region Data Loading Helpers
 
-            if (result.IsSuccess)
-                License = result.Data.FirstOrDefault() ?? new usp_GetPharmacyLicenseStatusResult();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading license: {ex.Message}");
-        }
-    }
-
-    private async Task LoadUserBadgesAndActivitiesAsync()
+    private async Task LoadBadgesAsync()
     {
         try
         {
             var badgeService = _genericService.GetService<Badge>();
-            var badgeResult = await badgeService.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
-
-            Badges = badgeResult.IsSuccess ? badgeResult.Data.ToList() : new List<Badge>();
-
-            if (UserRole == "Student")
-            {
-                var activityService = _genericService.GetService<UserActivity>();
-                var activityResult = await activityService.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
-
-                UserActivities = activityResult.IsSuccess ? activityResult.Data.ToList() : new List<UserActivity>();
-            }
-            else
-            {
-                // Non-students don't need activities
-                UserActivities.Clear();
-            }
+            var result = await badgeService.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
+            Badges = result.IsSuccess ? result.Data.ToList() : new();
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error loading badges/activities: {ex.Message}");
+            Badges = new();
         }
     }
 
+    private async Task LoadAcademicLevelsAsync()
+    {
+        try
+        {
+            var academicService = _genericService.GetService<AcademicLevel>();
+            var result = await academicService.GetAllAsync($"api/Dynamic/GetSchoolAcademicStructure/{SchoolID}", true);
+            AcademicLevels = result.IsSuccess ? result.Data.ToList() : new();
+        }
+        catch
+        {
+            AcademicLevels = new();
+        }
+    }
+
+    private async Task LoadUserActivitiesAsync()
+    {
+        try
+        {
+            var activityService = _genericService.GetService<UserActivity>();
+            var result = await activityService.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
+            UserActivities = result.IsSuccess ? result.Data.ToList() : new();
+        }
+        catch
+        {
+            UserActivities = new();
+        }
+    }
+
+    private async Task LoadAssignmentsAsync()
+    {
+        try
+        {
+            var assignmentService = _genericService.GetService<GetStudentAssignmentsResult>();
+            var result = await assignmentService.GetAllAsync($"api/Dynamic/GetAssignment/{UserID}", true);
+            NewAssignmentsCount = result.IsSuccess ? result.Data.Count(c => c.Overdue != 1) : 0;
+        }
+        catch
+        {
+            NewAssignmentsCount = 0;
+        }
+    }
+
+    #endregion
+
     private void NotifyStateChanged() => OnChange?.Invoke();
+
+    #region Helper Getters for Pages
+
+    public List<Badge> GetBadges() => Badges;
+    public List<UserActivity> GetUserActivities() => UserActivities;
+    public List<AcademicLevel> GetAcademicLevels() => AcademicLevels;
+    public int GetNewAssignmentsCount() => NewAssignmentsCount;
+
+    #endregion
 }

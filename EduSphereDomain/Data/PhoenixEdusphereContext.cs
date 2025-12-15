@@ -461,6 +461,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.SChool).WithMany(p => p.Classes)
                 .HasForeignKey(d => d.SChoolID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_Classes_Schools");
 
             entity.HasOne(d => d.Teacher).WithMany(p => p.Classes)
@@ -479,6 +480,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Class).WithMany(p => p.ClassSchedules)
                 .HasForeignKey(d => d.ClassID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_ClassSchedule_Classes");
 
             entity.HasOne(d => d.DayOfTheWeek).WithMany(p => p.ClassSchedules)
@@ -656,6 +658,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Lesson).WithMany(p => p.CourseDetails)
                 .HasForeignKey(d => d.LessonID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_CourseDetail_Lessons");
         });
 
@@ -723,7 +726,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Meal).WithMany(p => p.DiningMenus)
                 .HasForeignKey(d => d.MealId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__DiningMen__MealI__6F1576F7");
         });
 
@@ -761,6 +763,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Class).WithMany(p => p.ExamQuizTestHeaders)
                 .HasForeignKey(d => d.ClassID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_ExamQuizTestHeader_Classes");
 
             entity.HasOne(d => d.Teacher).WithMany(p => p.ExamQuizTestHeaders)
@@ -781,7 +784,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.ExamQuiz).WithMany(p => p.ExamQuizTestQuestions)
                 .HasForeignKey(d => d.ExamQuizID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ExamQuizQuestions_ExamQuizTestHeader");
         });
 
@@ -950,6 +952,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Room).WithMany(p => p.MaintainanceRequests)
                 .HasForeignKey(d => d.RoomID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_MaintainanceRequests_Rooms");
         });
 
@@ -966,7 +969,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.DiningHall).WithMany(p => p.Meals)
                 .HasForeignKey(d => d.DiningHallId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Meals__DiningHal__6B44E613");
         });
 
@@ -1003,6 +1005,8 @@ public partial class PhoenixEdusphereContext : DbContext
         {
             entity.HasKey(e => e.ParentID).HasName("PK__Parents__D339510FA190A9DA");
 
+            entity.HasIndex(e => e.UserId, "IX_Parents_UserId");
+
             entity.Property(e => e.ParentID).HasDefaultValueSql("(newid())");
             entity.Property(e => e.Address).IsUnicode(false);
             entity.Property(e => e.City).IsUnicode(false);
@@ -1018,7 +1022,6 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.PhoneNumber)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.UserId).HasMaxLength(450);
 
             entity.HasOne(d => d.School).WithMany(p => p.Parents)
                 .HasForeignKey(d => d.SchoolID)
@@ -1070,6 +1073,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Class).WithMany(p => p.ReportCardDetails)
                 .HasForeignKey(d => d.ClassID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_ReportCardDetails_Classes");
 
             entity.HasOne(d => d.ReportCard).WithMany(p => p.ReportCardDetails)
@@ -1117,7 +1121,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Room).WithMany(p => p.RoomAllocations)
                 .HasForeignKey(d => d.RoomId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__RoomAlloc__RoomI__61BB7BD9");
         });
 
@@ -1151,6 +1154,8 @@ public partial class PhoenixEdusphereContext : DbContext
         modelBuilder.Entity<Student>(entity =>
         {
             entity.HasKey(e => e.StudentID).HasName("PK__Students__32C52A7994DE34D7");
+
+            entity.HasIndex(e => new { e.ParentID, e.PaymentStatus }, "IX_Students_ParentID_PaymentStatus");
 
             entity.Property(e => e.StudentID).HasDefaultValueSql("(newid())");
             entity.Property(e => e.Address).IsUnicode(false);
@@ -1205,7 +1210,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Question).WithMany(p => p.StudentAssignmentAnswers)
                 .HasForeignKey(d => d.QuestionID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_StudentAssignmentAnswers_AssignmentQuestions");
 
             entity.HasOne(d => d.StudentAssignment).WithMany(p => p.StudentAssignmentAnswers)
@@ -1245,6 +1249,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Schedule).WithMany(p => p.StudentClassSchedules)
                 .HasForeignKey(d => d.ScheduleID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_StudentClassSchedules_ClassSchedule1");
 
             entity.HasOne(d => d.Student).WithMany(p => p.StudentClassSchedules)
@@ -1261,6 +1266,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Lesson).WithMany(p => p.StudentCompletedLessons)
                 .HasForeignKey(d => d.LessonID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_StudentCompletedLessons_Lessons");
 
             entity.HasOne(d => d.Student).WithMany(p => p.StudentCompletedLessons)
@@ -1281,6 +1287,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Question).WithMany(p => p.StudentExamQuizAndTestAnswers)
                 .HasForeignKey(d => d.QuestionID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_StudentExamQuizAndTestAnswers_ExamQuizTestQuestions");
         });
 
@@ -1295,6 +1302,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Exam).WithMany(p => p.StudentExamsTestsAndQuizzes)
                 .HasForeignKey(d => d.ExamID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_StudentExamsTestsAndQuizzes_ExamQuizTestHeader");
 
             entity.HasOne(d => d.Student).WithMany(p => p.StudentExamsTestsAndQuizzes)

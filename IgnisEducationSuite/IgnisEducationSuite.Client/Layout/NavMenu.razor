@@ -2,33 +2,41 @@
 @implements IDisposable
 @inject NavigationManager NavigationManager
 @inject AppState AppState
-<MudNavMenu>
-    <div class="navbar navbar-dark">
-        <div class="container-fluid">
 
-            <!-- Logo -->
-            <div class="nav-image-container">
-                @if (!string.IsNullOrEmpty(AppState.SchoolLogo))
+
+<MudNavMenu Class="ignis-nav">
+
+    <!-- BRAND / LOGO -->
+    <div class="nav-image-container">
+        @if (!string.IsNullOrEmpty(AppState.SchoolLogo))
+        {
+            <MudImage Alt="School Logo"
+                      Src="@($"data:image/jpeg;base64,{AppState.SchoolLogo}")"
+                      Width="180"
+                      Height="180" />
+        }
+        else
+        {
+            <MudImage Alt="Ignis Logo"
+                      Src="/images/LogoW.png"
+                      Width="180"
+                      Height="180" />
+        }
+    </div>
+
+    <!-- PRIMARY -->
+    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
+        Dashboard
+    </MudNavLink>
+
+    <AuthorizeView>
+        <Authorized>
+
+            @if (AppState.IsFullyInitialized)
+            {
+                @switch (AppState.UserRole)
                 {
-                    <MudImage Alt="Logo" Src=@($"data:image/jpeg;base64,{AppState.SchoolLogo}") Width="250" Height="250"></MudImage>
-                }
-                else
-                {
-                    <MudImage Alt="Logo" Src="/images/LogoW.png" Width="250" Height="250"></MudImage>
-                }
-            </div>
-
-            <!-- Dashboard -->
-            <MudNavLink Href="/" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
-                Dashboard
-            </MudNavLink>
-
-            <AuthorizeView>
-                <Authorized>
-
-                    <!-- SUPER ADMIN -->
-                    @if (AppState.UserRole == "SuperAdmin")
-                    {
+                    case "SuperAdmin":
                         <MudNavGroup Icon="@Icons.Material.Filled.SupervisorAccount" Title="Administration">
                             <MudNavLink Href="ClientManagement" Icon="@Icons.Material.Filled.People">Client Management</MudNavLink>
                             <MudNavLink Href="ManageSchoolAdmins" Icon="@Icons.Material.Filled.Person">Client Admins</MudNavLink>
@@ -38,216 +46,168 @@
                             <MudNavLink Href="ReportCardManagement" Icon="@Icons.Material.Filled.AddCard">Report Card Preparations</MudNavLink>
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book">Report Cards</MudNavLink>
                         </MudNavGroup>
-                    }
-                    else if (AppState.UserRole == "Admin")
-                    {
-                        <!-- ADMIN -->
-                        <MudNavGroup Disabled="!AppState.LicenseIsActive" Icon="@Icons.Material.Filled.SupervisorAccount" Title="Administration" Expanded="true">
+                        break;
 
-                            <!-- User Management -->
-                            <MudNavGroup Icon="@Icons.Material.Filled.VerifiedUser" Title="User Manager">
-                                <MudNavLink Href="UserManagement" Icon="@Icons.Material.Filled.SupervisedUserCircle">User Management</MudNavLink>
-                                <MudNavLink Href="StudentManagement" Icon="@MaterialDesignIcons.Normal.HumanMaleFemaleChild">Student Management</MudNavLink>
-                                <MudNavLink Href="TeacherManagement" Icon="@Icons.Material.Filled.Person">Teacher Management</MudNavLink>
+                    case "Admin":
+                        <MudNavGroup Icon="@Icons.Material.Filled.SupervisorAccount"
+                                     Title="Administration"
+                                     Disabled="!AppState.LicenseIsActive"
+                                     Expanded="true">
+
+                            <MudNavGroup Icon="@Icons.Material.Filled.VerifiedUser" Title="User Management">
+                                <MudNavLink Href="UserManagement" Icon="@Icons.Material.Filled.SupervisedUserCircle">Users</MudNavLink>
+                                <MudNavLink Href="StudentManagement" Icon="@MaterialDesignIcons.Normal.HumanMaleFemaleChild">Students</MudNavLink>
+                                <MudNavLink Href="TeacherManagement" Icon="@Icons.Material.Filled.Person">Teachers</MudNavLink>
                             </MudNavGroup>
 
-                            <MudDivider Class="mt-6" />
+                            <MudDivider Class="my-4" />
 
-                            <!-- Academics -->
                             <MudNavGroup Icon="@Icons.Material.Filled.School" Title="Academics">
                                 <MudNavLink Href="term-settings" Icon="@Icons.Material.Filled.EditCalendar" ForceLoad="true">Term Settings</MudNavLink>
-                                <MudNavLink Href="ClassManagement" Icon="@Icons.Material.Filled.Class">Class Management</MudNavLink>
-                                <MudNavLink Href="ClassSchedules" Icon="@MaterialDesignIcons.Normal.Timetable">Class Schedules</MudNavLink>
-                                <MudNavLink Href="ReportCardManagement" Icon="@MaterialDesignIcons.Normal.CardAccountDetails">Report Card Preparations</MudNavLink>
+                                <MudNavLink Href="ClassManagement" Icon="@Icons.Material.Filled.Class">Classes</MudNavLink>
+                                <MudNavLink Href="ClassSchedules" Icon="@MaterialDesignIcons.Normal.Timetable">Schedules</MudNavLink>
+                                <MudNavLink Href="ReportCardManagement" Icon="@MaterialDesignIcons.Normal.CardAccountDetails">Report Card Prep</MudNavLink>
                                 <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book">Report Cards</MudNavLink>
                                 <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary">Library</MudNavLink>
                             </MudNavGroup>
 
-                            <MudDivider Class="mt-6" />
+                            <MudDivider Class="my-4" />
 
-                            <!-- School Operations -->
-                            <MudNavGroup Icon="@Icons.Material.Filled.Hotel" Title="School Operations">
-                                <MudNavGroup Icon="@Icons.Material.Filled.DinnerDining" Title="Dining Manager">
-                                    <MudNavLink Href="DiningManagement" Icon="@Icons.Material.Filled.Dining">Dining Hall Management</MudNavLink>
+                            <MudNavGroup Icon="@Icons.Material.Filled.Hotel" Title="Operations">
+                                <MudNavGroup Icon="@Icons.Material.Filled.DinnerDining" Title="Dining">
+                                    <MudNavLink Href="DiningManagement" Icon="@Icons.Material.Filled.Dining">Dining Hall</MudNavLink>
                                 </MudNavGroup>
-                                <MudNavGroup Icon="@Icons.Material.Filled.Warehouse" Title="Hostel Manager">
+
+                                <MudNavGroup Icon="@Icons.Material.Filled.Warehouse" Title="Hostels">
                                     <MudNavLink Href="HostelManagement" Icon="@Icons.Material.Filled.BedroomChild">Hostels</MudNavLink>
-                                    <MudNavLink Href="HostelRoomMaintainance" Icon="@Icons.Material.Filled.Build">Maintenance Requests</MudNavLink>
+                                    <MudNavLink Href="HostelRoomMaintainance" Icon="@Icons.Material.Filled.Build">Maintenance</MudNavLink>
                                 </MudNavGroup>
                             </MudNavGroup>
 
-                            <MudDivider Class="mt-6" />
+                            <MudDivider Class="my-4" />
 
-                            <!-- Communication -->
-                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubble">Ignis Communication Hub</MudNavLink>
+                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubble">
+                                Ignis Communication Hub
+                            </MudNavLink>
+
                         </MudNavGroup>
-                    }
+                        break;
 
-
-                    else if (AppState.UserRole == "Teacher")
-                    {
-                        <!-- TEACHER -->
+                    case "Teacher":
                         <MudNavGroup Icon="@Icons.Material.Filled.Hub" Title="Teacher Portal">
-
-                            <MudNavLink Href="createliveclass" Icon="@Icons.Material.Filled.LiveTv">Create Live Class</MudNavLink>
-                            <MudNavLink Href="LessonManagement" Icon="@Icons.Material.Filled.School">Lesson Management</MudNavLink>
-                            <MudNavLink Href="AsssignmentManagement" Icon="@Icons.Material.Filled.Work">Assignment Management</MudNavLink>
+                            <MudNavLink Href="createliveclass" Icon="@Icons.Material.Filled.LiveTv">Live Classes</MudNavLink>
+                            <MudNavLink Href="LessonManagement" Icon="@Icons.Material.Filled.School">Lessons</MudNavLink>
+                            <MudNavLink Href="AsssignmentManagement" Icon="@Icons.Material.Filled.Work">Assignments</MudNavLink>
                             <MudNavLink Href="AssingmentChecking" Icon="@Icons.Material.Filled.Checklist">Mark Assignments</MudNavLink>
-                            <MudNavLink Href="ExamQuizTestManagement" Icon="@Icons.Custom.FileFormats.FileDocument">Exam Management</MudNavLink>
-                            <MudNavLink Href="ExamMarking" Icon="@Icons.Material.Filled.Checklist">Mark Exams/Tests</MudNavLink>
-                            <MudNavLink Href="StudentAttendance" Icon="@Icons.Custom.Uncategorized.AlertSuccess">Mark Attendance</MudNavLink>
-                            <MudNavLink Href="CourseManagement" Icon="@Icons.Material.Filled.LibraryBooks">Course Management</MudNavLink>
-                            <MudNavLink Href="ReportCardManagement" Icon="@MaterialDesignIcons.Normal.CardAccountDetails">Report Card Preparations</MudNavLink>
+                            <MudNavLink Href="ExamQuizTestManagement" Icon="@Icons.Custom.FileFormats.FileDocument">Exams</MudNavLink>
+                            <MudNavLink Href="ExamMarking" Icon="@Icons.Material.Filled.Checklist">Mark Exams</MudNavLink>
+                            <MudNavLink Href="StudentAttendance" Icon="@Icons.Custom.Uncategorized.AlertSuccess">Attendance</MudNavLink>
+                            <MudNavLink Href="CourseManagement" Icon="@Icons.Material.Filled.LibraryBooks">Courses</MudNavLink>
                             <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary">Library</MudNavLink>
-                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication Center</MudNavLink>
-
+                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication</MudNavLink>
                         </MudNavGroup>
-                    }
-                    else if (AppState.UserRole == "Staff")
-                    {
-                        <!-- STAFF -->
-                        <MudNavGroup Icon="@Icons.Material.Filled.Hub" Title="Staff Portal">
-                            <MudNavLink Href="LessonManagement" Icon="@Icons.Material.Filled.School">Lesson Management</MudNavLink>
-                            <MudNavLink Href="AsssignmentManagement" Icon="@Icons.Material.Filled.Work">Assignment Management</MudNavLink>
-                            <MudNavLink Href="ReportCardManagement" Icon="@Icons.Material.Filled.AddCard">Report Card Preparations</MudNavLink>
-                            <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary">Library</MudNavLink>
-                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication Center</MudNavLink>
-                        </MudNavGroup>
-                    }
+                        break;
 
-
-                    else if (AppState.UserRole == "Student")
-                    {
-                        <!-- STUDENT -->
+                    case "Student":
                         <MudNavGroup Icon="@Icons.Material.Filled.Mediation" Title="Student Portal">
+                            <MudNavLink Href="StudentLessons" Icon="@Icons.Material.Filled.Class">Lessons</MudNavLink>
 
-                            <!-- For small kids (Grade 1–5) -->
-                            @if (AppState.HideStudentDashboard)
-                            {
-                                <MudNavLink Icon="@Icons.Material.Filled.Class" Href="StudentLessons">Lessons</MudNavLink>
-
-                                <MudBadge Content="@AppState.newAssignmentsCount" Color="Color.Primary"
-                                          Overlap="true" Visible="AppState.newAssignmentsCount > 0">
-                                    <MudNavLink Icon="@Icons.Material.Filled.HomeWork" Href="StudentAssignments">
-                                        Assignments
-                                    </MudNavLink>
-                                </MudBadge>
-
-                                <MudNavLink Href="Exams" Icon="@Icons.Material.Filled.Pages">Exams, Tests & Quizzes</MudNavLink>
-                                <MudNavLink Href="StudentResults" Icon="@MaterialDesignIcons.Normal.FileDocumentMultiple">Results</MudNavLink>
-                                <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary">Library</MudNavLink>
-                            }
-                            else
-                            {
-                                <MudNavLink Icon="@Icons.Material.Filled.Class" Href="StudentLessons">Lessons</MudNavLink>
-
-                                <MudBadge Content="@AppState.newAssignmentsCount" Color="Color.Primary"
-                                          Overlap="true" Visible="AppState.newAssignmentsCount > 0">
-                                    <MudNavLink Icon="@Icons.Material.Filled.HomeWork" Href="StudentAssignments">
-                                        Assignments
-                                    </MudNavLink>
-                                </MudBadge>
-
-                                <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book">Report Cards</MudNavLink>
-                                <MudNavLink Href="Exams" Icon="@Icons.Material.Filled.Pages">Exams, Tests & Quizzes</MudNavLink>
-                                <MudNavLink Href="StudentResults" Icon="@MaterialDesignIcons.Normal.FileDocumentMultiple">Results</MudNavLink>
-
-                                <!-- Student Hostel Issues -->
-                                <MudNavLink Href="HostelRoomMaintainance" Icon="@Icons.Material.Filled.Build">
-                                    Hostel Issues
+                            <MudBadge Content="@AppState.NewAssignmentsCount"
+                                      Visible="AppState.NewAssignmentsCount > 0"
+                                      Color="Color.Primary"
+                                      Overlap="true">
+                                <MudNavLink Href="StudentAssignments" Icon="@Icons.Material.Filled.HomeWork">
+                                    Assignments
                                 </MudNavLink>
+                            </MudBadge>
 
-                                <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary">Library</MudNavLink>
-                                <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication Center</MudNavLink>
+                            @if (!AppState.HideStudentDashboard)
+                            {
+                                <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book">Report Cards</MudNavLink>
+                                <MudNavLink Href="Exams" Icon="@Icons.Material.Filled.Pages">Exams</MudNavLink>
+                                <MudNavLink Href="StudentResults" Icon="@MaterialDesignIcons.Normal.FileDocumentMultiple">Results</MudNavLink>
+                                <MudNavLink Href="HostelRoomMaintainance" Icon="@Icons.Material.Filled.Build">Hostel Issues</MudNavLink>
                             }
 
+                            <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary">Library</MudNavLink>
+                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication</MudNavLink>
                         </MudNavGroup>
-                    }
-                    else if (AppState.UserRole == "Parent")
-                    {
-                        <!-- PARENT -->
+                        break;
+
+                    case "Parent":
                         <MudNavGroup Icon="@Icons.Material.Filled.Mediation" Title="Parent Portal">
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book">Report Cards</MudNavLink>
-                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication Center</MudNavLink>
+                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication</MudNavLink>
                         </MudNavGroup>
-                    }
+                        break;
+                }
+            }
 
-                    <!-- ACCOUNT -->
-                    <MudNavGroup Icon="@Icons.Material.Filled.AccountCircle" Title="Account">
-                        <MudNavLink Disabled="!AppState.LicenseIsActive" Href="Profile" Icon="@Icons.Material.Filled.Person">
-                            Profile
-                        </MudNavLink>
+            <MudDivider Class="my-6" />
 
-                        <MudForm action="Account/Logout" method="post">
-                            <AntiforgeryToken />
-                            <input type="hidden" name="ReturnUrl" value="@HomeURL" />
-                            <MudNavLink>
-                                <MudButton ButtonType="ButtonType.Submit" EndIcon="@Icons.Material.Filled.Logout" class="nav-link">
-                                    Logout
-                                </MudButton>
-                            </MudNavLink>
-                        </MudForm>
-                    </MudNavGroup>
+            <!-- ACCOUNT -->
+            <MudNavGroup Icon="@Icons.Material.Filled.AccountCircle" Title="Account">
+                <MudNavLink Href="Profile"
+                            Disabled="!AppState.LicenseIsActive"
+                            Icon="@Icons.Material.Filled.Person">
+                    Profile
+                </MudNavLink>
 
-                    <!-- ABOUT -->
-                    <MudNavLink Href="https://www.philtiaraenterprises.com" Icon="@Icons.Material.Filled.Info">About</MudNavLink>
+                <MudForm Action="Account/Logout" Method="post">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="@HomeURL" />
+                    <MudNavLink>
+                        <MudButton ButtonType="ButtonType.Submit"
+                                   EndIcon="@Icons.Material.Filled.Logout">
+                            Logout
+                        </MudButton>
+                    </MudNavLink>
+                </MudForm>
+            </MudNavGroup>
 
-                </Authorized>
+            <MudNavLink Href="https://www.philtiaraenterprises.com"
+                        Icon="@Icons.Material.Filled.Info">
+                About Ignis
+            </MudNavLink>
 
-                <NotAuthorized>
-                    <MudNavLink Href="Account/Login" Icon="@Icons.Material.Filled.Login">Login</MudNavLink>
-                </NotAuthorized>
-            </AuthorizeView>
+        </Authorized>
 
-        </div>
-    </div>
+        <NotAuthorized>
+            <MudNavLink Href="Account/Login" Icon="@Icons.Material.Filled.Login">
+                Login
+            </MudNavLink>
+        </NotAuthorized>
+    </AuthorizeView>
+
 </MudNavMenu>
 
 
-<style>
-    .nav-image-container {
-        display: flex;
-        justify-content: center; /* Horizontal centering */
-        align-items: center; /* Vertical centering */
-        height: 100%; /* Make sure the container takes up the full height of the nav */
-    }
-
-    .container-fluid {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-</style>
-
 @code {
-    string UserRole = "Teacher";
-    private string? currentUrl;
-
     private string HomeURL = "Account/Login";
-    protected async override Task OnInitializedAsync()
+
+    protected override void OnInitialized()
     {
-        await Task.Delay(1000);
-        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
         AppState.OnChange += StateHasChanged;
-
     }
-
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
         StateHasChanged();
     }
-    // protected void NavigatetoDesigner(){
-    //     NavigationManager.NavigateTo($"/reportcarddesigner?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
-    // }
+
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
         AppState.OnChange -= StateHasChanged;
     }
-
 }
 
+<style>
+    .nav-image-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 16px 0;
+    }
+</style>

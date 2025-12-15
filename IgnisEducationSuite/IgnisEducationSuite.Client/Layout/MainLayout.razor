@@ -1,65 +1,115 @@
-﻿@using EDUSphereSharedProject.AchievementModels
+﻿@using IgnisEducationSuite.Client.Pages.Shared
 @using IgnisEducationSuite.Client.Services
 @using System.Security.Claims
 @inherits LayoutComponentBase
-@inject AppState appState
-@inject RolesAndLicensingService _rolesAndLicensing
-@inject AuthenticationStateProvider _authenticationStateProvider
-@inject NavigationManager _navigationManager
-@inject GenericServiceFactory _genericService
-@inject HttpClient http
+@inject AppState AppState
+@inject NavigationManager Nav
+
 <MudThemeProvider Theme="theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudAppBar>
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(() => DrawerToggle())" />
-        <MudText Typo="Typo.h6" Style="color: white;">@( appState.SchoolName ??"Ignis Education Suite")</MudText>
-    </MudAppBar>
-    <MudDrawer Elevation="2" @bind-Open="@_drawerOpen">
-        <NavMenu />
-    </MudDrawer>
-    <MudMainContent>
-
-        @Body
-
-    </MudMainContent>
-</MudLayout>
-
-@code {
-    private bool _drawerOpen = false;
-    private Theme theme = new();
-    public string UserRole { get; set; } = string.Empty;
-    private bool isLoading = true;
-
-    protected override async Task OnInitializedAsync()
+<MudLayout Class="ignis-layout">
+    @if (!partiallyIntialized)
     {
-        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
+        <div class="d-flex flex-column align-center justify-center" style="height:100%;">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
 
-        if (user.Identity?.IsAuthenticated ?? false)
+        </div>
+    }
+    else
+    {
+
+        <MudAppBar>
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           OnClick="DrawerToggle" />
+            <MudText Typo="Typo.h6" Style="color: white;">
+                @if (string.IsNullOrEmpty(AppState.SchoolName))
+                {
+                    @("Ignis Education Suite")
+                }
+                else
+                {
+                    @(AppState.SchoolName)
+                }
+            </MudText>
+        </MudAppBar>
+        @if (!IsAuthPage)
         {
-            var UserID = string.Empty;
-
-            UserID = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-
-
-            await appState.InitializeAsync(UserID, true, _navigationManager, http);
-            appState.OnChange += StateHasChanged;
+            <MudDrawer Elevation="0"
+                       @bind-Open="_drawerOpen"
+                       Class="ignis-drawer" ClipMode="DrawerClipMode.Docked">
+                <NavMenu />
+            </MudDrawer>
 
         }
 
-        isLoading = false;
-        await InvokeAsync(StateHasChanged);
+
+
+        <MudMainContent Class="ignis-main-content">
+            <IgnisEducationSuite.Client.Pages.Shared.GlobalLoader />
+            @Body
+        </MudMainContent>
+        <Footer Version="1.0.1" Environment="TEST" />
     }
+</MudLayout>
+
+@code {
+
+    private bool _drawerOpen = false;
+    private bool partiallyIntialized = false;
+    private Theme theme = new();
+    private bool IsAuthPage =>
+        Nav.Uri.Contains("Account/Login", StringComparison.OrdinalIgnoreCase) ||
+        Nav.Uri.Contains("Account/Register", StringComparison.OrdinalIgnoreCase) ||
+        Nav.Uri.Contains("Account/ForgotPassword", StringComparison.OrdinalIgnoreCase) ||
+        Nav.Uri.Contains("Account/ResetPassword", StringComparison.OrdinalIgnoreCase);
+
+    [Inject] AuthenticationStateProvider authenticationStateProvider { get; set; } = default!;
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // 🔑 Always unblock layout for auth pages
+        if (IsAuthPage)
+        {
+            partiallyIntialized = true;
+            return;
+        }
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                partiallyIntialized = await AppState.InitializeAsync(userId, true, Nav);
+                AppState.OnChange += StateHasChanged;
+            }
+            else
+            {
+                partiallyIntialized = true;
+            }
+        }
+        else
+        {
+            // Not authenticated + not an auth page → still render layout
+            partiallyIntialized = true;
+        }
+    }
+
+
     private void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
     }
+
     public void Dispose()
     {
-        appState.OnChange -= StateHasChanged;
+        AppState.OnChange -= StateHasChanged;
     }
 }

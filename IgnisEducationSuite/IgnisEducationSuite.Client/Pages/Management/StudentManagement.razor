@@ -2,108 +2,203 @@
 @using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.Models.StoreProModels
 @using IgnisEducationSuite.Client.Pages.Management.Dialog
+@using System.Text.Json
 @inject IDialogService DialogService
 @inherits AppBaseComponent
-<MudCard>
-    <MudCardHeader>
-        <CardHeaderContent>
-            <MudText Align="Align.Center" Typo="Typo.h4"><b>Student Management</b></MudText>
-        </CardHeaderContent>
+<MudTabs>
+    <MudTabPanel Text="Students">
+        <MudCard Class="mb-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Align="Align.Center" Typo="Typo.h4"><b>Student Management</b></MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
 
+            <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
 
-    </MudCardHeader>
-    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
+            <MudCardContent>
+
+                <!-- Section: Add New Student -->
+                <MudPaper Class="p-4 mb-4" Elevation="1">
+                    <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person" Variant="Variant.Filled">
+                        Create New Student Profile
+                    </MudAlert>
+
+                    <MudGrid Class="mt-3" GutterSize="3">
+                        <MudItem xs="12" md="6">
+                            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newStudent.FirstName" Label="First Name" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newStudent.LastName" Label="Last Name" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudSelect Variant="Variant.Outlined" T="int?" Label="Select Academic Level" @bind-Value="newStudent.AcademicLevel" Margin="Margin.Dense">
+                                @foreach (var a in academicLevels)
+                                {
+                                    <MudSelectItem T="int?" Value="a.LevelInt">@a.LevelName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newStudent.GradeSection" Label="Grade Section" Placeholder="Enter Section e.g For 10A enter 'A'" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newStudent.Gender">
+                                @foreach (var item in genders)
+                                {
+                                    <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newStudent.Address" Label="Address" />
+                        </MudItem>
+                        <MudItem xs="12" Class="d-flex justify-end">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddStudent">Add Student</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+
+                <!-- Section: Student Table -->
+                <MudPaper Class="p-4 mb-4" Elevation="1">
+                    <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.People" Variant="Variant.Filled">
+                        All Available Students
+                    </MudAlert>
+
+                    <MudDataGrid Breakpoint="Breakpoint.Sm" Items="Students" Filterable="false" SortMode="@SortMode.None" Groupable="false" QuickFilter="_quickFilter">
+                        <ToolBarContent>
+                            <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" AdornmentIcon="@Icons.Material.Filled.Search" Label="Search Student" @bind-Value="searchString" />
+                        </ToolBarContent>
+
+                        <Columns>
+                            @if (Students.Any())
+                            {
+                                <PropertyColumn Property="x => x.StudentNumber" Title="Student Number" />
+                                <PropertyColumn Property="x => x.FirstName" />
+                                <PropertyColumn Property="x => x.LastName" />
+                                <PropertyColumn Property="x => x.Gender" />
+                                <PropertyColumn Property="x => x.Address" />
+                                <PropertyColumn Property="x => x.LevelName" Title="Level" />
+                                <TemplateColumn Title="Actions" CellClass="d-flex justify-end">
+                                    <CellTemplate>
+                                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ManageStudentDetailsAsync(context.Item)">
+                                            Manage
+                                        </MudButton>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">
+                                    No Students found
+                                </MudAlert>
+                            }
+                        </Columns>
+                    </MudDataGrid>
+                </MudPaper>
+
+            </MudCardContent>
+        </MudCard>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Payment Management">
+        <!-- Section: Template Download -->
+        <MudPaper Class="p-4 mb-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-2">Download Template</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                Use the template to update student payment status. Ensure the Excel file contains <b>StudentNumber</b> and <b>PaymentStatus</b> (Paid/Unpaid).
+            </MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DownloadPaymentTemplate" StartIcon="@Icons.Material.Filled.Download">
+                Download Payment Template
+            </MudButton>
+        </MudPaper>
+
+        <!-- Section: Upload Excel -->
+        <MudPaper Class="p-4 mb-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-2">Upload Payment Updates</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                Select an Excel file (.xlsx) with updated payment statuses.
+            </MudText>
+            <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Accept=".xlsx">
+                <ActivatorContent>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
+                        Upload Excel File
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+        </MudPaper>
+
+        <!-- Section: Unmatched Rows / Errors -->
+        @if (unmatchedRows.Any())
+        {
+            <MudPaper Class="p-4 mb-4" Elevation="1">
+                <MudText Typo="Typo.h6" Class="mb-2">Unmatched Rows / Errors</MudText>
+                <MudTable Items="unmatchedRows" Dense="true" Hover="true" Bordered="true">
+                    <HeaderContent>
+                        <MudTh>Row Info</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Row Info">@context</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        }
+
+        <!-- Section: Student Payment Table -->
+        <MudPaper Class="p-4 mb-4" Elevation="1">
+            <MudDataGrid Items="Students" Filterable="true" Breakpoint="Breakpoint.Sm">
+                <ToolBarContent>
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Label="Search Student" @bind-Value="searchString">
+                    </MudTextField>
+                </ToolBarContent>
+
+                <Columns>
+                    @if (Students.Any())
+                    {
+                        <PropertyColumn Property="x => x.StudentNumber" Title="Student Number" />
+                        <PropertyColumn Property="x => x.FirstName" />
+                        <PropertyColumn Property="x => x.LastName" />
+                        <PropertyColumn Property="x => x.Gender" />
+                        <PropertyColumn Property="x => x.Address" />
+                        <PropertyColumn Property="x => x.LevelName" Title="Level" />
+                        <TemplateColumn Title="Payment Status">
+                            <CellTemplate>
+                                @if (context.Item.PaymentStatus == true)
+                                {
+                                    <MudChip Color="Color.Success" Variant="Variant.Filled">Paid</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip Color="Color.Error" Variant="Variant.Filled">Unpaid</MudChip>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">
+                            No students found
+                        </MudAlert>
+                    }
+                </Columns>
+            </MudDataGrid>
+        </MudPaper>
+
+        <!-- Section: Apply Updates Button -->
+        <div class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" >
+                Apply Updates
+            </MudButton>
         </div>
-    }
+    </MudTabPanel>
+
+</MudTabs>
 
 
-    <MudCardContent>
-        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Person" Variant="Variant.Filled">Create New Student Profile</MudAlert>
-        <MudGrid Class="mb-3">
-            <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newStudent.FirstName" Label="First Name">
-                </MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newStudent.LastName" Label="Last Name">
-                </MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect Variant="Variant.Outlined"
-                           T="int?"
-                           Label="Select Academic Level"
-                           @bind-Value="newStudent.AcademicLevel"
-                           Margin="Margin.Dense">
-                    @foreach (var a in academicLevels)
-                    {
-                        <MudSelectItem T="int?" Value="a.LevelInt">@a.LevelName</MudSelectItem>
-                    }
-                </MudSelect>
-
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newStudent.GradeSection" Label="Grade Section" Placeholder="Enter Section e.g For 10A Enter 'A'">
-                </MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newStudent.Gender">
-                    @foreach (var item in genders)
-                    {
-                        <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newStudent.Address" Label="Address">
-                </MudTextField>
-            </MudItem>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Submit" Color="Color.Primary" OnClick="AddStudent">Add Student</MudButton>
-            </MudItem>
-        </MudGrid>
-        <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.People" Variant="Variant.Filled">All Available Students</MudAlert>
-        <MudDataGrid Items="Students" Filterable="false" SortMode="@SortMode.None" Groupable="false" QuickFilter="_quickFilter">
-            <ToolBarContent>
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" AdornmentIcon="@Icons.Material.Filled.Search" Label="Search Student" @bind-Value="searchString"></MudTextField>
-            </ToolBarContent>
-            <Columns>
-                @if (Students.Any())
-                {
-                    <PropertyColumn Property="x => x.StudentNumber" />
-                    <PropertyColumn Property="x => x.FirstName" />
-                    <PropertyColumn Property="x => x.LastName" />
-                    <PropertyColumn Property="x => x.Gender" Title="Gender" />
-                    <PropertyColumn Property="x => x.Address" />
-                    <PropertyColumn Property="x => x.LevelName" />
-                    <TemplateColumn CellClass="d-flex justify-end">
-                        <CellTemplate>
-                            <MudStack Row>
-                                <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="() => ManageStudentDetailsAsync(context.Item)" Color="@Color.Primary">Manage</MudButton>
-                            </MudStack>
-                        </CellTemplate>
-                    </TemplateColumn>
-                }
-                else
-                {
-                    <MudAlert Severity="Severity.Info" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">No Students found</MudAlert>
-                }
-            </Columns>
-        </MudDataGrid>
-    </MudCardContent>
-
-</MudCard>
 @code {
 
     protected Student newStudent = new();
@@ -111,28 +206,114 @@
     protected List<Student> Students = new();
     protected List<Gender> genders = new();
     protected List<Class> classes = new();
+    protected List<string> unmatchedRows = new();
     protected List<GetStudentClassInfoResult> Studentclasses = new();
     protected List<Teacher> teachers = new();
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     [Inject] AppState _appState { get; set; } = default!;
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
-    protected bool isLoading = false;
     protected string searchString = string.Empty;
+    protected string successMessage = "";
+    IList<IBrowserFile> _files = new List<IBrowserFile>();
+
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait preparing everything for you.....");
         await GetLoggedInAdmin();
         await GetStudent();
         await GetTeachers();
         await GetClasses();
         await GetGenders();
 
-        isLoading = false;
+        LoaderService.Hide();
     }
 
 
     #region Calls to get data From DB
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        unmatchedRows.Clear();
+
+        LoaderService.Show("Processing the file, please wait...");
+        if (file == null || file.Size == 0)
+        {
+            unmatchedRows.Add("No file selected or the file is empty.");
+            return;
+        }
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10 MB max
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            // Add school ID
+            content.Add(new StringContent(AppState.SchoolID ?? ""), "schoolId");
+
+            var response = await HttpClient.PostAsync("api/upload/uploadPayments", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Successful upload
+                var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+                successMessage = json.GetProperty("message").GetString();
+            }
+            else
+            {
+                // Failed upload - capture unmatched rows
+                var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+                if (json.TryGetProperty("errors", out var errors))
+                {
+                    unmatchedRows = errors.EnumerateArray().Select(x => x.GetString() ?? "").ToList();
+                }
+                else if (json.TryGetProperty("message", out var message))
+                {
+                    unmatchedRows.Add(message.GetString() ?? "Unknown error.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            unmatchedRows.Add($"Error uploading file: {ex.Message}");
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+    }
+
+    protected async Task DownloadPaymentTemplate()
+    {
+        var response = await HttpClient.GetAsync($"api/Templates/DownloadPaymentTemplate/{Guid.Parse(AppState.SchoolID)}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Read the file content as a byte array
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+            // Get file name from response header if present, fallback to default
+            var fileName = "StudentPaymentTemplate.xlsx";
+            if (response.Content.Headers.ContentDisposition != null)
+            {
+                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            }
+
+            // Use JSInterop to trigger the browser download
+            await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, fileBytes);
+        }
+        else
+        {
+            // Handle error (optional)
+            Console.WriteLine("Failed to download template: " + response.StatusCode);
+        }
+
+    }
+
+
+
     protected async Task GetClasses()
     {
         var result = _genericService.GetService<Class>();
@@ -187,7 +368,7 @@
     }
     protected async Task AddStudent()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait...");
         newStudent.StudentID = Guid.NewGuid();
 
         newStudent.LevelName = academicLevels.Where(a => a.LevelInt == newStudent.AcademicLevel)
@@ -201,7 +382,7 @@
             newStudent = new();
             Snackbar.Add("Student Added Successfully", Severity.Success);
         }
-        isLoading = false;
+        LoaderService.Hide();
     }
 
     protected async Task<IEnumerable<GetStudentClassInfoResult>> GetStudentClasses(Guid StudentId)
@@ -237,10 +418,10 @@
                 var message = (string)dt;
                 if (message == "Successful")
                 {
-                    isLoading = true;
+                    LoaderService.Show("Completing");
                     await GetStudent();
                     StateHasChanged();
-                    isLoading = false;
+                    LoaderService.Hide();
 
                 }
             }
