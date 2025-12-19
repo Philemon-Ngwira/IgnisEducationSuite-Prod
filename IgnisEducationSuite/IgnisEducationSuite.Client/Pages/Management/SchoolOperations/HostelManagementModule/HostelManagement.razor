@@ -27,16 +27,7 @@
     </MudCardHeader>
 
     <MudCardContent>
-        @if (isLoading)
-        {
-            <div class="loader-overlay">
-                <div class="loader-container">
-                    <div class="spinner"></div>
-                    <div class="loader-icon">🔄</div>
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
-        }
+
 
         <MudGrid Spacing="3">
             @if (!roomsSide)
@@ -260,8 +251,6 @@
     string HeaderActionLabel = "Hostels";
     string buttonLabel = "Hostel";
     string PageTitle = "Hostel Management";
-    bool isLoading = false;
-
     #region Collections
     protected List<GetHostelsBySchoolResult> hostels = new();
     protected List<GetRoomsBySchoolResult> rooms = new();
@@ -271,13 +260,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait...preparing Hostels");
         var tasks = new List<Task>() {
             GetHostels(),
             GetRooms()
         };
         await Task.WhenAll(tasks);
-        isLoading = false;
+        LoaderService.Hide();
     }
 
     private void HeaderActionHostelOrRoomsChanged(bool value)
@@ -405,7 +394,7 @@
         var result = await service.GetAllAsync($"api/Dynamic/GetHostelsBySchool/{AppState.SchoolID}", true);
         if (result.IsSuccess)
         {
-            hostels = result.Data.ToList();
+            hostels = result.Data.OrderBy(x => x.GenderID).ToList();
         }
 
     }
@@ -416,7 +405,7 @@
         var result = await service.GetAllAsync($"api/Dynamic/GetRoomsBySchool/{AppState.SchoolID}", true);
         if (result.IsSuccess)
         {
-            rooms = result.Data.ToList();
+            rooms = result.Data.OrderBy(x => x.HostelName).ToList();
         }
 
     }
@@ -499,6 +488,7 @@
                 if (completed)
                 {
                     Snackbar.Add("Room Added Successfully", Severity.Success);
+                    var GenderID = hostels.Where(x => x.HostelId == newRoom.HostelId).Select(c => c.GenderID).First();
                     GetRoomsBySchoolResult recentlyAdded = new()
                     {
                         RoomId = newRoom.RoomId,
@@ -507,6 +497,8 @@
                         MaxOccupancy = newRoom.MaxOccupancy,
                         RoomType = newRoom.RoomType,
                         HostelName = hostels.Where(x => x.HostelId == newRoom.HostelId).Select(c => c.HostelName).First(),
+                        GenderDescription = genders
+                                            .Where(x => x.GenderId == GenderID).Select(x => x.GenderDescription).First(),
                         OccupiedCount = 0,
                     };
                     rooms.Add(recentlyAdded);
@@ -551,13 +543,13 @@
                 if (state)
                 {
                     Snackbar.Add("Room Allocations Done  Successfully", Severity.Success);
-                    isLoading = true;
+                    LoaderService.Show("Completing please wait...");
                     var tasks = new List<Task>() {
             GetHostels(),
             GetRooms()
         };
                     await Task.WhenAll(tasks);
-                    isLoading = false;
+                    LoaderService.Hide();
                     StateHasChanged();
                 }
             }

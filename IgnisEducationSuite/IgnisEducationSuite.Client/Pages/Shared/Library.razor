@@ -149,20 +149,33 @@
         {
             DefaultQuery = "high school mathematics";
         }
-        var book = (await booksClient.GetDefaultBooksAsync(DefaultQuery))?.Items?.ToList();
-        Books = book.Where(b => b.AccessInfo?.Viewability != "NO_PAGES" && b.AccessInfo?.Viewability != "NONE")
-    .ToList();
-        if (Books.Any())
+        try
         {
-            foreach (var item in Books)
+            var book = (await booksClient.GetDefaultBooksAsync(DefaultQuery))?.Items?.ToList();
+            Books = book.Where(b => b.AccessInfo?.Viewability != "NO_PAGES" && b.AccessInfo?.Viewability != "NONE")
+        .ToList();
+            if (Books.Any())
             {
-                if (item.VolumeInfo.ImageLinks == null)
+                foreach (var item in Books)
                 {
-                    item.DefaultImg = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
+                    if (item.VolumeInfo.ImageLinks == null)
+                    {
+                        item.DefaultImg = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
+                    }
                 }
             }
+            LoaderService.Hide();
         }
-        LoaderService.Hide();
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+            throw;
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+
     }
 
     protected async Task GetCCourses()

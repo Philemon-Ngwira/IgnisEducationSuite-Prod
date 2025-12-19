@@ -1,0 +1,275 @@
+﻿@page "/AcademicStructure"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+<MudStepper @bind-ActiveIndex="_activeStep">
+
+    <!-- STEP 1 -->
+    <MudStep Title="Current Structure">
+        <MudText Typo="Typo.h6" Class="mb-2">Existing Academic Levels</MudText>
+
+        @if (academicLevels.Any())
+        {
+            <MudList T="string" Dense="true">
+                @foreach (var level in academicLevels.OrderBy(x => x.SortOrder))
+                {
+                    <MudListItem>
+                        <MudChip Color="Color.Default" Variant="Variant.Outlined">
+                            @level.LevelName
+                        </MudChip>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">
+                No academic levels configured yet.
+            </MudAlert>
+        }
+
+        <MudButton Class="mt-4" OnClick="@(() => _activeStep++)">
+            Continue
+        </MudButton>
+    </MudStep>
+
+    <!-- STEP 2 -->
+    <MudStep Title="Upload Structure">
+        <MudStack Spacing="2">
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       OnClick="DownloadStructureTemplate">
+                Download Template
+            </MudButton>
+
+            <MudFileUpload T="IBrowserFile" FilesChanged="UploadAcademicFile">
+                <ActivatorContent>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary">
+                        Upload Excel File
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+
+            @if (uploadErrors.Any())
+            {
+                <MudAlert Severity="Severity.Error">
+                    @foreach (var error in uploadErrors)
+                    {
+                        <div>@error</div>
+                    }
+                </MudAlert>
+            }
+
+            <MudButton Disabled="!uploadedLevels.Any()"
+                       OnClick="@(() => _activeStep++)">
+                Review Changes
+            </MudButton>
+
+        </MudStack>
+    </MudStep>
+
+    <!-- STEP 3 -->
+    <MudStep Title="Review & Confirm">
+        <MudText Typo="Typo.h6" Class="mb-3">Change Summary</MudText>
+
+        <MudList T="string" Dense="true">
+            @foreach (var diff in previewDiffs)
+            {
+                <MudListItem>
+
+                    @switch (diff.State)
+                    {
+                        case DiffState.New:
+                            <MudChip Color="Color.Success" Variant="Variant.Filled">
+                                + @diff.Level.LevelName
+                            </MudChip>
+                            break;
+
+                        case DiffState.Existing:
+                            <MudChip Color="Color.Default" Variant="Variant.Outlined">
+                                = @diff.Level.LevelName
+                            </MudChip>
+                            break;
+
+                        case DiffState.Conflict:
+                            <MudChip Color="Color.Error" Variant="Variant.Filled">
+                                ! @diff.Level.LevelName
+                            </MudChip>
+                            break;
+                    }
+
+                    <MudText Typo="Typo.caption" Class="ml-2">
+                        @diff.Reason
+                    </MudText>
+
+                </MudListItem>
+            }
+        </MudList>
+
+        <MudDivider Class="my-3" />
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   Disabled="!previewDiffs.Any(x => x.State == DiffState.New)"
+                   OnClick="SaveChanges">
+            Confirm Additions
+        </MudButton>
+    </MudStep>
+
+</MudStepper>
+
+@code {
+    protected List<AcademicLevel> academicLevels = new();
+    protected List<AcademicLevel> uploadedLevels = new();
+    protected List<string> uploadErrors = new();
+    protected int _activeStep = 0;
+    public class AcademicLevelDiff
+    {
+        public AcademicLevel Level { get; set; }
+        public DiffState State { get; set; }
+        public string? Reason { get; set; }
+    }
+    private List<AcademicLevelDiff> previewDiffs = new();
+
+    private void BuildDiff()
+    {
+        previewDiffs.Clear();
+
+        foreach (var uploaded in uploadedLevels)
+        {
+            var exists = academicLevels.Any(x =>
+                x.LevelName.Trim().Equals(uploaded.LevelName.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            previewDiffs.Add(new AcademicLevelDiff
+            {
+                Level = uploaded,
+                State = exists ? DiffState.Existing : DiffState.New,
+                Reason = exists ? "Already exists" : "Will be added"
+            });
+        }
+    }
+
+    public enum DiffState
+    {
+        Existing,
+        New,
+        Conflict
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        await GetAcademicStructureAsync();
+        LoaderService.Hide();
+    }
+    protected async Task GetAcademicStructureAsync()
+    {
+        var service = GenericService.GetService<AcademicLevel>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetFullSchoolAcademicStructure/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            academicLevels = result.Data.ToList();
+        }
+    }
+    protected async Task DownloadStructureTemplate()
+    {
+        var response = await HttpClient.GetAsync($"api/Templates/DownloadAcademicStructureTemplate");
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Read the file content as a byte array
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+            // Get file name from response header if present, fallback to default
+            var fileName = "AcademicStructureTemplate.xlsx";
+            if (response.Content.Headers.ContentDisposition != null)
+            {
+                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            }
+
+            // Use JSInterop to trigger the browser download
+            await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, fileBytes);
+        }
+        else
+        {
+            // Handle error (optional)
+            Console.WriteLine("Failed to download template: " + response.StatusCode);
+        }
+    }
+
+    private async Task UploadAcademicFile(IBrowserFile file)
+    {
+        if (file == null || file.Size == 0) return;
+
+        LoaderService.Show("Validating Structure file, please wait...");
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream(10 * 1024 * 1024);
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType =
+                new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await HttpClient.PostAsync("api/upload/uploadStructures", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<UploadPreviewResult>();
+
+                if (result != null)
+                {
+                    uploadedLevels = result.academicLevels;
+                    uploadErrors = result.Errors
+                        .Select(e => $"Row {e.RowIndex}: {e.Message}")
+                        .ToList();
+                    BuildDiff();
+                }
+            }
+            else
+            {
+                uploadErrors.Add("Failed to upload parent file.");
+            }
+        }
+        catch (Exception ex)
+        {
+            uploadErrors.Add($"Error uploading parent file: {ex.Message}");
+        }
+        finally
+        {
+            LoaderService.Hide();
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveChanges()
+    {
+        LoaderService.Show($"Please wait setting up Academic Structure for {AppState.SchoolName}");
+        var newItems = previewDiffs
+    .Where(x => x.State == DiffState.New)
+    .Select(x => x.Level)
+    .ToList();
+        foreach (var item in newItems)
+        {
+            item.AcademicLevelID = Guid.NewGuid();
+            item.SchoolID = Guid.Parse(AppState.SchoolID);
+            item.isActive = true;
+            item.CreatedAt = DateTime.UtcNow;
+            item.UpdatedAt = DateTime.UtcNow;
+        }
+
+        var service = GenericService.GetService<List<AcademicLevel>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "academiclevel", newItems);
+        if (result.IsSuccess)
+        {
+            academicLevels.AddRange(newItems);
+            uploadedLevels.Clear();
+            newItems.Clear();
+            LoaderService.Hide();
+            Snackbar.Add("Academic Structure Successfully Set Up.", Severity.Success);
+        }
+    }
+}

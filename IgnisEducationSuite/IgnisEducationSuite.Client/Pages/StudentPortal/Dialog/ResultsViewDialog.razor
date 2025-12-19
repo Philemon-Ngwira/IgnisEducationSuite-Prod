@@ -1,129 +1,52 @@
 ﻿@using EDUSphereSharedProject.Models
 
-<MudDialog Class="exam-dialog">
+<MudDialog Class="exam-dialog" MaxWidth="MaxWidth.Large" FullWidth="true">
     <DialogContent>
 
-        <!-- HEADER: Title + Grade on top right -->
-        <MudGrid>
+        <!-- HEADER -->
+        <MudGrid Justify="Justify.Center">
             <MudItem xs="12" md="8">
-                <MudText Typo="Typo.h5" Class="exam-title">Past Paper Results</MudText>
+                <MudText Typo="Typo.h5" Class="exam-title">
+                    Past Paper Results
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Review your answers and see where you did well
+                </MudText>
             </MudItem>
 
             <MudItem xs="12" md="4" Class="grade-box">
-                <MudPaper Elevation="1" Class="grade-paper">
-                    <MudText Typo="Typo.h6" Align="Align.Right">
-                        Grade: @(Grade)%
+                <MudPaper Elevation="2" Class="grade-paper">
+                    <MudText Typo="Typo.subtitle1" Align="Align.Right">
+                        Final Grade
+                    </MudText>
+                    <MudText Typo="Typo.h4" Align="Align.Right" Color="Color.Primary">
+                        @(Grade)%
                     </MudText>
                 </MudPaper>
             </MudItem>
         </MudGrid>
 
-        <MudDivider Class="my-3" />
+        <MudDivider Class="my-4" />
 
+        <!-- QUESTIONS -->
         <MudGrid>
             @if (contentType == "ETQ")
             {
-
-
                 @foreach (var item in answers)
                 {
-                    <MudItem xs="12" Class="mb-4">
-
-                        <div class="question-header">
-                            <MudText Typo="Typo.h6">
-                                <strong>@item.Question.QuestionNumber.</strong> @item.Question.QuestionText?
-                            </MudText>
-
-                            @if (item.isCorrect == true)
-                            {
-                                <MudChip T="string" Color="Color.Success" Variant="Variant.Filled">Correct</MudChip>
-                            }
-                            else
-                            {
-                                <MudChip T="string" Color="Color.Error" Variant="Variant.Filled">Wrong</MudChip>
-                            }
-                        </div>
-
-                        @if (item.Question.isMultipleChoice == true)
-                        {
-                            <MudList T="string" Dense="true" Class="mcq-list">
-                                @foreach (var Aitem in ExamAnswerChoices
-                                                    .Where(a => a.ExamTestQuizQuestionID == item.QuestionID)
-                                                    .OrderBy(a => a.MultipleChoiceLetter))
-                                {
-                                    <MudListItem>
-                                        <MudCheckBox Disabled="true"
-                                                     Value="@(Aitem.MultipleChoiceLetter == item.AnswerText)">
-                                            <span class="mcq-option">
-                                                <strong>(@Aitem.MultipleChoiceLetter)</strong> @Aitem.MuiltpleChoiceAnswer
-                                            </span>
-                                        </MudCheckBox>
-                                    </MudListItem>
-                                }
-                            </MudList>
+            @QuestionCard(item, ExamAnswerChoices
+                        .Where(a => a.ExamTestQuizQuestionID == item.QuestionID)
+                        .OrderBy(a => a.ExamTestQuizQuestion.QuestionNumber))
                         }
-                        else
-                        {
-                            <MudPaper Class="written-answer">
-                                <MudText>@item.AnswerText</MudText>
-                            </MudPaper>
-                        }
-
-                    </MudItem>
-
-
-                }
             }
             else
             {
                 @foreach (var item in assignmentAnswers)
                 {
-                    <MudItem xs="12" Class="mb-4">
-
-                        <div class="question-header">
-                            <MudText Typo="Typo.h6">
-                                <strong>@item.Question.QuestionNumber.</strong> @item.Question.QuestionText?
-                            </MudText>
-
-                            @if (item.isCorrect == true)
-                            {
-                                <MudChip T="string" Color="Color.Success" Variant="Variant.Filled">Correct</MudChip>
-                            }
-                            else
-                            {
-                                <MudChip T="string" Color="Color.Error" Variant="Variant.Filled">Wrong</MudChip>
-                            }
-                        </div>
-
-                        @if (item.Question.isMultipleChoice == true)
-                        {
-                            <MudList T="string" Dense="true" Class="mcq-list">
-                                @foreach (var Aitem in AssignmentAnswerChoices
-                                                    .Where(a => a.AssignmentQuestionID == item.QuestionID)
-                                                    .OrderBy(a => a.MultipleChoiceLetter))
-                                {
-                                    <MudListItem>
-                                        <MudCheckBox Disabled="true"
-                                                     Value="@(Aitem.MultipleChoiceLetter == item.AnswerText)">
-                                            <span class="mcq-option">
-                                                <strong>(@Aitem.MultipleChoiceLetter)</strong> @Aitem.MuiltpleChoiceAnswer
-                                            </span>
-                                        </MudCheckBox>
-                                    </MudListItem>
-                                }
-                            </MudList>
+            @QuestionCard(item, AssignmentAnswerChoices
+                        .Where(a => a.AssignmentQuestionID == item.QuestionID)
+                        .OrderBy(a => a.AssignmentQuestion.QuestionNumber))
                         }
-                        else
-                        {
-                            <MudPaper Class="written-answer">
-                                <MudText>@item.AnswerText</MudText>
-                            </MudPaper>
-                        }
-
-                    </MudItem>
-
-
-                }
             }
         </MudGrid>
 
@@ -131,7 +54,7 @@
 </MudDialog>
 <style>
     .exam-dialog {
-        padding: 20px;
+        padding: 24px;
     }
 
     .exam-title {
@@ -139,33 +62,43 @@
     }
 
     .grade-box {
-        text-align: right;
+        display: flex;
+        justify-content: flex-end;
     }
 
     .grade-paper {
-        padding: 8px;
-        border-radius: 6px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        min-width: 160px;
+    }
+
+    .question-card {
+        padding: 16px;
+        border-radius: 8px;
+        background-color: var(--mud-palette-background-grey-light);
     }
 
     .question-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-
-    .mcq-option {
-        margin-left: 6px;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
     }
 
     .mcq-list .mud-list-item {
         padding: 4px 0;
     }
 
+    .mcq-option {
+        margin-left: 6px;
+    }
+
     .written-answer {
-        padding: 6px 10px;
-        background-color: #f8f8f8;
-        border-left: 4px solid #ccc;
+        padding: 10px 14px;
+        border-left: 4px solid var(--mud-palette-primary);
+        background-color: var(--mud-palette-background);
+        border-radius: 4px;
     }
 
 </style>
@@ -182,10 +115,63 @@
     {
         await Task.Delay(100);
         // Ensure answers are ordered by question number (safe if Question may be null)
+        var assignAnswers = assignmentAnswers
+        .OrderBy(a => a.Question?.QuestionNumber ?? int.MaxValue).ToList();
+        assignmentAnswers = assignAnswers.ToList();
         var answersnew = answers
                     .OrderBy(a => a.Question?.QuestionNumber ?? int.MaxValue)
                     .ToList() ?? new List<StudentExamQuizAndTestAnswer>();
 
         answers = answersnew.ToList();
     }
+
+    RenderFragment QuestionCard(dynamic item, IEnumerable<dynamic> choices) => @<MudItem xs="12" Class="mb-5">
+
+        <MudPaper Elevation="1" Class="question-card">
+
+            <!-- Question Header -->
+            <div class="question-header">
+                <MudText Typo="Typo.subtitle1">
+                    <strong>@item.Question.QuestionNumber.</strong>
+                    @item.Question.QuestionText?
+                </MudText>
+
+                <MudChip T="string" Color="@(item.isCorrect? Color.Success: Color.Error)"
+                         Variant="Variant.Outlined"
+                         StartIcon="@(item.isCorrect
+                                                     ? Icons.Material.Filled.CheckCircle
+                                                 : Icons.Material.Filled.Cancel)">
+                @(item.isCorrect ? "Correct" : "Wrong")
+            </MudChip>
+        </div>
+
+        <!-- Answer Section -->
+        @if (item.Question.isMultipleChoice)
+                    {
+                <MudList T="string" Dense="true" Class="mcq-list">
+                    @foreach (var Aitem in choices
+                                .OrderBy(c => c.MultipleChoiceLetter))
+                    {
+                        <MudListItem>
+                            <MudCheckBox T="bool" Disabled="true"
+                                         Checked="@(Aitem.MultipleChoiceLetter == item.AnswerText)">
+                                <span class="mcq-option">
+                                    <strong>(@Aitem.MultipleChoiceLetter)</strong>
+                                    @Aitem.MuiltpleChoiceAnswer
+                                </span>
+                            </MudCheckBox>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+                else
+                {
+        <MudPaper Class="written-answer">
+            <MudText Typo="Typo.body2">@item.AnswerText</MudText>
+        </MudPaper>
+                }
+
+    </MudPaper>
+
+</MudItem>;
 }

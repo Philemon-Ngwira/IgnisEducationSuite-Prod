@@ -2,6 +2,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -17,5 +18,21 @@ public partial class TimeSlot
 
     public Guid? SchoolID { get; set; }
 
+    public string SlotType { get; set; }
+
+    public int? MaxOccupancy { get; set; }
+
     public virtual ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
+    [NotMapped]
+    public DayOfWeek Day { get; set; }
+    [NotMapped]
+    public Guid? ScheduledActivityId { get; set; }
+    [NotMapped]
+    public TimeSpan SchoolMorningEnd { get; set; }     // e.g. 10:30
+    [NotMapped]
+    public TimeSpan SchoolEarlyMorningEnd { get; set; } // e.g. 09:50
+    [NotMapped]
+    public TimeSpan SchoolAfternoonStart { get; set; } // e.g. 12:50
+    
+
 }

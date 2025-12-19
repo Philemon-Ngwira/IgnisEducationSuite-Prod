@@ -35,13 +35,13 @@
                             {
                                 <MudListItem>
                                     <MudCheckBox T="bool"
-                                                 Label="@Aitem.MuiltpleChoiceAnswer"
+                                                 Label="@Aitem.MultipleChoiceLetter"
                                                  Value="@IsChecked(item.QuestionID, Aitem.MultipleChoiceLetter)"
                                                  ValueChanged="@(checkedValue => HandleMultipleChoiceSelection(
-                                                                                                                                      item.QuestionID,
-                                                                                                                                      Aitem.MultipleChoiceLetter,
-                                                                                                                                      Aitem.MuiltpleChoiceAnswer,
-                                                                                                                                      checkedValue))">
+                                                                                                                                                                                       item.QuestionID,
+                                                                                                                                                                                       Aitem.MultipleChoiceLetter,
+                                                                                                                                                                                       Aitem.MuiltpleChoiceAnswer,
+                                                                                                                                                                                       checkedValue))">
                             <span class="bullet-answer">@Aitem.MuiltpleChoiceAnswer</span>
                         </MudCheckBox>
                     </MudListItem>

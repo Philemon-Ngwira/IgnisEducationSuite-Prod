@@ -13,5 +13,7 @@ namespace EDUSphereSharedProject.UniversalModels
         public List<Student> Preview { get; set; } = new();
         public List<Parent> ParentPreview { get; set; } = new();
         public List<RowError> Errors { get; set; } = new();
+        public List<AcademicLevel> academicLevels { get; set; } = new();
+        public List<Class> classes { get; set; } = new();
     }
 }

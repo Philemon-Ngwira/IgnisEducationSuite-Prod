@@ -204,7 +204,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait...");
         var tasks = new List<Task>()
         {
             GetSchoolDiningHalls(),
@@ -216,7 +216,7 @@
 
         };
         await Task.WhenAll(tasks);
-        isLoading = false;
+        LoaderService.Hide();
     }
     protected async Task GetSpecialDiets()
     {

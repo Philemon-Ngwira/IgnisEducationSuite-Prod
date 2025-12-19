@@ -36,6 +36,13 @@ namespace IgnisEducationSuite.Controllers
             public List<string> StudentNumbers { get; set; } = new();
         }
 
+        [HttpGet("GetFullSchoolAcademicStructure/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolStructure(Guid SchoolID)
+        {
+            var result = await _repository.GetFullAcademicStructureForSchool(SchoolID);
+            return Ok(result);
+        }
+
         [HttpPost("GetStudentsByStudentNumbers")]
         public async Task<IActionResult> GetStudentsByStudentNumbers(
             [FromBody] StudentNumberLookupRequest request)
@@ -615,6 +622,7 @@ namespace IgnisEducationSuite.Controllers
                 "meal" => GetRepository<Meal>(),
                 "menuitem" => GetRepository<DiningMenu>(),
                 "specialdiet" => GetRepository<DiningSpecialDiet>(),
+                "academiclevel" => GetRepository<AcademicLevel>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -673,6 +681,7 @@ namespace IgnisEducationSuite.Controllers
                 "meal" => JsonSerializer.Deserialize<Meal>(obj.ToString()),
                 "menuitem" => JsonSerializer.Deserialize<DiningMenu>(obj.ToString()),
                 "specialdiet" => JsonSerializer.Deserialize<DiningSpecialDiet>(obj.ToString()),
+                "academiclevel" => JsonSerializer.Deserialize<AcademicLevel>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null

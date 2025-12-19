@@ -159,7 +159,7 @@
 
         var parameters = new DialogParameters<ReportCardDetails>
         {
-            { x => x.attendances, attendances },
+            { x => x.attendances, attendances ?? new List<GetAttendanceSummaryResult>() },
             { r => r.Results, details },
             { rp => rp.student, student }
         };

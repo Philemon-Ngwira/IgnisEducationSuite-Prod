@@ -23,5 +23,7 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public string ClassName { get; set; }
         public int? GradeLevel { get; set; }
         public int Overdue { get; set; }
+        [NotMapped]
+        public string LevelName { get; set; }
     }
 }

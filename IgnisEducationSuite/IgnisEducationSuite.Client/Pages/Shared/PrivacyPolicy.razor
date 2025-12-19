@@ -1,0 +1,97 @@
+﻿@page "/privacy"
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6 mb-10">
+
+    <MudPaper Elevation="2" Class="pa-6">
+
+        <!-- Header -->
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom>
+            <b>Ignis Education Suite – Privacy Policy</b>
+        </MudText>
+
+        <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary" Class="mb-4">
+            Last Updated: @DateTime.UtcNow.ToString("dd MMM yyyy")
+        </MudText>
+
+        <MudDivider Class="mb-4" />
+
+        <!-- Intro -->
+        <MudText Typo="Typo.body1" Paragraph="true">
+            This Privacy Policy explains how Ignis Education Suite (“Ignis”) collects,
+            uses, and protects information when used by schools, administrators,
+            teachers, students, and parents.
+        </MudText>
+
+        <MudText Typo="Typo.body1" Paragraph="true">
+            Ignis is an education management system designed exclusively for academic
+            operations. It is not a social network or advertising platform.
+        </MudText>
+
+        <!-- Sections -->
+        <PolicySection Title="1. Who This Policy Applies To">
+            This policy applies to schools, school administrators, teachers, students,
+            and parents or guardians using Ignis under the authority of their institution.
+        </PolicySection>
+
+        <PolicySection Title="2. Data We Collect">
+            <ul>
+                <li><b>Account Data:</b> Names, roles, school IDs, and contact details</li>
+                <li><b>Academic Data:</b> Classes, schedules, assignments, grades, attendance</li>
+                <li><b>System Data:</b> Login timestamps, device information, audit logs</li>
+            </ul>
+        </PolicySection>
+
+        <PolicySection Title="3. How Data Is Used">
+            Data is used only to operate Ignis features, support teaching and learning,
+            enable communication within schools, and maintain system security.
+        </PolicySection>
+
+        <PolicySection Title="4. Data Ownership">
+            Schools retain ownership of their institutional data. Students retain
+            ownership of their academic records. Ignis acts solely as a data processor.
+        </PolicySection>
+
+        <PolicySection Title="5. Access Control">
+            Ignis enforces role-based access. Users can only view information relevant
+            to their role. No user can access data belonging to another school.
+        </PolicySection>
+
+        <PolicySection Title="6. Data Sharing">
+            Ignis does not sell or trade data. Data is shared only when required to
+            deliver services, comply with law, or upon school request.
+        </PolicySection>
+
+        <PolicySection Title="7. Data Security">
+            Ignis uses secure authentication, encrypted connections, and access logging
+            to protect educational data.
+        </PolicySection>
+
+        <PolicySection Title="8. Data Retention">
+            Data is retained while a school license is active. Schools may request data
+            export upon termination. Data is securely deleted after retention periods.
+        </PolicySection>
+
+        <PolicySection Title="9. Children’s Data">
+            Student accounts are created and managed by schools. Ignis does not allow
+            public interaction, advertising, or external profiling.
+        </PolicySection>
+
+        <PolicySection Title="10. Policy Updates">
+            This policy may be updated to reflect legal or platform changes. Schools
+            will be notified of material updates.
+        </PolicySection>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Operated by <b>Philtiara Enterprises</b>
+        </MudText>
+
+    </MudPaper>
+</MudContainer>
+
+@code {
+    // Reusable section component
+   
+}

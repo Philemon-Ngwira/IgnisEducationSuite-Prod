@@ -3,78 +3,133 @@
 @using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.Zoom
 @inherits AppBaseComponent
-<MudCard>
+<MudCard Elevation="3" Class="pa-4">
+
+    <!-- Header -->
     <MudCardHeader>
         <CardHeaderAvatar>
-            <MudAvatar Color="Color.Secondary">
-                <MudIcon Icon="@Icons.Material.Filled.LiveTv"></MudIcon>
+            <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                <MudIcon Icon="@Icons.Material.Filled.LiveTv" />
             </MudAvatar>
         </CardHeaderAvatar>
+
         <CardHeaderContent>
-            <MudText Typo="Typo.body1"><b>Schedule Live Class Session</b></MudText>
-            <MudText Typo="Typo.body2"></MudText>
+            <MudText Typo="Typo.h6"><b>Schedule Live Class Session</b></MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Create and share a live class link with students
+            </MudText>
         </CardHeaderContent>
     </MudCardHeader>
-    <MudCardMedia Image="images/ClassImages/LiveSessionImage.jpg" Height="250"></MudCardMedia>
+
+    <MudDivider Class="my-2" />
+
+    <!-- Visual Banner -->
+    <MudCardMedia Image="images/ClassImages/LiveSessionImage.jpg"
+                  Height="220"
+                  Class="rounded mb-4" />
+
     <MudCardContent>
 
-        <MudGrid>
-            <MudItem xs="12" md="6" Class="mb-3">
-              <MudSelect T="string"
-           Variant="Variant.Outlined"
-           Margin="Margin.Dense"
-           Value="Grade"
-           ValueChanged="OnGradeChanged"
-           Label="Select Academic Level (Grade)">
-    @foreach (var item in availableAcademicLevels)
-    {
-        <MudSelectItem T="string" Value="item">@item</MudSelectItem>
-    }
-</MudSelect>
+        <MudGrid Spacing="3">
 
-            </MudItem>
-            <MudItem xs="12" md="6" Class="mb-3">
-                <MudTextField T="string"
-                              Value="@gradeSection"
-                              ValueChanged="OnGradeSectionChanged"
-                              Label="Enter Section"
-                              Placeholder="e.g A, B, C"
-                              Variant="Variant.Outlined" />
-
-            </MudItem>
-            <MudItem xs="12" md="6" Class="mb-3">
+            <!-- Academic Level -->
+            <MudItem xs="12" md="6">
                 <MudSelect T="string"
-                           Variant="Variant.Outlined" Margin="Margin.Dense"
-                           Disabled="!filteredAvailableClasses.Any()"
-                           @bind-Value="Subject"
-                           Label="Select Subject">
-                    @foreach (var item in filteredAvailableClasses)
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Label="Academic Level (Grade)"
+                           Value="Grade"
+                           ValueChanged="OnGradeChanged"
+                           Required="true">
+                    @foreach (var item in availableAcademicLevels)
                     {
-                        <MudSelectItem T="string" Value="item.ClassName">@item.ClassName</MudSelectItem>
+                        <MudSelectItem Value="@item">@item</MudSelectItem>
                     }
                 </MudSelect>
+            </MudItem>
 
+            <!-- Section -->
+            <MudItem xs="12" md="6">
+                <MudTextField T="string"
+                              Label="Class Section"
+                              Placeholder="e.g A, B, C"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Value="gradeSection"
+                              ValueChanged="OnGradeSectionChanged" />
             </MudItem>
-            <MudItem xs="12" Class="mb-3">
-                <MudButton Class="form-Control" Variant="Variant.Filled" Color="Color.Success" OnClick="CreateMeeting" Disabled="string.IsNullOrEmpty(Grade) || string.IsNullOrEmpty(Subject)">Create Class</MudButton>
-            </MudItem>
+
+            <!-- Subject -->
             <MudItem xs="12">
-                <MudAlert Severity="Severity.Info">
-                    Meeting Link:
-                    @if (!string.IsNullOrEmpty(MeetingLink))
+                <MudSelect T="string"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Label="Subject"
+                           Disabled="!filteredAvailableClasses.Any()"
+                           @bind-Value="Subject"
+                           HelperText="@(!filteredAvailableClasses.Any()
+                                                           ? "Select grade first to load subjects"
+                                                           : null)">
+                    @foreach (var item in filteredAvailableClasses)
                     {
-                        <p>Meeting created! Students can join here: <a href="@MeetingLink">@MeetingLink</a></p>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                                   StartIcon="@MaterialDesignIcons.Normal.Chat"
-                                   OnClick="ShareViaChat">
-                            Share to Students in @Grade Via IgnisChat
-                        </MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@MaterialDesignIcons.Normal.Mail">Share to Students in @Grade Via Mail</MudButton>
+                        <MudSelectItem Value="@item.ClassName">
+                            @item.ClassName
+                        </MudSelectItem>
                     }
-
-                </MudAlert>
+                </MudSelect>
             </MudItem>
+
+            <!-- Create Button -->
+            <MudItem xs="12" Class="d-flex justify-end mt-2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Success"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.VideoCall"
+                           Disabled="string.IsNullOrWhiteSpace(Grade) || string.IsNullOrWhiteSpace(Subject)"
+                           OnClick="CreateMeeting">
+                    Create Live Class
+                </MudButton>
+            </MudItem>
+
+            <!-- Meeting Info -->
+            @if (!string.IsNullOrEmpty(MeetingLink))
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+
+                        <MudText Typo="Typo.subtitle2">
+                            🎉 Live class created successfully
+                        </MudText>
+
+                        <MudText Typo="Typo.body2" Class="mt-1">
+                            Students can join using the link below:
+                        </MudText>
+
+                        <MudLink Href="@MeetingLink" Target="_blank">
+                            @MeetingLink
+                        </MudLink>
+
+                        <MudStack Row Spacing="2" Class="mt-3">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Chat"
+                                       OnClick="ShareViaChat">
+                                Share via Ignis Chat
+                            </MudButton>
+
+                            <MudButton Disabled=true Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Email">
+                                Share via Email
+                            </MudButton>
+                        </MudStack>
+
+                    </MudAlert>
+                </MudItem>
+            }
+
         </MudGrid>
+
     </MudCardContent>
 </MudCard>
 

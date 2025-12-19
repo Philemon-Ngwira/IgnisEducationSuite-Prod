@@ -63,8 +63,17 @@ namespace EduSphereDomain.Repositories
                 LevelInt = x.LevelInt,
                 LevelName = x.LevelName,
                 GroupName = x.GroupName,
+
             }).ToList();
         }
+
+        public async Task<IEnumerable<AcademicLevel>> GetFullAcademicStructureForSchool(Guid SchoolID)
+        {
+            var result = await _context.AcademicLevels
+                .Where(x => x.SchoolID == SchoolID && x.isActive == true).ToListAsync();
+            return result;
+        }
+
         public async Task<IEnumerable<Badge>> GetSystemBadges()
         {
             var result = await _achivementContext.Badges.ToListAsync();

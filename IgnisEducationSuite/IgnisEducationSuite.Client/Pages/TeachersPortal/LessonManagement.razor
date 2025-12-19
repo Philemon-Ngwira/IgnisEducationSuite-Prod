@@ -7,85 +7,95 @@
 @using EDUSphereSharedProject.Models
 @inject ISnackbar SnackBar
 
-<MudCard>
+```razor
+<MudCard Elevation="3" Class="pa-4">
 
-    <!-- Header -->
-    <MudCardHeader Class="mb-3">
-        <MudText Align="Align.Center" Typo="Typo.h5"><b>Lesson Management</b></MudText>
-    </MudCardHeader>
-    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    <!-- PAGE HEADER -->
+    <MudText Typo="Typo.h4"><b>Lesson Management</b></MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        Create, edit, and manage lessons manually or with AI assistance.
+    </MudText>
 
-    <!-- Lesson Creation / GPT -->
-    <MudCardContent Class="mb-3">
-        <MudCheckBox Label="Use ChatGPT" @bind-Value="useGPT" />
+    <!-- MODE SELECTOR -->
+    <MudPaper Class="pa-3 mb-4" Elevation="1">
+        <MudText Typo="Typo.h6" Class="mb-2">Lesson Creation Mode</MudText>
 
-        @if (useGPT)
+        <MudToggleGroup T="string" @bind-Value="_lessonMode" Outlined="true" Size="Size.Medium" Color="Color.Primary">
+            <MudToggleItem Value="@("Use GPT")">
+                🤖 AI-Assisted Lesson
+            </MudToggleItem>
+            <MudToggleItem Value="@("Manual")">
+                ✍️ Manual Lesson
+            </MudToggleItem>
+            <MudToggleItem Value="@("Upload Existing Lesson")">
+                📄 Upload Existing Lesson
+            </MudToggleItem>
+        </MudToggleGroup>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+            Choose your lesson creation mode.
+        </MudText>
+
+    </MudPaper>
+
+    <!-- LESSON CREATION -->
+    <MudCardContent>
+
+        @if (_lessonMode == "Use GPT")
         {
-            <MudPaper Class="p-4 mb-4" Elevation="2">
-                <MudGrid Spacing="3" Justify="Justify.Center">
+            <!-- AI QUERY -->
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-1">Ask AI to Draft a Lesson</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                    ChatGPT will generate a draft lesson which you can fully edit.
+                </MudText>
 
-                    <!-- GPT Query -->
+                <MudGrid Spacing="3">
                     <MudItem xs="12" md="8">
-                        <MudTextField T="string"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Label="Ask Chat GPT to create a lesson on topic"
+                        <MudTextField Variant="Variant.Outlined"
+                                      Label="Lesson Topic"
                                       @bind-Value="Query"
-                                      FullWidth="true"
                                       AdornmentIcon="@Icons.Material.Filled.Chat"
-                                      AdornmentColor="Color.Primary" />
+                                      FullWidth="true" />
                     </MudItem>
 
-                    <!-- Class Selection -->
                     <MudItem xs="12" md="4">
                         <MudAutocomplete T="Class"
-                                         Label="Select Class"
+                                         Label="Class"
                                          @bind-Value="selectedClass"
                                          Variant="Variant.Outlined"
-                                         Margin="Margin.Dense"
-                                         FullWidth="true"
-                                         ToStringFunc="ClassTypeConverter"
                                          SearchFunc="@Search"
-                                         ResetValueOnEmptyText="true"
-                                         CoerceText="true"
-                                         CoerceValue="true"
-                                         AdornmentIcon="@Icons.Material.Filled.Search"
-                                         AdornmentColor="Color.Primary" />
-                    </MudItem>
-
-                </MudGrid>
-
-                <!-- GPT Action Button -->
-                <MudGrid Class="mt-3">
-                    <MudItem xs="12">
-                        <MudButton OnClick="SendMessage"
-                                   Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Send"
-                                   FullWidth="false">
-                            Ask ChatGPT
-                        </MudButton>
+                                         ToStringFunc="ClassTypeConverter"
+                                         FullWidth="true" />
                     </MudItem>
                 </MudGrid>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Send"
+                           Class="mt-3"
+                           OnClick="SendMessage">
+                    Generate Lesson
+                </MudButton>
             </MudPaper>
+        }
 
-            <!-- Lesson Editor -->
-            <MudPaper Class="p-4 mb-4" Elevation="2">
-                <BlazoredTextEditor @ref="@richTextEditor">
+        else if (_lessonMode == "Manual")
+        {
+            <!-- SHARED EDITOR -->
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Lesson Content</MudText>
+                <BlazoredTextEditor @ref="richTextEditor">
                     <ToolbarContent>@((MarkupString)toolbar)</ToolbarContent>
                     <EditorContent>@((MarkupString)body)</EditorContent>
                 </BlazoredTextEditor>
             </MudPaper>
 
-            <!-- Metadata & Uploads -->
-            <MudPaper Class="p-4 mb-4" Elevation="2">
+            <!-- METADATA & FILES -->
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
                 <MudGrid Spacing="3">
-
                     <MudItem xs="12" md="6">
-                        <MudTextField T="string"
+                        <MudTextField Label="Lesson Title"
                                       Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Label="Add Lesson Title"
                                       @bind-Value="newLesson.Title"
                                       FullWidth="true" />
                     </MudItem>
@@ -93,7 +103,7 @@
                     <MudItem xs="12">
                         <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
                             <ActivatorContent>
-                                <MudButton Variant="Variant.Filled"
+                                <MudButton Variant="Variant.Outlined"
                                            Color="Color.Primary"
                                            StartIcon="@Icons.Material.Filled.CloudUpload">
                                     Upload Lesson Images
@@ -101,123 +111,80 @@
                             </ActivatorContent>
                         </MudFileUpload>
                     </MudItem>
-
                 </MudGrid>
             </MudPaper>
 
-            <!-- Action Buttons -->
-            <MudPaper Class="p-4 mb-4 d-flex justify-end" Elevation="0">
-                <MudButtonGroup>
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Done"
-                               DropShadow="true"
-                               OnClick="FinishEditing">
-                        Finish Editing
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Save"
-                               DropShadow="true"
-                               OnClick="SaveLesson">
-                        Save Lesson
-                    </MudButton>
-                </MudButtonGroup>
-            </MudPaper>
         }
         else
         {
-            <div class="upload-container">
-                <!-- Lesson Topic -->
-                <MudGrid Spacing="3">
-                    <MudItem xs="12">
-                        <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Title">Enter Lesson Topic</MudAlert>
-                        <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newLesson.Title" Label="Lesson Topic" FullWidth="true" />
-                    </MudItem>
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudItem xs="12">
+                    <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChange">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
+                                Upload Lesson
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </MudItem>
+                <MudItem xs="12">
+                    <BlazoredTextEditor @ref="richTextEditor">
+                        <ToolbarContent>@((MarkupString)toolbar)</ToolbarContent>
+                        <EditorContent>@((MarkupString)body)</EditorContent>
+                    </BlazoredTextEditor>
+                </MudItem>
+            </MudPaper>
 
-                    <MudItem xs="12">
-                        <MudAutocomplete T="Class"
-                                         Label="Select Class"
-                                         @bind-Value="selectedClass"
-                                         Variant="Variant.Outlined"
-                                         Margin="Margin.Dense"
-                                         ToStringFunc="ClassTypeConverter"
-                                         SearchFunc="@Search"
-                                         ResetValueOnEmptyText="true"
-                                         CoerceText="true"
-                                         CoerceValue="true"
-                                         AdornmentIcon="@Icons.Material.Filled.Search"
-                                         AdornmentColor="Color.Primary"
-                                         FullWidth="true" />
-                    </MudItem>
-                </MudGrid>
 
-                <!-- Upload PDF -->
-                <MudGrid Spacing="3" Class="mt-3">
-                    <MudItem xs="12">
-                        <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Input">Upload Lesson Contents from PDF</MudAlert>
-                        <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChange">
-                            <ActivatorContent>
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">Upload Lesson</MudButton>
-                            </ActivatorContent>
-                        </MudFileUpload>
-                    </MudItem>
-                </MudGrid>
-
-                <!-- Manual Entry & Images -->
-                <MudGrid Spacing="3" Class="mt-3">
-                    <MudItem xs="12">
-                        <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Input">Manually Type Lesson</MudAlert>
-                        <BlazoredTextEditor @ref="@richTextEditor">
-                            <ToolbarContent>@((MarkupString)toolbar)</ToolbarContent>
-                            <EditorContent>@((MarkupString)body)</EditorContent>
-                        </BlazoredTextEditor>
-                    </MudItem>
-
-                    <MudItem xs="12">
-                        <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
-                            <ActivatorContent>
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
-                                    Upload Any Lesson Images
-                                </MudButton>
-                            </ActivatorContent>
-                        </MudFileUpload>
-                    </MudItem>
-                </MudGrid>
-
-                <!-- Action Buttons -->
-                <MudGrid Class="mt-3" Justify="Justify.FlexEnd">
-                    <MudItem>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="true" StartIcon="@Icons.Material.Filled.Done" OnClick="FinishEditing">Finish Editing</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="true" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveLesson">Save Lesson</MudButton>
-                    </MudItem>
-                </MudGrid>
-            </div>
         }
+
+        <!-- ACTIONS -->
+        <MudPaper Class="pa-3 d-flex justify-end" Elevation="0">
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Done"
+                       OnClick="FinishEditing">
+                Finish Editing
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Class="ml-2"
+                       OnClick="SaveLesson">
+                Save Lesson
+            </MudButton>
+        </MudPaper>
     </MudCardContent>
 
-    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
+    <MudDivider Class="my-4" />
 
-    <!-- Current Lessons -->
-    <MudCardContent Class="mb-3">
-        <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.List">Current Available Lessons</MudAlert>
+    <!-- EXISTING LESSONS -->
+    <MudCardContent>
+        <MudText Typo="Typo.h6" Class="mb-2">Your Lessons</MudText>
 
-        <MudDataGrid Items="@teacherLessons" Filterable="false" SortMode="@SortMode.None" Groupable="false">
+        <MudDataGrid Items="@teacherLessons" SortMode="SortMode.None">
             <ToolBarContent>
-                <MudText Typo="Typo.h6"><b>Your Lessons</b></MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+                <MudTextField @bind-Value="_searchString"
+                              Placeholder="Search lessons"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" />
             </ToolBarContent>
 
             <Columns>
-                <PropertyColumn Property="x => x.Title" />
-                <PropertyColumn Property="x => x.DatePosted.Value.ToShortDateString()" Title="Created Date" />
+                <PropertyColumn Property="x => x.Title" Title="Title" />
+                <PropertyColumn Property="x => x.DatePosted.Value.ToShortDateString()" Title="Created" />
                 <TemplateColumn CellClass="d-flex justify-end">
                     <CellTemplate>
                         <MudStack Row>
-                            <MudRating Size="@Size.Small" SelectedValue="@context.Item.Rating.Value" />
-                            <MudSpacer />
-                            <MudButton Size="@Size.Small" Variant="Variant.Filled" Color="Color.Error" OnClick="() => TaskRemoveLesson(context.Item)">Remove</MudButton>
+                            <MudRating Size="Size.Small" SelectedValue="@context.Item.Rating.Value" />
+                            <MudButton Size="Size.Small"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Error"
+                                       OnClick="() => TaskRemoveLesson(context.Item)">
+                                Remove
+                            </MudButton>
                         </MudStack>
                     </CellTemplate>
                 </TemplateColumn>
@@ -226,6 +193,7 @@
     </MudCardContent>
 
 </MudCard>
+
 
 @code {
     protected List<Lesson> teacherLessons = new();
@@ -249,6 +217,7 @@
     string body = string.Empty;
     protected bool isLoading = false;
     protected string UserID = string.Empty;
+    string _lessonMode = "Manual"; // default
     protected override async Task OnInitializedAsync()
     {
         LoaderService.Show("Please wait while we prepare your environment...");

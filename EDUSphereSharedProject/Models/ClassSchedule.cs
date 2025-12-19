@@ -23,9 +23,19 @@ public partial class ClassSchedule
 
     public Guid? SchoolID { get; set; }
 
+    public bool IsDoublePeriod { get; set; }
+
+    public int? SlotOrder { get; set; }
+
+    public bool IsFiller { get; set; }
+
+    public Guid? ScheduledActivity { get; set; }
+
     public virtual Class Class { get; set; }
 
     public virtual DayofTheWeek DayOfTheWeek { get; set; }
+
+    public virtual TimeTableActivity ScheduledActivityNavigation { get; set; }
 
     public virtual ICollection<StudentClassSchedule> StudentClassSchedules { get; set; } = new List<StudentClassSchedule>();
 

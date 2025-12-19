@@ -78,8 +78,19 @@ namespace IgnisEducationSuite.Controllers
             return File(
                excelBytes,
                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-               "ParentTemplateUploadTemplate.xlsx"
+               "ParentUploadTemplate.xlsx"
            );
+        }
+
+        [HttpGet("DownloadAcademicStructureTemplate")]
+        public IActionResult DownloadAcademicStructureTemplate()
+        {
+            byte[] excelBytes = _template.GenerateAcademicStructureTemplate();
+            return File(
+              excelBytes,
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "AcademicStructureUploadTemplate.xlsx"
+          );
         }
     }
 }

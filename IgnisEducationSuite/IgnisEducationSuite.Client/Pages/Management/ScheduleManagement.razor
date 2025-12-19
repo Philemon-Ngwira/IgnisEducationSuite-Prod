@@ -4,217 +4,191 @@
 @using System.Net.Http.Headers
 @page "/ClassSchedules"
 @inherits AppBaseComponent
-<MudCard>
-    <MudCardHeader>
-        <CardHeaderContent>
-            <MudText Align="Align.Center" Typo="Typo.h4"><b>Class Schedules</b></MudText>
-        </CardHeaderContent>
-    </MudCardHeader>
-    <MudCardContent>
-        @if (isLoading)
-        {
-            <div id="loader-overlay" class="loader-overlay">
-                <div class="loader-container">
-                    <!-- Spinner -->
-                    <div class="spinner"></div>
-                    <!-- Loader Icon -->
-                    <div class="loader-icon">🔄</div>
-                    <!-- Loading Text -->
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
-        }
 
-        <MudTabs @ref="mudTabs" Outlined="true">
-            <MudTabPanel @ref="panel01" Text="Add Time Slots" Icon="@Icons.Material.Filled.Build">
-                <MudAlert Class="mb-3" Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true">Create School Time Slots</MudAlert>
-                <MudGrid>
-                    <MudItem xs="12" md="6">
-                        <MudTimePicker Label="Start Time" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" @bind-Time="@newTimeSlot.StartTime" />
+<MudCard Elevation="3" Class="pa-4">
+
+    <!-- PAGE HEADER -->
+    <MudText Typo="Typo.h4"><b>Class Schedules</b></MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        Define school time slots, upload class schedules, and assign them to students.
+    </MudText>
+
+    <!-- MAIN TABS -->
+    <MudTabs Outlined="true" Rounded="true">
+
+        <!-- TAB 1: TIME SLOTS -->
+        <MudTabPanel Text="Time Slots" Icon="@Icons.Material.Filled.Schedule">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Create School Time Slots</MudText>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="4">
+                        <MudTimePicker Label="Start Time" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                       @bind-Time="newTimeSlot.StartTime" />
                     </MudItem>
-                    <MudItem xs="12" md="6">
-                        <MudTimePicker Label="End Time" Variant="Variant.Outlined" Margin="Margin.Dense" Editable="true" @bind-Time="@newTimeSlot.EndTime" />
+
+                    <MudItem xs="12" md="4">
+                        <MudTimePicker Label="End Time" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                       @bind-Time="newTimeSlot.EndTime" />
                     </MudItem>
-                    <MudItem xs="12" md="6">
-                        <MudTextField Label="Slot Name" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-value="@newTimeSlot.Description" />
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudButton Variant="Variant.Filled" OnClick="RegisterTimeSlot" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Add">Register Time Slot</MudButton>
+
+                    <MudItem xs="12" md="4">
+                        <MudTextField Label="Slot Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      @bind-Value="newTimeSlot.Description" />
                     </MudItem>
                 </MudGrid>
-            </MudTabPanel>
-            <MudTabPanel @ref="panel02" Text="Create New Schedule" Icon="@Icons.Material.Filled.Build">
-                <MudAlert Class="mb-3" Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true">Upload Excel Class Schedule</MudAlert>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DownloadScheduleTemplate" Class="mb-3">
-                  Download  Schedule Template
-                </MudButton>
-                <MudFileUpload T="IBrowserFile" FilesChanged="HandleFileUpload" Class="mb-3">
-                    <ActivatorContent>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary">
-                            Upload Class Excel Schedule
-                        </MudButton>
-                    </ActivatorContent>
-                    <SelectedTemplate>
-                        @if (context != null)
-                        {
-                            <MudText>@context.Name</MudText>
-                        }
-                        else
-                        {
-                            <MudText>No File</MudText>
-                        }
-                    </SelectedTemplate>
-                </MudFileUpload>
 
-                <MudPaper Class="mb-3">
-                    @if (groupedSchedules != null)
-                    {
-                        <MudAlert Variant="Variant.Filled" Severity="Severity.Normal">Grade : @GradeLevel Term TimeTable</MudAlert>
-                        <table class="timetable">
-                            <thead>
+                <MudDivider Class="my-4" />
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           EndIcon="@Icons.Material.Filled.Add"
+                           OnClick="RegisterTimeSlot">
+                    Register Time Slot
+                </MudButton>
+            </MudPaper>
+        </MudTabPanel>
+
+        <!-- TAB 2: CREATE SCHEDULE -->
+        <MudTabPanel Text="Create Schedule" Icon="@Icons.Material.Filled.UploadFile">
+
+            <!-- Upload Section -->
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-2">Upload Class Schedule</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Use the provided Excel template to define weekly lessons.
+                </MudText>
+
+                <MudStack Direction="Row" Spacing="2" Class="mt-3">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               OnClick="DownloadScheduleTemplate">
+                        Download Template
+                    </MudButton>
+
+                    <MudFileUpload T="IBrowserFile" FilesChanged="HandleFileUpload">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary">
+                                Upload Excel
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </MudStack>
+            </MudPaper>
+
+            <!-- TIMETABLE PREVIEW -->
+            @if (groupedSchedules != null && groupedSchedules.Any())
+            {
+                <MudPaper Class="pa-3" Elevation="1">
+                    <MudText Typo="Typo.h6" Class="mb-2">
+                        @GradeLevel Term Timetable
+                    </MudText>
+
+                    <table class="timetable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                @foreach (var day in daysofTheWeek)
+                                {
+                                    <th>@day.DayName</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var group in groupedSchedules)
+                            {
                                 <tr>
-                                    <th>Time</th>
-                                    @foreach (var day in daysofTheWeek)
+                                    <td class="time">
+                                        @($"{group.Key.StartTime:hh\\:mm}") – @($"{group.Key.EndTime:hh\\:mm}")
+                                    </td>
+                                    @foreach (var day in dayOrder)
                                     {
-                                        <th>@day.DayName</th>
+                                        var schedule = group.FirstOrDefault(cs => cs.DayOfTheWeek.DayName == day);
+                                        <td class="@(schedule == null ? "empty" : "filled")">
+                                            @if (schedule != null)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary">
+                                                    @schedule.Class.ClassName
+                                                </MudChip>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
                                     }
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var group in groupedSchedules)
-                                {
-                                    <tr>
-                                        <td class="time">@($"{group.Key.StartTime:hh\\:mm}") - @($"{group.Key.EndTime:hh\\:mm}")</td>
-                                        @foreach (var day in dayOrder)
-                                        {
-                                            <td class="@((group.Any(cs => cs.DayOfTheWeek.DayName == day) ? "" : "empty"))">
-                                                @{
-                                                    var schedule = group.FirstOrDefault(cs => cs.DayOfTheWeek.DayName == day);
-                                                    if (schedule != null)
-                                                    {
-                                                        <span>@schedule.Class.ClassName</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span>No Classes</span>
-                                                    }
-                                                }
-                                            </td>
-                                        }
-                                    </tr>
-                                }
-                            </tbody>
+                            }
+                        </tbody>
+                    </table>
 
-                        </table>
-                    }
-                    else
-                    {
-                        <MudAlert Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true" Class="mb-3">No Schedule Created. Upload Schedule Above</MudAlert>
-                    }
-                    <MudDateRangePicker Variant="Variant.Outlined" @bind-DateRange="@_dateRange" Margin="Margin.Dense" ReadOnly="@(!_editable)" Clearable="@_clearable"
-                                        PlaceholderStart="Schedule Start Date" PlaceholderEnd="Schedule End Date" />
-                    <MudButton Disabled="groupedSchedules.Count() < 1" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.SaveAlt" Color="Color.Primary" OnClick="AssignSchedule">Save Class TimeTable</MudButton>
+                    <MudDivider Class="my-3" />
+
+                    <MudDateRangePicker Variant="Variant.Outlined"
+                                        Margin="Margin.Dense"
+                                        @bind-DateRange="_dateRange"
+                                        PlaceholderStart="Schedule Start Date"
+                                        PlaceholderEnd="Schedule End Date" />
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               Class="mt-3"
+                               EndIcon="@Icons.Material.Filled.SaveAlt"
+                               OnClick="AssignSchedule">
+                        Save Class Timetable
+                    </MudButton>
                 </MudPaper>
-            </MudTabPanel>
-            <MudTabPanel @ref="panel03" Text="Assign Available Schedule" Icon="@Icons.Material.Filled.Assignment">
-                <MudAlert Severity="Severity.Normal" Class="mb-3" NoIcon="true" Variant="Variant.Filled">Class Schedule assignment</MudAlert>
-                <MudGrid Class="mb-3">
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    No schedule uploaded yet.
+                </MudAlert>
+            }
+        </MudTabPanel>
+
+        <!-- TAB 3: ASSIGN SCHEDULE -->
+        <MudTabPanel Text="Assign Schedule" Icon="@Icons.Material.Filled.AssignmentTurnedIn">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-3">Assign Schedule to Class</MudText>
+
+                <MudGrid Spacing="2">
                     <MudItem xs="12" md="4">
-                        <MudNumericField Variant="Variant.Outlined" @bind-Value="GradeInt" Margin="Margin.Dense" Placeholder="e.g:11" Label="Enter Grade"></MudNumericField>
+                        <MudNumericField Label="Grade" Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         @bind-Value="GradeInt" />
                     </MudItem>
+
                     <MudItem xs="12" md="4">
-                        <MudTextField Variant="Variant.Outlined" @bind-Value="GradeLevel" Margin="Margin.Dense" Placeholder="e.g: A " Label="Enter Grade Section"></MudTextField>
+                        <MudTextField Label="Section" Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      @bind-Value="GradeLevel" />
                     </MudItem>
-                    <MudItem xs="12" md="4">
-                        <MudButton OnClick="GetActiveSchedulesPerClass" Variant="Variant.Filled" Disabled="GradeInt == 0" Color="Color.Primary">
-                            Get Active Schedules For Grade:
-                            @if (GradeInt == 0)
-                            {
-                                @NoGradeLevel
-                            }
-                            else
-                            {
-                                @GradeInt
-                                @GradeLevel
-                            }
+
+                    <MudItem xs="12" md="4" Class="d-flex align-end">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   Disabled="GradeInt == 0"
+                                   OnClick="GetActiveSchedulesPerClass">
+                            Load Schedule
                         </MudButton>
                     </MudItem>
-                    <MudItem xs="12">
-                        <MudAlert Severity="Severity.Normal" Class="mb-3" NoIcon="true" Variant="Variant.Filled">
-                            Grade:
-                            @if (GradeInt == 0)
-                            {
-                                @NoGradeLevel
-                            }
-                            else
-                            {
-                                @GradeInt
-                                @GradeLevel
-                            }
-                            Class Schedule
-                        </MudAlert>
-                    </MudItem>
-                    <MudItem xs="12" Class="mb-3">
-                        @if (groupedSchedules != null)
-                        {
-                            <table class="timetable">
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        @foreach (var day in daysofTheWeek)
-                                        {
-                                            <th>@day.DayName</th>
-                                        }
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var group in groupedSchedules)
-                                    {
-                                        <tr>
-                                            <td class="time">@($"{group.Key.StartTime:hh\\:mm}") - @($"{group.Key.EndTime:hh\\:mm}")</td>
-                                            @foreach (var day in dayOrder)
-                                            {
-                                                <td class="@((group.Any(cs => cs.DayOfTheWeek.DayName == day) ? "" : "empty"))">
-                                                    @{
-                                                        var schedule = group.FirstOrDefault(cs => cs.DayOfTheWeek.DayName == day);
-                                                        if (schedule != null)
-                                                        {
-                                                            <span>@schedule.Class.ClassName</span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span>No Classes</span>
-                                                        }
-                                                    }
-                                                </td>
-                                            }
-                                        </tr>
-                                    }
-                                </tbody>
-
-                            </table>
-                        }
-                        else
-                        {
-
-                        }
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.SaveAlt" OnClick="AssignScheduleToUnAssignedStudents">Assign Class Schedule to Students</MudButton>
-                    </MudItem>
                 </MudGrid>
-            </MudTabPanel>
-        </MudTabs>
 
+                <MudDivider Class="my-4" />
 
-    </MudCardContent>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Success"
+                           EndIcon="@Icons.Material.Filled.AssignmentTurnedIn"
+                           OnClick="AssignScheduleToUnAssignedStudents">
+                    Assign Schedule to Students
+                </MudButton>
+            </MudPaper>
+        </MudTabPanel>
 
+    </MudTabs>
 
 </MudCard>
 
+
 @code {
-    protected bool isLoading = false;
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] HttpClient Http { get; set; } = default!;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
@@ -250,12 +224,12 @@
     protected string UserID = string.Empty;
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Initializing Please wait");
         await GetClasses();
         await GetTimeSlots();
         await GetDaysOfWeek();
         await GetAdminData();
-        isLoading = false;
+        LoaderService.Hide();
     }
 
     protected async Task RegisterTimeSlot()
@@ -331,7 +305,7 @@
     }
     protected async Task GetActiveSchedulesPerClass()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait...");
         var service = _genericService.GetService<GetActiveClassScheduleResult>();
         if (GradeLevel == string.Empty)
         {
@@ -342,11 +316,11 @@
         {
             activeClassSchedules = result.Data.ToList();
             OrganizeTableData();
-            isLoading = false;
+            LoaderService.Hide();
         }
         else
         {
-            isLoading = false;
+            LoaderService.Hide();
             Snackbar.Add("Failed to retrieve Schedules please check your connection and try again", Severity.Error);
         }
     }
@@ -356,7 +330,7 @@
     #region Tab 1
     private async Task HandleFileUpload(IBrowserFile file)
     {
-        isLoading = true;
+        LoaderService.Show("Please wait, processing file...");
 
         try
         {
@@ -415,7 +389,7 @@
         }
         finally
         {
-            isLoading = false;
+            LoaderService.Hide();
         }
     }
 
@@ -470,7 +444,7 @@
 
     protected async Task AssignSchedule()
     {
-        isLoading = true;
+        LoaderService.Show("Assigning Schedules Please wait!");
         await GetStudentsForSchedule();
 
         foreach (var student in StudentsInGrade)
@@ -514,21 +488,21 @@
 
             if (resultFinal.IsSuccess)
             {
-                isLoading = false;
+                LoaderService.Hide();
                 classSchedulestoSave.Clear();
                 classSchedules.Clear();
                 Snackbar.Add($"Successfully Saved And TimeTable assigned to all students of Grade: {GradeLevel}", Severity.Success);
             }
             else
             {
-                isLoading = false;
+                LoaderService.Hide();
                 classSchedulestoSave.Clear();
                 Snackbar.Add($"Failed to Save And Assign Timetable to all students of Grade: {GradeLevel}", Severity.Error);
             }
         }
         else
         {
-            isLoading = false;
+            LoaderService.Hide();
             classSchedulestoSave.Clear();
             Snackbar.Add($"Failed to Save And Assign Timetable to all students of Grade: {GradeLevel}", Severity.Error);
         }
@@ -571,7 +545,7 @@
 
     protected async Task AssignScheduleToUnAssignedStudents()
     {
-        isLoading = true;
+        LoaderService.Show("Assigning Please wait...");
         await GetUnassignedStudentsForSchedule();
         foreach (var student in StudentsInGradeWithoutSchedule)
         {
@@ -593,14 +567,14 @@
 
         if (resultFinal.IsSuccess)
         {
-            isLoading = false;
+            LoaderService.Hide();
             classSchedulestoSave.Clear();
             classSchedules.Clear();
             Snackbar.Add($"Successfully Saved And TimeTable assigned to  students of Grade: {GradeInt}{GradeLevel}", Severity.Success);
         }
         else
         {
-            isLoading = false;
+            LoaderService.Hide();
             classSchedulestoSave.Clear();
             Snackbar.Add($"Failed to Save And Assign Timetable to students of Grade: {GradeInt}{GradeLevel}", Severity.Error);
         }

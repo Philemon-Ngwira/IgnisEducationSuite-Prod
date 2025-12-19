@@ -506,7 +506,6 @@
         {
             if (QuestionOptions is null)
                 QuestionOptions = new List<MultipleChoiceAssignmentAnswer>();
-            assignmentQuestions.FirstOrDefault(x => x.QuestionID == QuestionID).isMultipleChoice = true;
             QuestionOptions.AddRange(questionOptions);
 
 

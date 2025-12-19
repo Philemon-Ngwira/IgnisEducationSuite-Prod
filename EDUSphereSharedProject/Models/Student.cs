@@ -59,7 +59,6 @@ public partial class Student
     public virtual ICollection<StudentCompletedLesson> StudentCompletedLessons { get; set; } = new List<StudentCompletedLesson>();
 
     public virtual ICollection<StudentExamsTestsAndQuiz> StudentExamsTestsAndQuizzes { get; set; } = new List<StudentExamsTestsAndQuiz>();
-
     [NotMapped]
     public string Email { get; set; }
     [NotMapped]

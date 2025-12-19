@@ -393,7 +393,69 @@ namespace IgnisEducationSuite.Controllers
                 Errors = errors
             });
         }
+        [HttpPost("uploadStructures")]
+        public async Task<IActionResult> UploadStructures([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
 
+            var levels = new List<AcademicLevel>();
+            var errors = new List<RowError>();
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1)
+                         .Select((r, i) => new { Row = r, RowIndex = i + 2 }))
+            {
+                try
+                {
+                    int levelInt = row.Row.Cell(1).GetValue<int>();
+                    string LevelName = row.Row.Cell(2).GetValue<string>()?.Trim();
+                    string GroupName = row.Row.Cell(3).GetValue<string>()?.Trim();
+                    int SortOrder = row.Row.Cell(4).GetValue<int>();
+
+
+                    // Required fields
+                    if (levelInt == 0 ||
+                        string.IsNullOrWhiteSpace(LevelName) ||
+                        string.IsNullOrWhiteSpace(GroupName)
+                        )
+                    {
+                        throw new Exception("Missing required field.");
+                    }
+
+
+                    levels.Add(new AcademicLevel
+                    {
+                        LevelInt = levelInt,
+                        LevelName = LevelName,
+                        GroupName = GroupName,
+                        SortOrder = SortOrder,
+
+                    });
+                }
+                catch (Exception exRow)
+                {
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
+                }
+            }
+
+            return Ok(new UploadPreviewResult
+            {
+                academicLevels = levels,
+                Errors = errors
+            });
+        }
+        //uploadStructures
 
         [HttpPost("uploadPayments")]
         public async Task<IActionResult> UploadPayments([FromForm] IFormFile file, [FromForm] string schoolId)

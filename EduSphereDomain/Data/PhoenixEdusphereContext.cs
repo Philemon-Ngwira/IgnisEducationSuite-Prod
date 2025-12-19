@@ -157,6 +157,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<TimeSlot> TimeSlots { get; set; }
 
+    public virtual DbSet<TimeTableActivity> TimeTableActivities { get; set; }
+
     public virtual DbSet<WorldCity> WorldCities { get; set; }
 
     public virtual DbSet<vw_AllLesson> vw_AllLessons { get; set; }
@@ -486,6 +488,10 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.HasOne(d => d.DayOfTheWeek).WithMany(p => p.ClassSchedules)
                 .HasForeignKey(d => d.DayOfTheWeekID)
                 .HasConstraintName("FK_ClassSchedule_DayofTheWeek");
+
+            entity.HasOne(d => d.ScheduledActivityNavigation).WithMany(p => p.ClassSchedules)
+                .HasForeignKey(d => d.ScheduledActivity)
+                .HasConstraintName("FK_ClassSchedule_Activity");
 
             entity.HasOne(d => d.TimeSlot).WithMany(p => p.ClassSchedules)
                 .HasForeignKey(d => d.TimeSlotID)
@@ -1402,6 +1408,21 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.Description)
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.MaxOccupancy).HasDefaultValueSql("((1))");
+            entity.Property(e => e.SlotType).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<TimeTableActivity>(entity =>
+        {
+            entity.HasKey(e => e.ActivityID).HasName("PK__Activity__45F4A7F16E906204");
+
+            entity.ToTable("TimeTableActivity");
+
+            entity.Property(e => e.ActivityID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.ActivityName)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(e => e.OptionalNotes).HasMaxLength(250);
         });
 
         modelBuilder.Entity<WorldCity>(entity =>
