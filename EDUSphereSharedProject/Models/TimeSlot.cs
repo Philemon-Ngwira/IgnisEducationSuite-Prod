@@ -33,6 +33,4 @@ public partial class TimeSlot
     public TimeSpan SchoolEarlyMorningEnd { get; set; } // e.g. 09:50
     [NotMapped]
     public TimeSpan SchoolAfternoonStart { get; set; } // e.g. 12:50
-    
-
 }

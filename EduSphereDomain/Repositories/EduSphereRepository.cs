@@ -10,6 +10,7 @@ using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
+using EDUSphereSharedProject.UniversalModels.TimeTabling;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.Metrics;
 
@@ -1458,6 +1459,58 @@ namespace EduSphereDomain.Repositories
                     studentNumbers.Contains(s.StudentNumber) &&
                     s.SchoolID == schoolId)
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<TimeTableActivity>> GetSchoolActivities(Guid SchoolID)
+        {
+            var result = await _context.TimeTableActivities
+                .Where(x => x.SchoolID == SchoolID).ToListAsync();
+
+            return result;
+        }
+
+        public async Task<List<TeacherScheduleConstraints>> GetTeacherConstraintsAsync(
+      List<Guid>? teacherIDs)
+        {
+            var classSchedules = await _context.ClassSchedules
+                .Include(cs => cs.Class)
+                .Include(cs => cs.TimeSlot)
+                .Include(cs => cs.DayOfTheWeek) // REQUIRED
+                .Where(cs =>
+                    cs.Class.TeacherID.HasValue &&
+                    teacherIDs.Contains(cs.Class.TeacherID.Value))
+                .ToListAsync();
+
+            var groupedByTeacher = classSchedules
+                .GroupBy(cs => cs.Class.TeacherID!.Value);
+
+            var teacherConstraints = new List<TeacherScheduleConstraints>();
+
+            foreach (var group in groupedByTeacher)
+            {
+                var unavailableSlots = group
+                    .Select(cs =>
+                    {
+                        // 🔥 CRITICAL: hydrate NotMapped field
+                        cs.TimeSlot.Day = Enum.Parse<DayOfWeek>(
+                            cs.DayOfTheWeek.DayName,
+                            ignoreCase: true
+                        );
+
+                        return cs.TimeSlot;
+                    })
+                    .DistinctBy(ts => new { ts.Day, ts.StartTime })
+                    .ToList();
+
+                teacherConstraints.Add(new TeacherScheduleConstraints
+                {
+                    TeacherId = group.Key,
+                    MaxDailyPeriods = 9, // hard set as agreed
+                    UnavailableSlots = unavailableSlots
+                });
+            }
+
+            return teacherConstraints;
         }
 
 

@@ -93,8 +93,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 if (!(user.Identity?.IsAuthenticated ?? false))
                 {
                     _navigationManager.NavigateTo(
-                        $"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}",
-                        forceLoad: true
+                        $"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}"
                     );
                     return;
                 }
@@ -105,10 +104,10 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    Console.WriteLine("Missing UserID claim.");
-                    _navigationManager.NavigateTo("Account/Login", true);
+                    _navigationManager.NavigateTo("Account/Login");
                     return;
                 }
+
                 // ----------------------------------------------------------
                 // 4. Handle First Login (non-admins only, after initialize)
                 // ----------------------------------------------------------

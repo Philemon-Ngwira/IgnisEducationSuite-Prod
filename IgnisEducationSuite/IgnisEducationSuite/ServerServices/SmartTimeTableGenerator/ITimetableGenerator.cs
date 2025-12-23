@@ -1,4 +1,5 @@
 ﻿using EDUSphereSharedProject.Models;
+using EDUSphereSharedProject.UniversalModels.TimeTabling;
 
 namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
 {
@@ -9,7 +10,8 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
             IReadOnlyList<SubjectScheduleConfig> schedules,
             IReadOnlyList<SubjectAdjacencyConstraints> adjacencyRules,
             IReadOnlyList<SubjectTimeConstraints> timeRules,
-            IReadOnlyList<TimeTableActivity> activities
+            IReadOnlyList<TimeTableActivity> activities,
+    IReadOnlyList<TeacherScheduleConstraints> teacherConstraints
         );
     }
 

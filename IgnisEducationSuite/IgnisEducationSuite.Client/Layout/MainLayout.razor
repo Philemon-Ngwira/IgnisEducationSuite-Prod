@@ -73,7 +73,11 @@
     {
         var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-
+        if (!user.Identity.IsAuthenticated)
+        {
+            partiallyIntialized = true;
+            return;
+        }
         // 🔑 Always unblock layout for auth pages
         if (IsAuthPage)
         {

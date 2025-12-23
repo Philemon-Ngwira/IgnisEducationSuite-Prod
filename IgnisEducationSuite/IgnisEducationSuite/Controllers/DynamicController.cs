@@ -832,6 +832,12 @@ namespace IgnisEducationSuite.Controllers
             var result = await _repository.GetSpecialDiets(SchoolID);
             return Ok(result);
         }
+        [HttpGet("GetSchoolActivities/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolActivities(string SchoolID)
+        {
+            var result = await _repository.GetSchoolActivities(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
         #endregion
 
 

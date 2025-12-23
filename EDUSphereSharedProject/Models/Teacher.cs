@@ -53,4 +53,5 @@ public partial class Teacher
     public virtual ICollection<TeacherSubjectNormalized> TeacherSubjectNormalizeds { get; set; } = new List<TeacherSubjectNormalized>();
     [NotMapped]
     public string GeneratedUserName { get; set; }
+
 }

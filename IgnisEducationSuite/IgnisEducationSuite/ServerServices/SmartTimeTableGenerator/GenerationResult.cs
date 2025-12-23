@@ -1,11 +1,14 @@
-﻿namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
+﻿using EDUSphereSharedProject.UniversalModels.TimeTabling;
+
+namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
 {
     public class GenerationResult
     {
         public bool Success { get; set; } = true;
         public List<string> Errors { get; set; } = new();
 
-        // Factory method for a single error
+        public List<GeneratedSlotPreview>? Slots { get; set; }
+
         public static GenerationResult Failed(string error)
         {
             return new GenerationResult
@@ -15,7 +18,6 @@
             };
         }
 
-        // Factory method for multiple errors
         public static GenerationResult Failed(IEnumerable<string> errors)
         {
             return new GenerationResult
@@ -25,13 +27,11 @@
             };
         }
 
-        // Success result
-        public static GenerationResult Ok()
+        public static GenerationResult Ok(List<GeneratedSlotPreview>? slots = null)
         {
-            return new GenerationResult { Success = true };
+            return new GenerationResult { Success = true, Slots = slots };
         }
 
-        // Helper to get all errors as a single string
         public string GetErrorMessage()
         {
             return Errors != null && Errors.Count > 0
@@ -39,4 +39,7 @@
                 : "Unknown error";
         }
     }
+
+
+
 }

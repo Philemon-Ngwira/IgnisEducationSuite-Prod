@@ -20,8 +20,11 @@ public partial class TimeTableActivity
 
     public bool MustBeAfternoon { get; set; }
 
+    public Guid? SchoolID { get; set; }
+
     public virtual ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
     [NotMapped]
     public List<string> CannotFollow { get; set; } = new();
-
+    [NotMapped]
+    public  bool MustRespectTime { get; set; }
 }

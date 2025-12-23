@@ -14,6 +14,7 @@ using IgnisEducationSuite.Components.Account;
 using IgnisEducationSuite.Data;
 using IgnisEducationSuite.Hubs;
 using IgnisEducationSuite.ServerServices;
+using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
 using IgnisEducationSuite.Settings;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -124,7 +125,7 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<ZoomService>();
             builder.Services.AddScoped<ZoomInteropBridge>();
             builder.Services.AddScoped<StudentPaymentUploadTemplate>();
-
+            builder.Services.AddScoped<ITimetableGenerator, TimetableGenerator>();
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory
 
             builder.Services.AddSingleton<IConverter>(new SynchronizedConverter(new PdfTools()));

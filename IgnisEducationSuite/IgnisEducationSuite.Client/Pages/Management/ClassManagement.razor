@@ -127,6 +127,8 @@
         var result = _genericService.GetService<Class>();
         var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{loggedInAdmin.SchoolID}", true);
         classes = service.Data.ToList();
+        classes.OrderBy(p => p.AcademicLevel);
+
 
         foreach (var item in classes)
         {
@@ -172,7 +174,9 @@
         {
             newClass.Teacher = teacherSelected;
             classes.Add(newClass);
+            classes.OrderBy(p => p.AcademicLevel);
             newClass = new();
+            teacherSelected = new();
             Snackbar.Add("Class Added Successfully", Severity.Success);
         }
         else

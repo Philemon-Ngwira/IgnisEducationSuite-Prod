@@ -1,4 +1,8 @@
-﻿using EDUSphereSharedProject.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using EDUSphereSharedProject.Models;
+using EDUSphereSharedProject.UniversalModels.TimeTabling;
 using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
 
 namespace SchedulingTester
@@ -7,147 +11,104 @@ namespace SchedulingTester
     {
         static void Main()
         {
-            Console.WriteLine("RUNNING TEST 3...\n");
-
-            // --- 1. Subject IDs ---
+            // --- 1. Define Subjects ---
             var mathId = Guid.NewGuid();
             var physicsId = Guid.NewGuid();
             var chemistryId = Guid.NewGuid();
             var englishId = Guid.NewGuid();
+            var historyId = Guid.NewGuid();
 
-            // --- 2. Subject Schedules ---
+            // --- 2. Define Teachers ---
+            var mathTeacherId = Guid.NewGuid();
+            var physicsTeacherId = Guid.NewGuid();
+            var chemistryTeacherId = Guid.NewGuid();
+            var englishTeacherId = Guid.NewGuid();
+            var historyTeacherId = Guid.NewGuid();
+
+            // --- 3. Define Schedules with Teacher assignments ---
             var schedules = new List<SubjectScheduleConfig>
             {
-                new()
-                {
-                    SubjectId = mathId,
-                    SubjectName = "Math",
-                    WeeklyPeriods = 5,
-                    DoublePeriods = 2 // 2 doubles + 1 single
-                },
-                new()
-                {
-                    SubjectId = physicsId,
-                    SubjectName = "Physics",
-                    WeeklyPeriods = 3,
-                    DoublePeriods = 0
-                },
-                new()
-                {
-                    SubjectId = chemistryId,
-                    SubjectName = "Chemistry",
-                    WeeklyPeriods = 3,
-                    DoublePeriods = 0
-                },
-                new()
-                {
-                    SubjectId = englishId,
-                    SubjectName = "English",
-                    WeeklyPeriods = 5,
-                    DoublePeriods = 0
-                }
+                new() { SubjectId = mathId, SubjectName = "Math", WeeklyPeriods = 5, DoublePeriods = 2, TeacherId = mathTeacherId },
+                new() { SubjectId = physicsId, SubjectName = "Physics", WeeklyPeriods = 0, DoublePeriods = 1, TeacherId = physicsTeacherId },
+                new() { SubjectId = chemistryId, SubjectName = "Chemistry", WeeklyPeriods = 0, DoublePeriods = 1, TeacherId = chemistryTeacherId },
+                new() { SubjectId = englishId, SubjectName = "English", WeeklyPeriods = 0, DoublePeriods = 1, TeacherId = englishTeacherId },
+                new() { SubjectId = historyId, SubjectName = "History", WeeklyPeriods = 0, DoublePeriods = 1, TeacherId = historyTeacherId }
             };
 
-            // --- 3. Activities (Filler) ---
+            // --- 4. Define Activities ---
             var activities = new List<TimeTableActivity>
             {
                 new() { ActivityID = Guid.NewGuid(), ActivityName = "Sports" },
-                new() { ActivityID = Guid.NewGuid(), ActivityName = "Music" }
+                new() { ActivityID = Guid.NewGuid(), ActivityName = "Music" },
+                new() { ActivityID = Guid.NewGuid(), ActivityName = "Art" }
             };
 
-            // --- 4. Time Slots (Mon–Fri, 07:10–13:30) ---
+            // --- 5. Define Time Slots (Mon-Fri, 7am-4pm) ---
             var timeSlots = new List<TimeSlot>();
-
-            for (int day = 1; day <= 5; day++)
+            for (int day = 1; day <= 5; day++) // Monday=1 .. Friday=5
             {
-                timeSlots.AddRange(new[]
+                for (int hour = 7; hour < 16; hour++)
                 {
-                    NewSlot(day, 7,10,7,50),
-                    NewSlot(day, 7,50,8,30),
-                    NewSlot(day, 8,30,9,10),
-                    NewSlot(day, 9,10,9,50),
-                    NewSlot(day, 9,50,10,30), // LAST MORNING SLOT
-                    NewSlot(day,10,50,11,30),
-                    NewSlot(day,12,50,13,30),
-                });
+                    timeSlots.Add(new TimeSlot
+                    {
+                        Day = (DayOfWeek)day,
+                        StartTime = new TimeSpan(hour, 0, 0),
+                        EndTime = new TimeSpan(hour + 1, 0, 0),
+                        ScheduledActivityId = Guid.Empty
+                    });
+                }
             }
 
-            // --- 5. Adjacency Rules ---
+            // --- 6. Define Teacher Constraints ---
+            var teacherConstraints = new List<TeacherScheduleConstraints>
+            {
+                new()
+                {
+                    TeacherId = mathTeacherId,
+                    MaxDailyPeriods = 2,
+                    UnavailableSlots = timeSlots.Where(ts => ts.StartTime.Value.Hours == 10).ToList()
+                },
+                new()
+                {
+                    TeacherId = physicsTeacherId,
+                    MaxDailyPeriods = 1,
+                    UnavailableSlots = timeSlots.Where(ts => ts.StartTime.Value.Hours == 7 || ts.StartTime.Value.Hours == 8).ToList()
+                },
+                new() { TeacherId = chemistryTeacherId, MaxDailyPeriods = 2 },
+                new() { TeacherId = englishTeacherId, MaxDailyPeriods = 2 },
+                new() { TeacherId = historyTeacherId, MaxDailyPeriods = 2 }
+            };
+
+            // --- 7. Define Adjacency Rules ---
             var adjacencyRules = new List<SubjectAdjacencyConstraints>
             {
-                new()
-                {
-                    SubjectId = mathId,
-                    CannotFollowSubjects = new() { physicsId, chemistryId }
-                },
-                new()
-                {
-                    SubjectId = physicsId,
-                    CannotFollowSubjects = new() { mathId, chemistryId }
-                },
-                new()
-                {
-                    SubjectId = chemistryId,
-                    CannotFollowSubjects = new() { mathId, physicsId }
-                }
+                new() { SubjectId = mathId, CannotFollowSubjects = new List<Guid> { physicsId, chemistryId } },
+                new() { SubjectId = physicsId, CannotFollowSubjects = new List<Guid> { mathId } },
+                new() { SubjectId = chemistryId, CannotFollowSubjects = new List<Guid> { mathId, physicsId } }
             };
 
-            // --- 6. Time Constraints (Morning = before 10:00) ---
+            // --- 8. Define Time Rules ---
             var timeRules = new List<SubjectTimeConstraints>
             {
-                new()
-                {
-                    SubjectId = mathId,
-                    MustBeMorning = true,
-                    MorningEnd = new TimeSpan(10, 0, 0)
-                },
-                new()
-                {
-                    SubjectId = physicsId,
-                    MustBeMorning = true,
-                    MorningEnd = new TimeSpan(10, 0, 0)
-                },
-                new()
-                {
-                    SubjectId = chemistryId,
-                    MustBeMorning = true,
-                    MorningEnd = new TimeSpan(10, 0, 0)
-                }
+                new() { SubjectId = mathId, MustBeMorning = true },
+                new() { SubjectId = physicsId, MustBeMorning = true },
+                new() { SubjectId = chemistryId, MustBeMorning = true }
             };
 
-            // --- 7. Generate ---
+            // --- 9. Generate timetable ---
             var generator = new TimetableGenerator();
-            var result = generator.Generate(
-                timeSlots,
-                schedules,
-                adjacencyRules,
-                timeRules,
-                activities
-            );
+            var result = generator.Generate(timeSlots, schedules, adjacencyRules, timeRules, activities, teacherConstraints);
 
             if (result.Success)
             {
-                Console.WriteLine("✅ TEST 3 PASSED: Timetable generated successfully!\n");
+                Console.WriteLine("TEST 3B PASSED: Timetable generated successfully!\n");
                 generator.PrintTimetable();
             }
             else
             {
-                Console.WriteLine("❌ TEST 3 FAILED:\n");
+                Console.WriteLine("TEST 3B FAILED:");
                 Console.WriteLine(result.GetErrorMessage());
             }
         }
-
-        static TimeSlot NewSlot(int day, int sh, int sm, int eh, int em)
-        {
-            return new TimeSlot
-            {
-                Day = (DayOfWeek)day,
-                StartTime = new TimeSpan(sh, sm, 0),
-                EndTime = new TimeSpan(eh, em, 0),
-                ScheduledActivityId = Guid.Empty
-            };
-        }
     }
 }
-
-

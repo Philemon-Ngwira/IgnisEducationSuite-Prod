@@ -1,4 +1,4 @@
-﻿namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
+﻿namespace EDUSphereSharedProject.UniversalModels.TimeTabling
 {
     public class SubjectAdjacencyConstraints
     {
