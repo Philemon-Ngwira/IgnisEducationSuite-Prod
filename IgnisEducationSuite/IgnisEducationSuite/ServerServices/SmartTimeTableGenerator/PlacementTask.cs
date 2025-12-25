@@ -4,6 +4,7 @@
     {
         public Guid SubjectId { get; set; }
         public bool IsDouble { get; set; }
+        public bool IsRequired { get; set; }
     }
 
 }

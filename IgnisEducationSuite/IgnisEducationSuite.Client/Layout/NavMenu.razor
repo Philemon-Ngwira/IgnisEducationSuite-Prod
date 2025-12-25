@@ -83,6 +83,9 @@
                                     <MudNavLink Href="HostelManagement" Icon="@Icons.Material.Filled.BedroomChild">Hostels</MudNavLink>
                                     <MudNavLink Href="HostelRoomMaintainance" Icon="@Icons.Material.Filled.Build">Maintenance</MudNavLink>
                                 </MudNavGroup>
+                                <MudNavGroup Icon="@Icons.Material.Filled.LocalHospital" Title="Clinic">
+                                    <MudNavLink Href="MedicalInventory" Icon="@Icons.Material.Filled.Medication">Inventory</MudNavLink>
+                                </MudNavGroup>
                             </MudNavGroup>
 
                             <MudDivider Class="my-4" />
@@ -140,6 +143,14 @@
                     case "Parent":
                         <MudNavGroup Icon="@Icons.Material.Filled.Mediation" Title="Parent Portal">
                             <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book">Report Cards</MudNavLink>
+                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication</MudNavLink>
+                        </MudNavGroup>
+                        break;
+                    case "Clinic Staff":
+                        <MudNavGroup Icon="@Icons.Material.Filled.LocalHospital" Title="Clinic Portal">
+                            <MudNavLink Href="MedicalInventory" Icon="@Icons.Material.Filled.Medication">Inventory</MudNavLink>
+
+
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication</MudNavLink>
                         </MudNavGroup>
                         break;

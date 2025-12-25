@@ -26,5 +26,7 @@ public partial class TimeTableActivity
     [NotMapped]
     public List<string> CannotFollow { get; set; } = new();
     [NotMapped]
-    public  bool MustRespectTime { get; set; }
+    public bool MustRespectTime { get; set; }
+    [NotMapped]
+    public TimeSpan? AfternoonStart { get; set; }
 }

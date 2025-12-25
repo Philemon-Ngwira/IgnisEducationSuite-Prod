@@ -28,9 +28,10 @@ public partial class TimeSlot
     [NotMapped]
     public Guid? ScheduledActivityId { get; set; }
     [NotMapped]
-    public TimeSpan SchoolMorningEnd { get; set; }     // e.g. 10:30
+    public TimeSpan? SchoolMorningEnd { get; set; }     // e.g. 10:30
     [NotMapped]
-    public TimeSpan SchoolEarlyMorningEnd { get; set; } // e.g. 09:50
+    public TimeSpan? SchoolEarlyMorningEnd { get; set; } // e.g. 09:50
     [NotMapped]
-    public TimeSpan SchoolAfternoonStart { get; set; } // e.g. 12:50
+    public TimeSpan? SchoolAfternoonStart { get; set; } // e.g. 12:50
+  
 }

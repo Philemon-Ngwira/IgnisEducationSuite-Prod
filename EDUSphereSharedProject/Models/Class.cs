@@ -41,4 +41,6 @@ public partial class Class
     public virtual Teacher Teacher { get; set; }
     [NotMapped]
     public bool HasCustomPeriods { get; set; } = false;
+    [NotMapped]
+    public bool IsCore { get; set; }  // admin can check this for core subjects
 }

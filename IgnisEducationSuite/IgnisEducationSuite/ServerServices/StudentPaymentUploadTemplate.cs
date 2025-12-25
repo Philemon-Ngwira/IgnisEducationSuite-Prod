@@ -280,7 +280,7 @@ namespace IgnisEducationSuite.ServerServices
             ws.Cell(2, 2).Value = "Grade 1";
             ws.Cell(2, 3).Value = "Primary";
             ws.Cell(2, 4).Value = "1";
-            
+
 
             // Header styling
             var headerRange = ws.Range(1, 1, 1, headers.Length);
@@ -299,6 +299,52 @@ namespace IgnisEducationSuite.ServerServices
             workbook.SaveAs(ms);
             return ms.ToArray();
         }
+
+        public byte[] GenerateMedicalInventoryTemplate()
+        {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("ClinicInventoryTemplate");
+
+            // Headers (ONLY what admin must provide)
+            string[] headers =
+            {
+        "Name",
+        "Stock",
+        "Unit",
+        "ExpiryDate",
+    };
+
+            // Write headers
+            for (int i = 0; i < headers.Length; i++)
+                ws.Cell(1, i + 1).Value = headers[i];
+
+            // Example row (VERY important for usability)
+            ws.Cell(2, 1).Value = "Paracetamol Syrup";
+            ws.Cell(2, 2).Value = 500;
+            ws.Cell(2, 3).Value = "ml";
+            ws.Cell(2, 4).Value = DateTime.Today.AddYears(1);
+
+
+            // Header styling
+            var headerRange = ws.Range(1, 1, 1, headers.Length);
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            headerRange.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+
+            // Freeze header row
+            ws.SheetView.FreezeRows(1);
+
+            // Auto-fit columns
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            return ms.ToArray();
+        }
+
+
+
 
     }
 }

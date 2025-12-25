@@ -26,7 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Pages\Management\SchoolOperations\Clinic Management\" />
     <Folder Include="Pages\Management\SchoolOperations\TransportManagement\" />
   </ItemGroup>
 

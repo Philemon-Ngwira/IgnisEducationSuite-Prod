@@ -92,5 +92,16 @@ namespace IgnisEducationSuite.Controllers
               "AcademicStructureUploadTemplate.xlsx"
           );
         }
+
+        [HttpGet("DownloadClinicInventoryTemplate")]
+        public IActionResult DownloadClininInventoryTemplate()
+        {
+            byte[] excelBytes = _template.GenerateMedicalInventoryTemplate();
+            return File(
+                 excelBytes,
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+              "clinicInventoryTemplate.xlsx"
+                );
+        }
     }
 }

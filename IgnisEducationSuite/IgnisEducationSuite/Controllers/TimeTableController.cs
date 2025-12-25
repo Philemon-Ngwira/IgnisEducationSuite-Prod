@@ -41,7 +41,8 @@ namespace IgnisEducationSuite.Controllers
                     request.AdjacencyRules,
                     request.TimeRules,
                     request.Activities,
-                    teacherConstraints
+                    teacherConstraints,
+                    request.structureConstraints
                 );
 
                 if (!result.Success)

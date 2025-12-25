@@ -10,7 +10,9 @@
 
         // NEW — evaluated against slot.StartTime
         public TimeSpan? MorningEnd { get; set; }       // e.g. 10:30
-        public TimeSpan? EarlyMorningEnd { get; set; }  // e.g. 09:50
+        public TimeSpan? EarlyMorningEnd { get; set; }  // e.g. 09:
+        public TimeSpan? AfternoonStart { get; set; }                                                // 
+
     }
 
 

@@ -11,7 +11,8 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
             IReadOnlyList<SubjectAdjacencyConstraints> adjacencyRules,
             IReadOnlyList<SubjectTimeConstraints> timeRules,
             IReadOnlyList<TimeTableActivity> activities,
-    IReadOnlyList<TeacherScheduleConstraints> teacherConstraints
+    IReadOnlyList<TeacherScheduleConstraints> teacherConstraints,
+    IReadOnlyList<SubjectStructureConstraints> structureConstraints
         );
     }
 

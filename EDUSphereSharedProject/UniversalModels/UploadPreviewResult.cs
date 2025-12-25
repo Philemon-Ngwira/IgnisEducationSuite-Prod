@@ -15,5 +15,6 @@ namespace EDUSphereSharedProject.UniversalModels
         public List<RowError> Errors { get; set; } = new();
         public List<AcademicLevel> academicLevels { get; set; } = new();
         public List<Class> classes { get; set; } = new();
+        public List<ClinicMedication> Medications { get; set; } = new();
     }
 }

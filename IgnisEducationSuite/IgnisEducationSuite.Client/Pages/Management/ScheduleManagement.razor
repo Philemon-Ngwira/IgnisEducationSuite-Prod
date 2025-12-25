@@ -37,22 +37,24 @@
                                       @bind-Value="newTimeSlot.Description" />
                     </MudItem>
                     <MudItem xs="12" md="4">
+
+
                         <MudSelect T="string"
                                    Label="Slot Type"
                                    Variant="Variant.Outlined"
                                    Margin="Margin.Dense"
                                    @bind-Value="newTimeSlot.SlotType"
                                    Required="true"
-                                   RequiredError="Please select a slot type">
+                                   RequiredError="Please select a slot type"
+                                   Placeholder="Select slot type">
 
-                            <MudSelectItem Value="SlotType.None" Disabled="true">
-                                Select slot type
-                            </MudSelectItem>
-
-                            <MudSelectItem Value="SlotType.Morning">Morning</MudSelectItem>
-                            <MudSelectItem Value="SlotType.MidMorning">Mid-morning</MudSelectItem>
-                            <MudSelectItem Value="SlotType.Afternoon">Afternoon</MudSelectItem>
-                            <MudSelectItem Value="SlotType.Evening">Evening</MudSelectItem>
+                            <MudSelectItem Value="@(SlotType.None.ToString())" ">Select slot type</MudSelectItem>
+                            <MudSelectItem Value="@(SlotType.Morning.ToString())">Morning</MudSelectItem>
+                            <MudSelectItem Value="@(SlotType.MidMorning.ToString())">Mid-morning</MudSelectItem>
+                            <MudSelectItem Value="@(SlotType.Afternoon.ToString())">Afternoon</MudSelectItem>
+                            <MudSelectItem Value="@(SlotType.Evening.ToString())">Evening</MudSelectItem>
+                            <MudSelectItem Value="@(SlotType.BreakTime.ToString())">Break</MudSelectItem>
+                            <MudSelectItem Value="@(SlotType.LunchTime.ToString())">Lunch</MudSelectItem>
                         </MudSelect>
                     </MudItem>
                 </MudGrid>
@@ -216,7 +218,8 @@
                                     <MudSelectItem Value="ClassTimePreference.MorningOnly">Morning only</MudSelectItem>
                                     <MudSelectItem Value="ClassTimePreference.MidMorning">Mid-morning+</MudSelectItem>
                                 </MudSelect>
-
+                                <!-- Core subject checkbox -->
+                                <MudCheckBox T="bool" @bind-Value="cls.IsCore" Label="Core subject?" Class="mt-2" />
                                 <!-- Toggle to show/hide specific periods -->
                                 <MudCheckBox T="bool" @bind-Value="cls.HasCustomPeriods" Label="Set specific periods?" Class="mt-2" />
 
@@ -410,43 +413,7 @@
                             No schedule uploaded yet.
                         </MudAlert>
                     }
-                    @*  <table class="timetable">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                @foreach (var day in daysofTheWeek)
-                                {
-                                    <th>@day.DayName</th>
-                                }
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var group in groupedSmartSchedules)
-                            {
-                                <tr>
-                                    <td class="time">
-                                        @($"{group.Key.StartTime:hh\\:mm}") – @($"{group.Key.EndTime:hh\\:mm}")
-                                    </td>
-                                    @foreach (var day in dayOrder)
-                                    {
-                                        var slot = group.FirstOrDefault(s => s.DayOfTheWeek.DayName == day);
-                                        <td class="@(slot == null ? "empty" : "filled")">
-                                            @if (slot != null)
-                                            {
-                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary">
-                                                    @slot.ClassID.HasValue ? GetSubjectName(slot.SubjectId.Value) : GetActivityName(slot.ScheduledActivityId)
-                                                </MudChip>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">—</span>
-                                            }
-                                        </td>
-                                    }
-                                </tr>
-                            }
-                        </tbody>
-                    </table> *@
+
                 </MudPaper>
             }
 
@@ -501,7 +468,9 @@
         Morning = 1,
         MidMorning = 2,
         Afternoon = 3,
-        Evening = 4
+        Evening = 4,
+        BreakTime = 5,
+        LunchTime = 6,
     }
 
 
@@ -604,7 +573,8 @@
         Any = 0,
         MorningOnly = 1,        // before 10:00
         MidMorning = 2,         // 10:00+
-        AfternoonOnly = 3       // e.g. after 13:00
+        AfternoonOnly = 3,
+        None = 4 // e.g. after 13:00
     }
 
 
@@ -634,138 +604,6 @@
     {
         // Returns a random integer >= min and <= max
         return _rng.Next(min, max + 1);
-    }
-    private GenerateTimetableRequest MapToGenerateRequest(SmartTimetableRequest smartRequest)
-    {
-        int totalSlots = timeSlots.Count;
-
-        // Rough activity impact (conservative, not placement-specific)
-        bool morningBlocked = smartRequest.ActivityTimePreferences
-            .Any(a => a.Value == ActivityTimePreference.MorningOnly);
-
-        bool afternoonBlocked = smartRequest.ActivityTimePreferences
-            .Any(a => a.Value == ActivityTimePreference.AfternoonOnly);
-
-        int effectiveSlots = totalSlots;
-
-        if (morningBlocked || afternoonBlocked)
-            effectiveSlots = (int)(totalSlots * 0.75); // shrink capacity safely
-        var slots = timeSlots.OrderBy(s => s.StartTime).ToList();
-        // Last slot labeled EarlyMorning
-        var lastEarlyMorning = slots.Where(s => s.SlotType == "Morning")
-                                    .OrderByDescending(s => s.StartTime)
-                                    .FirstOrDefault();
-
-        var earlyMorningEnd = lastEarlyMorning?.EndTime ?? TimeSpan.Zero;
-
-        // Last slot before afternoon starts
-        var lastMorning = slots.Where(s => s.SlotType == "Mid-Morning")
-                               .OrderByDescending(s => s.StartTime)
-                               .FirstOrDefault();
-
-        var morningEnd = lastMorning?.EndTime ?? TimeSpan.Zero;
-        var generateRequest = new GenerateTimetableRequest
-        {
-            Grade = smartRequest.Grade,
-            GradeName = smartRequest.ClassName,
-
-            Schedules = smartRequest.ClassTimePreferences.Select(kvp =>
-            {
-                var classId = kvp.Key;
-
-                int weeklyPeriods = GetPeriodsPerWeek(classId);
-                int doublePeriods = GetDoublePeriodsPerWeek(classId);
-
-                // ----------------------------
-                // Weekly periods (slot-aware)
-                // ----------------------------
-                if (weeklyPeriods == 0)
-                {
-                    int minWeekly = Math.Max(2, effectiveSlots / 20);
-                    int maxWeekly = Math.Max(4, effectiveSlots / 8);
-
-                    weeklyPeriods = RandomBetween(minWeekly, maxWeekly);
-                }
-
-                // ----------------------------
-                // Double periods (soft rule)
-                // ----------------------------
-                if (doublePeriods == 0 && AllowDoublePeriods)
-                {
-                    int maxDoubleCap = Math.Min(2, weeklyPeriods / 2);
-                    doublePeriods = RandomBetween(0, maxDoubleCap);
-                }
-
-                // ----------------------------
-                // Downgrade doubles if tight
-                // ----------------------------
-                if (doublePeriods * 2 > weeklyPeriods)
-                {
-                    doublePeriods = weeklyPeriods / 2;
-                }
-
-                // Extra safety under activity pressure
-                if (effectiveSlots < totalSlots && doublePeriods > 0)
-                {
-                    doublePeriods--;
-                }
-
-                if (doublePeriods < 0)
-                    doublePeriods = 0;
-
-                return new SubjectScheduleConfig
-                {
-                    SubjectId = classId,
-                    WeeklyPeriods = weeklyPeriods,
-                    DoublePeriods = doublePeriods,
-                    TeacherId = classes.FirstOrDefault(x => x.ClassID == classId)?.TeacherID ?? Guid.Empty,
-                    SubjectName = classes.FirstOrDefault(x => x.ClassID == classId)?.ClassName ?? "Unknown",
-                };
-            }).ToList(),
-
-            // ----------------------------
-            // Time rules
-            // ----------------------------
-
-
-            TimeRules = smartRequest.ClassTimePreferences.Select(kvp => new SubjectTimeConstraints
-            {
-                SubjectId = kvp.Key,
-                MustBeMorning = kvp.Value == ClassTimePreference.MorningOnly,
-                MustBeAfternoon = kvp.Value == ClassTimePreference.MidMorning,
-                EarlyMorningEnd = earlyMorningEnd,
-                MorningEnd = morningEnd
-            }).ToList(),
-
-            // ----------------------------
-            // Adjacency rules
-            // ----------------------------
-            AdjacencyRules = smartRequest.SubjectAdjacencyRules.Select(kvp =>
-                new SubjectAdjacencyConstraints
-                {
-                    SubjectId = kvp.Key,
-                    CannotFollowSubjects = kvp.Value.ToList()
-                }).ToList(),
-
-            // ----------------------------
-            // Activities
-            // ----------------------------
-            Activities = smartRequest.ActivityTimePreferences.Select(kvp =>
-            {
-                var pref = kvp.Value;
-                return new TimeTableActivity
-                {
-                    ActivityID = kvp.Key,
-                    MustBeMorning = pref == ActivityTimePreference.MorningOnly,
-                    MustBeAfternoon = pref == ActivityTimePreference.AfternoonOnly,
-                    MustRespectTime = smartRequest.ActivityFixed.TryGetValue(kvp.Key, out var fixedVal) && fixedVal
-                };
-            }).ToList(),
-
-            TimeSlots = timeSlots.ToList()
-        };
-
-        return generateRequest;
     }
     private async Task GenerateSmartTimetable()
     {
@@ -799,9 +637,10 @@
                 }
             };
 
-            // Map to API request
+            // --- Map request for timetable generation ---
             GenerateTimetableRequest request = MapToGenerateRequest(smartRequest);
 
+            // --- Send request to API ---
             var response = await HttpClient.PostAsJsonAsync("api/TimeTable/generate", request);
 
             if (!response.IsSuccessStatusCode)
@@ -819,41 +658,37 @@
                 return;
             }
 
-            // ✅ Assign raw API result
+            // --- Assign raw API result ---
             SmartGeneratedSchedules = result.Slots;
 
             // --- Convert GeneratedSlotPreview to ClassSchedule ---
             CreateSmartSchedules(SmartGeneratedSchedules);
 
-            // --- Null-safe ordering & grouping for table rendering ---
+            // --- Group and order for display ---
             var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
                                        .ToDictionary(x => x.day, x => x.index);
+
             groupedSmartSchedules = classSchedules
-      .Where(cs => cs?.TimeSlot != null && cs.DayOfTheWeek != null)
-      .OrderBy(cs => dayOrderDict.TryGetValue(cs.DayOfTheWeek.DayName, out var d)
-                      ? d
-                      : int.MaxValue)
-      .ThenBy(cs => cs.TimeSlot.StartTime!.Value)
-      .GroupBy(cs => new
-      {
-          cs.TimeSlot.StartTime,
-          cs.TimeSlot.EndTime
-      })
-      .OrderBy(g => g.Key.StartTime)
-      .Select(g => new TimeSlotGroup
-      {
-          TimeSlot = g.First().TimeSlot!,
-          Slots = g.ToList()
-      })
-      .ToList();
-
-
+                .Where(cs => cs?.TimeSlot != null && cs.DayOfTheWeek != null)
+                .OrderBy(cs => dayOrderDict.TryGetValue(cs.DayOfTheWeek.DayName, out var d) ? d : int.MaxValue)
+                .ThenBy(cs => cs.TimeSlot.StartTime!.Value)
+                .GroupBy(cs => new
+                {
+                    cs.TimeSlot.StartTime,
+                    cs.TimeSlot.EndTime
+                })
+                .OrderBy(g => g.Key.StartTime)
+                .Select(g => new TimeSlotGroup
+                {
+                    TimeSlot = g.First().TimeSlot!,
+                    Slots = g.ToList()
+                })
+                .ToList();
 
             // --- Optional: reorder days for display ---
-            var orderedDays = daysofTheWeek
+            daysofTheWeek = daysofTheWeek
                 .OrderBy(d => dayOrderDict.ContainsKey(d.DayName) ? dayOrderDict[d.DayName] : int.MaxValue)
                 .ToList();
-            daysofTheWeek = orderedDays;
 
             // --- Update grade info for display ---
             GradeLevel = $"{SmartGradeLevel}";
@@ -870,6 +705,175 @@
             IsGenerating = false;
             StateHasChanged();
         }
+    }
+
+    private GenerateTimetableRequest MapToGenerateRequest(SmartTimetableRequest smartRequest)
+    {
+        // --- Step 0: Determine usable slots ---
+        var slotsToUse = timeSlots
+     .Where(x => x.SlotType != "BreakTime" && x.SlotType != "LunchTime")
+     .ToList();
+
+        int totalSlotsPerDay = slotsToUse.Count(); // slots per day
+        int learningDays = 5; // Monday–Friday
+        int totalSlots = totalSlotsPerDay * learningDays;
+
+        int activitySlots = smartRequest.ActivityTimePreferences.Count(a => a.Value != ActivityTimePreference.None) * learningDays;
+        int usableSlots = totalSlots - activitySlots;
+
+        // --- Order slots and determine boundaries ---
+        var slotsOrdered = slotsToUse.OrderBy(s => s.StartTime).ToList();
+
+        var lastMorning = slotsOrdered.Where(s => s.SlotType == "Morning")
+                                      .OrderByDescending(s => s.StartTime)
+                                      .FirstOrDefault();
+        var morningEnd = lastMorning?.EndTime ?? TimeSpan.Zero;
+
+        var firstAfternoon = slotsOrdered.Where(s => s.SlotType == "Afternoon")
+                                         .OrderBy(s => s.StartTime)
+                                         .FirstOrDefault();
+        var afternoonStart = firstAfternoon?.StartTime ?? TimeSpan.Zero;
+
+        var processedSlots = slotsOrdered.Select(s => new TimeSlot
+        {
+            SlotType = s.SlotType,
+            StartTime = s.StartTime,
+            EndTime = s.EndTime,
+            ScheduledActivityId = s.ScheduledActivityId,
+            SchoolMorningEnd = morningEnd,
+            SchoolAfternoonStart = afternoonStart
+        }).ToList();
+
+        // --- Step 1: Separate core and non-core subjects ---
+        var coreSubjects = classes.Where(c => c.AcademicLevel == SmartGrade && c.IsCore).ToList();
+        var nonCoreSubjects = classes.Where(c => c.AcademicLevel == SmartGrade && !c.IsCore).ToList();
+        int totalSubjects = coreSubjects.Count + nonCoreSubjects.Count;
+
+        // --- Step 2: Compute default max periods per subject ---
+        int maxPeriodsPerSubject = totalSubjects > 0 ? Math.Max(1, usableSlots / totalSubjects) : 1;
+
+        var subjectPeriods = new Dictionary<Guid, int>();
+
+        // --- Step 3: Assign core subjects first ---
+        foreach (var subject in coreSubjects)
+        {
+            int userPeriods = GetPeriodsPerWeek(subject.ClassID);
+            int weekly = userPeriods > 0 ? userPeriods : maxPeriodsPerSubject;
+            subjectPeriods[subject.ClassID] = weekly;
+            usableSlots -= weekly;
+
+
+        }
+
+        // --- Step 4: Assign non-core subjects ---
+        foreach (var subject in nonCoreSubjects)
+        {
+            if (usableSlots <= 0)
+            {
+                subjectPeriods[subject.ClassID] = 0;
+                continue;
+            }
+
+            int userPeriods = GetPeriodsPerWeek(subject.ClassID);
+            int weekly = userPeriods > 0 ? userPeriods : Math.Min(maxPeriodsPerSubject, usableSlots);
+            subjectPeriods[subject.ClassID] = weekly;
+            usableSlots -= weekly;
+        }
+
+        // --- Step 5: Redistribute leftover slots to core subjects ---
+        while (usableSlots > 0)
+        {
+            foreach (var subject in coreSubjects)
+            {
+                subjectPeriods[subject.ClassID]++;
+                usableSlots--;
+                if (usableSlots == 0) break;
+            }
+        }
+
+        // --- Step 6: Build schedules with doubles ---
+        var schedules = new List<SubjectScheduleConfig>();
+        var structureConstraints = new List<SubjectStructureConstraints>();
+        foreach (var subject in coreSubjects.Concat(nonCoreSubjects))
+        {
+            int weekly = subjectPeriods[subject.ClassID];
+            int userDoubles = GetDoublePeriodsPerWeek(subject.ClassID);
+            int doubles = userDoubles;
+
+            if (doubles == 0 && smartRequest.Rules.AllowDoublePeriods)
+            {
+                doubles = RandomBetween(0, Math.Min(weekly / 2, subject.IsCore ? 2 : 1));
+            }
+
+            schedules.Add(new SubjectScheduleConfig
+            {
+                SubjectId = subject.ClassID,
+                WeeklyPeriods = weekly,
+                DoublePeriods = doubles,
+                TeacherId = subject.TeacherID ?? Guid.Empty,
+                SubjectName = subject.ClassName,
+                IsCoreSubject = subject.IsCore,
+            });
+            var SubjectStructureConstraint = new SubjectStructureConstraints()
+            {
+                SubjectId = subject.ClassID,
+                WeeklyPeriods = weekly,
+                RequiredDoublePeriods = doubles,
+
+                MaxPeriodsPerDay = 2,
+
+                CannotFollowSubjects = smartRequest.SubjectAdjacencyRules
+    .Where(kvp => kvp.Key == subject.ClassID)
+    .SelectMany(kvp => kvp.Value)
+    .ToList(),
+            };
+            structureConstraints.Add(SubjectStructureConstraint);
+        }
+
+        // --- Step 7: Time rules ---
+        var timeRules = smartRequest.ClassTimePreferences.Select(kvp => new SubjectTimeConstraints
+        {
+            SubjectId = kvp.Key,
+            MustBeMorning = kvp.Value == ClassTimePreference.MorningOnly,
+            MustBeAfternoon = kvp.Value == ClassTimePreference.MidMorning,
+            EarlyMorningEnd = slotsOrdered.Where(s => s.SlotType == "EarlyMorning")
+                                          .OrderByDescending(s => s.EndTime)
+                                          .FirstOrDefault()?.EndTime ?? TimeSpan.Zero,
+            MorningEnd = morningEnd
+        }).ToList();
+
+        // --- Step 8: Adjacency rules ---
+        var adjacencyRules = smartRequest.SubjectAdjacencyRules.Select(kvp => new SubjectAdjacencyConstraints
+        {
+            SubjectId = kvp.Key,
+            CannotFollowSubjects = kvp.Value.ToList()
+        }).ToList();
+
+        // --- Step 9: Activities ---
+        var activities = smartRequest.ActivityTimePreferences.Select(kvp =>
+        {
+            var pref = kvp.Value;
+            return new TimeTableActivity
+            {
+                ActivityID = kvp.Key,
+                MustBeMorning = pref == ActivityTimePreference.MorningOnly,
+                MustBeAfternoon = pref == ActivityTimePreference.AfternoonOnly,
+                MustRespectTime = smartRequest.ActivityFixed.TryGetValue(kvp.Key, out var fixedVal) && fixedVal
+            };
+        }).ToList();
+
+
+        return new GenerateTimetableRequest
+        {
+            Grade = smartRequest.Grade,
+            GradeName = smartRequest.ClassName,
+            Schedules = schedules,
+            TimeRules = timeRules,
+            AdjacencyRules = adjacencyRules,
+            Activities = activities,
+            TimeSlots = processedSlots,
+            structureConstraints = structureConstraints
+        };
     }
 
     private async Task RegenerateSmartTimetable()
