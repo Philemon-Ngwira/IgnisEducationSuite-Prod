@@ -26,7 +26,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Pages\Management\SchoolOperations\TransportManagement\" />
+    <Folder Include="Pages\Management\SchoolOperations\TransportManagement\Driver\" />
+    <Folder Include="Pages\Management\SchoolOperations\TransportManagement\Parent\" />
+    <Folder Include="Pages\Management\SchoolOperations\TransportManagement\Student\" />
   </ItemGroup>
 
 </Project>

@@ -51,6 +51,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<BusRoute> BusRoutes { get; set; }
 
+    public virtual DbSet<BusStaff> BusStaffs { get; set; }
+
     public virtual DbSet<BusStop> BusStops { get; set; }
 
     public virtual DbSet<Class> Classes { get; set; }
@@ -128,6 +130,8 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<RoomsWithOccupancy> RoomsWithOccupancies { get; set; }
 
     public virtual DbSet<School> Schools { get; set; }
+
+    public virtual DbSet<Staff> Staff { get; set; }
 
     public virtual DbSet<Student> Students { get; set; }
 
@@ -433,6 +437,31 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasConstraintName("FK__BusRoutes__BusId__125EB334");
         });
 
+        modelBuilder.Entity<BusStaff>(entity =>
+        {
+            entity.HasKey(e => e.BusStaffId).HasName("PK__BusStaff__DBC48F538ED1DB29");
+
+            entity.ToTable("BusStaff", "SchoolOps");
+
+            entity.Property(e => e.BusStaffId).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.FirstName)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.LastName)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(e => e.LicenseExpiryDate).HasColumnType("date");
+            entity.Property(e => e.LicenseNumber).HasMaxLength(50);
+            entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.StaffCode)
+                .IsRequired()
+                .HasMaxLength(50);
+        });
+
         modelBuilder.Entity<BusStop>(entity =>
         {
             entity.HasKey(e => e.StopId).HasName("PK__BusStops__EB6A38F4C028A9AF");
@@ -565,6 +594,8 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.ToTable("ClinicMedications", "SchoolOps");
 
             entity.Property(e => e.MedicationId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.BatchNumber).HasMaxLength(255);
+            entity.Property(e => e.ExpiryDate).HasColumnType("datetime");
             entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(100);
@@ -1155,6 +1186,28 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.SchoolWebsite)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<Staff>(entity =>
+        {
+            entity.Property(e => e.StaffID).ValueGeneratedNever();
+            entity.Property(e => e.StaffName)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.StaffType).HasMaxLength(255);
+            entity.Property(e => e.UserID)
+                .IsRequired()
+                .HasMaxLength(450);
+
+            entity.HasOne(d => d.DeanForGenderNavigation).WithMany(p => p.Staff)
+                .HasForeignKey(d => d.DeanForGender)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_Staff_Gender");
+
+            entity.HasOne(d => d.School).WithMany(p => p.Staff)
+                .HasForeignKey(d => d.SchoolID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Staff_Schools");
         });
 
         modelBuilder.Entity<Student>(entity =>

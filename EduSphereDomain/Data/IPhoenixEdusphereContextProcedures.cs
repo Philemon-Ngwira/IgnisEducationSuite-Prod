@@ -26,6 +26,7 @@ namespace EduSphereDomain.Data
         Task<List<GetBestPerformingStudentsBySchoolResult>> GetBestPerformingStudentsBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetCitiesByCountryNameResult>> GetCitiesByCountryNameAsync(string CountryCode, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetClassLessonSummaryBySchoolResult>> GetClassLessonSummaryBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetClinicMedicationsBySchoolResult>> GetClinicMedicationsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetGradedStudentAssignmentsResult>> GetGradedStudentAssignmentsAsync(Guid? StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetGradedStudentExamsResult>> GetGradedStudentExamsAsync(Guid? StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetHostelMaintainanceRequestsBySchoolResult>> GetHostelMaintainanceRequestsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
@@ -72,5 +73,6 @@ namespace EduSphereDomain.Data
         Task<int> SyncStudentAndParentAccountStatusAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> SyncStudentsToClassesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> UpdateEndTermReportCardStatusAsync(Guid? TermSettingID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<usp_GetStaffBySchoolAndRoleResult>> usp_GetStaffBySchoolAndRoleAsync(Guid? SchoolID, string RoleName, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
     }
 }

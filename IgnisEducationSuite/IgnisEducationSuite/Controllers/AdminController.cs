@@ -77,6 +77,55 @@ namespace IgnisEducationSuite.Controllers
                 return Ok(user);
             }
         }
+        [HttpPost("addrole")]
+        public async Task<IActionResult> AddRoleToUser([FromBody] ModifyUserRoleModel request)
+        {
+            var user = await _userManager.FindByIdAsync(request.UserId);
+            if (user is null)
+                return NotFound("User not found.");
+
+            if (!await _roleManager.RoleExistsAsync(request.Role))
+                return BadRequest($"Role '{request.Role}' does not exist.");
+
+            if (await _userManager.IsInRoleAsync(user, request.Role))
+                return BadRequest("User already has this role.");
+
+            var result = await _userManager.AddToRoleAsync(user, request.Role);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok(new
+            {
+                user.Id,
+                AddedRole = request.Role
+            });
+        }
+        [HttpPost("removerole")]
+        public async Task<IActionResult> RemoveRoleFromUser([FromBody] ModifyUserRoleModel request)
+        {
+            var user = await _userManager.FindByIdAsync(request.UserId);
+            if (user is null)
+                return NotFound("User not found.");
+
+            if (!await _roleManager.RoleExistsAsync(request.Role))
+                return BadRequest($"Role '{request.Role}' does not exist.");
+
+            if (!await _userManager.IsInRoleAsync(user, request.Role))
+                return BadRequest("User does not have this role.");
+
+            var result = await _userManager.RemoveFromRoleAsync(user, request.Role);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok(new
+            {
+                user.Id,
+                RemovedRole = request.Role
+            });
+        }
+
         // API endpoint to create a new user
         [HttpPost("createUser")]
         public async Task<IActionResult> CreateUser(CreateUserModel request)
@@ -92,6 +141,7 @@ namespace IgnisEducationSuite.Controllers
                 AccountActive = true,
                 EmailConfirmed = true,
                 requiresPasswordReset = true,
+                PhoneNumber = request.PhoneNumber ?? "N/A",
 
                 UserID = request.UserID,
             };

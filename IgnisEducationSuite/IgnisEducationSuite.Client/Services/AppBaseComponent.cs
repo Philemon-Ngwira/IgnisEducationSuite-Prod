@@ -19,6 +19,17 @@ public class AppBaseComponent : ComponentBase, IDisposable
         AppState.OnChange += StateHasChanged;
         academicLevels = AppState.AcademicLevels;
     }
+
+    protected async Task<IEnumerable<Staff>> GetStaffAsync(string roleName)
+    {
+        var service = GenericService.GetService<Staff>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStaffBySchoolAndRole/{Guid.Parse(AppState.SchoolID)}/{roleName}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        return null;
+    }
     protected readonly List<string> MealOrder = new()
     {
         "Breakfast",

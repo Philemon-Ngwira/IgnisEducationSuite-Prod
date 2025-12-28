@@ -1,0 +1,359 @@
+﻿@using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+
+@using System.Security.Cryptography;
+@using System.Text
+@inherits AppBaseComponent
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <!-- Section: Account Details -->
+            <MudItem xs="12" Class="mb-2">
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">User Account Details</MudAlert>
+            </MudItem>
+            @if (roleName == "Dean")
+            {
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="isAlsoTeacher" T="bool" Label="is Dean a teacher?" />
+                </MudItem>
+            }
+
+            <MudItem xs="12">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.Email" Label="Email" />
+            </MudItem>
+
+
+            <!-- Section: Personal Information -->
+            <MudItem xs="12" Class="mb-2 mt-3">
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">User Information</MudAlert>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.FirstName" Label="First Name" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.LastName" Label="Last Name" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.ContactNo" Label="Phone Number" />
+            </MudItem>
+            @if (roleName != "Dean")
+            {
+                <MudItem xs="12" md="6">
+
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newStaff.StaffType" Label="Staff Type" Placeholder="i.e Headchef, cook, etc" />
+
+                </MudItem>
+            }
+
+            <!-- Gender & Address -->
+            @if (roleName == "Dean")
+            {
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string" Variant="Variant.Outlined" Label="Dean for?" Margin="Margin.Dense" @bind-Value="newUser.Gender">
+                        @foreach (var item in genders)
+                        {
+                            <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+            @if (isAlsoTeacher)
+            {
+                <MudItem xs="12" md="6">
+                    <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Engagement Date" @bind-Date="newUser.DateEngaged" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter"
+                                     T="CountryDTO" Label="Country" Placeholder="Select Country"
+                                     SearchFunc="@SearchCountry" Margin="Margin.Dense"
+                                     ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter"
+                                     T="CityDTO" Label="City" Disabled="Country.CountryName == null"
+                                     SearchFunc="@SearchCity" Margin="Margin.Dense"
+                                     ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
+                </MudItem>
+            }
+        </MudGrid>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false" FullWidth="true" Class="gap-2">
+            <MudButton Color="Color.Primary" OnClick="CreateNewUser" Variant="Variant.Filled">Add New staff User</MudButton>
+            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="() => MudDialog.Close()">Close</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string roleName { get; set; } = string.Empty;
+    [Parameter] public List<Gender> genders { get; set; } = new();
+    [Parameter] public List<CountryDTO> countries { get; set; } = new();
+    protected List<CityDTO> Cities = new();
+    protected Staff newStaff = new();
+    protected UniversalUser newUser = new();
+    string UserName = string.Empty;
+    [Inject] ClientEmailService _emailService { get; set; } = default!;
+    protected bool isAlsoTeacher = false;
+    protected CountryDTO Country = new();
+    protected CityDTO City = new();
+
+    protected Func<CountryDTO, string> CountryTypeconverter = p => p?.CountryCode + ":" + p?.CountryName;
+    protected Func<CityDTO, string> CityTypeconverter = p => p?.CityName;
+    protected async Task CreateNewUser()
+    {
+        LoaderService.Show("Please wait, creating user!");
+        StateHasChanged();
+
+        // 1️⃣ Generate credentials
+        newUser.Password = GenerateOneTimePassword();
+        newUser.Role = roleName;
+        UserName = await GenerateUsernamesForUsers();
+        var createUserModel = new CreateUserModel
+        {
+            UserName = UserName,
+            Password = newUser.Password,
+            Email = newUser.Email,
+            Role = newUser.Role,
+            SchoolID = Guid.Parse(AppState.SchoolID),
+            UserID = "N/A",
+            ProfilePic = newUser.profilePic ?? Array.Empty<byte>(),
+            FirstName = newUser.FirstName,
+            LastName = newUser.LastName,
+            PhoneNumber = newUser.ContactNo
+        };
+
+        newUser.UserName = UserName;
+        // 2️⃣ Create Identity User
+        var result = await HttpClient.PostAsJsonAsync($"{NavigationManager.BaseUri}api/Admin/createUser", createUserModel);
+        if (!result.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Error: Saving user failed", Severity.Error);
+            return;
+        }
+
+        var createdUser = await result.Content.ReadFromJsonAsync<ApplicationUser>();
+        newUser.UserID = createdUser.Id;
+        var SchoolID = Guid.Parse(AppState.SchoolID);
+        if (isAlsoTeacher)
+        {
+            ModifyUserRoleModel userModify = new()
+            {
+                UserId = newUser.UserID,
+                Role = "Teacher"
+            };
+            var res = await HttpClient.PostAsJsonAsync($"{NavigationManager.BaseUri}api/Admin/addrole", userModify);
+        }
+        await SaveDetails(roleName, createdUser, SchoolID);
+
+    }
+
+    private async Task CreateTeacherAsync(UniversalUser user, string userId)
+    {
+        var teacher = new Teacher
+        {
+            TeacherID = Guid.NewGuid(),
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            EmailAddress = user.Email,
+            Gender = user.Gender,
+            DateEngaged = user.DateEngaged,
+            ProfilePic = user.profilePic,
+            UserID = userId,
+            SchoolID = Guid.Parse(AppState.SchoolID),
+            CreatedBy = AppState.FirstName + " " + AppState.LastName,
+            CreatedDate = DateTime.Now,
+        };
+
+        var service = GenericService.GetService<Teacher>();
+        var saved = await service.PostAsync("api/Dynamic/PostEntity", "teacher", teacher);
+
+        if (!saved.IsSuccess)
+        {
+            Snackbar.Add("Error: Saving teacher failed", Severity.Error);
+            return;
+        }
+    }
+    private async Task<string> GenerateUsernamesForUsers()
+    {
+        var Users = new List<UniversalUser>();
+        Users.Add(newUser);
+        var payload = Users
+            .Select(s => new UserNameRequest
+            {
+                FirstName = s.FirstName,
+                LastName = s.LastName
+            })
+            .ToList();
+
+        var response = await HttpClient.PostAsJsonAsync(
+            "api/Dynamic/generateUsernames",
+            payload);
+
+        if (!response.IsSuccessStatusCode)
+            throw new Exception("Failed to generate usernames.");
+
+        var results = await response.Content
+            .ReadFromJsonAsync<List<UsernameResult>>();
+
+        return results.Select(x => x.Username).FirstOrDefault();
+    }
+    public static string GenerateOneTimePassword(int length = 8)
+    {
+        const string validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_-+=<>?";
+        const string numbers = "1234567890";
+
+        // Ensure that the OTP length is at least 8 characters
+        if (length < 8)
+        {
+            length = 8;
+        }
+
+        using (var rng = new RNGCryptoServiceProvider())
+        {
+            while (true) // Continue generating until we get a valid OTP
+            {
+                byte[] randomBytes = new byte[length];
+                rng.GetBytes(randomBytes);
+
+                StringBuilder otp = new StringBuilder(length);
+
+                // Build the OTP string by selecting characters from the validChars string
+                foreach (var randomByte in randomBytes)
+                {
+                    otp.Append(validChars[randomByte % validChars.Length]);
+                }
+
+                string generatedOtp = otp.ToString();
+
+                // Check if the generated OTP contains at least one number
+                if (generatedOtp.Any(c => numbers.Contains(c)))
+                {
+                    return generatedOtp;
+                }
+            }
+        }
+    }
+
+    private async Task SaveDetails(string role, ApplicationUser user, Guid SchoolID)
+    {
+        switch (role)
+        {
+            case "KitchenStaff" or "Dean":
+                await SaveStaffDetails(user, SchoolID);
+                break;
+            case "TransportStaff":
+                await SaveBusStaffDetails();
+                break;
+            case "Clinic Staff":
+                await SaveClinicStaffDetails();
+                break;
+        }
+    }
+
+    protected async Task SaveStaffDetails(ApplicationUser user, Guid SchoolID)
+    {
+        newStaff.StaffID = Guid.NewGuid();
+        newStaff.StaffName = user.FirstName + " " + user.LastName;
+        newStaff.SchoolID = SchoolID;
+        newStaff.UserID = user.Id;
+        newStaff.Email = user.Email;
+        newStaff.PhoneNumber = user.PhoneNumber;
+        if (roleName == "Dean")
+        {
+            newStaff.isDean = true;
+            newStaff.StaffType = "Dean";
+            newStaff.DeanForGender = genders.Where(x => x.GenderDescription == newUser.Gender).Select(x => x.GenderId).First();
+        }
+        else
+        {
+            newStaff.isDean = false;
+        }
+        var service = GenericService.GetService<Staff>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "staff", newStaff);
+        if (result.IsSuccess)
+        {
+            if (isAlsoTeacher)
+            {
+                await CreateTeacherAsync(newUser, newUser.UserID);
+            }
+            //--==========SEND EMAIL========--\\
+            await SendOneTimePasswordEmail(newUser, newStaff.StaffName, "N/A");
+            //--========FINISH PROCESS========--\\
+            MudDialog.Close(DialogResult.Ok(newStaff));
+        }
+    }
+
+
+    protected async Task SaveClinicStaffDetails()
+    {
+
+    }
+    protected async Task SaveBusStaffDetails()
+    {
+
+    }
+    private async Task SendOneTimePasswordEmail(UniversalUser user, string recipientName, string studentID)
+    {
+        try
+        {
+            var emailRequest = new EmailRequest
+            {
+                To = user.Email,
+                Reciepient = recipientName,
+                Password = user.Password,
+                UserName = user.UserName,
+                StudentID = studentID,
+                isFirstMail = true
+            };
+
+            var emailResult = await _emailService.SendPasswordResetEmailAsync(emailRequest, NavigationManager.BaseUri);
+            if (emailResult == "Password reset email sent successfully!")
+            {
+                Snackbar.Add($"One time password sent successfully to {recipientName}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"Email failed to send: {emailResult}", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error sending email: {ex.Message}", Severity.Error);
+        }
+    }
+    protected async Task GetCities(CountryDTO selectedCountry)
+    {
+        Country = selectedCountry;
+        var service = GenericService.GetService<CityDTO>();
+        var result = await service.GetAllAsync($"api/CountriesAndCities/GetCities/{selectedCountry.CountryCode}", true);
+        if (result.IsSuccess)
+        {
+            Cities = result.Data.ToList();
+        }
+    }
+    private async Task<IEnumerable<CountryDTO>> SearchCountry(string value, CancellationToken token)
+    {
+        await Task.Delay(5, token);
+
+        if (string.IsNullOrEmpty(value))
+            return new List<CountryDTO>();
+        return countries.Where(x => x.CountryName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    private async Task<IEnumerable<CityDTO>> SearchCity(string value, CancellationToken token)
+    {
+
+        await Task.Delay(5, token);
+
+
+        if (string.IsNullOrEmpty(value))
+            return new List<CityDTO>();
+        return Cities.Where(x => x.CityName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+}

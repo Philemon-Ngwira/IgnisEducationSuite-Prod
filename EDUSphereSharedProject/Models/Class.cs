@@ -42,5 +42,5 @@ public partial class Class
     [NotMapped]
     public bool HasCustomPeriods { get; set; } = false;
     [NotMapped]
-    public bool IsCore { get; set; }  // admin can check this for core subjects
+    public bool IsCore { get; set; }
 }

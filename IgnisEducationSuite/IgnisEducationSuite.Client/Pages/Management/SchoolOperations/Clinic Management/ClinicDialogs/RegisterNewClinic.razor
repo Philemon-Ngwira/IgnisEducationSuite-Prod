@@ -1,0 +1,92 @@
+﻿@inherits AppBaseComponent
+@using EDUSphereSharedProject.Models
+
+<MudDialog >
+    <DialogContent>
+
+        <!-- Header -->
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6" Class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.LocalHospital" Color="Color.Primary" />
+                Add School Clinic
+            </MudText>
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Provide basic details for the school clinic. You can edit this later.
+            </MudText>
+        </MudStack>
+
+        <MudDivider Class="my-4" />
+
+        <!-- Form -->
+        <MudStack Spacing="3">
+            <MudTextField Label="Clinic Name"
+                          Placeholder="e.g. Main School Clinic"
+                          Variant="Variant.Outlined"
+                          @bind-Value="newClinic.Name"
+                          Required="true"
+                          RequiredError="Clinic name is required"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.MedicalServices" />
+
+            <MudTextField Label="Location"
+                          Placeholder="e.g. Near Administration Block"
+                          Variant="Variant.Outlined"
+                          @bind-Value="newClinic.Location"
+                          Required="true"
+                          RequiredError="Location is required"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Place" />
+        </MudStack>
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Default"
+                   OnClick="MudDialog.Cancel">
+            Cancel
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="AddNewClinic">
+            Add Clinic
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    protected Clinic newClinic = new()
+    {
+        ClinicId = Guid.NewGuid()
+    };
+
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected async Task AddNewClinic()
+    {
+        LoaderService.Show("Adding clinic, please wait...");
+
+        newClinic.SchoolId = Guid.Parse(AppState.SchoolID);
+
+        var service = GenericService.GetService<Clinic>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "clinic", newClinic);
+
+        LoaderService.Hide();
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Clinic successfully added", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(newClinic));
+        }
+        else
+        {
+            Snackbar.Add("Failed to add clinic. Please try again.", Severity.Error);
+        }
+    }
+}

@@ -1156,22 +1156,32 @@ namespace EduSphereDomain.Repositories
         public async Task<List<StudentWithClassesDTO>> GetStudentsWithClassesBySchoolAsync(Guid schoolId)
         {
             // Project only the necessary fields
-            return await _context.Students
-                .AsNoTracking()
-                .Where(s => s.SchoolID == schoolId)
-                .Select(s => new StudentWithClassesDTO
-                {
-                    StudentID = s.StudentID,
-                    FirstName = s.FirstName,
-                    LastName = s.LastName,
-                    AcademicLevel = s.AcademicLevel.Value,
-                    LevelName = s.LevelName ?? "", // fallback if null
-                    StudentNumber = s.StudentNumber,
-                    ClassNames = s.StudentClasses
-                                  .Select(sc => sc.Class.ClassName)
-                                  .ToList()
-                })
-                .ToListAsync();
+            try
+            {
+                return await _context.Students
+            .AsNoTracking()
+            .Where(s => s.SchoolID == schoolId)
+            .Select(s => new StudentWithClassesDTO
+            {
+                StudentID = s.StudentID,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                AcademicLevel = s.AcademicLevel.Value,
+                LevelName = s.LevelName ?? "", // fallback if null
+                Gender = s.Gender,
+                StudentNumber = s.StudentNumber,
+                ClassNames = s.StudentClasses
+                              .Select(sc => sc.Class.ClassName)
+                              .ToList()
+            })
+            .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+
         }
 
         public async Task<List<ReportCard>> GetReportCardHeaderByStudent(Guid StudentID)
@@ -1515,7 +1525,51 @@ namespace EduSphereDomain.Repositories
 
 
         #endregion
+        #region Clinic Module
+        public async Task<IEnumerable<Clinic>> GetSchoolClinics(Guid SchoolID)
+        {
+            var resuilt = await _context.Clinics.Where(x => x.SchoolId == SchoolID).ToListAsync();
+            return resuilt;
+        }
 
+        public async Task<IEnumerable<ClinicMedication>> GetMedicationsBySchoolAsync(Guid SchoolID)
+        {
+            var result = await _contextProcedures.GetClinicMedicationsBySchoolAsync(SchoolID);
+            return result.Select(x => new ClinicMedication
+            {
+                MedicationId = x.MedicationId,
+                Name = x.Name,
+                Stock = x.Stock,
+                Unit = x.Unit,
+                ExpiryDate = x.ExpiryDate,
+                ClinicID = x.ClinicID,
+                BatchNumber = x.BatchNumber
+            }).ToList();
+        }
+        public async Task<IEnumerable<Staff>> GetStaffBySchoolAndRole(Guid SchoolID, string RoleName)
+        {
+            var result = await _contextProcedures.usp_GetStaffBySchoolAndRoleAsync(SchoolID, RoleName);
+            return result.Select(x => new Staff
+            {
+                StaffID = x.StaffID,
+                SchoolID = x.SchoolID,
+                StaffName = x.StaffName,
+                DeanForGender = x.DeanForGender,
+                StaffType = x.StaffType,
+                isDean = x.isDean,
+                UserID = x.UserID,
+                Email = x.Email,
+                PhoneNumber = x.PhoneNumber,
+
+            }).ToList();
+        }
+        public async Task<IEnumerable<BusStaff>> GetBusStaffAsync(Guid SchoolID)
+        {
+            return await _context.BusStaffs
+                .Where(x => x.SchoolId == SchoolID)
+                .ToListAsync();
+        }
+        #endregion
     }
 
 }

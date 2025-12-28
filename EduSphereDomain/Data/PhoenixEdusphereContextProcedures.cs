@@ -45,6 +45,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetBestPerformingStudentsBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetCitiesByCountryNameResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetClassLessonSummaryBySchoolResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetClinicMedicationsBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetGradedStudentAssignmentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetGradedStudentExamsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetHostelMaintainanceRequestsBySchoolResult>().HasNoKey().ToView(null);
@@ -88,6 +89,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetUpcomingExamsOrQuizzesResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetUserBadgesByUserIDResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<RunDailyJobsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<usp_GetStaffBySchoolAndRoleResult>().HasNoKey().ToView(null);
         }
     }
 
@@ -491,6 +493,32 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetClassLessonSummaryBySchoolResult>("EXEC @returnValue = [dbo].[GetClassLessonSummaryBySchool] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetClinicMedicationsBySchoolResult>> GetClinicMedicationsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetClinicMedicationsBySchoolResult>("EXEC @returnValue = [SchoolOps].[GetClinicMedicationsBySchool] @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 
@@ -1751,6 +1779,39 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[UpdateEndTermReportCardStatus] @TermSettingID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<usp_GetStaffBySchoolAndRoleResult>> usp_GetStaffBySchoolAndRoleAsync(Guid? SchoolID, string RoleName, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "RoleName",
+                    Size = 512,
+                    Value = RoleName ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<usp_GetStaffBySchoolAndRoleResult>("EXEC @returnValue = [dbo].[usp_GetStaffBySchoolAndRole] @SchoolID, @RoleName", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

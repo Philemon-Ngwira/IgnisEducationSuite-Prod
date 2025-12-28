@@ -14,6 +14,7 @@ namespace EDUSphereSharedProject.UniversalModels
         public int AcademicLevel { get; set; }
         public string LevelName { get; set; } = "";
         public string StudentNumber { get; set; } = "";
+        public string Gender { get; set; } = "";
         public List<string> ClassNames { get; set; } = new();
 
         public bool isInteractable = true;

@@ -176,7 +176,7 @@ namespace IgnisEducationSuite.Controllers
                     string lastName = row.Row.Cell(2).GetValue<string>()?.Trim();
                     string gender = row.Row.Cell(3).GetValue<string>()?.Trim();
                     string address = row.Row.Cell(4).GetValue<string>()?.Trim();
-                    string email = row.Row.Cell(5).GetValue<string>()?.Trim();
+                    string email = row.Row.Cell(5).GetValue<string>()?.Trim()?? string.Empty;
                     string studentNumber = row.Row.Cell(6).GetValue<string>()?.Trim();
                     var dateCell = row.Row.Cell(7).GetValue<string>()?.Trim();
                     string country = row.Row.Cell(8).GetValue<string>()?.Trim();
@@ -452,6 +452,59 @@ namespace IgnisEducationSuite.Controllers
             return Ok(new UploadPreviewResult
             {
                 academicLevels = levels,
+                Errors = errors
+            });
+        }
+        [HttpPost("uploadMedicine")]
+        public async Task<IActionResult> UploadMedInventory([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var levels = new List<ClinicMedication>();
+            var errors = new List<RowError>();
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1)
+                         .Select((r, i) => new { Row = r, RowIndex = i + 2 }))
+            {
+                try
+                {
+                    string Name = row.Row.Cell(1).GetValue<string>();
+                    int Stock = row.Row.Cell(2).GetValue<int>();
+                    string unit = row.Row.Cell(3).GetValue<string>();
+                    DateTime ExpiryDate = row.Row.Cell(4).GetValue<DateTime>();
+
+
+                    levels.Add(new ClinicMedication
+                    {
+                        MedicationId = Guid.NewGuid(),
+                        Name = Name,
+                        Stock = Stock,
+                        Unit = unit,
+                        ExpiryDate = ExpiryDate,
+
+                    });
+                }
+                catch (Exception exRow)
+                {
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
+                }
+            }
+
+            return Ok(new UploadPreviewResult
+            {
+                Medications = levels,
                 Errors = errors
             });
         }

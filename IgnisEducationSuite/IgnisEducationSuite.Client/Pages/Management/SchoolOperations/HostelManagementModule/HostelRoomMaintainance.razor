@@ -11,7 +11,7 @@
     </MudCardContent>
 </MudCard>
 
-@if (AppState.UserRole == "Student")
+@if (AppState.UserRole == "Dean")
 {
     <MudCard Class="mb-4">
         <MudCardHeader>
@@ -110,7 +110,7 @@
                     </CardHeaderContent>
                     <CardHeaderActions>
                         <!-- ACTION BUTTONS (Admin/Staff only) -->
-                        @if (AppState.UserRole != "Student")
+                        @if (AppState.UserRole != "Dean")
                         {
                             var name = "In Progress";
                             var mark = "completed";
@@ -120,7 +120,7 @@
                                 case "Pending":
 
                                     <MudButtonGroup OverrideStyles="false">
-                                        <MudButton  Color="Color.Info"
+                                        <MudButton Color="Color.Info"
                                                    Variant="Variant.Text"
                                                    Size="Size.Small"
                                                    OnClick="() => UpdateMaintananceRequest(name, item)">
@@ -179,6 +179,7 @@
 </MudGrid>
 
 @code {
+    protected List<Staff> Deans = new();
     protected List<GetRoomsBySchoolResult> rooms = new();
     protected GetRoomsBySchoolResult selectedRoom = new();
     protected MaintainanceRequest newRequest = new();
@@ -188,12 +189,13 @@
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-        if (AppState.UserRole == "Student")
-        {
-            newRequest.ReportedBy = AppState.FirstName + " " + AppState.LastName;
 
-        }
+        newRequest.ReportedBy = AppState.FirstName + " " + AppState.LastName;
+
+        var s = await GetStaffAsync("Dean");
+        Deans = s.ToList();
         var tasks = new List<Task>(){
+
           GetRooms(),
           GetRequests()
         };
@@ -251,7 +253,9 @@
         var result = await service.GetAllAsync($"api/Dynamic/GetRoomsBySchool/{AppState.SchoolID}", true);
         if (result.IsSuccess)
         {
-            rooms = result.Data.ToList();
+
+            var loggedInDean = Deans.Where(x => x.UserID == AppState.UserID).First();
+            rooms = result.Data.Where(x => x.GenderId == loggedInDean.DeanForGender).ToList();
         }
 
     }

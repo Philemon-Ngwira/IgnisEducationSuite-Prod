@@ -1,10 +1,17 @@
 ﻿namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
 {
-    class PlacementTask
+    public class PlacementTask
     {
-        public Guid SubjectId { get; set; }
-        public bool IsDouble { get; set; }
-        public bool IsRequired { get; set; }
+        public Guid SubjectId { get; }
+        public bool IsDouble { get; }
+        public bool IsRequired { get; }
+
+        public PlacementTask(Guid subjectId, bool isDouble, bool isRequired)
+        {
+            SubjectId = subjectId;
+            IsDouble = isDouble;
+            IsRequired = isRequired;
+        }
     }
 
 }

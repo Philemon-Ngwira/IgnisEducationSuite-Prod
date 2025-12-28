@@ -13,13 +13,14 @@ public class AppState
 
     // --- User & School Info ---
     public string UserID { get; private set; } = string.Empty;
-    public string UserRole { get; private set; } = "Guest";
+    public string UserRole { get; set; } = "Guest";
     public string SchoolID { get; private set; } = string.Empty;
     public string SchoolName { get; private set; } = string.Empty;
     public string FirstName { get; private set; } = string.Empty;
     public string LastName { get; private set; } = string.Empty;
     public string UserEmail { get; private set; } = string.Empty;
     public string SchoolLogo { get; private set; } = string.Empty;
+    public List<string> UserRoles { get; private set; } = new List<string>();
     public bool HideStudentDashboard { get; private set; }
     public bool LicenseIsActive { get; private set; }
     public usp_GetPharmacyLicenseStatusResult License { get; private set; } = new();
@@ -58,6 +59,20 @@ public class AppState
         if (IsFullyInitialized) return true;
 
         UserID = userName;
+        // Role priority
+        var rolePriority = new List<string>
+            {
+                "Admin",
+                "Teacher",
+                "Dean",
+                "Principal",
+                "KitchenStaff",
+                "Parent",
+                "Student",
+                "SuperAdmin",
+                "Clinic Staff",
+                "TransportStaff"
+            };
 
         try
         {
@@ -71,10 +86,22 @@ public class AppState
                 nav.NavigateTo("/", true);
                 return false;
             }
-
             var data = initResult.Data.First();
+            UserRoles = data.RoleName?
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(r => r.Trim())
+                        .ToList() ?? new();
+
+            if (UserRoles.Count == 1 && (UserRoles[0] == "SuperAdmin" || UserRoles[0] == "Parent"))
+            {
+                UserRole = UserRoles[0];
+            }
+            else
+            {
+                UserRole = rolePriority.FirstOrDefault(role => UserRoles.Contains(role)) ?? "Guest";
+            }
+
             SchoolID = data.SchoolID.ToString();
-            UserRole = data.RoleName ?? "Guest";
             SchoolName = data.SchoolName ?? "";
             UserEmail = data.Email ?? "";
             FirstName = data.FirstName ?? "";
@@ -106,7 +133,7 @@ public class AppState
             {
                 LicenseIsActive = true;
             }
-                IsFullyInitialized = true;
+            IsFullyInitialized = true;
             NotifyStateChanged();
             return true;
         }
@@ -185,6 +212,13 @@ public class AppState
     public List<UserActivity> GetUserActivities() => UserActivities;
     public List<AcademicLevel> GetAcademicLevels() => AcademicLevels;
     public int GetNewAssignmentsCount() => NewAssignmentsCount;
-
+    public void SwitchRole(string role)
+    {
+        if (UserRoles.Contains(role))
+        {
+            UserRole = role;
+            NotifyStateChanged();
+        }
+    }
     #endregion
 }

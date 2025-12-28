@@ -1,5 +1,6 @@
 ﻿@page "/ReportCards"
 
+@using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.Models.StoreProModels
 @using IgnisEducationSuite.Client.Pages.Shared.Dialogs
 @inherits AppBaseComponent
@@ -46,7 +47,6 @@
                     <PropertyColumn Property="x => x.FirstName" Title="First Name" />
                     <PropertyColumn Property="x => x.LastName" Title="Last Name" />
                     <PropertyColumn Property="x => x.LevelName" Title="Grade" />
-                    <PropertyColumn Property="x => x.GPA" Title="GPA" CellClass="text-end" />
                     <PropertyColumn Property="x => x.IssuedDate.HasValue ? x.IssuedDate.Value.ToShortDateString() : string.Empty" Title="Issued Date" CellClass="text-center" />
                     <PropertyColumn Property="x => x.TermStartDate.HasValue ? x.TermStartDate.Value.ToShortDateString() : string.Empty" Title="Term Start" CellClass="text-center" />
                     <PropertyColumn Property="x => x.TermEndDate.HasValue ? x.TermEndDate.Value.ToShortDateString() : string.Empty" Title="Term End" CellClass="text-center" />
@@ -75,7 +75,7 @@
     protected string StudentID = string.Empty;
     protected string ParentID = string.Empty;
     protected string searchString = string.Empty;
-
+    protected Staff Dean = new();
     protected IEnumerable<GetReportCardsByStudentResult> FilteredResults =>
         string.IsNullOrWhiteSpace(searchString)
         ? studentResults
@@ -101,7 +101,7 @@
             if (!string.IsNullOrEmpty(ParentID))
                 await GetStudentReportCards();
         }
-
+       
         LoaderService.Hide();
     }
 

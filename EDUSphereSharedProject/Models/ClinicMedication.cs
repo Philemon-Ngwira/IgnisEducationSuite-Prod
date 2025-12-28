@@ -2,6 +2,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -15,5 +16,13 @@ public partial class ClinicMedication
 
     public string Unit { get; set; }
 
+    public DateTime? ExpiryDate { get; set; }
+
+    public Guid? ClinicID { get; set; }
+
+    public string BatchNumber { get; set; }
+
     public virtual ICollection<ClinicMedicationLog> ClinicMedicationLogs { get; set; } = new List<ClinicMedicationLog>();
+    [NotMapped]
+    public string ClinicName { get; set; }
 }

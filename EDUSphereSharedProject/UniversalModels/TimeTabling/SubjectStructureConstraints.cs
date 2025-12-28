@@ -12,14 +12,15 @@ namespace EDUSphereSharedProject.UniversalModels.TimeTabling
 
         public int WeeklyPeriods { get; set; }
 
-        // REQUIRED number of doubles (not "try")
-        public int RequiredDoublePeriods { get; set; }
 
         // Optional caps
         public int MaxPeriodsPerDay { get; set; } = int.MaxValue;
 
         // Subjects this subject may NOT follow
         public List<Guid> CannotFollowSubjects { get; set; } = new();
+        public int RequiredDoubleCount { get; set; }
+        
+
     }
 
 }

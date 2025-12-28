@@ -8,5 +8,7 @@
         public int WeeklyPeriods { get; set; }       // total number of periods in a week
         public int DoublePeriods { get; set; }
         public bool IsCoreSubject { get; set; }
+        public int MaxPerDay { get; set; } = 1;
+
     }
 }

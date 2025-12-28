@@ -23,17 +23,28 @@
                       Height="180" />
         }
     </div>
-
-    <!-- PRIMARY -->
-    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
-        Dashboard
-    </MudNavLink>
-
     <AuthorizeView>
         <Authorized>
 
             @if (AppState.IsFullyInitialized)
             {
+                @if (AppState.UserRoles.Count > 1)
+                {
+                    <MudSelect Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               T="string"
+                               Label="Current Role"
+                               Dense="true"
+                               ValueChanged="RoleChanged">
+                        @foreach (var role in AppState.UserRoles)
+                        {
+                            <MudSelectItem Value="@role">@role</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                <MudNavLink Href="/" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
+                    Dashboard
+                </MudNavLink>
                 @switch (AppState.UserRole)
                 {
                     case "SuperAdmin":
@@ -75,16 +86,26 @@
                             <MudDivider Class="my-4" />
 
                             <MudNavGroup Icon="@Icons.Material.Filled.Hotel" Title="Operations">
+                                <MudNavGroup Icon="@MaterialDesignIcons.Normal.Bus" Title="Transport">
+
+                                    <MudNavLink Href="BusStaffManagement" Icon="@MaterialDesignIcons.Normal.NaturePeople">Bus Staff</MudNavLink>
+
+                                </MudNavGroup>
                                 <MudNavGroup Icon="@Icons.Material.Filled.DinnerDining" Title="Dining">
+                                    <MudNavLink Href="kitchen-staff" Icon="@MaterialDesignIcons.Normal.ChefHat">KitchenStaff</MudNavLink>
                                     <MudNavLink Href="DiningManagement" Icon="@Icons.Material.Filled.Dining">Dining Hall</MudNavLink>
                                 </MudNavGroup>
 
                                 <MudNavGroup Icon="@Icons.Material.Filled.Warehouse" Title="Hostels">
+                                    <MudNavLink Href="Deans" Icon="@Icons.Material.Filled.Man">Deans & Wardens</MudNavLink>
                                     <MudNavLink Href="HostelManagement" Icon="@Icons.Material.Filled.BedroomChild">Hostels</MudNavLink>
                                     <MudNavLink Href="HostelRoomMaintainance" Icon="@Icons.Material.Filled.Build">Maintenance</MudNavLink>
                                 </MudNavGroup>
                                 <MudNavGroup Icon="@Icons.Material.Filled.LocalHospital" Title="Clinic">
+                                    <MudNavLink Href="clinic-staff" Icon="@Icons.Material.Filled.MedicalServices">Clinic Staff</MudNavLink>
+                                    <MudNavLink Href="Clinics" Icon="@MaterialDesignIcons.Normal.Hospital">Clinics</MudNavLink>
                                     <MudNavLink Href="MedicalInventory" Icon="@Icons.Material.Filled.Medication">Inventory</MudNavLink>
+                                    <MudNavLink Href="ClinicVisits" Icon="@MaterialDesignIcons.Normal.Doctor">Clinic Visit</MudNavLink>
                                 </MudNavGroup>
                             </MudNavGroup>
 
@@ -132,7 +153,6 @@
                                 <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book">Report Cards</MudNavLink>
                                 <MudNavLink Href="Exams" Icon="@Icons.Material.Filled.Pages">Exams</MudNavLink>
                                 <MudNavLink Href="StudentResults" Icon="@MaterialDesignIcons.Normal.FileDocumentMultiple">Results</MudNavLink>
-                                <MudNavLink Href="HostelRoomMaintainance" Icon="@Icons.Material.Filled.Build">Hostel Issues</MudNavLink>
                             }
 
                             <MudNavLink Href="Library" Icon="@Icons.Material.Filled.LocalLibrary">Library</MudNavLink>
@@ -153,6 +173,13 @@
 
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication</MudNavLink>
                         </MudNavGroup>
+                        break;
+                    case "Dean":
+                        <MudNavLink Href="HostelRoomMaintainance" Icon="@Icons.Material.Filled.Build">Hostel Issues</MudNavLink>
+                        <MudNavLink Href="ReportCardManagement" Icon="@MaterialDesignIcons.Normal.CardAccountDetails">Report Card Prep</MudNavLink>
+                        break;
+                    case "Principal":
+                        <MudNavLink Href="ReportCardManagement" Icon="@MaterialDesignIcons.Normal.CardAccountDetails">Report Card Prep</MudNavLink>
                         break;
                 }
             }
@@ -214,6 +241,13 @@
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
         AppState.OnChange -= StateHasChanged;
+    }
+
+    private void RoleChanged(string role)
+    {
+        AppState.UserRole = role;
+        AppState.SwitchRole(role);
+        NavigationManager.NavigateTo("/", forceLoad: false); // soft navigation
     }
 }
 

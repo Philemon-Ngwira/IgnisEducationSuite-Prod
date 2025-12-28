@@ -1,152 +1,153 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using EDUSphereSharedProject.Models;
+﻿
 using EDUSphereSharedProject.UniversalModels.TimeTabling;
-using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
+using Humanizer;
+using SchedulingTester.TimeTableGenerator;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
-class TimetableGeneratorV3_1Tests
+class RealisticTimetableTest
 {
     static void Main()
     {
-        Console.WriteLine("=== TIMETABLE GENERATOR V3.1 – CORE RULE TEST ===\n");
+        Console.WriteLine("=== REALISTIC TIMETABLE GENERATOR TEST ===\n");
 
-        TestV3_1_WeeklyQuota_MathRules_WithActivity();
+        TestFullWeekEarlyMath();
 
         Console.WriteLine("\n=== TEST COMPLETE ===");
     }
 
-    // =========================
-    // CORE TEST
-    // =========================
-    // =========================
-    // CORE TEST + DAILY AFTERNOON ACTIVITY
-    // =========================
-    private static void TestV3_1_WeeklyQuota_MathRules_WithActivity()
+    private static void TestFullWeekEarlyMath()
     {
-        Console.WriteLine("--- Test: Weekly Quotas + Math Rules + Daily Activity ---");
+        Console.WriteLine("--- Test: Full week, early-morning Math, repair-driven pipeline ---");
 
-        var slots = DefaultTimeSlots();
-
-        // SUBJECT IDS
-        var mathId = Guid.NewGuid();
-        var physicsId = Guid.NewGuid();
-        var chemistryId = Guid.NewGuid();
-        var biologyId = Guid.NewGuid();
-        var englishId = Guid.NewGuid();
-
-        var subjects = new List<SubjectScheduleConfig>
-    {
-        new() { SubjectId = mathId, SubjectName = "Math", WeeklyPeriods = 5, DoublePeriods = 2 },
-        new() { SubjectId = physicsId, SubjectName = "Physics", WeeklyPeriods = 5, DoublePeriods = 1 },
-        new() { SubjectId = chemistryId, SubjectName = "Chemistry", WeeklyPeriods = 5, DoublePeriods = 1 },
-        new() { SubjectId = biologyId, SubjectName = "Biology", WeeklyPeriods = 5, DoublePeriods = 1 },
-        new() { SubjectId = englishId, SubjectName = "English", WeeklyPeriods = 5, DoublePeriods = 1 },
+        // 13 slots/day from 07:10 to 15:10
+        var slotTimes = new[]
+        {
+        "07:10","07:50","08:30","09:10","09:50","10:30",
+        "11:10","11:50","12:30","13:10","13:50","14:30","15:10"
     };
 
-        var adjacencyRules = new List<SubjectAdjacencyConstraints>
-    {
-        new()
+        var slots = new List<TimeSlot>();
+        foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
         {
-            SubjectId = mathId,
-            CannotFollowSubjects = new List<Guid>
+            if (day is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                continue;
+
+            for (int i = 0; i < slotTimes.Length - 1; i++)
             {
-                physicsId,
-                chemistryId,
-                biologyId
+                slots.Add(new TimeSlot
+                {
+                    Day = day,
+                    StartTime = TimeSpan.Parse(slotTimes[i]),
+                    EndTime = TimeSpan.Parse(slotTimes[i + 1]),
+                    SubjectId = Guid.Empty,
+                    SubjectName = "Free"
+                });
             }
         }
+
+        // Subjects
+        var subjects = new List<SchedulingTester.TimeTableGenerator.SubjectScheduleConfig>
+    {
+        new() { SubjectId = Guid.NewGuid(), SubjectName = "Math", WeeklyPeriods = 5, EarlyMorningOnly = true, RequiredDoubles = 2 },
+        new() { SubjectId = Guid.NewGuid(), SubjectName = "Physics", WeeklyPeriods = 5 },
+        new() { SubjectId = Guid.NewGuid(), SubjectName = "Chemistry", WeeklyPeriods = 5 },
+        new() { SubjectId = Guid.NewGuid(), SubjectName = "Biology", WeeklyPeriods = 5 },
+        new() { SubjectId = Guid.NewGuid(), SubjectName = "English", WeeklyPeriods = 5 },
+        new() { SubjectId = Guid.NewGuid(), SubjectName = "History", WeeklyPeriods = 5 },
+        new() { SubjectId = Guid.NewGuid(), SubjectName = "Geography", WeeklyPeriods = 5 },
+        new() { SubjectId = Guid.NewGuid(), SubjectName = "Computer Studies", WeeklyPeriods = 5 },
+        new() { SubjectId = Guid.NewGuid(), SubjectName = "Civic Education", WeeklyPeriods = 5 }
     };
 
-        var timeRules = new List<SubjectTimeConstraints>
+        var adjacencyConstraints = new List<SubjectAdjacencyConstraints>
     {
         new()
         {
-            SubjectId = mathId,
-            MustBeEarlyMorning = true,
-            EarlyMorningEnd = TimeSpan.Parse("10:30")
+            SubjectId = subjects.First(s => s.SubjectName == "Physics").SubjectId,
+            CannotFollowSubjects = new() { subjects.First(s => s.SubjectName == "Math").SubjectId }
+        },
+        new()
+        {
+            SubjectId = subjects.First(s => s.SubjectName == "Chemistry").SubjectId,
+            CannotFollowSubjects = new() { subjects.First(s => s.SubjectName == "Physics").SubjectId }
         }
     };
 
-        // DAILY AFTERNOON ACTIVITY
-        var activityId = Guid.NewGuid();
-        var dailyAfternoonActivity = new TimeTableActivity
+        var prepActivity = new Activity
         {
-            ActivityID = activityId,
-            ActivityName = "Daily Assembly",
-            MustBeAfternoon = true,
-            MustBeMorning = false
+            Name = "PREP",
+            StartFrom = TimeSpan.Parse("13:50")
         };
 
-        var activities = new List<TimeTableActivity> { dailyAfternoonActivity };
-        var generator = new TimetableGeneratorV3_1();
-        // Generate timetable
-        var result = generator.Generate(
-    slots,
-    subjects,
-    adjacencyRules,
-    timeRules,
-    activities,                  // <-- pass the activity list
-    new List<TeacherScheduleConstraints>()
+        // --------------------------------------------------
+        // 1. GENERATE (DIRTY)
+        // --------------------------------------------------
+        var generator = new RealisticTimetableGenerator();
+        var generatedSlots = generator.Generate(
+            slots,
+            subjects,
+            adjacencyConstraints,
+            prepActivity
+        );
+
+        // --------------------------------------------------
+        // 2. BUILD STATE FROM GENERATED SLOTS
+        // --------------------------------------------------
+        var state = new TimetableState(
+            generatedSlots,
+            subjects,
+            adjacencyConstraints
+        );
+
+        // --------------------------------------------------
+        // 3. VALIDATE (EXPECT FAILURES)
+        // --------------------------------------------------
+        var initialReport  = new TimetableValidator().Analyze(
+    state,
+    subjects.ToDictionary(s => s.SubjectId),
+    adjacencyConstraints.ToDictionary(a => a.SubjectId)
 );
 
-        PrintTimetable(result);
+        Console.WriteLine("Initial violations:");
+        foreach (var v in initialReport.InvariantViolations)
+            Console.WriteLine(" - " + v);
 
-        // =========================
-        // ASSERTIONS
-        // =========================
-        var placedSubjects = result.Slots
-            .Where(s => s.SubjectId.HasValue)
-            .GroupBy(s => s.SubjectName!)
-            .ToDictionary(g => g.Key, g => g.ToList());
+        //        // --------------------------------------------------
+        //        // 4. REPAIR PIPELINE
+        //        // --------------------------------------------------
 
-        // 1️⃣ EXACT WEEKLY QUOTAS
-        foreach (var subject in subjects)
+
+        //        var repair = new TimeTableRepair();
+        //        repair.Repair(state, prepActivity);
+
+        //        // --------------------------------------------------
+        //        // 5. VALIDATE AGAIN
+        //        // --------------------------------------------------
+        //        var finalReport = new TimetableValidator().Analyze(
+        //    state,
+        //    subjects.ToDictionary(s => s.SubjectId),
+        //    adjacencyConstraints.ToDictionary(a => a.SubjectId)
+        //);
+        //        Console.WriteLine("\nFinal violations:");
+        //        foreach (var v in finalReport.InvariantViolations)
+        //            Console.WriteLine(" - " + v);
+
+        // --------------------------------------------------
+        // 6. PRINT FINAL TIMETABLE
+        // --------------------------------------------------
+        Console.WriteLine("\nFinal timetable:");
+        foreach (var s in state.Slots
+            .OrderBy(s => s.Day)
+            .ThenBy(s => s.StartTime))
         {
-            if (!placedSubjects.TryGetValue(subject.SubjectName, out var list))
-                throw new Exception($"❌ {subject.SubjectName} not scheduled");
-
-            if (list.Count != 5)
-                throw new Exception($"❌ {subject.SubjectName} has {list.Count} periods (expected 5)");
-        }
-
-        // 2️⃣ DAILY AFTERNOON ACTIVITY PRESENT
-        var afternoonSlots = result.Slots
-            .Where(s => s.Slot.StartTime >= TimeSpan.Parse("14:30"))
-            .ToList();
-
-        foreach (var day in Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek>()
-            .Where(d => d != DayOfWeek.Saturday && d != DayOfWeek.Sunday))
-        {
-            if (!afternoonSlots.Any(s => s.DayOfWeek == day.ToString() && s.ActivityName == "Daily Assembly"))
-                throw new Exception($"❌ Daily Assembly not scheduled on {day}");
-        }
-
-        Console.WriteLine("✅ PASSED: Weekly quotas, doubles, adjacency, time rules, daily activity.");
-    }
-
-
-    // =========================
-    // HELPERS
-    // =========================
-    private static List<TimeSlot> DefaultTimeSlots() => new()
-    {
-        new() { StartTime = TimeSpan.Parse("07:10"), EndTime = TimeSpan.Parse("07:50") },
-        new() { StartTime = TimeSpan.Parse("07:50"), EndTime = TimeSpan.Parse("08:30") },
-        new() { StartTime = TimeSpan.Parse("08:30"), EndTime = TimeSpan.Parse("09:10") },
-        new() { StartTime = TimeSpan.Parse("09:10"), EndTime = TimeSpan.Parse("09:50") },
-        new() { StartTime = TimeSpan.Parse("09:50"), EndTime = TimeSpan.Parse("10:30") },
-        new() { StartTime = TimeSpan.Parse("14:30"), EndTime = TimeSpan.Parse("16:30") },
-    };
-
-    private static void PrintTimetable(GenerationResult result)
-    {
-        foreach (var s in result.Slots
-            .OrderBy(s => s.DayOfWeek)
-            .ThenBy(s => s.Slot.StartTime))
-        {
-            var name = s.SubjectName ?? s.ActivityName ?? "Free";
-            Console.WriteLine($"[{s.DayOfWeek}] {s.Slot.StartTime:hh\\:mm}-{s.Slot.EndTime:hh\\:mm} : {name}");
+            Console.WriteLine(
+                $"[{s.Day}] {s.StartTime:hh\\:mm}-{s.EndTime:hh\\:mm} : {s.SubjectName} :{s.SubjectId}"
+            );
         }
     }
+
+   
 }

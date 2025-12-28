@@ -1,0 +1,139 @@
+﻿@page "/kitchen-staff"
+@using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.Management.Dialog
+@inherits AppBaseComponent
+@inject IDialogService DialogService
+<MudStack Spacing="4" Class="pa-6">
+
+    <!-- Page Header -->
+    <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <div>
+            <MudText Typo="Typo.h4" Class="fw-bold">
+                Kitchen & Service Staff
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Chefs, kitchen staff, and dining service personnel
+            </MudText>
+        </div>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenStaffAddDialog">
+            Add Staff
+        </MudButton>
+    </MudStack>
+    @if (KitchenStaff.Any())
+    {
+        <!-- Staff Grid -->
+        <MudGrid Spacing="3">
+
+            @* Staff Card *@
+            @foreach (var staff in KitchenStaff)
+            {
+                <MudItem xs="12" sm="6" lg="4">
+                    <MudPaper Elevation="1" Class="pa-5 rounded-xl d-flex gap-4">
+
+                        <!-- Icon -->
+                        <MudAvatar Size="Size.Medium" Color="Color.Warning" Variant="Variant.Filled">
+                            <MudIcon Icon="@Icons.Material.Filled.Restaurant" />
+                        </MudAvatar>
+
+                        <!-- Details -->
+                        <div class="flex-grow-1">
+                            <MudText Typo="Typo.h6" Class="fw-bold">
+                                @staff.StaffName
+                            </MudText>
+
+                            <MudText Typo="Typo.body2" Color="Color.Warning" Class="fw-medium mb-2">
+                                @staff.StaffType
+                            </MudText>
+
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Class="me-1" />
+                                    @staff.Email
+                                </MudText>
+
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="me-1" />
+                                    @staff.PhoneNumber
+                                </MudText>
+
+
+                            </MudStack>
+                        </div>
+
+                    </MudPaper>
+                </MudItem>
+
+            }
+
+        </MudGrid>
+
+    }
+    else
+    {
+        <!-- Empty State -->
+        <MudPaper Elevation="0"
+                  Class="pa-10 mt-4 rounded-xl text-center border-dashed"
+                  Style="border:2px dashed var(--mud-palette-divider)">
+
+            <MudIcon Icon="@Icons.Material.Filled.Restaurant"
+                     Size="Size.Large"
+                     Color="Color.Dark" />
+
+            <MudText Typo="Typo.h6" Class="mt-2">
+                No kitchen staff assigned
+            </MudText>
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Add chefs and service staff to manage dining operations
+            </MudText>
+
+        </MudPaper>
+    }
+</MudStack>
+
+@code {
+    protected List<Staff> KitchenStaff = new();
+    protected List<Gender> genders = new();
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        var s = await GetStaffAsync("KitchenStaff");
+        if (s != null)
+        {
+            KitchenStaff = s.ToList();
+        }
+        LoaderService.Hide();
+    }
+    protected async Task GetGenders()
+    {
+        var result = GenericService.GetService<Gender>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"genders"}", true);
+        genders = service.Data.ToList();
+
+    }
+    protected async Task OpenStaffAddDialog()
+    {
+        var parameters = new DialogParameters<CreateGenericStaff>
+    {
+        { x => x.roleName, "KitchenStaff" },
+        { x => x.genders, genders },
+    };
+
+        var dialog = await DialogService.ShowAsync<CreateGenericStaff>("Create New Kitchen Staff", parameters, new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true});
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is Staff newStaff)
+        {
+            Snackbar.Add($"User {newStaff.Email} created successfully!", Severity.Success);
+            KitchenStaff.Add(newStaff);
+            LoaderService.Hide();
+            StateHasChanged();
+
+        }
+    }
+
+
+}

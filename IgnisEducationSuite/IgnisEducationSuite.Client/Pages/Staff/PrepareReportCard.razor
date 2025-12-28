@@ -22,6 +22,10 @@
             </MudAlert>
 
             <MudGrid Spacing="3" Class="mt-2">
+                @if (AppState.UserRole == "Admin")
+                {
+                    //TO DO =======ADD OPTIONS FOR ADMIN TO EXTEND OR CLOSE MARKING TIME=======\\
+                }
                 <MudItem xs="12" md="6">
                     <MudAutocomplete T="string"
                                      Variant="Variant.Outlined"
@@ -90,16 +94,24 @@
     protected string AcademicLvlFilterValue = string.Empty;
     protected string SelectedClass = string.Empty;
     protected string searchString = string.Empty;
-
+    protected Staff Dean = new();
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         LoaderService.Show("Please wait, we are preparing your work environment");
-
+        if (AppState.UserRole == "Dean")
+        {
+            var s = await GetStaffAsync("Dean");
+            if (s != null)
+            {
+                Dean = s.Where(x => x.UserID == AppState.UserID).FirstOrDefault();
+            }
+        }
         var initTasks = new List<Task>
         {
+            GetGenders(),
             GetTeachers(),
             GetClasses(),
             GetScoreGrading(),
@@ -113,7 +125,14 @@
 
         LoaderService.Hide();
     }
+    protected async Task GetGenders()
+    {
+        var result = GenericService.GetService<Gender>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"genders"}", true);
+        var genders = service.Data.ToList();
 
+        Dean.DeanForGenderNavigation = genders.Where(x => x.GenderId == Dean.DeanForGender).FirstOrDefault();
+    }
     private void ApplyTeacherFiltering()
     {
         // If user is a teacher, show only their students
@@ -127,9 +146,20 @@
             students = students
                 .Where(s => s.ClassNames.Any(cn => teacherClassNames.Contains(cn)))
                 .ToList();
-        }
 
+
+        }
+        else if (AppState.UserRole == "Dean")
+        {
+            students = students.Where(x => x.Gender == Dean.DeanForGenderNavigation.GenderDescription).ToList();
+        }
+        else
+        {
+            students = students.ToList();
+
+        }
         filteredStudents = new List<StudentWithClassesDTO>(students);
+
     }
 
     private void PrepareFilterLists()
@@ -285,7 +315,7 @@
         }
         else
         {
-            classesToSend = classes;
+            classesToSend = classes.Where(x => x.AcademicLevel == student.AcademicLevel).ToList();
         }
         var reportCardDetails = await GetReportCardDetails(reportCardHeader.ReportCardID);
         // ----------------------------------------------

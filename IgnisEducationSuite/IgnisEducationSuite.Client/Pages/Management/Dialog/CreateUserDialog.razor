@@ -188,6 +188,7 @@
     IList<IBrowserFile> _files = new List<IBrowserFile>();
     protected List<Student> students = new();
     protected Student selectedStudent = new();
+    protected Clinic SelectedClinic = new();
     protected override async Task OnInitializedAsync()
     {
         LoaderService.Show("Please wait a moment...");
@@ -263,7 +264,7 @@
         }
     }
 
-    public static string GenerateOneTimePassword(int length = 16)
+    public static string GenerateOneTimePassword(int length = 8)
     {
         const string validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_-+=<>?";
         const string numbers = "1234567890";
@@ -331,7 +332,7 @@
                 Role = newUser.Role,
                 SchoolID = LoggedAdmin.SchoolID.Value,
                 UserID = studentID,
-                ProfilePic = newUser.profilePic,
+                ProfilePic = newUser.profilePic ?? Array.Empty<byte>(),
                 FirstName = newUser.FirstName,
                 LastName = newUser.LastName
             };
@@ -518,7 +519,31 @@
         await SendOneTimePasswordEmail(user, $"{saved.Data.FirstName} {saved.Data.LastName}", "N/A");
         MudDialog.Close(DialogResult.Ok("successful"));
     }
+    private async Task CreateClinicStaff(UniversalUser user, string recipientName)
+    {
+        ClinicStaff newStaff = new()
+        {
+            StaffId = Guid.NewGuid(),
+            ClinicId = SelectedClinic.ClinicId,
+            Contact = user.ContactNo,
+            FullName = $"{user.FirstName} {user.LastName}",
+            Role = user.Role
+        };
 
+        var service = GenericService.GetService<ClinicStaff>();
+        var saved = await service.PostAsync("api/Dynamic/PostEntity", "clinicstaff", newStaff);
+
+
+        if (!saved.IsSuccess)
+        {
+            Snackbar.Add("Error: Saving teacher failed", Severity.Error);
+            return;
+        }
+
+        await SendOneTimePasswordEmail(user, $"{saved.Data.FullName}", "N/A");
+        MudDialog.Close(DialogResult.Ok("successful"));
+
+    }
     private async Task<IEnumerable<CountryDTO>> SearchCountry(string value, CancellationToken token)
     {
         await Task.Delay(5, token);

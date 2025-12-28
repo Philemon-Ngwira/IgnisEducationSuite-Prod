@@ -34,40 +34,41 @@
             <MudItem xs="12" Class="mb-3">
                 <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.School">Classes</MudAlert>
                 <MudDivider Class="mb-3" />
+                @if (AppState.UserRole == "Teacher" || AppState.UserRole == "Admin")
+                {
+                    <MudDataGrid ReadOnly="@(!CanEditScores)" T="ReportCardDetail" Items="_visibleReportCardDetails"
+                                 EditMode="DataGridEditMode.Cell"
+                                 StartedEditingItem="@StartedEditingItem"
+                                 CanceledEditingItem="@CanceledEditingItem"
+                                 CommittedItemChanges="@CommittedItemChanges"
+                                 Bordered="true" Dense="true"
+                                 EditTrigger="@(_editTriggerRowClick ? DataGridEditTrigger.OnRowClick : DataGridEditTrigger.Manual)">
 
-                <MudDataGrid ReadOnly="@(!CanEditScores)" T="ReportCardDetail" Items="reportCardDetails"
-                             EditMode="DataGridEditMode.Cell"
-                             StartedEditingItem="@StartedEditingItem"
-                             CanceledEditingItem="@CanceledEditingItem"
-                             CommittedItemChanges="@CommittedItemChanges"
-                             Bordered="true" Dense="true"
-                             EditTrigger="@(_editTriggerRowClick ? DataGridEditTrigger.OnRowClick : DataGridEditTrigger.Manual)">
+                        <Columns>
+                            <PropertyColumn Property="x => x.Class.ClassName" Title="Class" Editable="false" />
+                            <!-- Score is editable -->
+                            <TemplateColumn Title="Score">
+                                <CellTemplate>
+                                    @if (CanEditScores && context.Item.CanBeEditied)
+                                    {
+                                        <MudTextField @bind-Value="context.Item.Score"
+                                                      Immediate="true"
+                                                      Margin="Margin.Dense"
+                                                      Variant="Variant.Outlined"
+                                                      Style="max-width:80px" />
+                                    }
+                                    else
+                                    {
+                                        @context.Item.Score
+                                    }
+                                </CellTemplate>
+                            </TemplateColumn>
 
-                    <Columns>
-                        <PropertyColumn Property="x => x.Class.ClassName" Title="Class" Editable="false" />
-                        <!-- Score is editable -->
-                        <TemplateColumn Title="Score">
-                            <CellTemplate>
-                                @if (CanEditScores && context.Item.CanBeEditied)
-                                {
-                                    <MudTextField @bind-Value="context.Item.Score"
-                                                  Immediate="true"
-                                                  Margin="Margin.Dense"
-                                                  Variant="Variant.Outlined"
-                                                  Style="max-width:80px" />
-                                }
-                                else
-                                {
-                                    @context.Item.Score
-                                }
-                            </CellTemplate>
-                        </TemplateColumn>
-
-                        <!-- Grade auto-fills, not editable -->
-                        <PropertyColumn Property="x => x.Grade" Title="Grading" Editable="false" />
-                    </Columns>
-                </MudDataGrid>
-
+                            <!-- Grade auto-fills, not editable -->
+                            <PropertyColumn Property="x => x.Grade" Title="Grading" Editable="false" />
+                        </Columns>
+                    </MudDataGrid>
+                }
             </MudItem>
 
             <MudItem xs="12" Class="mt-3">
@@ -136,62 +137,51 @@
     bool CanEditScores =>
     AppState.UserRole is "Teacher" or "Staff" or "Admin" &&
     newReportCard.ApprovalStatus == "DCB75F3C-FF7C-4472-AAEB-667DB7BC86A0"; // TeacherEntryOpen
+    private List<ReportCardDetail> _visibleReportCardDetails = new();
+    private bool IsTeacher => AppState.UserRole == "Teacher";
+    private bool IsAdmin => AppState.UserRole == "Admin";
 
     protected override void OnParametersSet()
     {
-        if (_dateRangeTerm == null)
-            _dateRangeTerm = new DateRange();
-
-        _dateRangeTerm.Start = newReportCard.TermStartDate;
-        _dateRangeTerm.End = newReportCard.TermEndDate;
-
-        // Filter classes based on role
-        List<Class> classesToUse;
-
-        if (AppState.UserRole == "Teacher")
+        _dateRangeTerm ??= new DateRange
         {
-            classesToUse = Classes
-                .Where(c =>
-                    c.Teacher != null &&
-                    c.Teacher.UserID == AppState.UserID &&
-                    student.ClassNames.Any(n =>
-                        string.Equals(n, c.ClassName, StringComparison.OrdinalIgnoreCase)
-                    )
-                )
-                .ToList();
-        }
-        else
+            Start = newReportCard.TermStartDate,
+            End = newReportCard.TermEndDate
+        };
+
+        // ADMIN / STAFF / DEAN / PRINCIPAL → SEE EVERYTHING
+        var allowedClasses = IsTeacher
+            ? Classes.Where(c =>
+                c.Teacher?.UserID == AppState.UserID &&
+                student.ClassNames.Any(n =>
+                    string.Equals(n, c.ClassName, StringComparison.OrdinalIgnoreCase)))
+                .ToList()
+            : Classes.ToList();
+
+        _visibleReportCardDetails = allowedClasses.Select(cls =>
         {
-            classesToUse = Classes.ToList();
-        }
-        var containedClasses = new List<Class>();
-        foreach (var item in classesToUse)
-        {
-            if (reportCardDetails.Any(r => r.ClassID == item.ClassID))
+            var detail = reportCardDetails.FirstOrDefault(r => r.ClassID == cls.ClassID);
+
+            if (detail != null)
             {
-                containedClasses.Add(item);
-                continue;
+                detail.Class = cls;
+                detail.CanBeEditied = IsTeacher || IsAdmin;
+                return detail;
             }
-            reportCardDetails.Add(new ReportCardDetail
+
+            return new ReportCardDetail
             {
                 ReportCardDetailID = Guid.NewGuid(),
                 ReportCardID = newReportCard.ReportCardID,
-                ClassID = item.ClassID,
+                ClassID = cls.ClassID,
+                Class = cls,
                 Score = 0,
-                Class = item,
-
-            });
-
-        }
-        foreach (var CA in containedClasses)
-        {
-            var rd = reportCardDetails.Where(x => x.ClassID == CA.ClassID).First();
-            reportCardDetails.Remove(rd);
-            rd.Class = CA;
-            rd.CanBeEditied = false;
-            reportCardDetails.Add(rd);
-        }
+                CanBeEditied = IsTeacher || IsAdmin
+            };
+        }).ToList();
     }
+
+
 
     private void CloseDialog() => MudDialog.Cancel();
 
@@ -202,7 +192,7 @@
         var service = _genericService.GetService<ReportCard>();
 
         // Calculate final GPA
-        var subjectGPAs = reportCardDetails.Select(x => (double)x.GPA.GetValueOrDefault()).ToList();
+        var subjectGPAs = _visibleReportCardDetails.Select(x => (double)x.GPA.GetValueOrDefault()).ToList();
         newReportCard.GPA = (decimal?)CalculateFinalGPA(subjectGPAs);
 
         // Save report card header
@@ -210,11 +200,11 @@
         if (savedHeader.IsSuccess)
         {
             // Remove navigation properties before saving details
-            foreach (var item in reportCardDetails)
+            foreach (var item in _visibleReportCardDetails)
                 item.Class = null;
 
             var serviceDetails = _genericService.GetService<List<ReportCardDetail>>();
-            var result = await serviceDetails.PostAsync("api/Dynamic/PostEntities", "reportcarddetail", reportCardDetails);
+            var result = await serviceDetails.PostAsync("api/Dynamic/PostEntities", "reportcarddetail", _visibleReportCardDetails);
 
             if (result.IsSuccess)
                 MudDialog.Close(DialogResult.Ok(true));

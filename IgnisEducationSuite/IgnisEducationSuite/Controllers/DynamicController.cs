@@ -623,6 +623,9 @@ namespace IgnisEducationSuite.Controllers
                 "menuitem" => GetRepository<DiningMenu>(),
                 "specialdiet" => GetRepository<DiningSpecialDiet>(),
                 "academiclevel" => GetRepository<AcademicLevel>(),
+                "meds" => GetRepository<ClinicMedication>(),
+                "clinic" => GetRepository<Clinic>(),
+                "staff" => GetRepository<Staff>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -682,6 +685,9 @@ namespace IgnisEducationSuite.Controllers
                 "menuitem" => JsonSerializer.Deserialize<DiningMenu>(obj.ToString()),
                 "specialdiet" => JsonSerializer.Deserialize<DiningSpecialDiet>(obj.ToString()),
                 "academiclevel" => JsonSerializer.Deserialize<AcademicLevel>(obj.ToString()),
+                "meds" => JsonSerializer.Deserialize<ClinicMedication>(obj.ToString()),
+                "clinic" => JsonSerializer.Deserialize<Clinic>(obj.ToString()),
+                "staff" => JsonSerializer.Deserialize<Staff>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -692,6 +698,12 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Non Generic New Modules
+        [HttpGet("GetStaffBySchoolAndRole/{SchoolID}/{RoleName}")]
+        public async Task<IActionResult> GetStaff(Guid SchoolID, string RoleName)
+        {
+            var result = await _repository.GetStaffBySchoolAndRole(SchoolID, RoleName);
+            return Ok(result);
+        }
         [HttpGet("GetLicenseStatus/{companyId}")]
         public async Task<IActionResult> GetLicenseByCompany(Guid companyId)
         {
@@ -838,8 +850,35 @@ namespace IgnisEducationSuite.Controllers
             var result = await _repository.GetSchoolActivities(Guid.Parse(SchoolID));
             return Ok(result);
         }
+
+
+
         #endregion
 
+        #region Clinic End Points
+        [HttpGet("GetSchoolClinics/{SchoolID}")]
+        public async Task<IActionResult> GetClinicsBySchool(string SchoolID)
+        {
+            var res = await _repository.GetSchoolClinics(Guid.Parse(SchoolID));
+            return Ok(res);
+        }
+
+        [HttpGet("GetSchoolMedicationStocks/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolMedications(string SchoolID)
+        {
+            var result = await _repository.GetMedicationsBySchoolAsync(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+        #endregion
+
+        #region Transport Management
+        [HttpGet("GetTransportStaffBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetBusStaffAsync(Guid SchoolID)
+        {
+            var result = await _repository.GetBusStaffAsync(SchoolID);
+            return Ok(result);
+        }
+        #endregion
 
         #endregion
     }

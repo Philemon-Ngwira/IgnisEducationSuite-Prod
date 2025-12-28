@@ -6,20 +6,67 @@
 <MudCard Class="mb-4">
     <MudCardHeader>
         <CardHeaderContent>
-            <MudText Typo="Typo.h5" Align="Align.Left">Clinic Inventory Management</MudText>
+            <MudText Typo="Typo.h5">Clinic Inventory</MudText>
+            <br />
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">
+                Manage medicines and medical supplies for school clinics
+            </MudText>
         </CardHeaderContent>
+
     </MudCardHeader>
     <MudCardContent>
         <MudPaper Class="p-4 mb-4" Elevation="1">
-            <MudAlert Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true" Class="mb-3">
-                Clinic Inventory Management
-            </MudAlert>
 
             <MudTabs Elevation="4" Rounded="true" Centered="true" Color="@Color.Primary">
+                <!-- Manage Existing Stock Tab -->
+                <MudTabPanel Icon="@MaterialDesignIcons.Normal.HospitalBuilding" Text="Manage Stock">
+                    <MudTable Hover="true" Breakpoint="Breakpoint.Sm" Height="500px" FixedHeader="true"
+                              Items="@availableMeds"
+                              GroupBy="@_groupDefinition"
+                              GroupHeaderStyle="background-color:var(--mud-palette-background-gray)"
+                              GroupFooterClass="mb-4"
+                              Dense="true"
+                              @ref="_tableRef" Filter="new Func<ClinicMedication, bool>(FilterMeds)" @bind-SelectedItem="selectedItem">
+                        <ColGroup>
+                            <col style="width: 60px;" />
+                            <col />
+                            <col />
+                            <col />
+                            <col />
+                            <col />
+                        </ColGroup>
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Periodic Elements</MudText>
+                            <MudSpacer />
+                            <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh>Name</MudTh>
+                            <MudTh>Stock</MudTh>
+                            <MudTh>Unit</MudTh>
+                            <MudTh>Expiry Date</MudTh>
+                            <MudTh>Action</MudTh>
+                        </HeaderContent>
+                        <GroupHeaderTemplate>
+                            <MudTh Class="mud-table-cell-custom-group" colspan="5">@($"{context.GroupName}: {context.Key}") </MudTh>
+                        </GroupHeaderTemplate>
+                        <RowTemplate>
+                            <MudTd DataLabel="Name">@context.Name</MudTd>
+                            <MudTd DataLabel="Stock">@context.Stock</MudTd>
+                            <MudTd DataLabel="Unit">@context.Unit</MudTd>
+                            <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
+                            <MudTd DataLabel="Action">
+                                <MudIconButton Icon="@Icons.Material.Rounded.Edit"></MudIconButton>
+                            </MudTd>
+                        </RowTemplate>
+                        <GroupFooterTemplate>
+                            <MudTh Class="mud-table-cell-custom-group mud-table-cell-custom-group-footer" colspan="5">Total Stock: @context.Items.Sum(x => x.Stock)</MudTh>
+                        </GroupFooterTemplate>
+                    </MudTable>
+                </MudTabPanel>
 
-                <MudTabPanel Icon="@MaterialDesignIcons.Normal.MedicalBag" Text="Add New Stock In Bulk">
-
-                    <!-- Section: Bulk Upload Users -->
+                <!-- Bulk Upload Tab -->
+                <MudTabPanel Icon="@MaterialDesignIcons.Normal.MedicalBag" Text="Bulk Upload">
                     <MudCard Class="mb-4 p-4" Elevation="4">
                         <MudCardHeader>
                             <MudText Typo="Typo.h5" Align="Align.Center"><b>Bulk Upload Inventory</b></MudText>
@@ -27,8 +74,8 @@
 
                         <MudDivider Class="my-2" />
                         <MudPaper>
-                            <MudStepper @bind-ActiveIndex="_index" CompletedStepColor="Color.Success" CurrentStepColor="Color.Primary" NavClass="border-b mud-border-lines-default" StepClass="pt-4" ShowResetButton>
-                                <TitleTemplate>@*This empty template prevents rendering the title*@</TitleTemplate>
+                            <MudStepper @bind-ActiveIndex="_index" @ref="stepper" CompletedStepColor="Color.Success" CurrentStepColor="Color.Primary" NavClass="border-b mud-border-lines-default" StepClass="pt-4" ShowResetButton>
+                                <TitleTemplate>@*Empty template to prevent default title*@</TitleTemplate>
                                 <ConnectorTemplate Context="step">
                                     <div class="mud-stepper-nav-connector">
                                         @{
@@ -53,24 +100,22 @@
                                 </LabelTemplate>
                                 <ChildContent>
                                     <MudStep Title="Download Template">
-                                        Cheklist Step 1: Download Inventory Template
+                                        Download the Excel template and fill in your clinic inventory details.
                                         <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-
                                             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DownloadTemplate">
                                                 Download Inventory Template
                                             </MudButton>
-
                                         </MudStack>
                                     </MudStep>
                                     <MudStep Title="Upload Inventory" Skippable="false">
-                                        Checklist Step 2: Upload Bulk Inventory
+                                        Upload your completed inventory template.
                                         <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
                                             <MudFileUpload T="IBrowserFile" FilesChanged="UploadTemplateFile">
                                                 <ActivatorContent>
                                                     <MudButton Variant="Variant.Filled"
                                                                Color="Color.Primary"
                                                                StartIcon="@Icons.Material.Filled.UploadFile">
-                                                        Bulk upload Inventories
+                                                        Bulk Upload Inventory
                                                     </MudButton>
                                                 </ActivatorContent>
                                             </MudFileUpload>
@@ -78,18 +123,78 @@
                                                 Confirm Upload
                                             </MudButton>
                                         </MudStack>
+
+                                        <MudTable T="ClinicMedication" Items="@uploadedMeds" Hover="true" Breakpoint="Breakpoint.Sm"
+                                                  RowClass="cursor-pointer">
+                                            <HeaderContent>
+                                                <MudTh>Name</MudTh>
+                                                <MudTh>Stock</MudTh>
+                                                <MudTh>Unit</MudTh>
+                                                <MudTh>Expiry Date</MudTh>
+                                                <MudTh>Action</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd DataLabel="Name">@context.Name</MudTd>
+                                                <MudTd DataLabel="Stock">@context.Stock</MudTd>
+                                                <MudTd DataLabel="Unit">@context.Unit</MudTd>
+                                                <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
+                                                <MudTd DataLabel="Action">
+                                                    <MudIconButton Icon="@Icons.Material.Rounded.Delete"
+                                                                   OnClick="() => RemoveItem(context)"></MudIconButton>
+                                                </MudTd>
+                                            </RowTemplate>
+                                            <PagerContent>
+                                                <MudTablePager />
+                                            </PagerContent>
+                                            <NoRecordsContent>
+                                                <MudText Color="Color.Secondary">No inventory uploaded yet.</MudText>
+                                            </NoRecordsContent>
+                                        </MudTable>
                                     </MudStep>
                                     <MudStep Title="Review Data">
-                                        Checklist Step 3: Review and Make sure everything is correct
-
+                                        Review and verify all uploaded items.
+                                        <MudSelect Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense"
+                                                   @bind-Value="SelectedClinic"
+                                                   ToStringFunc="ClinicStringFunc"
+                                                   Label="Select Clinic">
+                                            @foreach (var item in SchoolClinics)
+                                            {
+                                                <MudSelectItem Value="item">@item.Name</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                        <MudTable T="ClinicMedication" Items="@uploadedMeds" Hover="true" Breakpoint="Breakpoint.Sm"
+                                                  RowClass="cursor-pointer">
+                                            <HeaderContent>
+                                                <MudTh>Name</MudTh>
+                                                <MudTh>Stock</MudTh>
+                                                <MudTh>Unit</MudTh>
+                                                <MudTh>Expiry Date</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd DataLabel="Name">@context.Name</MudTd>
+                                                <MudTd DataLabel="Stock">@context.Stock</MudTd>
+                                                <MudTd DataLabel="Unit">@context.Unit</MudTd>
+                                                <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
+                                            </RowTemplate>
+                                            <PagerContent>
+                                                <MudTablePager />
+                                            </PagerContent>
+                                        </MudTable>
                                     </MudStep>
-                                    <MudStep Title="Complete Process" @bind-Completed="_completed">Checklist Final Step: Complete Inventory Upload Process</MudStep>
+                                    <MudStep Title="Complete Process" @bind-Completed="_completed">
+                                        All inventory has been uploaded. Confirm to save.
+
+                                        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Primary" OnClick="() => SaveInventory(1)">
+                                            Save Inventory
+                                        </MudButton>
+                                    </MudStep>
                                 </ChildContent>
                                 <CompletedContent>
                                     <MudStack Row Class="ma-3">
                                         <MudIcon Icon="@Icons.Material.Filled.Done" Color="Color.Success" />
                                         <MudText>
-                                            Process Completed! All Invetory has been added to schools Inventory
+                                            Process Completed! All inventory has been added to the school's inventory.
                                         </MudText>
                                     </MudStack>
                                 </CompletedContent>
@@ -105,16 +210,17 @@
                                         }
                                         <MudIconButton OnClick="@(() => stepper.NextStepAsync())" Icon="@Icons.Material.Filled.ArrowForward" Color="Color.Primary" />
                                     }
+                                    else
+                                    {
+                                    }
                                 </ActionContent>
                             </MudStepper>
                         </MudPaper>
-
-
                     </MudCard>
-
-
                 </MudTabPanel>
-                <MudTabPanel Icon="@MaterialDesignIcons.Normal.Medication" Text="Add New Stock Individually">
+
+                <!-- Add Individual Item Tab -->
+                <MudTabPanel Icon="@MaterialDesignIcons.Normal.Medication" Text="Add Item">
                     <MudGrid>
                         <MudItem xs="12">
                             <MudAlert Variant="Variant.Filled" Severity="Severity.Normal" NoIcon="true" Class="mb-3">
@@ -127,110 +233,219 @@
                                           Label="Medication Name"
                                           Placeholder="Enter Medication Name"
                                           Margin="Margin.Dense"
-                                          Variant="Variant.Outlined">
-                            </MudTextField>
+                                          Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField @bind-Value="newIndividualItem.Stock"
-                                          Label="Stock"
-                                          Placeholder="Enter Stock"
-                                          Margin="Margin.Dense"
-                                          Variant="Variant.Outlined">
-                            </MudTextField>
+                            <MudNumericField T="int"
+                                             @bind-Value="newIndividualItem.Stock"
+                                             Label="Stock Quantity"
+                                             Placeholder="Enter Stock Quantity"
+                                             Margin="Margin.Dense"
+                                             Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField T="string"
                                           @bind-Value="newIndividualItem.Unit"
                                           Label="Unit"
-                                          Placeholder="Enter Unit Of Measurement i.e mg"
+                                          Placeholder="Enter Unit (e.g., mg)"
                                           Margin="Margin.Dense"
-                                          Variant="Variant.Outlined">
-                            </MudTextField>
+                                          Variant="Variant.Outlined" />
                         </MudItem>
-                        @*  <MudItem xs="12" md="6">
+                        <MudItem xs="12" md="6">
                             <MudTextField T="string"
-                                          @bind-Value="newIndividualItem.batchNumber"
+                                          @bind-Value="newIndividualItem.BatchNumber"
                                           Label="Batch Number"
-                                          Placeholder="Enter Bacth Number"
+                                          Placeholder="Enter Batch Number"
                                           Margin="Margin.Dense"
-                                          Variant="Variant.Outlined">
-                            </MudTextField>
-                        </MudItem> *@
-                        @* <MudItem xs="12" md="6">
-                            <MudDatePicker @bind-Date="newIndividualItem.Expiry Date"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudDatePicker @bind-Date="newIndividualItem.ExpiryDate"
                                            Variant="Variant.Outlined"
-                                           Margin="Margin.Dense">
-                            </MudDatePicker>
-                        </MudItem> *@
-
+                                           Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudSelect Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       @bind-Value="SelectedClinic"
+                                       ToStringFunc="ClinicStringFunc"
+                                       Label="Select Clinic">
+                                @foreach (var item in SchoolClinics)
+                                {
+                                    <MudSelectItem Value="item">@item.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
                         <MudItem xs="12">
                             <MudButton Variant="Variant.Filled"
-                                       StartIcon="@MaterialDesignIcons.Outline.ContentSave">
+                                       StartIcon="@MaterialDesignIcons.Outline.ContentSave"
+                                       OnClick="@(() => SaveInventory(2))">
                                 Save New Medical Item
                             </MudButton>
                         </MudItem>
                     </MudGrid>
                 </MudTabPanel>
-                <MudTabPanel Icon="@MaterialDesignIcons.Normal.HospitalBuilding" Text="Manage Existing Stock">
 
-                </MudTabPanel>
+
             </MudTabs>
         </MudPaper>
     </MudCardContent>
 </MudCard>
 
-
 @code {
-
     IList<IBrowserFile> _files = new List<IBrowserFile>();
     bool selectedFileReady = false;
     private int _index;
     private bool _completed;
 
     protected List<ClinicMedication> uploadedMeds = new();
+    protected List<ClinicMedication> ReadyForSaving = new();
+    protected List<ClinicMedication> availableMeds = new();
     protected List<string> uploadErrors = new();
     protected ClinicMedication newIndividualItem = new();
+    protected Clinic SelectedClinic;
+    protected List<Clinic> SchoolClinics = new();
+    protected Func<Clinic, string> ClinicStringFunc = c => c?.Name;
+    private MudStepper stepper;
+    private string searchString = string.Empty;
+    private MudTable<ClinicMedication> _tableRef;
+    private ClinicMedication selectedItem = new();
+    private TableGroupDefinition<ClinicMedication> _groupDefinition = new()
+    {
+        GroupName = "Clinic",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = false,
+        Selector = (e) => e.ClinicName
+    };
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        try
+        {
+            var tasks = new List<Task>()
+            {
+                GetClinics(),
+                GetSchoolMeds(),
+
+            };
+            await Task.WhenAll(tasks);
+            foreach (var item in availableMeds)
+            {
+                item.ClinicName = SchoolClinics.Where(x => x.ClinicId == item.ClinicID).Select(n => n.Name).FirstOrDefault();
+            }
+        }
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+            Snackbar.Add(_, Severity.Error);
+            throw;
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+
+    }
     private async Task DownloadTemplate()
     {
-
         LoaderService.Show("Preparing download...");
         var path = "api/Templates/DownloadClinicInventoryTemplate";
         var fileName = "MedicalInventory_Upload_Template.xlsx";
 
         var response = await HttpClient.GetAsync(path);
-
         if (response.IsSuccessStatusCode)
         {
-            // Read the file content as a byte array
             var fileBytes = await response.Content.ReadAsByteArrayAsync();
-
-            // Get file name from response header if present, fallback to default
-            if (response.Content.Headers.ContentDisposition != null)
-            {
-                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
-            }
-
-            // Use JSInterop to trigger the browser download
             await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, fileBytes);
-        }
-        else
-        {
-            // Handle error (optional)
-            Console.WriteLine("Failed to download template: " + response.StatusCode);
         }
         LoaderService.Hide();
     }
+    protected async Task GetClinics()
+    {
+        var service = GenericService.GetService<Clinic>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolClinics/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            SchoolClinics = result.Data.ToList();
+        }
+    }
+    protected async Task GetSchoolMeds()
+    {
+        var service = GenericService.GetService<ClinicMedication>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolMedicationStocks/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            availableMeds = result.Data.ToList();
+
+        }
+    }
+    private async Task SaveInventory(int type)
+    {
+        LoaderService.Show("Please wait...");
+        if (SelectedClinic == null)
+        {
+            LoaderService.Hide();
+            Snackbar.Add("Please select a clinic", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            switch (type)
+            {
+                case 1: // Bulk
+                    foreach (var item in ReadyForSaving)
+                        item.ClinicID = SelectedClinic.ClinicId;
+                    break;
+                case 2: // Single
+                    ReadyForSaving.Clear();
+                    newIndividualItem.ClinicID = SelectedClinic.ClinicId;
+                    ReadyForSaving.Add(newIndividualItem);
+                    break;
+            }
+
+            var service = GenericService.GetService<List<ClinicMedication>>();
+            var result = await service.PostAsync("api/Dynamic/PostEntities", "meds", ReadyForSaving);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Inventory successfully added", Severity.Success);
+                uploadedMeds.Clear();
+                uploadErrors.Clear();
+                ReadyForSaving.Clear();
+                newIndividualItem = new();
+                SelectedClinic = new();
+                _index = 0;
+                StateHasChanged();
+            }
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+    }
+
+    private void RemoveItem(ClinicMedication item)
+    {
+        uploadedMeds.Remove(item);
+        _index += 1;
+        StateHasChanged();
+    }
+
     private async Task ConfirmUpload()
     {
-
+        ReadyForSaving = uploadedMeds.ToList();
+        // Move to next step
+        if (stepper != null)
+        {
+            await stepper.NextStepAsync();
+        }
     }
 
     private async Task UploadTemplateFile(IBrowserFile file)
     {
         if (file == null || file.Size == 0) return;
-
-        LoaderService.Show("Validating file, please wait...");
-
+        LoaderService.Show("Validating file...");
         try
         {
             using var content = new MultipartFormDataContent();
@@ -238,38 +453,38 @@
             var fileContent = new StreamContent(stream);
             fileContent.Headers.ContentType =
                 new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
-
             content.Add(fileContent, "file", file.Name);
 
             var response = await HttpClient.PostAsync("api/upload/uploadMedicine", content);
-
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<UploadPreviewResult>();
-
                 if (result != null)
                 {
                     uploadedMeds = result.Medications;
-                    uploadErrors = result.Errors
-                        .Select(e => $"Row {e.RowIndex}: {e.Message}")
-                        .ToList();
-
+                    uploadErrors = result.Errors.Select(e => $"Row {e.RowIndex}: {e.Message}").ToList();
                     selectedFileReady = true;
                 }
             }
-            else
-            {
-                uploadErrors.Add("Failed to upload Template file.");
-            }
-        }
-        catch (Exception ex)
-        {
-            uploadErrors.Add($"Error uploading Template file: {ex.Message}");
+            else uploadErrors.Add("Failed to upload template file.");
         }
         finally
         {
             LoaderService.Hide();
             StateHasChanged();
         }
+    }
+
+    private bool FilterMeds(ClinicMedication element) => FilterFunc(element, searchString);
+
+    private bool FilterFunc(ClinicMedication element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if ($"{element.Stock} {element.Unit} ".Contains(searchString))
+            return true;
+        return false;
     }
 }

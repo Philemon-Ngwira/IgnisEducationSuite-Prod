@@ -1,0 +1,105 @@
+﻿@page "/clinic-staff"
+@using MudBlazor
+
+<MudStack Spacing="4" Class="pa-6">
+
+    <!-- Page Header -->
+    <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <div>
+            <MudText Typo="Typo.h4" Class="fw-bold">
+                Clinic Staff Directory
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Nurses, doctors, and counseling personnel
+            </MudText>
+        </div>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.PersonAdd">
+            Add Medical Staff
+        </MudButton>
+    </MudStack>
+
+    <!-- Staff Grid -->
+    <MudGrid Spacing="3">
+
+        <!-- Staff Card -->
+        <MudItem xs="12" sm="6" lg="4">
+            <MudPaper Elevation="1" Class="pa-5 rounded-xl d-flex gap-4">
+
+                <!-- Avatar -->
+                <MudAvatar Size="Size.Medium"
+                           Variant="Variant.Filled"
+                           Color="Color.Success">
+                    <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
+                </MudAvatar>
+
+                <!-- Details -->
+                <div class="flex-grow-1">
+                    <MudText Typo="Typo.h6" Class="fw-bold">
+                        Nurse Evelyn Carter
+                    </MudText>
+
+                    <MudText Typo="Typo.body2"
+                             Color="Color.Success"
+                             Class="fw-medium mb-2">
+                        School Nurse
+                    </MudText>
+
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.Email"
+                                     Size="Size.Small"
+                                     Class="me-1" />
+                            e.carter@school.edu
+                        </MudText>
+
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.Phone"
+                                     Size="Size.Small"
+                                     Class="me-1" />
+                            +1 555-231-8890
+                        </MudText>
+
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.Work"
+                                     Size="Size.Small"
+                                     Class="me-1" />
+                            Shift: Day
+                        </MudText>
+                    </MudStack>
+                </div>
+
+            </MudPaper>
+        </MudItem>
+
+        <!-- Duplicate cards as needed -->
+
+    </MudGrid>
+
+    <!-- Empty State -->
+    <MudPaper Elevation="0"
+              Class="pa-10 mt-4 rounded-xl text-center border-dashed"
+              Style="border:2px dashed var(--mud-palette-divider)">
+
+        <MudIcon Icon="@Icons.Material.Filled.MedicalServices"
+                 Size="Size.Large"
+                 Color="Color.Dark" />
+
+        <MudText Typo="Typo.h6" Class="mt-2">
+            No clinic staff assigned
+        </MudText>
+
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Add nurses, doctors, or counselors to manage clinic operations
+        </MudText>
+
+    </MudPaper>
+
+</MudStack>
+
+
+@code {
+
+}

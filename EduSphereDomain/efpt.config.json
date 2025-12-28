@@ -151,6 +151,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[Staff]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[StudentAssignmentAnswers]",
          "ObjectType": 0
       },
@@ -224,6 +228,10 @@
       },
       {
          "Name": "[SchoolOps].[BusRoutes]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[BusStaff]",
          "ObjectType": 0
       },
       {
@@ -600,6 +608,14 @@
       },
       {
          "Name": "[dbo].[UpdateEndTermReportCardStatus]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[usp_GetStaffBySchoolAndRole]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[GetClinicMedicationsBySchool]",
          "ObjectType": 1
       }
    ],

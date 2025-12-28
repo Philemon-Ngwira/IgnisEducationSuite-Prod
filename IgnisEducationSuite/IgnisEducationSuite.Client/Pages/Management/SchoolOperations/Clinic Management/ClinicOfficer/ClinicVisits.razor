@@ -1,0 +1,201 @@
+﻿@page "/ClinicVisits"
+@using EDUSphereSharedProject.Models
+@using MudBlazor
+@inherits AppBaseComponent
+<MudGrid Spacing="2" Class="h-100">
+
+    <!-- ================= LEFT SIDEBAR ================= -->
+    <MudItem xs="12" lg="4">
+        <MudPaper Elevation="1" Class="h-100">
+
+            <!-- 🔒 FIXED SEARCH HEADER -->
+            <div class="pa-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">
+                    Find Student
+                </MudText>
+
+                <MudTextField T="string"
+                              Margin="Margin.Dense"
+                              Placeholder="Name or Student Number"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" />
+
+                <MudSelect T="string" Dense="true"
+                           Margin="Margin.Dense"
+                           Placeholder="Grade / Level"
+                           Class="mt-2"
+                           @bind-Value="SelectedLevel">
+                    @foreach (var level in availableLevels)
+                    {
+                        <MudSelectItem Value="level">@level</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+
+            <MudDivider />
+
+            <!-- ✅ SCROLL AREA STARTS HERE -->
+            <MudPaper Square Elevation="0" Class="flex-grow-1 overflow-y-auto">
+
+                <!-- In Clinic -->
+                <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Filled.MedicalServices" Class="px-3 pt-2 text-primary">
+                    In Clinic Now
+                </MudAlert>
+
+                <MudList T="string" Dense="true">
+                    <MudListItem Dense="true">
+                        <MudAvatar Size="Size.Small" Color="Color.Error">JD</MudAvatar>
+                        <MudText Class="ml-2">John Doe</MudText>
+                        <MudSpacer />
+                        <MudChip Size="Size.Small" Color="Color.Error">Active</MudChip>
+                    </MudListItem>
+                </MudList>
+
+                <MudDivider Class="my-1" />
+                @if (!string.IsNullOrEmpty(SelectedLevel) && SelectedLevel != "NONE")
+                {
+                    <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.People" Class="px-3 pt-2 text-primary">
+                        Directory Results
+                    </MudAlert>
+                    @if (SchoolStudents.Any())
+                    {
+                        <MudList T="string" Dense="true">
+                            @foreach (var item in SchoolStudents.Where(x => x.LevelName == SelectedLevel))
+                            {
+
+                                <MudListItem OnClick="() => ViewStudentDetail(item)" Dense=true>
+
+                                    <MudAvatar Size="Size.Small">
+                                        @if (item.ProfilePic != null)
+                                        {
+                                            <MudImage Class="profile-pic" Width="250"
+                                                      Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.ProfilePic)}")" />
+                                        }
+                                        else
+                                        {
+                                            @item.FirstName.Substring(0, 1)
+                                            @item.LastName.Substring(0, 1)
+                                        }
+                                    </MudAvatar>
+                                    <MudText Class="ml-2">@($"{item.FirstName} {item.LastName}")</MudText>
+                                    <MudSpacer />
+                                    <MudText Typo="Typo.caption">@item.LevelName</MudText>
+                                </MudListItem>
+
+                            }
+                        </MudList>
+                    }
+
+
+                }
+                <!-- Directory -->
+
+            </MudPaper>
+        </MudPaper>
+    </MudItem>
+
+
+
+    <!-- ================= RIGHT CONTENT ================= -->
+    <MudItem xs="12" lg="8">
+        <MudPaper Elevation="1" Class="h-100 pa-4">
+
+            <!-- Empty State -->
+            @* Replace with condition *@
+            @if (selectedStudent == null)
+            {
+                <MudStack AlignItems="AlignItems.Center" Class="h-100">
+                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
+                    <MudText Typo="Typo.h6">Select a Student</MudText>
+                    <MudText Typo="Typo.caption">Search on the left to begin</MudText>
+                </MudStack>
+            }
+
+            else
+            {
+                <!-- ================= STUDENT DETAILS ================= -->
+                <MudStack Spacing="3">
+
+                    <MudStack Row=true AlignItems="AlignItems.Baseline">
+                        <MudStack>
+                            <MudText Typo="Typo.h5">@($"{selectedStudent?.FirstName} {selectedStudent?.LastName}")</MudText>
+                            <MudText Typo="Typo.caption">
+                                @selectedStudent?.LevelName • @selectedStudent?.Gender • Student No: @selectedStudent?.StudentNumber
+                            </MudText>
+                        </MudStack>
+                        <MudSpacer />
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   Size="Size.Large"
+                                   StartIcon="@Icons.Material.Filled.Add">
+                            Log Visit
+                        </MudButton>
+                    </MudStack>
+
+                    <MudDivider />
+                    @*
+                <!-- Medical History -->
+                <MudText Typo="Typo.h6">Medical History</MudText>
+
+                <MudPaper Outlined Class="pa-3">
+                    <MudStack Direction="Row" JustifyContent="SpaceBetween">
+                        <MudText Typo="Typo.subtitle1">09:30 AM → 10:10 AM</MudText>
+                        <MudChip Color="Color.Success">Active</MudChip>
+                    </MudStack>
+
+                    <MudText><b>Symptoms:</b> Headache & Fever</MudText>
+                    <MudText><b>Diagnosis:</b> Mild Fever</MudText>
+                    <MudText><b>Treatment:</b> Paracetamol administered</MudText>
+
+                    <MudChip Color="Color.Secondary" Class="mt-2">
+                        Sick Leave: 1 Day
+                    </MudChip>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudText Typo="Typo.caption"><b>Medications Used</b></MudText>
+                    <MudChip Color="Color.Info" Size="Size.Small">Paracetamol x1</MudChip>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error">
+                        Discharge Student
+                    </MudButton>
+                </MudPaper>
+                 *@
+                </MudStack>
+            }
+
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+@code {
+    protected List<string> availableLevels = new();
+    protected List<Student> SchoolStudents = new();
+    protected List<Student> FilteredSchoolStudents = new();
+    protected string SelectedLevel = string.Empty;
+    protected Student selectedStudent;
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        await GetStudent();
+        LoaderService.Hide();
+    }
+
+    protected async Task GetStudent()
+    {
+        var result = GenericService.GetService<Student>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetStudentsBySchoolID/{Guid.Parse(AppState.SchoolID)}", true);
+        SchoolStudents = service.Data.ToList();
+        availableLevels = SchoolStudents.Select(x => x.LevelName).ToList();
+        availableLevels.Add("NONE");
+
+    }
+    private void ViewStudentDetail(Student student)
+    {
+        selectedStudent = student;
+    }
+}

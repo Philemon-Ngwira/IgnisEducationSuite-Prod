@@ -37,6 +37,8 @@ public partial class School
 
     public virtual ICollection<Parent> Parents { get; set; } = new List<Parent>();
 
+    public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
+
     public virtual ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
 
     public virtual ICollection<TermSetting> TermSettings { get; set; } = new List<TermSetting>();
