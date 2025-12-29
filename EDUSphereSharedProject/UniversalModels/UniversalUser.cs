@@ -23,6 +23,8 @@ namespace EDUSphereSharedProject.UniversalModels
         public string Role { get; set; }
         public string ContactNo { get; set; }
         public string GradeSection { get; set; }
+
+        public string EmployeeID { get; set; }
         public DateTime? DateEngaged { get; set; }
         public byte[] profilePic { get; set; }
     }

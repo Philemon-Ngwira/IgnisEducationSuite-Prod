@@ -18,5 +18,7 @@ namespace EDUSphereSharedProject.UniversalModels.TimeTabling
         public List<TimeTableActivity> Activities { get; set; } = new();
         public List<SubjectStructureConstraints> structureConstraints { get; set; } = new();
 
+        public List<Class> classes { get; set; } = new();
+
     }
 }

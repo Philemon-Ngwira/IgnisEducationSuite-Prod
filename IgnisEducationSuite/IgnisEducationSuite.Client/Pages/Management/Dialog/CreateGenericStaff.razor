@@ -12,6 +12,8 @@
             <MudItem xs="12" Class="mb-2">
                 <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" NoIcon="true">User Account Details</MudAlert>
             </MudItem>
+
+
             @if (roleName == "Dean")
             {
                 <MudItem xs="12">
@@ -37,7 +39,10 @@
             <MudItem xs="12" md="6">
                 <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.ContactNo" Label="Phone Number" />
             </MudItem>
-            @if (roleName != "Dean")
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.EmployeeID" Label="Employee ID Number" />
+            </MudItem>
+            @if (roleName != "Dean" && roleName != "TransportStaff")
             {
                 <MudItem xs="12" md="6">
 
@@ -45,7 +50,30 @@
 
                 </MudItem>
             }
+            @if (roleName == "TransportStaff")
+            {
+                @if (isDriver)
+                {
+                    <MudItem xs="12" md="6">
 
+                        <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newBusStaff.LicenseNumber" Label="License Num er" Placeholder="Enter License Number" />
+
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+
+                        <MudDatePicker @bind-Date="newBusStaff.LicenseExpiryDate" Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" Label="License Expiry Date"
+                                       Placeholder="Enter License Expiry Date"></MudDatePicker>
+
+                    </MudItem>
+                }
+                <MudItem xs="12" md="6">
+
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newBusStaff.Certificates" Label="Certificates" Placeholder="Enter any Certificates seperated by comma: i.e Defensive Driving, First Aid, etc" />
+
+                </MudItem>
+
+            }
             <!-- Gender & Address -->
             @if (roleName == "Dean")
             {
@@ -94,6 +122,7 @@
     [Parameter] public string roleName { get; set; } = string.Empty;
     [Parameter] public List<Gender> genders { get; set; } = new();
     [Parameter] public List<CountryDTO> countries { get; set; } = new();
+    [Parameter] public bool isDriver { get; set; } = false;
     protected List<CityDTO> Cities = new();
     protected Staff newStaff = new();
     protected UniversalUser newUser = new();
@@ -102,7 +131,7 @@
     protected bool isAlsoTeacher = false;
     protected CountryDTO Country = new();
     protected CityDTO City = new();
-
+    protected BusStaff newBusStaff = new();
     protected Func<CountryDTO, string> CountryTypeconverter = p => p?.CountryCode + ":" + p?.CountryName;
     protected Func<CityDTO, string> CityTypeconverter = p => p?.CityName;
     protected async Task CreateNewUser()
@@ -168,6 +197,7 @@
             SchoolID = Guid.Parse(AppState.SchoolID),
             CreatedBy = AppState.FirstName + " " + AppState.LastName,
             CreatedDate = DateTime.Now,
+            EmployeeID = newUser.EmployeeID
         };
 
         var service = GenericService.GetService<Teacher>();
@@ -248,7 +278,7 @@
                 await SaveStaffDetails(user, SchoolID);
                 break;
             case "TransportStaff":
-                await SaveBusStaffDetails();
+                await SaveBusStaffDetails(user, SchoolID);
                 break;
             case "Clinic Staff":
                 await SaveClinicStaffDetails();
@@ -294,9 +324,35 @@
     {
 
     }
-    protected async Task SaveBusStaffDetails()
+    protected async Task SaveBusStaffDetails(ApplicationUser user, Guid SchoolID)
     {
+        newBusStaff.BusStaffId = Guid.NewGuid();
+        newBusStaff.CreatedAt = DateTime.UtcNow;
+        newBusStaff.UpdatedAt = DateTime.UtcNow;
+        newBusStaff.IsActive = true;
+        newBusStaff.SchoolId = SchoolID;
+        if (isDriver)
+        {
+            newBusStaff.StaffType = 1;
+        }
+        else
+        {
+            newBusStaff.StaffType = 2;
 
+        }
+        newBusStaff.FirstName = user.FirstName;
+        newBusStaff.LastName = user.LastName;
+        newBusStaff.PhoneNumber = user.PhoneNumber;
+        newBusStaff.StaffCode = newUser.EmployeeID;
+        var serv = GenericService.GetService<BusStaff>();
+        var result = await serv.PostAsync("api/Dynamic/PostEntity", "busstaff", newBusStaff);
+        if (result.IsSuccess)
+        {
+            //--==========SEND EMAIL========--\\
+            await SendOneTimePasswordEmail(newUser, $"{newBusStaff.FirstName} {newBusStaff.LastName}", "N/A");
+            //--========FINISH PROCESS========--\\
+            MudDialog.Close(DialogResult.Ok(newBusStaff));
+        }
     }
     private async Task SendOneTimePasswordEmail(UniversalUser user, string recipientName, string studentID)
     {

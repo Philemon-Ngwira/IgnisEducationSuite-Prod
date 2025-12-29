@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using EDUSphereSharedProject.Models;
 
-namespace SchedulingTester.TimeTableGenerator
+namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
 {
     public class TimeTableRepair
     {
         /// <summary>
         /// Repairs hard constraints deterministically.
         /// </summary>
-        public void Repair(TimetableState state, Activity? prepActivity = null)
+        public void Repair(TimetableState state, TimeTableActivity? prepActivity = null)
         {
             FixDailyMax(state);                        // max 2 per day
             FixEarlyMorningSubjects(state);            // early-morning-only enforcement
@@ -144,7 +142,7 @@ namespace SchedulingTester.TimeTableGenerator
         // -------------------------------
         // 4. SAFE FREE SLOT FILLING
         // -------------------------------
-        private void FillFreeSlotsSafely(TimetableState state, Activity? prepActivity)
+        private void FillFreeSlotsSafely(TimetableState state, TimeTableActivity? prepActivity)
         {
             foreach (var slot in state.FreeSlots().ToList())
             {

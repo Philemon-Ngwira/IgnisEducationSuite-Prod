@@ -34,4 +34,9 @@ public partial class TimeSlot
     [NotMapped]
     public TimeSpan? SchoolAfternoonStart { get; set; } // e.g. 12:50
 
+    [NotMapped]
+    public Guid SubjectId { get; set; }
+    [NotMapped]
+    public string SubjectName { get; set; }
+
 }

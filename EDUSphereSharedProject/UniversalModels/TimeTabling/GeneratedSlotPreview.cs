@@ -19,5 +19,9 @@ namespace EDUSphereSharedProject.UniversalModels.TimeTabling
 
         public TimeSlot Slot { get; set; } = null!;
         public string DayOfWeek { get; set; } = ""; // Optional but useful for grouping
+        public List<string> InvariantViolationsReport { get; } = new();
+        public Dictionary<string, int> MetricsReport { get; } = new();
+
+        public bool IsValid => InvariantViolationsReport.Count == 0;
     }
 }

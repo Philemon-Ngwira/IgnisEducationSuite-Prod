@@ -626,6 +626,7 @@ namespace IgnisEducationSuite.Controllers
                 "meds" => GetRepository<ClinicMedication>(),
                 "clinic" => GetRepository<Clinic>(),
                 "staff" => GetRepository<Staff>(),
+                "busstaff" => GetRepository<BusStaff>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -688,6 +689,7 @@ namespace IgnisEducationSuite.Controllers
                 "meds" => JsonSerializer.Deserialize<ClinicMedication>(obj.ToString()),
                 "clinic" => JsonSerializer.Deserialize<Clinic>(obj.ToString()),
                 "staff" => JsonSerializer.Deserialize<Staff>(obj.ToString()),
+                "busstaff" => JsonSerializer.Deserialize<BusStaff>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null

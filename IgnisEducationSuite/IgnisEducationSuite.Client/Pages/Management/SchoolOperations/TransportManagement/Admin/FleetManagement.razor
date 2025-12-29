@@ -1,0 +1,169 @@
+﻿@page "/fleet"
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+
+<MudGrid Spacing="4" Class="pa-6">
+
+    <!-- LEFT: Fleet + Issues -->
+    <MudItem xs="12" lg="8">
+        <MudStack Spacing="4">
+
+            <!-- Open Issues Banner -->
+            <MudPaper Class="pa-5 rounded-xl" Style="background:#FEF2F2;border:1px solid #FECACA">
+                <MudText Typo="Typo.h6" Color="Color.Error" Class="fw-bold mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Class="me-1" />
+                    Open Driver Reports (2)
+                </MudText>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudPaper Class="pa-4 rounded-lg border">
+                            <MudStack Spacing="1">
+                                <MudStack Row Justify="Justify.SpaceBetween">
+                                    <MudText Class="fw-bold">BUS-102</MudText>
+                                    <MudChip T="string" Color="Color.Error" Size="Size.Small">CRITICAL</MudChip>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    Brake pressure warning detected
+                                </MudText>
+                                <MudDivider Class="my-2" />
+                                <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.caption">
+                                        Reported: 12 Mar by Driver A
+                                    </MudText>
+                                    <MudButton Size="Size.Small"
+                                               Color="Color.Success"
+                                               Variant="Variant.Filled"
+                                               StartIcon="@Icons.Material.Filled.CheckCircle">
+                                        Resolve
+                                    </MudButton>
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Fleet Registry -->
+            <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h5" Class="fw-bold">
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsBus" Class="me-1 text-primary" />
+                    Fleet Registry
+                </MudText>
+
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Add">
+                    Add New Bus
+                </MudButton>
+            </MudStack>
+
+            <!-- Bus Cards -->
+            <MudGrid Spacing="3">
+
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="1" Class="pa-5 rounded-xl">
+
+                        <MudStack Row Justify="Justify.SpaceBetween">
+                            <div>
+                                <MudText Typo="Typo.h6" Class="fw-bold">
+                                    BUS-045
+                                </MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                    Toyota Coaster
+                                </MudText>
+                            </div>
+
+                            <MudStack AlignItems="AlignItems.End" Spacing="1">
+                                <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">
+                                    Active
+                                </MudChip>
+                                <MudText Typo="Typo.caption">
+                                    Diesel
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+
+                        <MudGrid Class="mt-3">
+                            <MudItem xs="6">
+                                <MudPaper Class="pa-2 d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">124,500 km</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudPaper Class="pa-2 d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">
+                                        Ins: 2026-03-01
+                                    </MudText>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudDivider Class="my-3" />
+
+                        <MudStack Row Spacing="2">
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Info"
+                                       StartIcon="@Icons.Material.Filled.QueryStats"
+                                       FullWidth>
+                                AI Analysis
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Warning"
+                                       FullWidth>
+                                Send to Maintenance
+                            </MudButton>
+                        </MudStack>
+
+                    </MudPaper>
+                </MudItem>
+
+            </MudGrid>
+
+        </MudStack>
+    </MudItem>
+
+    <!-- RIGHT: AI Maintenance Advisor -->
+    <MudItem xs="12" lg="4">
+        <MudPaper Elevation="4" Class="rounded-xl sticky" Style="top:90px">
+
+            <MudPaper Class="pa-5 rounded-t-xl"
+                      Style="background:linear-gradient(90deg,#6366F1,#8B5CF6);color:white">
+                <MudText Typo="Typo.h6" Class="fw-bold">
+                    <MudIcon Icon="@Icons.Material.Filled.Build" Class="me-1" />
+                    Maintenance Advisor
+                </MudText>
+                <MudText Typo="Typo.caption">
+                    Powered by AI
+                </MudText>
+            </MudPaper>
+
+            <MudStack Class="pa-5" Spacing="3">
+
+                <MudText Align="Align.Center" Color="Color.Secondary">
+                    <MudIcon Icon="@Icons.Material.Filled.BuildCircle"
+                             Size="Size.Large"
+                             Class="mb-2 opacity-30" />
+                    Select a bus to analyze maintenance needs
+                </MudText>
+
+            </MudStack>
+
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+@code{
+    protected List<Bus> fleet = new();
+
+
+    protected async Task GetSchoolFleetAsync()
+    {
+        var service = GenericService.GetService<Bus>();
+        var result = await service.GetAllAsync($"Api/Dynamic/GetSchoolBusFleet/{AppState.SchoolID}", true);
+
+    }
+}

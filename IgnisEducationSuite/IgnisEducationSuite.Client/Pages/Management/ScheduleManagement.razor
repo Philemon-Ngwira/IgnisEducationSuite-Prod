@@ -809,7 +809,7 @@
             {
                 SubjectId = subject.ClassID,
                 WeeklyPeriods = weekly,
-                DoublePeriods = doubles,
+                RequiredDoubles = doubles,
                 TeacherId = subject.TeacherID ?? Guid.Empty,
                 SubjectName = subject.ClassName,
                 IsCoreSubject = subject.IsCore,
@@ -841,7 +841,18 @@
                                           .FirstOrDefault()?.EndTime ?? TimeSpan.Zero,
             MorningEnd = morningEnd
         }).ToList();
-
+        foreach (var item in schedules)
+        {
+            if (timeRules.Any(x => x.SubjectId == item.SubjectId))
+            {
+                item.EarlyMorningOnly = timeRules
+                                        .Where(x => x.SubjectId == item.SubjectId)
+                                        .Select(b => b.MustBeMorning).First();
+            }
+            item.EarlyMorningEnd = slotsOrdered.Where(s => s.SlotType == "EarlyMorning")
+                                          .OrderByDescending(s => s.EndTime)
+                                          .FirstOrDefault()?.EndTime ?? TimeSpan.Zero;
+        }
         // --- Step 8: Adjacency rules ---
         var adjacencyRules = smartRequest.SubjectAdjacencyRules.Select(kvp => new SubjectAdjacencyConstraints
         {
@@ -853,12 +864,19 @@
         var activities = smartRequest.ActivityTimePreferences.Select(kvp =>
         {
             var pref = kvp.Value;
+            TimeSpan starttime = TimeSpan.Zero;
+            if (pref == ActivityTimePreference.AfternoonOnly)
+            {
+                starttime = afternoonStart;
+            }
             return new TimeTableActivity
             {
                 ActivityID = kvp.Key,
                 MustBeMorning = pref == ActivityTimePreference.MorningOnly,
                 MustBeAfternoon = pref == ActivityTimePreference.AfternoonOnly,
-                MustRespectTime = smartRequest.ActivityFixed.TryGetValue(kvp.Key, out var fixedVal) && fixedVal
+                MustRespectTime = smartRequest.ActivityFixed.TryGetValue(kvp.Key, out var fixedVal) && fixedVal,
+                StartFrom = starttime
+
             };
         }).ToList();
 

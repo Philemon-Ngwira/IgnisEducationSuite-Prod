@@ -5,15 +5,11 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
 {
     public interface ITimetableGenerator
     {
-            GenerationResult Generate(
-            IReadOnlyList<TimeSlot> timeSlots,
-            IReadOnlyList<SubjectScheduleConfig> schedules,
-            IReadOnlyList<SubjectAdjacencyConstraints> adjacencyRules,
-            IReadOnlyList<SubjectTimeConstraints> timeRules,
-            IReadOnlyList<TimeTableActivity> activities,
-    IReadOnlyList<TeacherScheduleConstraints> teacherConstraints,
-    IReadOnlyList<SubjectStructureConstraints> structureConstraints
-        );
+        List<TimeSlot> Generate(
+        List<TimeSlot> slots,
+        List<SubjectScheduleConfig> subjects,
+        List<SubjectAdjacencyConstraints> adjacencyConstraints,
+        TimeTableActivity? prepActivity = null);
     }
 
 }

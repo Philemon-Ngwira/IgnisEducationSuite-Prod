@@ -29,4 +29,6 @@ public partial class TimeTableActivity
     public bool MustRespectTime { get; set; }
     [NotMapped]
     public TimeSpan? AfternoonStart { get; set; }
+    [NotMapped]
+    public TimeSpan StartFrom { get; set; }
 }

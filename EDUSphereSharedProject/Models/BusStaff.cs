@@ -31,6 +31,8 @@ public partial class BusStaff
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    public string Certificates { get; set; }
     [NotMapped]
     public List<string> Certifications { get; set; }
 }

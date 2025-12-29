@@ -25,6 +25,8 @@ public partial class Staff
 
     public string PhoneNumber { get; set; }
 
+    public Guid? TeacherID { get; set; }
+
     public virtual Gender DeanForGenderNavigation { get; set; }
 
     public virtual School School { get; set; }
