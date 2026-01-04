@@ -1,0 +1,84 @@
+﻿@inherits AppBaseComponent
+@using EDUSphereSharedProject.Models
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="newRoute.Name"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Label="Enter Route Name"
+                      Placeholder="Route Name"></MudTextField>
+        <MudTextField @bind-Value="Stops"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Label="Enter Stops Seperated by Comma (',')"
+                      Placeholder="e.g Lusaka,Kabwe,Ndola,Kitwe"
+                      Lines="5"></MudTextField>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" StartIcon="@MaterialDesignIcons.Normal.Map" OnClick="AddNewRouteAsync">Add Route</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private BusRoute newRoute = new();
+    private List<BusStop> newRouteStops = new();
+    protected string Stops = string.Empty;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    protected async Task AddNewRouteAsync()
+    {
+        LoaderService.Show("Please wait, Route is being created...");
+        try
+        {
+            var stops = new List<string>();
+            newRoute.RouteId = Guid.NewGuid();
+            newRoute.SchoolId = Guid.Parse(AppState.SchoolID);
+            stops = Stops?
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(r => r.Trim())
+                            .ToList() ?? new();
+
+            for (int i = 0; i < stops.Count; i++)
+            {
+
+                BusStop newBusStop = new()
+                {
+                    StopId = Guid.NewGuid(),
+                    RouteId = newRoute.RouteId,
+                    Sequence = i + 1,
+                    Name = stops[i],
+                };
+                newRouteStops.Add(newBusStop);
+            }
+
+            var HeaderService = GenericService.GetService<BusRoute>();
+            var HeaderResult = await HeaderService.PostAsync("api/Dynamic/PostEntity", "busroute", newRoute);
+            if (HeaderResult.IsSuccess)
+            {
+                LoaderService.Show("Just alittle longer please wait...");
+                var DetailsService = GenericService.GetService<List<BusStop>>();
+                var DetailsResult = await DetailsService.PostAsync("api/Dynamic/PostEntities", "bustop", newRouteStops);
+                if (DetailsResult.IsSuccess)
+                {
+                    var data = HeaderResult.Data;
+                    data.BusStops = DetailsResult.Data;
+                    LoaderService.Hide();
+                    Snackbar.Add("New Route Added", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(data));
+
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            throw;
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+
+
+
+    }
+}

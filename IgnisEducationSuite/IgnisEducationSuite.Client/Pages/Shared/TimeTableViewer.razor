@@ -1,0 +1,313 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@using EDUSphereSharedProject.UniversalModels.TimeTabling
+
+<MudPaper Class="timetable-wrapper">
+    <!-- HEADER -->
+    <div class="timetable-header">
+        <div class="time-header">Time</div>
+        @foreach (var day in DayOrder)
+        {
+            <div class="day-header">@day</div>
+        }
+    </div>
+
+    <!-- BODY -->
+    @foreach (var row in TimeslotRows)
+    {
+        <div class="timetable-row @(row.Type != "Lesson" ? "timetable-row-muted" : "")">
+            <!-- TIME -->
+            <div class="time-cell">
+                <span>@row.StartTime</span>
+                <span class="time-separator">-</span>
+                <span>@row.EndTime</span>
+            </div>
+
+            @foreach (var cell in row.Entries)
+            {
+                <div class="lesson-cell">
+                    @if (row.Type == "Lesson")
+                    {
+                        @if (cell != null && !string.IsNullOrWhiteSpace(cell.ClassName))
+                        {
+                            <div class="lesson-card"
+                                 style="--subject-color:@GetSubjectColor(cell.ClassID)">
+                                <div>
+                                    <div class="lesson-subject">@cell.ClassName</div>
+                                    <div class="lesson-teacher">@cell.TeacherFirstName @cell.TeacherLastName</div>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(cell.EntryType))
+                                {
+                                    <div class="lesson-note">@cell.EntryType</div>
+                                }
+                            </div>
+                        }
+                        else if (cell != null && !string.IsNullOrWhiteSpace(cell.ActivityName))
+                        {
+                            <div class="lesson-card" style="--subject-color:purple">
+                                <div class="lesson-subject">@cell.ActivityName</div>
+
+                                @if (!string.IsNullOrEmpty(cell.EntryType))
+                                {
+                                    <div class="lesson-note">@cell.EntryType</div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="lesson-free">Free @(cell?.SlotType ?? "Unknown")</div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="timetable-break">
+                            @(cell?.SlotType ?? row.Type)
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</MudPaper>
+<style>
+    /* WRAPPER */
+    .timetable-wrapper {
+        padding: 16px;
+        background: #ffffff;
+        border-radius: 8px;
+    }
+
+    .timetable-title {
+        margin-bottom: 12px;
+    }
+
+    /* SCROLL */
+    .timetable-scroll {
+        overflow-x: auto;
+    }
+
+    /* TABLE */
+    .timetable {
+        min-width: 800px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    /* HEADER */
+    .timetable-header {
+        display: grid;
+        grid-template-columns: 100px repeat(5, 1fr);
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .time-header,
+    .day-header {
+        padding: 12px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        text-align: center;
+        border-right: 1px solid #e5e7eb;
+        color: #6b7280;
+    }
+
+        .day-header:last-child {
+            border-right: none;
+        }
+
+    /* ROW */
+    .timetable-row {
+        display: grid;
+        grid-template-columns: 100px repeat(5, 1fr);
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .timetable-row-muted {
+        background: #f3f4f6;
+    }
+
+    /* TIME */
+    .time-cell {
+        border-right: 1px solid #e5e7eb;
+        font-size: 12px;
+        color: #6b7280;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 8px;
+    }
+
+    .time-separator {
+        color: #d1d5db;
+    }
+
+    /* LESSON CELL */
+    .lesson-cell {
+        padding: 4px;
+        border-right: 1px solid #e5e7eb;
+        height: 96px;
+    }
+
+        .lesson-cell:last-child {
+            border-right: none;
+        }
+
+    /* LESSON CARD */
+    .lesson-card {
+        height: 100%;
+        background-color: var(--subject-color, #f3f4f6);
+        border-radius: 6px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid rgba(0,0,0,0.08);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+        .lesson-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+        }
+
+    /* TEXT */
+    .lesson-subject {
+        font-weight: 700;
+        font-size: 14px;
+        line-height: 1.2;
+        color: #111827;
+    }
+
+    .lesson-teacher {
+        font-size: 10px;
+        opacity: 0.8;
+        margin-top: 4px;
+        color: #1f2937;
+    }
+
+    .lesson-note {
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        opacity: 0.6;
+        align-self: flex-end;
+    }
+
+    /* FREE */
+    .lesson-free {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: #d1d5db;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+    }
+
+    /* BREAK */
+    .timetable-break {
+        grid-column: span 5;
+        text-align: center;
+        padding: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #9ca3af;
+    }
+
+</style>
+@code {
+
+    [Parameter] public string Title { get; set; } = "Class Timetable";
+    [Parameter] public IEnumerable<GetStudentTimetableResult>? TimetableEntries { get; set; }
+
+    private readonly Dictionary<Guid, string> SubjectColors = new();
+
+    private string[] DayOrder =>
+        new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" };
+
+    private IEnumerable<TimeslotRow> TimeslotRows
+    {
+        get
+        {
+            if (TimetableEntries == null) yield break;
+
+            // Get all distinct start times, including breaks/lunches
+            var startTimes = TimetableEntries
+                .Where(e => e.StartTime.HasValue)
+                .Select(e => e.StartTime!.Value)
+                .Distinct()
+                .OrderBy(t => t);
+
+            foreach (var start in startTimes)
+            {
+                var entriesForTime = DayOrder
+                    .Select(day =>
+                        TimetableEntries.FirstOrDefault(e =>
+                            e.StartTime!.Value == start &&
+                            e.DayName == day))
+                    .ToList();
+
+                // Determine the row type: if all entries are BreakTime or LunchTime, it's a Break
+                var isLessonRow = entriesForTime.Any(e => e != null &&
+                                                          !string.Equals(e.SlotType, "BreakTime", StringComparison.OrdinalIgnoreCase) &&
+                                                          !string.Equals(e.SlotType, "LunchTime", StringComparison.OrdinalIgnoreCase));
+
+                // Determine the row label (for break/lunch)
+                string rowType;
+                if (isLessonRow)
+                    rowType = "Lesson";
+                else
+                {
+                    // If all null, fallback to "Break"
+                    rowType = entriesForTime.FirstOrDefault(e => e?.SlotType != null)?.SlotType ?? "Break";
+                }
+
+                yield return new TimeslotRow
+                {
+                    StartTime = start,
+                    EndTime = entriesForTime
+                        .Where(e => e?.EndTime != null)
+                        .Max(e => e!.EndTime!.Value),
+                    Type = rowType,
+                    Entries = entriesForTime
+                };
+            }
+        }
+    }
+
+
+    private string GetSubjectColor(Guid? subjectId)
+    {
+        if (subjectId == null)
+            return "#f3f4f6";
+
+        if (!SubjectColors.TryGetValue(subjectId.Value, out var color))
+        {
+            var r = new Random(subjectId.Value.GetHashCode());
+
+            var hue = r.Next(0, 360);
+            var saturation = r.Next(65, 75);
+            var lightness = r.Next(78, 88);
+
+            color = $"hsl({hue}, {saturation}%, {lightness}%)";
+            SubjectColors[subjectId.Value] = color;
+        }
+
+        return color;
+    }
+
+    private class TimeslotRow
+    {
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
+        public string Type { get; set; } = "Lesson";
+        public List<GetStudentTimetableResult?> Entries { get; set; } = new();
+    }
+}

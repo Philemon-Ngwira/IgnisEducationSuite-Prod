@@ -1,0 +1,337 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels.TimeTabling
+@using System.Diagnostics
+@inherits AppBaseComponent
+
+<h3>Smart Timetable Editor</h3>
+
+<table class="timetable-editor">
+    <thead>
+        <tr>
+            <th>Time</th>
+            @foreach (var day in Days)
+            {
+                <th>@day</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in GroupedByTime)
+        {
+            <tr>
+                <td>@row.TimeLabel</td>
+
+                @foreach (var cell in row.Cells)
+                {
+                    <td>
+                        <TimetableCell Slot="cell"
+                                       IsSelected="cell == SelectedSlot"
+                                       IsInvalid="IsSlotInvalid(cell)"
+                                       IsLocked="IsActivitySlot(cell)"
+                                       OnPick="PickSlot" />
+                    </td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+
+<MudPaper Class="pa-3 mt-4">
+    <MudText Typo="Typo.h6">Available Subjects</MudText>
+
+    <MudStack Direction="Row" Spacing="2" Wrap="Wrap.Wrap">
+        @foreach (var subject in SubjectsWithRemaining)
+        {
+            <MudChip T="string"
+                     Color="@(SelectedSubject?.SubjectId == subject.SubjectId ? Color.Primary : Color.Default)"
+                     Variant="Variant.Outlined"
+                     OnClick="() => SelectSubject(subject)">
+                @subject.SubjectName (@subject.Remaining)
+            </MudChip>
+        }
+    </MudStack>
+</MudPaper>
+
+@if (ValidationReport?.InvariantViolations.Any() == true)
+{
+    <MudAlert Severity="Severity.Error" Class="mt-3">
+        <MudList T="string" Dense="true">
+            @foreach (var v in ValidationReport.InvariantViolations)
+            {
+                <MudListItem>@v</MudListItem>
+            }
+        </MudList>
+    </MudAlert>
+}
+
+<MudStack Row Spacing="2" Class="mt-3">
+    <MudButton Color="Color.Success" OnClick="Save">
+        Validate Changes
+    </MudButton>
+
+    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Complete">
+        Complete
+    </MudButton>
+
+    <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="Cancel">
+        Cancel
+    </MudButton>
+</MudStack>
+
+@code {
+
+    /* =========================
+     * PARAMETERS
+     * ========================= */
+
+    [Parameter] public TimetableValidationRequest request { get; set; } = new();
+    [Parameter] public List<GeneratedSlotPreview> Slots { get; set; } = new();
+    [Parameter] public EventCallback<List<GeneratedSlotPreview>> OnSave { get; set; }
+    [Parameter] public EventCallback<List<GeneratedSlotPreview>> OnCancel { get; set; }
+    [Parameter] public EventCallback<List<GeneratedSlotPreview>> OnComplete { get; set; }
+    [Parameter] public List<SubjectScheduleConfig> SubjectConfigs { get; set; } = new();
+
+    /* =========================
+     * STATE
+     * ========================= */
+
+    private List<GeneratedSlotPreview> _workingSlots = new();
+    private GeneratedSlotPreview? SelectedSlot;
+    private SubjectScheduleConfig? SelectedSubject;
+    private TimeTableReportDTO ValidationReport = new();
+
+    private static readonly string[] DayOrder =
+    {
+        "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"
+    };
+
+    /* =========================
+     * INITIALIZATION
+     * ========================= */
+
+    protected override void OnParametersSet()
+    {
+        _workingSlots = Slots.Select(s => new GeneratedSlotPreview
+        {
+            ClassId = s.ClassId,
+            SubjectId = s.SubjectId,
+            SubjectName = s.SubjectName,
+            ScheduledActivityId = s.ScheduledActivityId,
+            ActivityName = s.ActivityName,
+            TeacherName = s.TeacherName,
+            Slot = s.Slot,
+            DayOfWeek = s.DayOfWeek
+        }).ToList();
+
+        EnsureAllDaySlotsExist();
+    }
+
+    /// <summary>
+    /// Guarantees ONE slot per (Day + Start + End).
+    /// Canonical grid – no visual-only rows.
+    /// </summary>
+    private void EnsureAllDaySlotsExist()
+    {
+        var baseSlots =
+            _workingSlots
+                .Where(s => s.Slot != null)
+                .Select(s => s.Slot!)
+                .DistinctBy(s => new { s.StartTime, s.EndTime })
+                .ToList();
+
+        foreach (var day in DayOrder)
+        {
+            foreach (var slot in baseSlots)
+            {
+                var exists = _workingSlots.Any(s =>
+                    s.DayOfWeek == day &&
+                    s.Slot!.StartTime == slot.StartTime &&
+                    s.Slot.EndTime == slot.EndTime);
+
+                if (!exists)
+                {
+                    _workingSlots.Add(new GeneratedSlotPreview
+                    {
+                        DayOfWeek = day,
+                        Slot = slot,
+                        SubjectId = Guid.Empty,
+                        SubjectName = ""
+                    });
+                }
+            }
+        }
+    }
+
+    /* =========================
+     * GRID PROJECTION
+     * ========================= */
+
+    private List<string> Days =>
+        DayOrder
+            .Where(d => _workingSlots.Any(s => s.DayOfWeek == d))
+            .ToList();
+
+    private List<TimetableRow> GroupedByTime =>
+        _workingSlots
+            .GroupBy(s => new { s.Slot!.StartTime, s.Slot.EndTime })
+            .OrderBy(g => g.Key.StartTime)
+            .Select(g =>
+            {
+                var row = new TimetableRow
+                {
+                    TimeLabel = $"{g.Key.StartTime:hh\\:mm} - {g.Key.EndTime:hh\\:mm}"
+                };
+
+                foreach (var day in Days)
+                {
+                    row.Cells.Add(g.First(s => s.DayOfWeek == day));
+                }
+
+                return row;
+            })
+            .ToList();
+
+    /* =========================
+     * SUBJECT LOGIC
+     * ========================= */
+
+    private IEnumerable<(Guid SubjectId, string SubjectName, int Remaining)> SubjectsWithRemaining =>
+        SubjectConfigs
+            .Select(s => (
+                s.SubjectId,
+                s.SubjectName,
+                Remaining: s.WeeklyPeriods -
+                           _workingSlots.Count(x => x.SubjectId == s.SubjectId)
+            ))
+            .Where(x => x.Remaining > 0);
+
+    private static bool IsActivitySlot(GeneratedSlotPreview slot)
+        => slot.ScheduledActivityId != null;
+
+    private void PickSlot(GeneratedSlotPreview slot)
+    {
+        // 🔒 Activities are immutable
+        if (IsActivitySlot(slot))
+            return;
+
+        // Place subject
+        if (SelectedSubject != null &&
+            slot.SubjectId == Guid.Empty &&
+            slot.ScheduledActivityId == null)
+        {
+            slot.SubjectId = SelectedSubject.SubjectId;
+            slot.SubjectName = SelectedSubject.SubjectName;
+            SelectedSubject = null;
+            SelectedSlot = null;
+            return;
+        }
+
+        // Begin swap
+        if (SelectedSlot == null)
+        {
+            SelectedSlot = slot;
+            return;
+        }
+
+        if (SelectedSlot == slot)
+        {
+            SelectedSlot = null;
+            return;
+        }
+
+        // 🔒 No swapping with activity slots
+        if (IsActivitySlot(SelectedSlot) || IsActivitySlot(slot))
+        {
+            SelectedSlot = null;
+            return;
+        }
+
+        SwapSlots(SelectedSlot, slot);
+        SelectedSlot = null;
+    }
+
+    private void SwapSlots(GeneratedSlotPreview a, GeneratedSlotPreview b)
+    {
+        (a.SubjectId, b.SubjectId) = (b.SubjectId, a.SubjectId);
+        (a.SubjectName, b.SubjectName) = (b.SubjectName, a.SubjectName);
+        (a.ScheduledActivityId, b.ScheduledActivityId) =
+            (b.ScheduledActivityId, a.ScheduledActivityId);
+    }
+
+    private void SelectSubject((Guid SubjectId, string SubjectName, int Remaining) subject)
+    {
+        SelectedSubject = SubjectConfigs.First(s => s.SubjectId == subject.SubjectId);
+    }
+
+    /* =========================
+     * VALIDATION + SAVE
+     * ========================= */
+
+    private bool IsSlotInvalid(GeneratedSlotPreview slot)
+    {
+        if (ValidationReport == null) return false;
+
+        return ValidationReport.InvariantViolations.Any(v =>
+            v.Contains(slot.DayOfWeek) &&
+            slot.SubjectId != Guid.Empty &&
+            v.Contains(slot.SubjectId.ToString()));
+    }
+
+    private async Task Save()
+    {
+        request.Slots = _workingSlots;
+
+        DebugDuplicateSlots();
+
+        var response =
+            await HttpClient.PostAsJsonAsync("api/TimeTable/validatesmart", request);
+
+        if (!response.IsSuccessStatusCode)
+            return;
+
+        ValidationReport =
+            await response.Content.ReadFromJsonAsync<TimeTableReportDTO>();
+
+        if (ValidationReport!.InvariantViolations.Any())
+            return;
+
+        await OnSave.InvokeAsync(_workingSlots);
+    }
+
+    private async Task Complete()
+        => await OnComplete.InvokeAsync(_workingSlots);
+
+    private async Task Cancel()
+        => await OnCancel.InvokeAsync();
+
+    /* =========================
+     * SAFETY DEBUG
+     * ========================= */
+
+    private void DebugDuplicateSlots()
+    {
+        var duplicates =
+            _workingSlots
+                .GroupBy(s => new
+                {
+                    s.DayOfWeek,
+                    s.Slot!.StartTime,
+                    s.Slot.EndTime
+                })
+                .Where(g => g.Count() > 1)
+                .ToList();
+
+        if (duplicates.Any())
+            Debugger.Break();
+    }
+
+    /* =========================
+     * SUPPORT TYPES
+     * ========================= */
+
+    private class TimetableRow
+    {
+        public string TimeLabel { get; set; } = "";
+        public List<GeneratedSlotPreview> Cells { get; set; } = new();
+    }
+}

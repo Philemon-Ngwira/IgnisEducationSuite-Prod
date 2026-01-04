@@ -213,13 +213,13 @@
         LoaderService.Hide();
     }
 
-    public (string Grade, double? GPA) GetGradeAndCalculateGPA(ReportCardDetail detail, List<GradingScale> gradingScales)
+    public (string Grade, double? GPA, string? Comment) GetGradeAndCalculateGPA(ReportCardDetail detail, List<GradingScale> gradingScales)
     {
         var grade = gradingScales.FirstOrDefault(gs => detail.Score >= gs.LoweScore && detail.Score <= gs.UpperScore);
         if (grade == null)
             throw new ArgumentException($"Score {detail.Score} does not fall within any defined grading scale.");
 
-        return (grade.Description, (double)grade.GPA.Value);
+        return (grade.Description, (double)grade.GPA.Value, grade.Comment);
     }
 
     #region DataGrid Events
@@ -231,7 +231,7 @@
         var gradeAndGPA = GetGradeAndCalculateGPA(item, GradingScales);
         item.Grade = gradeAndGPA.Grade;
         item.GPA = gradeAndGPA.GPA;
-
+        item.FinalComment = gradeAndGPA.Comment;
         StateHasChanged();
     }
 

@@ -1,0 +1,182 @@
+﻿@page "/RoutePlanning"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@using IgnisEducationSuite.Client.Pages.Management.SchoolOperations.TransportManagement.Admin.Dialogs
+@inherits AppBaseComponent
+@inject IDialogService DialogService
+
+<MudCard Elevation="1">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h4">Route Planning</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudCardContent>
+
+        <!-- Header / CTA -->
+        <MudPaper Class="pa-5 rounded-xl mb-4"
+                  Style="background:linear-gradient(90deg,#7A4DBB,#29104A);color:white">
+            <MudText Typo="Typo.subtitle1">
+                Design efficient bus routes to minimize fuel consumption and optimize student pick-up times.
+            </MudText>
+
+            <MudButton StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenRouteAddDialog"
+                       Variant="Variant.Filled"
+                       Color="Color.Surface"
+                       Class="mt-3"
+                       Style="color:azure">
+                Create Route
+            </MudButton>
+        </MudPaper>
+
+        <!-- Routes -->
+        <MudGrid>
+            @if (busRoutes.Any())
+            {
+                @foreach (var route in busRoutes)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudCard Elevation="1" Class="rounded-xl">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudText Typo="Typo.h6">@route.Name</MudText>
+                                </CardHeaderContent>
+
+                                <CardHeaderActions>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Settings"
+                                                   Color="Color.Default"
+                                                   OnClick="() => OpenRouteManageDialog(route)" />
+                                </CardHeaderActions>
+                            </MudCardHeader>
+
+                            <MudCardContent>
+                                <MudTimeline Reverse="true" TimelinePosition="TimelinePosition.Right">
+                                    @foreach (var stop in route.BusStops)
+                                    {
+
+
+                                        <MudTimelineItem Color="Color.Primary"
+                                                         Variant="Variant.Outlined"
+                                                         Size="Size.Medium"
+                                                         ItemDot="@BusStopDot">
+
+                                            <MudText Align=Align.End Typo="Typo.body1">
+                                                @stop.Name
+                                            </MudText>
+
+                                        </MudTimelineItem>
+
+                                    }
+                                </MudTimeline>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            }
+            else
+            {
+                <!-- Empty State -->
+                <MudItem xs="12">
+                    <MudPaper Elevation="0"
+                              Class="pa-10 mt-4 rounded-xl text-center border-dashed"
+                              Style="border:2px dashed var(--mud-palette-divider)">
+                        <MudIcon Icon="@Icons.Material.Filled.BusAlert"
+                                 Size="Size.Large"
+                                 Color="Color.Dark" />
+
+                        <MudText Typo="Typo.h6" Class="mt-2">
+                            No Bus Routes added yet
+                        </MudText>
+
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Add bus routes to manage transport operations
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    protected List<BusRoute> busRoutes = new();
+    RenderFragment BusStopDot => @<MudIcon Icon="@MaterialDesignIcons.Normal.BusStop"
+         Size="Size.Medium" />
+    ;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        await GetBusRoutes();
+        LoaderService.Hide();
+    }
+
+    protected async Task OpenRouteAddDialog()
+    {
+        var dialog = await DialogService.ShowAsync<AddNewRoute>(
+            "Create New Route",
+            new DialogParameters<AddNewRoute>(),
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is BusRoute newRoute)
+        {
+            busRoutes.Add(newRoute);
+            StateHasChanged();
+        }
+    }
+    protected async Task OpenRouteManageDialog(BusRoute route)
+    {
+        var dialog = await DialogService.ShowAsync<ManageRoute>(
+            "Create New Route",
+            new DialogParameters<ManageRoute>()
+            {
+                { x=>x.Route, route}
+            },
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is BusRoute newRoute)
+        {
+            busRoutes.Remove(route);
+            busRoutes.Add(newRoute);
+            StateHasChanged();
+        }
+    }
+
+    protected async Task GetBusRoutes()
+    {
+        var service = GenericService.GetService<BusRouteDto>();
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetBusRoutesBySchool/{AppState.SchoolID}", true);
+
+        if (!result.IsSuccess || result.Data is null)
+            return;
+
+        var schoolId = Guid.Parse(AppState.SchoolID);
+
+        busRoutes = result.Data
+            .Select(dto => new BusRoute
+            {
+                RouteId = dto.Id,
+                Name = dto.Name,
+                SchoolId = schoolId,
+                BusStops = dto.BusStops
+                    .OrderBy(s => s.Order)
+                    .Select(s => new BusStop
+                    {
+                        StopId = s.Id,
+                        Name = s.Name,
+                        Sequence = s.Order,
+                        RouteId = dto.Id
+                    })
+                    .ToList()
+            })
+            .ToList();
+    }
+
+}

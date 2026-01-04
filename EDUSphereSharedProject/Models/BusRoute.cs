@@ -9,11 +9,15 @@ public partial class BusRoute
 {
     public Guid RouteId { get; set; }
 
-    public Guid BusId { get; set; }
+    public Guid? BusId { get; set; }
 
     public string Name { get; set; }
+
+    public Guid? SchoolId { get; set; }
 
     public virtual Bus Bus { get; set; }
 
     public virtual ICollection<BusStop> BusStops { get; set; } = new List<BusStop>();
+
+    public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
 }

@@ -89,6 +89,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetUpcomingExamsOrQuizzesResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetUserBadgesByUserIDResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<RunDailyJobsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetStudentTimetableResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<usp_GetStaffBySchoolAndRoleResult>().HasNoKey().ToView(null);
         }
     }
@@ -1713,6 +1714,39 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<RunDailyJobsResult>("EXEC @returnValue = [dbo].[RunDailyJobs]", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetStudentTimetableResult>> sp_GetStudentTimetableAsync(string userID, DateTime? AsOfDate, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "userID",
+                    Size = 910,
+                    Value = userID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "AsOfDate",
+                    Value = AsOfDate ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.Date,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetStudentTimetableResult>("EXEC @returnValue = [dbo].[sp_GetStudentTimetable] @userID, @AsOfDate", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

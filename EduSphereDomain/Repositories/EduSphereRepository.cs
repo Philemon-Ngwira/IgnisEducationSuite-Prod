@@ -844,24 +844,35 @@ namespace EduSphereDomain.Repositories
             }
             return Cities;
         }
-        public async Task<IEnumerable<GetStudentClassScheduleResult>> GetStudentClasses(string Student)
+        public async Task<IEnumerable<GetStudentTimetableResult>> GetStudentClasses(string Student)
         {
-            List<GetStudentClassScheduleResult> stdClasses = new();
-            var result = await _contextProcedures.GetStudentClassScheduleAsync(Student);
-            foreach (var item in result)
+            List<GetStudentTimetableResult> stdClasses = new();
+            var result = await _contextProcedures.sp_GetStudentTimetableAsync(Student, DateTime.Today);
+            foreach (var x in result)
             {
-                GetStudentClassScheduleResult studentClassSchedule = new()
+                GetStudentTimetableResult studentClassSchedule = new()
                 {
-                    StudentClassScheduleID = item.StudentClassScheduleID,
-                    StudentID = item.StudentID,
-                    ScheduleID = item.ScheduleID,
-                    ClassName = item.ClassName,
-                    DayName = item.DayName,
-                    Grade = item.AcademicLevel,
-                    StartTime = item.StartTime,
-                    EndTime = item.EndTime,
-                    Description = item.Description,
-                    TimeslotID = item.TimeslotID,
+                    TimeslotID = x.TimeslotID,
+                    StartTime = x.StartTime,
+                    EndTime = x.EndTime,
+                    TimeSlotDescription = x.TimeSlotDescription,
+                    SlotType = x.SlotType,
+                    DayID = x.DayID,
+                    DayName = x.DayName,
+                    ClassScheduleID = x.ClassScheduleID,
+                    ClassID = x.ClassID,
+                    StartDate = x.StartDate,
+                    EndDate = x.EndDate,
+                    SchoolID = x.SchoolID,
+                    EntryType = x.EntryType,
+                    ScheduledClassID = x.ScheduledClassID,
+                    ActivityID = x.ActivityID,
+                    ActivityName = x.ActivityName,
+                    ClassName = x.ClassName,
+                    LevelName = x.LevelName,
+                    TeacherFirstName = x.TeacherFirstName,
+                    TeacherLastName = x.TeacherLastName,
+
                 };
                 stdClasses.Add(studentClassSchedule);
             }
@@ -1569,6 +1580,33 @@ namespace EduSphereDomain.Repositories
                 .Where(x => x.SchoolId == SchoolID)
                 .ToListAsync();
         }
+        public async Task<IEnumerable<Bus>> GetSchoolBusFleetAsync(Guid SchoolID)
+        {
+            return await _context.Buses
+                .Where(x => x.SchoolId == SchoolID)
+                .ToListAsync();
+        }
+        public async Task<IEnumerable<BusRouteDto>> GetSchoolBusRoutes(Guid schoolId)
+        {
+            return await _context.BusRoutes
+                .Where(r => r.SchoolId == schoolId)
+                .Select(r => new BusRouteDto
+                {
+                    Id = r.RouteId,
+                    Name = r.Name,
+                    BusStops = r.BusStops
+                        .OrderBy(s => s.Sequence)
+                        .Select(s => new BusStopDto
+                        {
+                            Id = s.StopId,
+                            Name = s.Name,
+                            Order = s.Sequence,
+                        })
+                        .ToList()
+                })
+                .ToListAsync();
+        }
+
         #endregion
     }
 

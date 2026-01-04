@@ -3,6 +3,7 @@
 @using EDUSphereSharedProject.UniversalModels
 @using System.Net.Http.Headers
 @using EDUSphereSharedProject.UniversalModels.TimeTabling
+@using System.Diagnostics
 @page "/ClassSchedules"
 @inherits AppBaseComponent
 <MudCard Elevation="3" Class="pa-4">
@@ -322,12 +323,8 @@
                     <MudDivider Class="my-3" />
 
                     <!-- Buttons -->
-                    <MudStack Direction="Row" Spacing="2" Class="mb-3">
-                        <MudButton Variant="Variant.Filled" Color="Color.Success"
-                                   EndIcon="@Icons.Material.Filled.Save"
-                                   OnClick="SaveSmartTimetable">
-                            Save & Assign
-                        </MudButton>
+                    <MudStack Row
+                              Spacing="2" Class="mb-3">
                         <MudButton Variant="Variant.Text" Color="Color.Secondary"
                                    OnClick="RegenerateSmartTimetable">
                             Regenerate
@@ -341,69 +338,83 @@
                             <MudText Typo="Typo.h6" Class="mb-2">
                                 @GradeLevel Term Timetable
                             </MudText>
+                            <MudCheckBox @bind-Value="EditTimeTable" T="bool" Label="Edit time table?" />
 
-                            <table class="timetable">
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        @foreach (var day in daysofTheWeek)
-                                        {
-                                            <th>@day.DayName</th>
-                                        }
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    @foreach (var group in groupedSmartSchedules)
-                                    {
+                            @if (!EditTimeTable)
+                            {
+                                <table class="timetable">
+                                    <thead>
                                         <tr>
-                                            <!-- TIME COLUMN -->
-                                            <td class="time">
-                                                @($"{group.TimeSlot.StartTime:hh\\:mm}") –
-                                                @($"{group.TimeSlot.EndTime:hh\\:mm}")
-                                            </td>
-
-                                            <!-- DAY COLUMNS -->
-                                            @foreach (var day in dayOrder)
+                                            <th>Time</th>
+                                            @foreach (var day in daysofTheWeek)
                                             {
-                                                var schedule = group.Slots
-                                                .FirstOrDefault(s => s.DayOfTheWeek.DayName == day);
-
-                                                <td class="@(schedule == null ? "empty" : "filled")">
-                                                    @if (schedule != null)
-                                                    {
-                                                        <MudChip T="string"
-                                                                 Size="Size.Small"
-                                                                 Color="Color.Primary">
-                                                            @schedule.Class?.ClassName
-                                                        </MudChip>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="text-muted">—</span>
-                                                    }
-                                                </td>
+                                                <th>@day.DayName</th>
                                             }
                                         </tr>
-                                    }
-                                </tbody>
-                            </table>
+                                    </thead>
 
-                            <MudDivider Class="my-3" />
+                                    <tbody>
+                                        @foreach (var group in groupedSmartSchedules)
+                                        {
+                                            <tr>
+                                                <!-- TIME COLUMN -->
+                                                <td class="time">
+                                                    @($"{group.TimeSlot.StartTime:hh\\:mm}") –
+                                                    @($"{group.TimeSlot.EndTime:hh\\:mm}")
+                                                </td>
 
-                            <MudDateRangePicker Variant="Variant.Outlined"
-                                                Margin="Margin.Dense"
-                                                @bind-DateRange="_dateRange"
-                                                PlaceholderStart="Schedule Start Date"
-                                                PlaceholderEnd="Schedule End Date" />
+                                                <!-- DAY COLUMNS -->
+                                                @foreach (var day in dayOrder)
+                                                {
+                                                    var schedule = group.Slots
+                                                    .FirstOrDefault(s => s.DayOfTheWeek.DayName == day);
 
-                            <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       Class="mt-3"
-                                       EndIcon="@Icons.Material.Filled.SaveAlt"
-                                       OnClick="AssignSchedule">
-                                Save Class Timetable
-                            </MudButton>
+                                                    <td class="@(schedule == null ? "empty" : "filled")">
+                                                        @if (schedule != null)
+                                                        {
+                                                            <MudChip T="string"
+                                                                     Size="Size.Small"
+                                                                     Color="Color.Primary">
+                                                                @schedule.DisplayLabel
+                                                            </MudChip>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">—</span>
+                                                        }
+                                                    </td>
+                                                }
+                                            </tr>
+                                        }
+
+                                    </tbody>
+                                </table>
+
+                                <MudDivider Class="my-3" />
+
+                                <MudDateRangePicker Variant="Variant.Outlined"
+                                                    Margin="Margin.Dense"
+                                                    @bind-DateRange="_dateRange"
+                                                    PlaceholderStart="Schedule Start Date"
+                                                    PlaceholderEnd="Schedule End Date" />
+
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           Class="mt-3"
+                                           EndIcon="@Icons.Material.Filled.SaveAlt"
+                                           OnClick="AssignSchedule">
+                                    Save Class Timetable
+                                </MudButton>
+                            }
+                            else
+                            {
+                                <IgnisEducationSuite.Client.Pages.Shared.SmartTimetableEditor Slots="SmartGeneratedSchedules"
+                                                                                              SubjectConfigs="configs"
+                                                                                              request="ValidationRequest"
+                                                                                              OnComplete="HandleSmartTimetableComplete"
+                                                                                              OnCancel="() => EditTimeTable = false" />
+
+                            }
                         </MudPaper>
                     }
 
@@ -480,6 +491,7 @@
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     [Inject] AppState _appState { get; set; } = default!;
     private Dictionary<Guid, ClassTimePreference> ClassTimePreferences = new();
+
     public enum ClassTimePreference
     {
         Flexible = 0,
@@ -503,16 +515,18 @@
     protected List<GetStudentsInGradeWithoutScheduleResult> StudentsInGradeWithoutSchedule = new();
     private IEnumerable<IGrouping<TimeSlot, ClassSchedule>> groupedSchedules;
     List<TimeSlotGroup> groupedSmartSchedules;
-
+    private TimetableValidationRequest ValidationRequest = new();
 
 
     protected List<TimeTableActivity> activities = new();
+    protected List<SubjectScheduleConfig> configs = new();
     protected int GradeInt = 0;
     protected string GradeLevel = string.Empty;
     protected string NoGradeLevel = "N/A";
     protected MudTabs mudTabs = new();
     private bool _editable = true;
     private bool _clearable = true;
+    private bool EditTimeTable = false;
     private DateRange _dateRange { get; set; }
     MudTabPanel panel01;
     MudTabPanel panel02;
@@ -741,7 +755,8 @@
             EndTime = s.EndTime,
             ScheduledActivityId = s.ScheduledActivityId,
             SchoolMorningEnd = morningEnd,
-            SchoolAfternoonStart = afternoonStart
+            SchoolAfternoonStart = afternoonStart,
+            TimeslotID = s.TimeslotID
         }).ToList();
 
         // --- Step 1: Separate core and non-core subjects ---
@@ -814,6 +829,7 @@
                 SubjectName = subject.ClassName,
                 IsCoreSubject = subject.IsCore,
             });
+            configs = schedules.ToList();
             var SubjectStructureConstraint = new SubjectStructureConstraints()
             {
                 SubjectId = subject.ClassID,
@@ -875,12 +891,17 @@
                 MustBeMorning = pref == ActivityTimePreference.MorningOnly,
                 MustBeAfternoon = pref == ActivityTimePreference.AfternoonOnly,
                 MustRespectTime = smartRequest.ActivityFixed.TryGetValue(kvp.Key, out var fixedVal) && fixedVal,
-                StartFrom = starttime
-
+                StartFrom = starttime,
+                ActivityName = this.activities.Where(x => x.ActivityID == kvp.Key).Select(n => n.ActivityName).First()
             };
         }).ToList();
 
+        ValidationRequest = new()
+        {
+            Adjacency = adjacencyRules.ToDictionary(a => a.SubjectId),
+            Subjects = schedules.ToDictionary(a => a.SubjectId)
 
+        };
         return new GenerateTimetableRequest
         {
             Grade = smartRequest.Grade,
@@ -1017,6 +1038,17 @@
         await GetSchoolActivities();
         LoaderService.Hide();
     }
+
+    //-- ===========TIME TABLE EDITING=========== --\\
+    private void EditTimeTableTriggered(bool state)
+    {
+        EditTimeTable = state;
+        StateHasChanged();
+    }
+
+    //-- ========TIME TABLE EDITING END=========== --\\
+
+
     private void OnSmartGradeChanged(string grade)
     {
         var level = academicLevels.FirstOrDefault(x => x.LevelName == grade);
@@ -1059,6 +1091,43 @@
             Snackbar.Add("TimeSlot Successfully registered", Severity.Success);
         }
     }
+    //-- ========SMART TIMETABLE SAVING=========--\\
+    private async Task HandleSmartTimetableComplete(List<GeneratedSlotPreview> generatedSlots)
+    {
+        // Remove slots that have neither a class nor an activity
+        var materialSlots =
+    generatedSlots
+        .Where(s =>
+            s.SubjectId != Guid.Empty ||
+            s.ScheduledActivityId != null)
+        .ToList();
+
+        var classSched = CreateSmartSchedules(materialSlots);
+
+        var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
+                                   .ToDictionary(x => x.day, x => x.index);
+
+        groupedSmartSchedules = classSched
+            .Where(cs => cs?.TimeSlot != null && cs.DayOfTheWeek != null)
+            .OrderBy(cs => dayOrderDict.TryGetValue(cs.DayOfTheWeek.DayName, out var d) ? d : int.MaxValue)
+            .ThenBy(cs => cs.TimeSlot.StartTime!.Value)
+            .GroupBy(cs => new
+            {
+                cs.TimeSlot.StartTime,
+                cs.TimeSlot.EndTime
+            })
+            .OrderBy(g => g.Key.StartTime)
+            .Select(g => new TimeSlotGroup
+            {
+                TimeSlot = g.First().TimeSlot!,
+                Slots = g.ToList()
+            })
+            .ToList();
+
+        StateHasChanged();
+        EditTimeTable = false;
+    }
+
     #region Get from Database
     protected async Task GetAdminData()
     {
@@ -1086,7 +1155,7 @@
     protected async Task GetStudentsForSchedule()
     {
         var service = _genericService.GetService<GetStudentsInGradeResult>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInGrade/{GradeInt}/{loggedInAdmin.SchoolID}", true);
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInGrade/{GradeInt}/{loggedInAdmin.SchoolID.ToString()}", true);
         if (result.IsSuccess)
         {
             StudentsInGrade = result.Data.ToList();
@@ -1219,75 +1288,122 @@
             var rowStart = TimeSpan.Parse(item.StartTime);
             var rowEnd = TimeSpan.Parse(item.EndTime);
 
-            // Find *all* slots that fall inside this time range
             var matchingSlots = SchoolTimeSlots
                 .Where(ts => ts.StartTime >= rowStart && ts.EndTime <= rowEnd)
                 .OrderBy(ts => ts.StartTime)
                 .ToList();
 
-            // If nothing matched, skip
             if (!matchingSlots.Any())
                 continue;
 
-            // Create multiple class schedule entries
             foreach (var slot in matchingSlots)
             {
-                ClassSchedule newClassSchedule = new()
+                Class? cls = null;
+
+                // Only assign a class if this is a "real class", otherwise leave null for activities
+                if (!string.IsNullOrWhiteSpace(item.Class))
+                {
+                    cls = classes
+                        .FirstOrDefault(x => x.AcademicLevel == item.GradeLevel &&
+                                             x.ClassName.ToUpper().Contains(item.Class.ToUpper()));
+                }
+
+                classSchedules.Add(new ClassSchedule
                 {
                     ClassScheduleID = Guid.NewGuid(),
-                    Class = classes
-                        .Where(x => x.AcademicLevel == item.GradeLevel &&
-                                    x.ClassName.ToUpper().Contains(item.Class.ToUpper()))
-                        .FirstOrDefault(),
-
+                    Class = cls, // null for activities
                     DayOfTheWeek = daysofTheWeek
-                        .Where(x => x.DayName.Contains(item.Day))
-                        .FirstOrDefault(),
-
-                    TimeSlot = slot
-                };
-
-                classSchedules.Add(newClassSchedule);
+                        .FirstOrDefault(x => x.DayName.Contains(item.Day)),
+                    TimeSlot = slot,
+                    ScheduledActivity = string.IsNullOrWhiteSpace(item.Class) ? item.ScheduledActivityId! : null
+                });
+                foreach (var s in classSchedules)
+                {
+                    if (s.ScheduledActivity != null)
+                    {
+                        s.ScheduledActivityNavigation = activities.Where(x => x.ActivityID == s.ScheduledActivity).First();
+                    }
+                }
             }
         }
 
         return classSchedules;
     }
-    /// <summary>
-    /// Converts GeneratedSlotPreview list into ClassSchedule objects for UI binding and saving.
-    /// </summary>
+
     protected IEnumerable<ClassSchedule> CreateSmartSchedules(List<GeneratedSlotPreview> generatedSlots)
     {
         classSchedules.Clear();
 
         foreach (var slot in generatedSlots)
         {
-            // Find the class object
-            var cls = classes.FirstOrDefault(c => c.ClassID == slot.SubjectId);
-            if (cls == null) continue;
 
-            // Find the day object
-            var day = daysofTheWeek.FirstOrDefault(d => d.DayName.Equals(slot.Slot.Day.ToString(), StringComparison.OrdinalIgnoreCase));
-            if (day == null) continue;
+            Class? cls = classes.FirstOrDefault(c => c.ClassID == slot.SubjectId);
 
+            // If no class found, treat as activity (still create schedule, just no class)
+            var day = daysofTheWeek
+     .FirstOrDefault(d =>
+         d.DayName.Equals(slot.DayOfWeek,
+                          StringComparison.OrdinalIgnoreCase));
+            if (day == null)
+                continue;
+            TimeSlot timeSlot = slot.Slot;
             classSchedules.Add(new ClassSchedule
             {
                 ClassScheduleID = Guid.NewGuid(),
-                Class = cls,
+                Class = cls, // null if activity,
                 DayOfTheWeek = day,
-                TimeSlot = slot.Slot
-            });
-        }
+                TimeSlot = slot.Slot,
+                TimeSlotID = slot.Slot.TimeslotID,
+                ScheduledActivity = cls == null ? slot.Slot.ScheduledActivityId : null
 
+            });
+            if (slot.Slot.ScheduledActivityId != Guid.Empty)
+            {
+                slot.ScheduledActivityId = slot.Slot.ScheduledActivityId;
+                slot.ActivityName = slot.Slot.SubjectName;
+
+
+            }
+        }
+        foreach (var item in classSchedules)
+        {
+
+            if (item.ScheduledActivity != null)
+            {
+                item.ScheduledActivityNavigation = activities.Where(x => x.ActivityID == item.ScheduledActivity).First();
+            }
+        }
+        var activitySchedules = classSchedules.Where(x => x.ScheduledActivity != null).ToList();
         return classSchedules;
     }
-
 
     protected async Task AssignSchedule()
     {
         LoaderService.Show("Assigning Schedules Please wait!");
         await GetStudentsForSchedule();
+        // Check for overlapping timeslots first
+        var timeslotGroups = classSchedules
+            .Where(c => c.TimeSlotID != null && c.DayOfTheWeekID != null)
+            .GroupBy(c => new { c.DayOfTheWeekID, c.TimeSlotID })
+            .Where(g => g.Count() > 1)
+            .ToList();
 
+        if (timeslotGroups.Any())
+        {
+            // 👇 Breakpoint can be placed here to inspect conflicts
+            Debugger.Break(); // This will pause execution in Visual Studio when debugging
+
+            foreach (var group in timeslotGroups)
+            {
+                Console.WriteLine($"Conflict on DayID {group.Key.DayOfTheWeekID}, TimeSlotID {group.Key.TimeSlotID}");
+                foreach (var conflictItem in group)
+                {
+                    Console.WriteLine($"  ClassScheduleID: {conflictItem.ClassScheduleID}, ClassID: {conflictItem.ClassID}, ActivityID: {conflictItem.ScheduledActivity}");
+                }
+            }
+
+            Snackbar.Add("Warning: There are overlapping timeslots in the schedule!", Severity.Warning);
+        }
         foreach (var student in StudentsInGrade)
         {
             foreach (var schedule in classSchedules)
@@ -1313,13 +1429,35 @@
         var serviceOne = _genericService.GetService<List<ClassSchedule>>();
         foreach (var item in classSchedules)
         {
-            item.DayOfTheWeekID = item.DayOfTheWeek.DayID;
-            item.DayOfTheWeek = null;
-            item.ClassID = item.Class.ClassID;
-            item.Class = null;
-            item.TimeSlotID = item.TimeSlot.TimeslotID;
             item.TimeSlot = null;
+            // Day (required)
+            if (item.DayOfTheWeek != null)
+            {
+                item.DayOfTheWeekID = item.DayOfTheWeek.DayID;
+                item.DayOfTheWeek = null;
+            }
+            // Either Class OR ScheduledActivity (never both)
+            if (item.Class != null)
+            {
+                item.ClassID = item.Class.ClassID;
+                item.Class = null;
+
+                // Explicitly clear scheduled activity
+                item.ScheduledActivity = null;
+                item.ScheduledActivityNavigation = null;
+            }
+
+            else if (item.ScheduledActivityNavigation != null)
+            {
+                item.ScheduledActivity = item.ScheduledActivityNavigation.ActivityID;
+                item.ScheduledActivityNavigation = null;
+
+                // Explicitly clear class
+                item.ClassID = null;
+                item.Class = null;
+            }
         }
+
         var result = await serviceOne.PostAsync("api/Dynamic/PostEntities", "classschedule", classSchedules);
         if (result.IsSuccess)
         {

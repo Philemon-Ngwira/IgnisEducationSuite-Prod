@@ -1,7 +1,9 @@
 ﻿@page "/fleet"
 @using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.Management.SchoolOperations.TransportManagement.Admin.Dialogs
+@using System.Globalization
 @inherits AppBaseComponent
-
+@inject IDialogService DialogService
 <MudGrid Spacing="4" Class="pa-6">
 
     <!-- LEFT: Fleet + Issues -->
@@ -53,75 +55,126 @@
 
                 <MudButton Color="Color.Primary"
                            Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Filled.Add">
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenAddNewBusDialogAsync">
                     Add New Bus
                 </MudButton>
             </MudStack>
 
             <!-- Bus Cards -->
             <MudGrid Spacing="3">
+                @if (fleet.Any())
+                {
+                    @foreach (var item in fleet)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudPaper Elevation="1" Class="pa-5 rounded-xl">
 
-                <MudItem xs="12" md="6">
-                    <MudPaper Elevation="1" Class="pa-5 rounded-xl">
+                                <MudStack Row Justify="Justify.SpaceBetween">
+                                    <div>
+                                        <MudText Typo="Typo.h6" Class="fw-bold">
+                                            @item.RegistrationNumber
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            @item.Model-@item.ModelYear
+                                        </MudText>
+                                    </div>
 
-                        <MudStack Row Justify="Justify.SpaceBetween">
-                            <div>
-                                <MudText Typo="Typo.h6" Class="fw-bold">
-                                    BUS-045
-                                </MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    Toyota Coaster
-                                </MudText>
-                            </div>
+                                    <MudStack AlignItems="AlignItems.End" Spacing="1">
+                                        @if (item.IsActive == true)
+                                        {
+                                            <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">
+                                                Active
+                                            </MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Color="Color.Dark" Variant="Variant.Outlined">
+                                                Out of Service
+                                            </MudChip>
+                                        }
 
-                            <MudStack AlignItems="AlignItems.End" Spacing="1">
-                                <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">
-                                    Active
-                                </MudChip>
-                                <MudText Typo="Typo.caption">
-                                    Diesel
-                                </MudText>
-                            </MudStack>
-                        </MudStack>
+                                        <MudText Typo="Typo.caption">
+                                            @if (item.FuelType.ToUpper() == "ELECTRIC")
+                                            {
+                                                <MudIcon Icon="@MaterialDesignIcons.Normal.LightningBoltCircle"></MudIcon>
+                                            }
+                                            else
+                                            {
+                                                <MudIcon Icon="@MaterialDesignIcons.Normal.Fuel"></MudIcon>
 
-                        <MudGrid Class="mt-3">
-                            <MudItem xs="6">
-                                <MudPaper Class="pa-2 d-flex align-center gap-2">
-                                    <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" />
-                                    <MudText Typo="Typo.body2">124,500 km</MudText>
-                                </MudPaper>
-                            </MudItem>
-                            <MudItem xs="6">
-                                <MudPaper Class="pa-2 d-flex align-center gap-2">
-                                    <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" />
-                                    <MudText Typo="Typo.body2">
-                                        Ins: 2026-03-01
-                                    </MudText>
-                                </MudPaper>
-                            </MudItem>
-                        </MudGrid>
+                                            }
+                                            @item.FuelType
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
 
-                        <MudDivider Class="my-3" />
+                                <MudGrid Class="mt-3">
+                                    <MudItem xs="6">
+                                        <MudPaper Class="pa-2 d-flex align-center gap-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" />
+                                            <MudText Typo="Typo.body2">
+                                                @item.CurrentMileageKm.ToString("N0", CultureInfo.InvariantCulture)
+                                                km
+                                            </MudText>
+                                        </MudPaper>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudPaper Class="pa-2 d-flex align-center gap-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" />
+                                            <MudText Typo="Typo.body2">
+                                                Ins: @(item.LastServiceDate?.ToShortDateString() ?? "-")
+                                            </MudText>
+                                        </MudPaper>
+                                    </MudItem>
+                                </MudGrid>
 
-                        <MudStack Row Spacing="2">
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Info"
-                                       StartIcon="@Icons.Material.Filled.QueryStats"
-                                       FullWidth>
-                                AI Analysis
-                            </MudButton>
+                                <MudDivider Class="my-3" />
 
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Warning"
-                                       FullWidth>
-                                Send to Maintenance
-                            </MudButton>
-                        </MudStack>
+                                <MudStack Row Spacing="2">
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Info"
+                                               StartIcon="@Icons.Material.Filled.QueryStats"
+                                               FullWidth>
+                                        Ignis AI Analysis
+                                    </MudButton>
 
-                    </MudPaper>
-                </MudItem>
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Warning"
+                                               FullWidth>
+                                        Send to Maintenance
+                                    </MudButton>
+                                </MudStack>
 
+                            </MudPaper>
+                        </MudItem>
+                    }
+                }
+                else
+                {
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0"
+                                  Class="pa-10 mt-4 rounded-xl text-center border-dashed"
+                                  Style="border:2px dashed var(--mud-palette-divider)">
+
+                            <MudIcon Icon="@Icons.Material.Filled.BusAlert"
+                                     Size="Size.Large"
+                                     Color="Color.Dark" />
+
+                            <MudText Typo="Typo.h6" Class="mt-2">
+                                No Buses Added yet
+                            </MudText>
+
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                Add Buses to manage Transport operations
+                            </MudText>
+
+                        </MudPaper>
+                    </MudItem>
+
+                }
             </MudGrid>
+
 
         </MudStack>
     </MudItem>
@@ -131,13 +184,14 @@
         <MudPaper Elevation="4" Class="rounded-xl sticky" Style="top:90px">
 
             <MudPaper Class="pa-5 rounded-t-xl"
-                      Style="background:linear-gradient(90deg,#6366F1,#8B5CF6);color:white">
-                <MudText Typo="Typo.h6" Class="fw-bold">
+                      Style="background:linear-gradient(90deg,#7A4DBB,#29104A);color:white">
+
+                <MudText Typo="Typo.h6" Class="fw-bold" Style="color:azure">
                     <MudIcon Icon="@Icons.Material.Filled.Build" Class="me-1" />
                     Maintenance Advisor
                 </MudText>
                 <MudText Typo="Typo.caption">
-                    Powered by AI
+                    Powered by Open AI
                 </MudText>
             </MudPaper>
 
@@ -156,14 +210,59 @@
     </MudItem>
 
 </MudGrid>
-@code{
+@code {
     protected List<Bus> fleet = new();
 
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait while your environment is prepared...");
+        await GetSchoolFleetAsync();
+        LoaderService.Hide();
+    }
 
     protected async Task GetSchoolFleetAsync()
     {
         var service = GenericService.GetService<Bus>();
         var result = await service.GetAllAsync($"Api/Dynamic/GetSchoolBusFleet/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            fleet = result.Data.ToList();
+        }
+    }
+    protected async Task<List<FuelType>> GetFuelTypes()
+    {
+        var service = GenericService.GetService<FuelType>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetEntity/{"fueltype"}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
 
+        return new List<FuelType>();
+
+    }
+    private async Task OpenAddNewBusDialogAsync()
+    {
+        var fuelTypes = await GetFuelTypes();
+        var parameters = new DialogParameters<AddNewBus>
+        {
+            {x=>x.fuelTypes, fuelTypes}
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true, NoHeader = true, Position = DialogPosition.Center };
+
+        var dialog = await DialogService.ShowAsync<AddNewBus>("Register New Bus", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            var data = result.Data;
+            if (data is Bus)
+            {
+                var bus = data as Bus;
+                fleet.Add(bus!);
+                StateHasChanged();
+
+            }
+        }
     }
 }

@@ -49,6 +49,10 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<BusAssignment> BusAssignments { get; set; }
 
+    public virtual DbSet<BusFuelLog> BusFuelLogs { get; set; }
+
+    public virtual DbSet<BusMaintenanceRequest> BusMaintenanceRequests { get; set; }
+
     public virtual DbSet<BusRoute> BusRoutes { get; set; }
 
     public virtual DbSet<BusStaff> BusStaffs { get; set; }
@@ -92,6 +96,10 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<ExamQuizTestQuestion> ExamQuizTestQuestions { get; set; }
 
     public virtual DbSet<ExamTestQuizMultipleChoiceAnswer> ExamTestQuizMultipleChoiceAnswers { get; set; }
+
+    public virtual DbSet<FuelStation> FuelStations { get; set; }
+
+    public virtual DbSet<FuelType> FuelTypes { get; set; }
 
     public virtual DbSet<Gender> Genders { get; set; }
 
@@ -163,6 +171,12 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<TimeTableActivity> TimeTableActivities { get; set; }
 
+    public virtual DbSet<Trip> Trips { get; set; }
+
+    public virtual DbSet<TripBooking> TripBookings { get; set; }
+
+    public virtual DbSet<TripSchedule> TripSchedules { get; set; }
+
     public virtual DbSet<WorldCity> WorldCities { get; set; }
 
     public virtual DbSet<vw_AllLesson> vw_AllLessons { get; set; }
@@ -170,6 +184,8 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<vw_ClassLessonSummary> vw_ClassLessonSummaries { get; set; }
 
     public virtual DbSet<vw_ClassTeacherDetail> vw_ClassTeacherDetails { get; set; }
+
+    public virtual DbSet<vw_ClassTimetable> vw_ClassTimetables { get; set; }
 
     public virtual DbSet<vw_CompletedLessonsPerStudent> vw_CompletedLessonsPerStudents { get; set; }
 
@@ -396,9 +412,22 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.ToTable("Buses", "SchoolOps");
 
             entity.Property(e => e.BusId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AverageKmPerLitre).HasColumnType("decimal(6, 2)");
+            entity.Property(e => e.FuelType).HasMaxLength(50);
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.LastServiceDate).HasColumnType("date");
+            entity.Property(e => e.LicensePlateNumber).HasMaxLength(50);
+            entity.Property(e => e.Model).HasMaxLength(255);
             entity.Property(e => e.RegistrationNumber)
                 .IsRequired()
                 .HasMaxLength(20);
+
+            entity.HasOne(d => d.FuelTypeNavigation).WithMany(p => p.Buses)
+                .HasForeignKey(d => d.FuelTypeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Buses_FuelTypes");
 
             entity.HasOne(d => d.School).WithMany(p => p.Buses)
                 .HasForeignKey(d => d.SchoolId)
@@ -420,6 +449,63 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasConstraintName("FK__BusAssign__BusId__19FFD4FC");
         });
 
+        modelBuilder.Entity<BusFuelLog>(entity =>
+        {
+            entity.HasKey(e => e.FuelLogId).HasName("PK__BusFuelL__FFEFAACB5F044CCD");
+
+            entity.ToTable("BusFuelLogs", "SchoolOps");
+
+            entity.Property(e => e.FuelLogId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CostPerLitre).HasColumnType("decimal(8, 2)");
+            entity.Property(e => e.FuelDate).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.FuelType)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasDefaultValueSql("('Diesel')");
+            entity.Property(e => e.LitresAdded).HasColumnType("decimal(8, 2)");
+            entity.Property(e => e.Remarks).HasMaxLength(300);
+            entity.Property(e => e.TotalCost)
+                .HasComputedColumnSql("([LitresAdded]*[CostPerLitre])", true)
+                .HasColumnType("decimal(17, 4)");
+
+            entity.HasOne(d => d.Bus).WithMany(p => p.BusFuelLogs)
+                .HasForeignKey(d => d.BusId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__BusFuelLo__BusId__73A521EA");
+
+            entity.HasOne(d => d.FuelStation).WithMany(p => p.BusFuelLogs)
+                .HasForeignKey(d => d.FuelStationId)
+                .HasConstraintName("FK__BusFuelLo__FuelS__7C3A67EB");
+
+            entity.HasOne(d => d.School).WithMany(p => p.BusFuelLogs)
+                .HasForeignKey(d => d.SchoolId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__BusFuelLo__Schoo__74994623");
+        });
+
+        modelBuilder.Entity<BusMaintenanceRequest>(entity =>
+        {
+            entity.HasKey(e => e.MaintenanceRequestId).HasName("PK__BusMaint__ADBE63E474D58D84");
+
+            entity.ToTable("BusMaintenanceRequests", "SchoolOps");
+
+            entity.Property(e => e.MaintenanceRequestId).ValueGeneratedNever();
+            entity.Property(e => e.ActualCost).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Description)
+                .IsRequired()
+                .HasMaxLength(500);
+            entity.Property(e => e.EstimatedCost).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Priority)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasMaxLength(30);
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(100);
+        });
+
         modelBuilder.Entity<BusRoute>(entity =>
         {
             entity.HasKey(e => e.RouteId).HasName("PK__BusRoute__80979B4D19B7C6FC");
@@ -433,8 +519,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Bus).WithMany(p => p.BusRoutes)
                 .HasForeignKey(d => d.BusId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__BusRoutes__BusId__125EB334");
+                .HasConstraintName("FK__BusRoutes__BusId__0A888742");
         });
 
         modelBuilder.Entity<BusStaff>(entity =>
@@ -444,6 +529,7 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.ToTable("BusStaff", "SchoolOps");
 
             entity.Property(e => e.BusStaffId).ValueGeneratedNever();
+            entity.Property(e => e.Certificates).HasMaxLength(455);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.FirstName)
                 .IsRequired()
@@ -504,6 +590,8 @@ public partial class PhoenixEdusphereContext : DbContext
         modelBuilder.Entity<ClassSchedule>(entity =>
         {
             entity.ToTable("ClassSchedule");
+
+            entity.HasIndex(e => new { e.DayOfTheWeekID, e.TimeSlotID }, "UX_ClassSchedule_Day_Time").IsUnique();
 
             entity.Property(e => e.ClassScheduleID).ValueGeneratedNever();
             entity.Property(e => e.EndDate).HasColumnType("datetime");
@@ -841,6 +929,42 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasConstraintName("FK_ExamTestQuizMultipleChoiceAnswers_ExamQuizTestQuestions");
         });
 
+        modelBuilder.Entity<FuelStation>(entity =>
+        {
+            entity.HasKey(e => e.FuelStationId).HasName("PK__FuelStat__D61BFF2C7A70A81D");
+
+            entity.ToTable("FuelStations", "SchoolOps");
+
+            entity.Property(e => e.FuelStationId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.Location).HasMaxLength(150);
+            entity.Property(e => e.StationName)
+                .IsRequired()
+                .HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<FuelType>(entity =>
+        {
+            entity.HasKey(e => e.FuelTypeId).HasName("PK__FuelType__048BEE375D89E228");
+
+            entity.ToTable("FuelTypes", "SchoolOps");
+
+            entity.HasIndex(e => e.FuelCode, "UQ_FuelTypes_FuelCode").IsUnique();
+
+            entity.Property(e => e.FuelTypeId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.FuelCode)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.FuelName)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+        });
+
         modelBuilder.Entity<Gender>(entity =>
         {
             entity.ToTable("Gender");
@@ -876,6 +1000,7 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.ToTable("GradingScale");
 
             entity.Property(e => e.GradingScaleID).ValueGeneratedNever();
+            entity.Property(e => e.Comment).HasMaxLength(50);
             entity.Property(e => e.Description)
                 .HasMaxLength(10)
                 .IsFixedLength();
@@ -1104,6 +1229,7 @@ public partial class PhoenixEdusphereContext : DbContext
         modelBuilder.Entity<ReportCardDetail>(entity =>
         {
             entity.Property(e => e.ReportCardDetailID).ValueGeneratedNever();
+            entity.Property(e => e.FinalComment).HasMaxLength(50);
             entity.Property(e => e.Grade)
                 .HasMaxLength(10)
                 .IsFixedLength();
@@ -1191,6 +1317,8 @@ public partial class PhoenixEdusphereContext : DbContext
         modelBuilder.Entity<Staff>(entity =>
         {
             entity.Property(e => e.StaffID).ValueGeneratedNever();
+            entity.Property(e => e.Email).HasMaxLength(255);
+            entity.Property(e => e.PhoneNumber).HasMaxLength(255);
             entity.Property(e => e.StaffName)
                 .HasMaxLength(255)
                 .IsUnicode(false);
@@ -1478,6 +1606,68 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.OptionalNotes).HasMaxLength(250);
         });
 
+        modelBuilder.Entity<Trip>(entity =>
+        {
+            entity.HasKey(e => e.TripId).HasName("PK__Trips__51DC713E51E0B9D3");
+
+            entity.ToTable("Trips", "SchoolOps");
+
+            entity.Property(e => e.TripId).ValueGeneratedNever();
+            entity.Property(e => e.CreatedDate).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.TripName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.HasOne(d => d.Bus).WithMany(p => p.Trips)
+                .HasForeignKey(d => d.BusId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Trips_Bus");
+
+            entity.HasOne(d => d.Route).WithMany(p => p.Trips)
+                .HasForeignKey(d => d.RouteId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Trips_Route");
+        });
+
+        modelBuilder.Entity<TripBooking>(entity =>
+        {
+            entity.HasKey(e => e.TripBookingId).HasName("PK__TripBook__CD2D74F7D72F5302");
+
+            entity.ToTable("TripBookings", "SchoolOps");
+
+            entity.Property(e => e.TripBookingId).ValueGeneratedNever();
+            entity.Property(e => e.BookingDate).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+
+            entity.HasOne(d => d.Trip).WithMany(p => p.TripBookings)
+                .HasForeignKey(d => d.TripId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TripBookings_Trip");
+        });
+
+        modelBuilder.Entity<TripSchedule>(entity =>
+        {
+            entity.HasKey(e => e.TripScheduleId).HasName("PK__TripSche__ABB762509FAA73E9");
+
+            entity.ToTable("TripSchedules", "SchoolOps");
+
+            entity.Property(e => e.TripScheduleId).ValueGeneratedNever();
+            entity.Property(e => e.EndDate).HasColumnType("date");
+            entity.Property(e => e.StartDate).HasColumnType("date");
+            entity.Property(e => e.TripDate).HasColumnType("date");
+
+            entity.HasOne(d => d.Trip).WithMany(p => p.TripSchedules)
+                .HasForeignKey(d => d.TripId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TripSchedules_Trip");
+        });
+
         modelBuilder.Entity<WorldCity>(entity =>
         {
             entity.HasKey(e => e.CityID);
@@ -1525,6 +1715,31 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.LastName).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<vw_ClassTimetable>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_ClassTimetable");
+
+            entity.Property(e => e.ActivityName).HasMaxLength(100);
+            entity.Property(e => e.ClassName).HasMaxLength(50);
+            entity.Property(e => e.DayName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.EndDate).HasColumnType("datetime");
+            entity.Property(e => e.EntryType)
+                .IsRequired()
+                .HasMaxLength(8)
+                .IsUnicode(false);
+            entity.Property(e => e.SlotType).HasMaxLength(50);
+            entity.Property(e => e.StartDate).HasColumnType("datetime");
+            entity.Property(e => e.TeacherFirstName).HasMaxLength(50);
+            entity.Property(e => e.TeacherLastName).HasMaxLength(50);
+            entity.Property(e => e.TimeSlotDescription)
+                .HasMaxLength(50)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<vw_CompletedLessonsPerStudent>(entity =>

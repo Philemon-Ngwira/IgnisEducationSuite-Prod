@@ -1,6 +1,6 @@
 ﻿namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
 {
-    public class TimetableReport
+    public class TimetableReportDto
     {
         public List<string> InvariantViolations { get; } = new();
         public Dictionary<string, int> Metrics { get; } = new();

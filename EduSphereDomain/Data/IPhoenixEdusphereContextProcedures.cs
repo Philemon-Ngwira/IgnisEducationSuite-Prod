@@ -70,6 +70,7 @@ namespace EduSphereDomain.Data
         Task<List<GetUpcomingExamsOrQuizzesResult>> GetUpcomingExamsOrQuizzesAsync(int? StudentGrade, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetUserBadgesByUserIDResult>> GetUserBadgesByUserIDAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<RunDailyJobsResult>> RunDailyJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<sp_GetStudentTimetableResult>> sp_GetStudentTimetableAsync(string userID, DateTime? AsOfDate, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> SyncStudentAndParentAccountStatusAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> SyncStudentsToClassesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> UpdateEndTermReportCardStatusAsync(Guid? TermSettingID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);

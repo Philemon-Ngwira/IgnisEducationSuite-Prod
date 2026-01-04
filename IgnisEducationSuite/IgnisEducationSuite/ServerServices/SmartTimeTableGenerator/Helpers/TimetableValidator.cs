@@ -1,26 +1,48 @@
-﻿using EDUSphereSharedProject.UniversalModels.TimeTabling;
+﻿using EDUSphereSharedProject.Models;
+using EDUSphereSharedProject.UniversalModels.TimeTabling;
+using Org.BouncyCastle.Utilities;
 
 namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
 {
     public class TimetableValidator
     {
-        public TimetableReport Analyze(
+        private Dictionary<Guid, SubjectScheduleConfig> subjectsList = new Dictionary<Guid, SubjectScheduleConfig>();
+
+      
+        public TimetableReportDto AnalyzeGenerated(
+    List<GeneratedSlotPreview> slots,
+    Dictionary<Guid, SubjectScheduleConfig> subjects,
+    Dictionary<Guid, SubjectAdjacencyConstraints> adjacency)
+        {
+            var state = TimetableStateFactory.FromGeneratedSlots(slots, subjects, adjacency);
+            return Analyze(state, subjects, adjacency);
+        }
+        private static string SubjectName(
+    Guid subjectId,
+    Dictionary<Guid, SubjectScheduleConfig> subjects)
+        {
+            return subjects.TryGetValue(subjectId, out var s)
+                ? s.SubjectName
+                : $"Unknown Subject ({subjectId})";
+        }
+
+        public TimetableReportDto Analyze(
      TimetableState state,
      Dictionary<Guid, SubjectScheduleConfig> subjects,
      Dictionary<Guid, SubjectAdjacencyConstraints> adjacency)
         {
-            var report = new TimetableReport();
-
+            var report = new TimetableReportDto();
+            subjectsList = subjects;
             CheckDailyLimits(state, report);
             CheckRequiredDoubles(state, subjects, report);
             CheckEarlyMorningRules(state, subjects, report);
-            CheckAdjacency(state, adjacency, report);
+            CheckAdjacency(state, adjacency, report, subjects);
 
             CollectMetrics(state, report);
 
             return report;
         }
-        void CheckDailyLimits(TimetableState state, TimetableReport report)
+        void CheckDailyLimits(TimetableState state, TimetableReportDto report)
         {
             foreach (var day in Enum.GetValues<DayOfWeek>())
             {
@@ -34,14 +56,16 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                 {
                     if (g.Count() > 2)
                         report.InvariantViolations.Add(
-                            $"{day}: Subject {g.Key} appears {g.Count()} times");
+                           $"{day}: {SubjectName(g.Key, subjectsList)} appears {g.Count()} times"
+);
 
                     if (g.Count() == 2)
                     {
                         var ordered = g.OrderBy(s => s.StartTime).ToList();
                         if (!ordered[0].EndTime.Equals(ordered[1].StartTime))
                             report.InvariantViolations.Add(
-                                $"{day}: Subject {g.Key} is split (not a double)");
+                               $"{day}: {SubjectName(g.Key, subjectsList)} is split (not a double)"
+);
                     }
                 }
             }
@@ -49,7 +73,7 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         void CheckRequiredDoubles(
     TimetableState state,
     Dictionary<Guid, SubjectScheduleConfig> subjects,
-    TimetableReport report)
+    TimetableReportDto report)
         {
             foreach (var subject in subjects.Values)
             {
@@ -78,7 +102,7 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         void CheckEarlyMorningRules(
             TimetableState state,
             Dictionary<Guid, SubjectScheduleConfig> subjects,
-            TimetableReport report)
+            TimetableReportDto report)
         {
             foreach (var slot in state.Slots)
             {
@@ -97,7 +121,7 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         void CheckAdjacency(
     TimetableState state,
     Dictionary<Guid, SubjectAdjacencyConstraints> adjacency,
-    TimetableReport report)
+    TimetableReportDto report, Dictionary<Guid, SubjectScheduleConfig> subjects)
         {
             foreach (var day in Enum.GetValues<DayOfWeek>())
             {
@@ -120,13 +144,14 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                     if (adjacency[curr.SubjectId].CannotFollowSubjects.Contains(prev.SubjectId))
                     {
                         report.InvariantViolations.Add(
-                            $"{day}: {curr.SubjectId} cannot follow {prev.SubjectId}");
+                           $"{day}: {SubjectName(curr.SubjectId, subjects)} cannot follow {SubjectName(prev.SubjectId, subjects)}"
+);
                     }
 
                 }
             }
         }
-        void CollectMetrics(TimetableState state, TimetableReport report)
+        void CollectMetrics(TimetableState state, TimetableReportDto report)
         {
             report.Metrics["FreeSlots"] =
                 state.Slots.Count(s => s.SubjectId == Guid.Empty);
@@ -139,4 +164,28 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         }
 
     }
+
+    public static class TimetableStateFactory
+    {
+        public static TimetableState FromGeneratedSlots(
+            List<GeneratedSlotPreview> slots,
+            Dictionary<Guid, SubjectScheduleConfig> subjects,
+            Dictionary<Guid, SubjectAdjacencyConstraints> adjacency)
+        {
+            var timeSlots = slots.Select(slot => new TimeSlot
+            {
+                Day = Enum.Parse<DayOfWeek>(slot.DayOfWeek),
+                StartTime = slot.Slot.StartTime,
+                EndTime = slot.Slot.EndTime,
+                SubjectId = slot.SubjectId ?? Guid.Empty
+            }).ToList();
+
+            return new TimetableState(
+                timeSlots,
+                subjects.Values.ToList(),
+                adjacency.Values.ToList()
+            );
+        }
+    }
+
 }

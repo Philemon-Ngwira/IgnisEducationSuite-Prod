@@ -29,7 +29,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         protected List<TimeSlot> timeSlots = new();
         protected List<GetStudentPerformanceForCurrentYearResult> YearlyStudentPerfomance = new();
         protected List<GetStudentUnCompletedLessonsResult> uncompletedLessons = new();
-        protected List<GetStudentClassScheduleResult> Currentschedules = new();
+        protected List<GetStudentTimetableResult> Currentschedules = new();
         protected List<GetStudentAttendanceByUserIDAndEventDateResult> attendances = new();
         protected List<GetAttendanceTrendForPastSevenDaysResult> attendancesTrends = new();
         protected List<GetMissedClassesForPastWeekResult> missedClasses = new();
@@ -67,7 +67,6 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         public double[] StudentCityDemographic;
         protected string StudentID = string.Empty;
         protected int GradeLevel = 0;
-        private IEnumerable<IGrouping<TimeSlot, GetStudentClassScheduleResult>> groupedSchedules;
         protected List<DayofTheWeek> daysofTheWeek = new();
         [Inject] AuthenticationStateProvider _authenticationStateProvider { get; set; } = default!;
         protected string SchoolID = string.Empty;
@@ -80,7 +79,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         
         protected override async Task OnInitializedAsync()
         {
-            isLoading = true;
+            LoaderService.Show("Initializing Dashboard please wait....");
 
             try
             {
@@ -155,10 +154,11 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                         GetUnCompletedClasses(),
                         GetAttendances(),
                         GetDiningMenus()
+                       
                     );
 
                     // This MUST run AFTER timeSlots + daysOfWeek load
-                    await GetClassSchedule(timeSlots, daysofTheWeek);
+                    await GetClassSchedule();
 
                     // Now set today’s tab
                     var today = DateTime.Now.DayOfWeek.ToString();
@@ -179,7 +179,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             }
             finally
             {
-                isLoading = false;
+                LoaderService.Hide();
             }
         }
 
@@ -233,7 +233,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                     {
                         var timeSlotavailable = await GetTimeSlots();
                         var DOW = await GetDaysOfWeek();
-                        await GetClassSchedule(timeSlotavailable, DOW);
+                        await GetClassSchedule();
                         await GetStudentPerfomanceData();
                         await GetUnCompletedClasses();
                         await GetAttendances();
@@ -840,29 +840,13 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 }
             }
         }
-        protected async Task GetClassSchedule(List<TimeSlot> timeSlots, List<DayofTheWeek> daysofTheWeek)
+        protected async Task GetClassSchedule()
         {
-            var service = _genericService.GetService<GetStudentClassScheduleResult>();
+            var service = _genericService.GetService<GetStudentTimetableResult>();
             var result = await service.GetAllAsync($"api/Dynamic/GetActiveStudentTimeTable/{AppState.UserID}", true);
             if (result.IsSuccess)
             {
                 Currentschedules = result.Data.ToList();
-                foreach (var item in Currentschedules)
-                {
-                    item.TimeSlot = timeSlots.Where(x => x.TimeslotID == item.TimeslotID).FirstOrDefault();
-                }
-                groupedSchedules = Currentschedules
-                    .OrderBy(cs => dayOrder.IndexOf(cs.DayName)) // Order by day
-                    .ThenBy(cs => cs.StartTime)                     // Then by time
-                    .GroupBy(cs => cs.TimeSlot)                              // Group by TimeSlot
-                    .OrderBy(g => g.Key.StartTime);                          // Order groups by StartTime
-
-                var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
-                           .ToDictionary(x => x.day, x => x.index);
-
-                var orderedDays = daysofTheWeek.OrderBy(x => dayOrderDict[x.DayName]).ToList();
-                daysofTheWeek = orderedDays;
-                GradeLevel = Currentschedules.Select(x => x.Grade.Value).FirstOrDefault();
             }
         }
         #endregion

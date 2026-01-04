@@ -1,0 +1,193 @@
+﻿@using EDUSphereSharedProject.Models
+@page "/tripManagment"
+<MudStack Spacing="4" Class="pa-6">
+
+    <!-- Header -->
+    <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <div>
+            <MudText Typo="Typo.h4" Class="fw-bold">
+                Trip Scheduling
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Assign buses and drivers to routes
+            </MudText>
+        </div>
+
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Add">
+            Schedule New Trip
+        </MudButton>
+    </MudStack>
+
+    <!-- Create Trip Panel -->
+    <MudPaper Elevation="3" Class="rounded-xl overflow-hidden">
+
+        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center"
+                  Class="pa-4 bg-grey-lighten-5 border-b">
+            <MudText Class="fw-bold">New Trip Configuration</MudText>
+            <MudIcon Icon="@Icons.Material.Filled.Close" />
+        </MudStack>
+
+        <MudGrid Class="pa-6" Spacing="4">
+
+            <!-- Left Column -->
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="3">
+
+                    <MudText Typo="Typo.subtitle2">Trip Type</MudText>
+
+                    <MudButtonGroup Variant="Variant.Filled" Color="Color.Primary">
+                        <MudButton StartIcon="@Icons.Material.Filled.Repeat">
+                            Recurring
+                        </MudButton>
+                        <MudButton StartIcon="@Icons.Material.Filled.Event">
+                            One-Off
+                        </MudButton>
+                    </MudButtonGroup>
+
+                    <MudText Typo="Typo.subtitle2">Frequency</MudText>
+                    <MudStack Row Spacing="1">
+                        @foreach (var day in new[] { "Mon","Tue","Wed","Thu","Fri","Sat","Sun" })
+                        {
+                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
+                                @day
+                            </MudChip>
+                        }
+                    </MudStack>
+
+                   @*  <MudSelect Label="Route" Variant="Variant.Outlined">
+                        <MudSelectItem Value="1">Route A (12 km)</MudSelectItem>
+                        <MudSelectItem Value="2">Route B (18 km)</MudSelectItem>
+                    </MudSelect> *@
+
+                </MudStack>
+            </MudItem>
+
+            <!-- Right Column -->
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4 rounded-xl bg-grey-lighten-5">
+
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">
+                        Resource Assignment
+                    </MudText>
+
+                    <MudStack Spacing="3" Class="mt-2">
+
+                       @*  <MudSelect Label="Bus" Variant="Variant.Outlined">
+                            <MudSelectItem Value="1">BUS-101 (40 seats)</MudSelectItem>
+                        </MudSelect>
+
+                        <MudSelect Label="Driver" Variant="Variant.Outlined">
+                            <MudSelectItem Value="1">John Carter</MudSelectItem>
+                        </MudSelect>
+
+                        <MudSelect Label="Attendant (Optional)" Variant="Variant.Outlined">
+                            <MudSelectItem Value="1">Sarah Lee</MudSelectItem>
+                        </MudSelect> *@
+
+                        <MudDivider />
+
+                        <MudButton Color="Color.Success"
+                                   Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Filled.Save"
+                                   FullWidth>
+                            Confirm Trip
+                        </MudButton>
+
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+        </MudGrid>
+    </MudPaper>
+
+    <!-- Trip Cards -->
+    <MudGrid Spacing="3">
+
+        <MudItem xs="12" md="6" lg="4">
+            <MudPaper Elevation="1" Class="pa-5 rounded-xl">
+
+                <MudChip T="string" Color="Color.Info"
+                         Size="Size.Small"
+                         Class="position-absolute top-0 right-0 ma-3">
+                    Scheduled
+                </MudChip>
+
+                <MudText Typo="Typo.overline" Color="Color.Secondary">
+                    Recurring
+                </MudText>
+
+                <MudText Typo="Typo.h6" Class="fw-bold">
+                    Downtown Morning Route
+                </MudText>
+
+                <MudPaper Class="pa-3 mt-3 bg-grey-lighten-5 rounded-lg">
+                    <MudStack Row Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                        <MudStack Row Spacing="1">
+                            @foreach (var d in new[] { "Mon","Tue","Wed","Thu","Fri" })
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@d</MudChip>
+                            }
+                        </MudStack>
+                    </MudStack>
+
+                    <MudText Typo="Typo.caption" Class="mt-1">
+                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                        Starts 07:00 AM
+                    </MudText>
+                </MudPaper>
+
+                <MudStack Spacing="1" Class="mt-3">
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.DirectionsBus" Size="Size.Small" />
+                            Bus
+                        </MudText>
+                        <MudText Class="fw-medium">BUS-101</MudText>
+                    </MudStack>
+
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                            Driver
+                        </MudText>
+                        <MudText Class="fw-medium">John Carter</MudText>
+                    </MudStack>
+
+                    <MudStack Row Justify="Justify.SpaceBetween">
+                        <MudText Color="Color.Secondary">
+                            <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
+                            Helper
+                        </MudText>
+                        <MudText Class="fw-medium">Sarah Lee</MudText>
+                    </MudStack>
+                </MudStack>
+
+                <MudDivider Class="my-3" />
+
+                <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Seats: 12 / 40
+                    </MudText>
+
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Primary"
+                               Size="Size.Small">
+                        Manage Manifest
+                    </MudButton>
+                </MudStack>
+
+            </MudPaper>
+        </MudItem>
+
+    </MudGrid>
+
+</MudStack>
+
+
+
+@code {
+    protected List<Trip> trips = new();
+}

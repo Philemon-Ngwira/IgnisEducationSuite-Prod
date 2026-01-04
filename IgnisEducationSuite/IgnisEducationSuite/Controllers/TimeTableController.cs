@@ -29,51 +29,90 @@ namespace IgnisEducationSuite.Controllers
             _repository = repository;
         }
         [HttpPost("generate")]
-        public async Task<ActionResult<GenerateTimetableResponse>> Generate([FromBody] GenerateTimetableRequest request)
+        public async Task<ActionResult<GenerateTimetableResponse>> Generate(
+     [FromBody] GenerateTimetableRequest request)
         {
             try
             {
-                var teacherIds = request.Schedules
-                    .Select(s => s.TeacherId)
-                    .Distinct()
-                    .ToList();
-
-                var teacherConstraints = await _repository.GetTeacherConstraintsAsync(teacherIds);
-
-                var result = _generator.Generate(
+                // -----------------------------
+                // 1. Generate initial timetable
+                // -----------------------------
+                var generatedSlots = _generator.Generate(
                     request.TimeSlots,
                     request.Schedules,
                     request.AdjacencyRules,
-                    request.Activities.First()
+                    request.Activities.FirstOrDefault()
                 );
+
+                // -----------------------------
+                // 2. Build mutable state
+                // -----------------------------
                 var state = new TimetableState(
-          result,
-          request.Schedules,
-          request.AdjacencyRules
-      );
+                    generatedSlots,
+                    request.Schedules,
+                    request.AdjacencyRules
+                );
 
+                // -----------------------------
+                // 3. Validate raw generator output (optional but useful)
+                // -----------------------------
                 var initialReport = new TimetableValidator().Analyze(
-            state,
-            request.Schedules.ToDictionary(s => s.SubjectId),
-            request.AdjacencyRules.ToDictionary(a => a.SubjectId)
-        );
+                    state,
+                    request.Schedules.ToDictionary(s => s.SubjectId),
+                    request.AdjacencyRules.ToDictionary(a => a.SubjectId)
+                );
 
-                Console.WriteLine("\nInitial violations:");
-                foreach (var v in initialReport.InvariantViolations)
-                    Console.WriteLine(" - " + v);
+                if (initialReport.InvariantViolations.Any())
+                {
+                    _logger.LogWarning(
+                        "Initial generator violations: {Violations}",
+                        string.Join(", ", initialReport.InvariantViolations)
+                    );
+                }
 
-                var c = request.Schedules.Where(x => x.IsCoreSubject).Select(x => x.SubjectId).ToList();
-                var coreSubjects = c.ToHashSet();
-                var repairAndOptimize = new TimetableBuilder(coreSubjects);
+                // -----------------------------
+                // 4. Repair + optimize
+                // -----------------------------
+                var coreSubjects = request.Schedules
+                    .Where(s => s.IsCoreSubject)
+                    .Select(s => s.SubjectId)
+                    .ToHashSet();
+
+                var builder = new TimetableBuilder(coreSubjects);
+
+                builder.Build(
+                    state,
+                    request.Activities.FirstOrDefault()
+                );
+
+                // -----------------------------
+                // 5. Validate final state
+                // -----------------------------
                 var finalReport = new TimetableValidator().Analyze(
-             state,
-            request.Schedules.ToDictionary(s => s.SubjectId),
-            request.AdjacencyRules.ToDictionary(a => a.SubjectId)
-       );
+                    state,
+                    request.Schedules.ToDictionary(s => s.SubjectId),
+                    request.AdjacencyRules.ToDictionary(a => a.SubjectId)
+                );
 
-                var data = MapToGeneratedSlotPreview(result, request.classes);
+                if (finalReport.InvariantViolations.Any())
+                {
+                    _logger.LogError(
+                        "Final timetable violations after repair: {Violations}",
+                        string.Join(", ", finalReport.InvariantViolations)
+                    );
 
-                // Just return the flat list directly
+
+                }
+
+                // -----------------------------
+                // 6. Return FINAL slots (not generator output)
+                // -----------------------------
+                var data = MapToGeneratedSlotPreview(
+                    state.Slots,
+                    request.classes
+                   
+                );
+
                 return Ok(new GenerateTimetableResponse
                 {
                     Success = true,
@@ -83,12 +122,36 @@ namespace IgnisEducationSuite.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Timetable generation failed");
+
                 return StatusCode(500, new GenerateTimetableResponse
                 {
                     Success = false,
                     Error = "Internal generation error"
                 });
             }
+        }
+
+        [HttpPost("validatesmart")]
+        public ActionResult<TimeTableReportDTO> Validate(
+    TimetableValidationRequest request)
+        {
+            var state = TimetableStateFactory.FromGeneratedSlots(
+                request.Slots,
+                request.Subjects,
+                request.Adjacency);
+
+            var validator = new TimetableValidator();
+
+            var report = validator.Analyze(
+                state,
+                request.Subjects,
+                request.Adjacency);
+            TimeTableReportDTO reportDTO = new()
+            {
+                InvariantViolations = report.InvariantViolations,
+                Metrics = report.Metrics,
+            };
+            return Ok(reportDTO);
         }
         private List<GeneratedSlotPreview> MapToGeneratedSlotPreview(List<TimeSlot> timeSlots, List<Class> classes)
         {

@@ -18,4 +18,6 @@ public partial class GradingScale
     public decimal? GPA { get; set; }
 
     public Guid? SchoolID { get; set; }
+
+    public string Comment { get; set; }
 }

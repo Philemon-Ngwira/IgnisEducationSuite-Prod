@@ -70,7 +70,9 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
             => Slots.Where(s => s.Day == day).OrderBy(s => s.StartTime);
 
         public IEnumerable<TimeSlot> FreeSlots()
-            => Slots.Where(s => s.SubjectId == Guid.Empty);
+     => Slots.Where(s =>
+         s.SubjectId == Guid.Empty &&
+         s.ScheduledActivityId == null);
 
         // ---------- DOUBLE DETECTION ----------
 

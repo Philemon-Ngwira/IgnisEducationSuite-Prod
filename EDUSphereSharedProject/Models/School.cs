@@ -21,6 +21,8 @@ public partial class School
 
     public string SchoolWebsite { get; set; }
 
+    public virtual ICollection<BusFuelLog> BusFuelLogs { get; set; } = new List<BusFuelLog>();
+
     public virtual ICollection<Bus> Buses { get; set; } = new List<Bus>();
 
     public virtual ICollection<Class> Classes { get; set; } = new List<Class>();

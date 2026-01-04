@@ -16,5 +16,7 @@ namespace EDUSphereSharedProject.UniversalModels
         public string StartTime { get; set; }
 
         public string EndTime { get; set; }
+
+        public Guid? ScheduledActivityId { get;set; }
     }
 }

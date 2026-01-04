@@ -227,6 +227,14 @@
          "ObjectType": 0
       },
       {
+         "Name": "[SchoolOps].[BusFuelLogs]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[BusMaintenanceRequests]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[SchoolOps].[BusRoutes]",
          "ObjectType": 0
       },
@@ -275,6 +283,14 @@
          "ObjectType": 0
       },
       {
+         "Name": "[SchoolOps].[FuelStations]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[FuelTypes]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[SchoolOps].[Hostels]",
          "ObjectType": 0
       },
@@ -292,6 +308,18 @@
       },
       {
          "Name": "[SchoolOps].[Rooms]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[TripBookings]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[Trips]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[TripSchedules]",
          "ObjectType": 0
       },
       {
@@ -324,6 +352,10 @@
       },
       {
          "Name": "[dbo].[vw_ClassTeacherDetails]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ClassTimetable]",
          "ObjectType": 3
       },
       {
@@ -596,6 +628,10 @@
       },
       {
          "Name": "[dbo].[RunDailyJobs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[sp_GetStudentTimetable]",
          "ObjectType": 1
       },
       {

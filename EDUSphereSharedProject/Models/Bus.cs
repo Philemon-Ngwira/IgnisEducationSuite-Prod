@@ -17,9 +17,33 @@ public partial class Bus
 
     public Guid? DriverStaffId { get; set; }
 
+    public string LicensePlateNumber { get; set; }
+
+    public string FuelType { get; set; }
+
+    public string Model { get; set; }
+
+    public Guid FuelTypeId { get; set; }
+
+    public int? ModelYear { get; set; }
+
+    public int CurrentMileageKm { get; set; }
+
+    public decimal? AverageKmPerLitre { get; set; }
+
+    public DateTime? LastServiceDate { get; set; }
+
+    public bool? IsActive { get; set; }
+
     public virtual ICollection<BusAssignment> BusAssignments { get; set; } = new List<BusAssignment>();
+
+    public virtual ICollection<BusFuelLog> BusFuelLogs { get; set; } = new List<BusFuelLog>();
 
     public virtual ICollection<BusRoute> BusRoutes { get; set; } = new List<BusRoute>();
 
+    public virtual FuelType FuelTypeNavigation { get; set; }
+
     public virtual School School { get; set; }
+
+    public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
 }

@@ -105,42 +105,8 @@
                                                 <div class="card-body">
                                                     @if (Currentschedules.Any())
                                                     {
-                                                        <table class="timetable">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Time</th>
-                                                                    @foreach (var day in daysofTheWeek)
-                                                                    {
-                                                                        <th>@day.DayName</th>
-                                                                    }
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                @foreach (var group in groupedSchedules)
-                                                                {
-                                                                    <tr>
-                                                                        <td class="time">@($"{group.Key.StartTime:hh\\:mm}") - @($"{group.Key.EndTime:hh\\:mm}")</td>
-                                                                        @foreach (var day in dayOrder)
-                                                                        {
-                                                                            <td class="@((group.Any(cs => cs.DayName == day) ? "" : "empty"))">
-                                                                                @{
-                                                                                    var schedule = group.FirstOrDefault(cs => cs.DayName == day);
-                                                                                    if (schedule != null)
-                                                                                    {
-                                                                                        <span>@schedule.ClassName</span>
-                                                                                    }
-                                                                                    else
-                                                                                    {
-                                                                                        <span>No Classes</span>
-                                                                                    }
-                                                                                }
-                                                                            </td>
-                                                                        }
-                                                                    </tr>
-                                                                }
-                                                            </tbody>
-
-                                                        </table>
+                                                        <TimeTableViewer TimetableEntries="Currentschedules"
+                                                                         Title="@(Currentschedules.Select(x=>x.LevelName).First())" />
                                                     }
                                                     else
                                                     {
@@ -409,7 +375,7 @@
                                                             <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
                                                                 <div class="d-flex align-items-center gap-12">
                                                                     <div class="flex-grow-1">
-                                                                        <h6 class="text-md mb-0 fw-normal" >@item.AttendanceDate.Value.ToShortDateString(): @item.ClassName</h6>
+                                                                        <h6 class="text-md mb-0 fw-normal">@item.AttendanceDate.Value.ToShortDateString(): @item.ClassName</h6>
                                                                         <span class="text-sm text-secondary-light fw-normal">
                                                                             @item.FirstName @item.LastName
                                                                         </span>
@@ -440,77 +406,10 @@
                                             <div class="card-body">
                                                 @if (Currentschedules.Any())
                                                 {
-                                                    <MudPaper Class="pa-3 timetable-wrapper" Elevation="1">
-                                                        <MudText Typo="Typo.h6" Class="mb-2">
-                                                            My Class Timetable
-                                                        </MudText>
+                                                    <TimeTableViewer TimetableEntries="Currentschedules"
+                                                                     Title="@(Currentschedules?.Where(x => !string.IsNullOrWhiteSpace(x.LevelName)).Select(x => x.LevelName).FirstOrDefault())" />
 
-                                                        <table class="timetable student-timetable">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Time</th>
-                                                                    @foreach (var day in daysofTheWeek)
-                                                                    {
-                                                                        <th>@day.DayName</th>
-                                                                    }
-                                                                </tr>
-                                                            </thead>
 
-                                                            <tbody>
-                                                                @foreach (var group in groupedSchedules)
-                                                                {
-                                                                    <tr>
-                                                                        <!-- TIME COLUMN -->
-                                                                        <td class="time">
-                                                                            @($"{group.Key.StartTime:hh\\:mm}") – @($"{group.Key.EndTime:hh\\:mm}")
-                                                                        </td>
-
-                                                                        <!-- DAY CELLS -->
-                                                                        @foreach (var day in dayOrder)
-                                                                        {
-                                                                            var schedule = group.FirstOrDefault(cs => cs.DayName == day);
-
-                                                                            <td class="@(schedule == null ? "empty" : "filled")">
-                                                                                @if (schedule != null)
-                                                                                {
-                                                                                    <MudChip T="string" Size="Size.Small"
-                                                                                             Variant="Variant.Filled"
-                                                                                             Color="Color.Secondary">
-                                                                                        @schedule.ClassName
-                                                                                    </MudChip>
-                                                                                }
-                                                                                else
-                                                                                {
-                                                                                    <span class="text-muted">—</span>
-                                                                                }
-                                                                            </td>
-                                                                        }
-                                                                    </tr>
-                                                                }
-                                                            </tbody>
-                                                        </table>
-                                                        <style>
-                                                            .student-timetable td {
-                                                                text-align: center;
-                                                                vertical-align: middle;
-                                                            }
-
-                                                            .student-timetable .time {
-                                                                font-weight: 600;
-                                                                white-space: nowrap;
-                                                                background-color: rgba(0,0,0,0.03);
-                                                            }
-
-                                                            .student-timetable td.empty {
-                                                                color: #aaa;
-                                                            }
-
-                                                            .timetable-wrapper {
-                                                                overflow-x: auto;
-                                                            }
-
-                                                        </style>
-                                                    </MudPaper>
                                                 }
                                                 else
                                                 {

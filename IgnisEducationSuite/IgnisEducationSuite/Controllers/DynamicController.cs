@@ -627,6 +627,10 @@ namespace IgnisEducationSuite.Controllers
                 "clinic" => GetRepository<Clinic>(),
                 "staff" => GetRepository<Staff>(),
                 "busstaff" => GetRepository<BusStaff>(),
+                "fueltype" => GetRepository<FuelType>(),
+                "bus" => GetRepository<Bus>(),
+                "busroute" => GetRepository<BusRoute>(),
+                "bustop" => GetRepository<BusStop>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -690,6 +694,10 @@ namespace IgnisEducationSuite.Controllers
                 "clinic" => JsonSerializer.Deserialize<Clinic>(obj.ToString()),
                 "staff" => JsonSerializer.Deserialize<Staff>(obj.ToString()),
                 "busstaff" => JsonSerializer.Deserialize<BusStaff>(obj.ToString()),
+                "fueltype" => JsonSerializer.Deserialize<FuelType>(obj.ToString()),
+                "bus" => JsonSerializer.Deserialize<Bus>(obj.ToString()),
+                "busroute" => JsonSerializer.Deserialize<BusRoute>(obj.ToString()),
+                "bustop" => JsonSerializer.Deserialize<BusStop>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -878,6 +886,19 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetBusStaffAsync(Guid SchoolID)
         {
             var result = await _repository.GetBusStaffAsync(SchoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetSchoolBusFleet/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolBusFleetAsync(string SchoolID)
+        {
+            var result = await _repository.GetSchoolBusFleetAsync(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+
+        [HttpGet("GetBusRoutesBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolBusRoutes(string SchoolID)
+        {
+            var result = await _repository.GetSchoolBusRoutes(Guid.Parse(SchoolID));
             return Ok(result);
         }
         #endregion

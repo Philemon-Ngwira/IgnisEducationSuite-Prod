@@ -38,5 +38,4 @@ public partial class TimeSlot
     public Guid SubjectId { get; set; }
     [NotMapped]
     public string SubjectName { get; set; }
-
 }
