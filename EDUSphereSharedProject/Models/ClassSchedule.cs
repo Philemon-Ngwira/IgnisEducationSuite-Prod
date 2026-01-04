@@ -2,6 +2,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -40,4 +41,17 @@ public partial class ClassSchedule
     public virtual ICollection<StudentClassSchedule> StudentClassSchedules { get; set; } = new List<StudentClassSchedule>();
 
     public virtual TimeSlot TimeSlot { get; set; }
+
+    [NotMapped]
+    public string DisplayLabel
+    {
+        get
+        {
+            if (Class != null)
+                return Class.ClassName;
+            if (ScheduledActivityNavigation != null)
+                return ScheduledActivityNavigation.ActivityName;
+            return "Inactive";
+        }
+    }
 }
