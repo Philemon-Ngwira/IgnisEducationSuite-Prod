@@ -175,6 +175,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<TripBooking> TripBookings { get; set; }
 
+    public virtual DbSet<TripDirection> TripDirections { get; set; }
+
     public virtual DbSet<TripSchedule> TripSchedules { get; set; }
 
     public virtual DbSet<WorldCity> WorldCities { get; set; }
@@ -1612,12 +1614,15 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.ToTable("Trips", "SchoolOps");
 
+            entity.HasIndex(e => e.Direction, "IX_Trips_TripDirectionID");
+
             entity.Property(e => e.TripId).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.IsActive)
                 .IsRequired()
                 .HasDefaultValueSql("((1))");
             entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.RecurringDays).HasMaxLength(50);
             entity.Property(e => e.TripName)
                 .IsRequired()
                 .HasMaxLength(100);
@@ -1626,6 +1631,10 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasForeignKey(d => d.BusId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Trips_Bus");
+
+            entity.HasOne(d => d.DirectionNavigation).WithMany(p => p.Trips)
+                .HasForeignKey(d => d.Direction)
+                .HasConstraintName("FK_Trips_TripDirections");
 
             entity.HasOne(d => d.Route).WithMany(p => p.Trips)
                 .HasForeignKey(d => d.RouteId)
@@ -1649,6 +1658,26 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasForeignKey(d => d.TripId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TripBookings_Trip");
+        });
+
+        modelBuilder.Entity<TripDirection>(entity =>
+        {
+            entity.ToTable("TripDirections", "SchoolOps");
+
+            entity.HasIndex(e => e.DirectionCode, "UQ__TripDire__7E05DBBFC9F3444E").IsUnique();
+
+            entity.Property(e => e.TripDirectionID).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.Description).HasMaxLength(200);
+            entity.Property(e => e.DirectionCode)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.DirectionName)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
         });
 
         modelBuilder.Entity<TripSchedule>(entity =>

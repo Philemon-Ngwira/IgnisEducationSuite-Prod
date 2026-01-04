@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -39,8 +38,4 @@ public partial class Class
     public virtual ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
 
     public virtual Teacher Teacher { get; set; }
-    [NotMapped]
-    public bool HasCustomPeriods { get; set; } = false;
-    [NotMapped]
-    public bool IsCore { get; set; }
 }

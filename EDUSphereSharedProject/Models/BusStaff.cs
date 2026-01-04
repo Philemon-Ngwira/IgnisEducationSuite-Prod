@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -33,6 +32,4 @@ public partial class BusStaff
     public DateTime? UpdatedAt { get; set; }
 
     public string Certificates { get; set; }
-    [NotMapped]
-    public List<string> Certifications { get; set; }
 }

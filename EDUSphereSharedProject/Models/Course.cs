@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -31,6 +30,4 @@ public partial class Course
     public virtual ICollection<CourseDetail> CourseDetails { get; set; } = new List<CourseDetail>();
 
     public virtual School School { get; set; }
-    [NotMapped]
-    public string ImgUrl { get; set; }
 }

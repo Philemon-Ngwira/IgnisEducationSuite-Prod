@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -23,6 +22,4 @@ public partial class vw_ClassTeacherDetail
     public string Gender { get; set; }
 
     public string UserID { get; set; }
-    [NotMapped]
-    public string LevelName { get; set; }
 }

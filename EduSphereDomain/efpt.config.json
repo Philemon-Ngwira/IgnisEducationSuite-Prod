@@ -315,6 +315,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[SchoolOps].[TripDirections]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[SchoolOps].[Trips]",
          "ObjectType": 0
       },

@@ -33,7 +33,11 @@ public partial class Trip
 
     public string Notes { get; set; }
 
+    public string RecurringDays { get; set; }
+
     public virtual Bus Bus { get; set; }
+
+    public virtual TripDirection DirectionNavigation { get; set; }
 
     public virtual BusRoute Route { get; set; }
 

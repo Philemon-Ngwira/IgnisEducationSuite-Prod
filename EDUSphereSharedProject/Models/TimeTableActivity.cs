@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -23,12 +22,4 @@ public partial class TimeTableActivity
     public Guid? SchoolID { get; set; }
 
     public virtual ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
-    [NotMapped]
-    public List<string> CannotFollow { get; set; } = new();
-    [NotMapped]
-    public bool MustRespectTime { get; set; }
-    [NotMapped]
-    public TimeSpan? AfternoonStart { get; set; }
-    [NotMapped]
-    public TimeSpan StartFrom { get; set; }
 }

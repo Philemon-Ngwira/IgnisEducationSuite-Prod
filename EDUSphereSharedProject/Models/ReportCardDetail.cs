@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -25,6 +24,4 @@ public partial class ReportCardDetail
     public virtual Class Class { get; set; }
 
     public virtual ReportCard ReportCard { get; set; }
-    [NotMapped]
-    public bool CanBeEditied { get; set; } = true;
 }
