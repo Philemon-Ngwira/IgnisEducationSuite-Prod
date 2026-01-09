@@ -92,6 +92,7 @@
                                     <MudNavLink Href="fleet" Icon="@MaterialDesignIcons.Normal.BusSchool">Fleet & Registry</MudNavLink>
                                     <MudNavLink Href="RoutePlanning" Icon="@MaterialDesignIcons.Normal.MapMarkerPath">Route Planning</MudNavLink>
                                     <MudNavLink Href="tripManagment" Icon="@MaterialDesignIcons.Normal.Calendar">Trip Schedule</MudNavLink>
+                                    <MudNavLink Href="DriverPortal" Icon="@MaterialDesignIcons.Normal.Steering">Portal</MudNavLink>
 
                                 </MudNavGroup>
                                 <MudNavGroup Icon="@Icons.Material.Filled.DinnerDining" Title="Dining">
@@ -108,7 +109,6 @@
                                     <MudNavLink Href="clinic-staff" Icon="@Icons.Material.Filled.MedicalServices">Clinic Staff</MudNavLink>
                                     <MudNavLink Href="Clinics" Icon="@MaterialDesignIcons.Normal.Hospital">Clinics</MudNavLink>
                                     <MudNavLink Href="MedicalInventory" Icon="@Icons.Material.Filled.Medication">Inventory</MudNavLink>
-                                    <MudNavLink Href="ClinicVisits" Icon="@MaterialDesignIcons.Normal.Doctor">Clinic Visit</MudNavLink>
                                 </MudNavGroup>
                             </MudNavGroup>
 
@@ -172,10 +172,16 @@
                     case "Clinic Staff":
                         <MudNavGroup Icon="@Icons.Material.Filled.LocalHospital" Title="Clinic Portal">
                             <MudNavLink Href="MedicalInventory" Icon="@Icons.Material.Filled.Medication">Inventory</MudNavLink>
-
-
+                            <MudNavLink Href="ClinicVisits" Icon="@MaterialDesignIcons.Normal.Doctor">Clinic Visit</MudNavLink>
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication</MudNavLink>
                         </MudNavGroup>
+                        break;
+                    case "TransportStaff":
+                        <MudNavGroup Icon="@Icons.Material.Filled.EmojiTransportation" Title="Driver Portal">
+                            <MudNavLink Href="DriverPortal" Icon="@MaterialDesignIcons.Normal.Steering">Portal</MudNavLink>
+                            <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication</MudNavLink>
+                        </MudNavGroup>
+
                         break;
                     case "Dean":
                         <MudNavLink Href="HostelRoomMaintainance" Icon="@Icons.Material.Filled.Build">Hostel Issues</MudNavLink>

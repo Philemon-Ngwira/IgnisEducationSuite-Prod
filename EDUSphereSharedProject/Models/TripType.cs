@@ -5,17 +5,15 @@ using System.Collections.Generic;
 
 namespace EDUSphereSharedProject.Models;
 
-public partial class TripDirection
+public partial class TripType
 {
-    public Guid TripDirectionID { get; set; }
+    public Guid TripTypeId { get; set; }
 
-    public string DirectionCode { get; set; }
-
-    public string DirectionName { get; set; }
+    public string Name { get; set; }
 
     public string Description { get; set; }
 
     public bool? IsActive { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public virtual ICollection<TripTripType> TripTripTypes { get; set; } = new List<TripTripType>();
 }

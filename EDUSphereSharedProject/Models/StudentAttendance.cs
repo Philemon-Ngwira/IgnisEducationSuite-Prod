@@ -20,4 +20,8 @@ public partial class StudentAttendance
     public DateTime? CreatedDate { get; set; }
 
     public bool? Marked { get; set; }
+
+    public string AttendanceReason { get; set; }
+
+    public string ReasonSource { get; set; }
 }

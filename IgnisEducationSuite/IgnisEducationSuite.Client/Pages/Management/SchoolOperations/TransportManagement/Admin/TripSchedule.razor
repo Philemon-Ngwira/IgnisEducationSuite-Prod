@@ -1,5 +1,7 @@
 ﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
 @page "/tripManagment"
+@inherits AppBaseComponent
 <MudStack Spacing="4" Class="pa-6">
 
     <!-- Header -->
@@ -15,179 +17,563 @@
 
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"
-                   StartIcon="@Icons.Material.Filled.Add">
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="() => addNewTrip = true">
             Schedule New Trip
         </MudButton>
     </MudStack>
 
-    <!-- Create Trip Panel -->
-    <MudPaper Elevation="3" Class="rounded-xl overflow-hidden">
 
-        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center"
-                  Class="pa-4 bg-grey-lighten-5 border-b">
-            <MudText Class="fw-bold">New Trip Configuration</MudText>
-            <MudIcon Icon="@Icons.Material.Filled.Close" />
-        </MudStack>
+    @if (addNewTrip)
+    {
+        <!-- Create Trip Panel -->
+        <MudPaper Elevation="3" Class="rounded-xl overflow-hidden">
 
-        <MudGrid Class="pa-6" Spacing="4">
+            <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center"
+                      Class="pa-4 bg-grey-lighten-5 border-b">
+                <MudText Class="fw-bold">New Trip Configuration</MudText>
+                <MudIcon @onclick="() => addNewTrip = false" Icon="@Icons.Material.Filled.Close" />
+            </MudStack>
 
-            <!-- Left Column -->
-            <MudItem xs="12" md="6">
-                <MudStack Spacing="3">
+            <MudGrid Class="pa-6" Spacing="4">
 
-                    <MudText Typo="Typo.subtitle2">Trip Type</MudText>
+                <!-- Left Column -->
+                <MudItem xs="12" md="6">
+                    <MudStack Spacing="3">
 
-                    <MudButtonGroup Variant="Variant.Filled" Color="Color.Primary">
-                        <MudButton StartIcon="@Icons.Material.Filled.Repeat">
-                            Recurring
-                        </MudButton>
-                        <MudButton StartIcon="@Icons.Material.Filled.Event">
-                            One-Off
-                        </MudButton>
-                    </MudButtonGroup>
+                        <MudText Typo="Typo.subtitle2">Trip Type</MudText>
 
-                    <MudText Typo="Typo.subtitle2">Frequency</MudText>
-                    <MudStack Row Spacing="1">
-                        @foreach (var day in new[] { "Mon","Tue","Wed","Thu","Fri","Sat","Sun" })
-                        {
-                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Primary">
-                                @day
-                            </MudChip>
-                        }
-                    </MudStack>
-
-                   @*  <MudSelect Label="Route" Variant="Variant.Outlined">
-                        <MudSelectItem Value="1">Route A (12 km)</MudSelectItem>
-                        <MudSelectItem Value="2">Route B (18 km)</MudSelectItem>
-                    </MudSelect> *@
-
-                </MudStack>
-            </MudItem>
-
-            <!-- Right Column -->
-            <MudItem xs="12" md="6">
-                <MudPaper Class="pa-4 rounded-xl bg-grey-lighten-5">
-
-                    <MudText Typo="Typo.overline" Color="Color.Secondary">
-                        Resource Assignment
-                    </MudText>
-
-                    <MudStack Spacing="3" Class="mt-2">
-
-                       @*  <MudSelect Label="Bus" Variant="Variant.Outlined">
-                            <MudSelectItem Value="1">BUS-101 (40 seats)</MudSelectItem>
-                        </MudSelect>
-
-                        <MudSelect Label="Driver" Variant="Variant.Outlined">
-                            <MudSelectItem Value="1">John Carter</MudSelectItem>
-                        </MudSelect>
-
-                        <MudSelect Label="Attendant (Optional)" Variant="Variant.Outlined">
-                            <MudSelectItem Value="1">Sarah Lee</MudSelectItem>
-                        </MudSelect> *@
-
-                        <MudDivider />
-
-                        <MudButton Color="Color.Success"
-                                   Variant="Variant.Filled"
-                                   StartIcon="@Icons.Material.Filled.Save"
-                                   FullWidth>
-                            Confirm Trip
-                        </MudButton>
-
-                    </MudStack>
-                </MudPaper>
-            </MudItem>
-
-        </MudGrid>
-    </MudPaper>
-
-    <!-- Trip Cards -->
-    <MudGrid Spacing="3">
-
-        <MudItem xs="12" md="6" lg="4">
-            <MudPaper Elevation="1" Class="pa-5 rounded-xl">
-
-                <MudChip T="string" Color="Color.Info"
-                         Size="Size.Small"
-                         Class="position-absolute top-0 right-0 ma-3">
-                    Scheduled
-                </MudChip>
-
-                <MudText Typo="Typo.overline" Color="Color.Secondary">
-                    Recurring
-                </MudText>
-
-                <MudText Typo="Typo.h6" Class="fw-bold">
-                    Downtown Morning Route
-                </MudText>
-
-                <MudPaper Class="pa-3 mt-3 bg-grey-lighten-5 rounded-lg">
-                    <MudStack Row Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
-                        <MudStack Row Spacing="1">
-                            @foreach (var d in new[] { "Mon","Tue","Wed","Thu","Fri" })
+                        <MudButtonGroup Variant="Variant.Filled" Color="Color.Primary">
+                            <MudButton StartIcon="@Icons.Material.Filled.Repeat"
+                                       OnClick="EnableRecurringTrip" Disabled="recurringtrip">
+                                Recurring
+                            </MudButton>
+                            <MudButton StartIcon="@Icons.Material.Filled.Event"
+                                       OnClick="EnableOnceOffTrip" Disabled="onceoffTrip">
+                                One-Off
+                            </MudButton>
+                        </MudButtonGroup>
+                        <MudTextField T="string"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Label="Trip Name"
+                                      Placeholder="Enter Trip Name"
+                                      @bind-Value="newTrip.TripName"></MudTextField>
+                        <MudSelect Label="Select Trip Type" Placeholder="--Select Trip Type--" Variant="Variant.Outlined"
+                                   T="TripType"
+                                   Margin="Margin.Dense"
+                                   ToStringFunc="TripTypeConverter"
+                                   @bind-Value="SelectedTripType">
+                            @foreach (var route in tripTypes)
                             {
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@d</MudChip>
+                                <MudTooltip Text="@route.Description">
+                                    <MudSelectItem Value="route">@route.Name</MudSelectItem>
+                                </MudTooltip>
+
+
                             }
+                        </MudSelect>
+                        @if (SelectedTripType.Name == "Academic Level")
+                        {
+                            <MudSelect Label="Select Academic Level" Placeholder="--Select Academic Level--" Variant="Variant.Outlined"
+                                       T="AcademicLevel"
+                                       Margin="Margin.Dense"
+                                       ToStringFunc="AcademicLevelConverter"
+                                       @bind-Value="selectedLevel">
+                                @foreach (var route in academicLevels)
+                                {
+
+                                    <MudSelectItem Value="route">@route.LevelName</MudSelectItem>
+
+
+
+                                }
+                            </MudSelect>
+                        }
+                        <MudCheckBox @bind-Value="newTrip.RequresParentBookIng" Label="Requires Parent Booking?"></MudCheckBox>
+                        @if (recurringtrip)
+                        {
+                            <MudText Typo="Typo.subtitle2">Frequency</MudText>
+                            <MudStack Row Spacing="1">
+                                @foreach (var day in new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" })
+                                {
+                                    <MudButton OnClick="() => SetDayItem(day)" Variant="Variant.Outlined" Color="Color.Primary">
+                                        @day
+                                    </MudButton>
+                                }
+                                @if (newTrip.TripDays.Any())
+                                {
+                                    @foreach (var item in newTrip.TripDays)
+                                    {
+                                        <MudChip T="string">@item</MudChip>
+                                    }
+                                }
+                            </MudStack>
+
+                        }
+                        @if (onceoffTrip)
+                        {
+                            <MudDatePicker @bind-Date="@newTrip.TripDate"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           Placeholder="Trip Date"
+                                           Label="Trip Date"></MudDatePicker>
+                        }
+                        <MudSelect Label="Select Route" Placeholder="--Select Route--" Variant="Variant.Outlined"
+                                   T="BusRoute"
+                                   Margin="Margin.Dense"
+                                   ToStringFunc="BusRouteConverter"
+                                   @bind-Value="newTrip.Route">
+                            @foreach (var route in busRoutes)
+                            {
+                                <MudSelectItem Value="route">@route.Name</MudSelectItem>
+
+                            }
+                        </MudSelect>
+
+
+                        <MudTimePicker @bind-Time="newTripDepaturetime"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Label="Departure Time"
+                                       Placeholder="Departure Time"></MudTimePicker>
+                        <MudTimePicker @bind-Time="newTrip.EstimatedArrivalTime"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Label="Estimated Arrival Time"
+                                       Placeholder="Estimated Arrival Time"></MudTimePicker>
+
+                    </MudStack>
+                </MudItem>
+
+                <!-- Right Column -->
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4 rounded-xl bg-grey-lighten-5">
+
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">
+                            Resource Assignment
+                        </MudText>
+
+                        <MudStack Spacing="3" Class="mt-2">
+
+                            <MudSelect Label="Bus" Variant="Variant.Outlined"
+                                       T="Bus"
+                                       Margin="Margin.Dense"
+                                       ToStringFunc="BusConverter"
+                                       Placeholder="--Select Bus--"
+                                       @bind-Value="newTrip.Bus">
+                                @foreach (var bus in fleet)
+                                {
+                                    <MudSelectItem Value="bus">@bus.RegistrationNumber (@bus.Capacity seats)</MudSelectItem>
+
+                                }
+                            </MudSelect>
+                            <MudSelect Label="Driver" Variant="Variant.Outlined"
+                                       T="BusStaff"
+                                       Margin="Margin.Dense"
+                                       Placeholder="--Select Driver--"
+                                       @bind-Value="SelectedDriver"
+                                       ToStringFunc="BusStaffConverter">
+                                @foreach (var driver in busStaff.Where(x => x.StaffType == 1))
+                                {
+                                    <MudSelectItem Value="driver">@driver.FirstName.Substring(0, 1) @driver.LastName</MudSelectItem>
+
+                                }
+
+                            </MudSelect>
+                            <MudSelect Label="Attendant(Optional)" Variant="Variant.Outlined"
+                                       T="BusStaff"
+                                       Margin="Margin.Dense"
+                                       Placeholder="--Select Attendant(Optional)--"
+                                       @bind-Value="SelectedAttendant"
+                                       ToStringFunc="BusStaffConverter">
+                                @foreach (var attendant in busStaff.Where(x => x.StaffType == 2))
+                                {
+                                    <MudSelectItem Value="attendant">@attendant.FirstName.Substring(0, 1) @attendant.LastName</MudSelectItem>
+
+                                }
+
+                            </MudSelect>
+
+                            <MudDivider />
+                            <MudButton Color="Color.Success"
+                                       Variant="Variant.Filled"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       OnClick="AddNewTrip"
+                                       FullWidth>
+                                Confirm Trip
+                            </MudButton>
+
                         </MudStack>
-                    </MudStack>
+                    </MudPaper>
+                </MudItem>
 
-                    <MudText Typo="Typo.caption" Class="mt-1">
-                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
-                        Starts 07:00 AM
-                    </MudText>
-                </MudPaper>
+            </MudGrid>
+        </MudPaper>
+    }
+    else if (trips.Any())
+    {
+        <MudGrid Spacing="3">
+            <!-- Trip Cards -->
+            @foreach (var trip in trips.Where(x => x.IsActive == true))
+            {
 
-                <MudStack Spacing="1" Class="mt-3">
-                    <MudStack Row Justify="Justify.SpaceBetween">
-                        <MudText Color="Color.Secondary">
-                            <MudIcon Icon="@Icons.Material.Filled.DirectionsBus" Size="Size.Small" />
-                            Bus
+                <MudItem xs="12" md="6" lg="4">
+                    <MudPaper Elevation="1" Class="pa-5 rounded-xl">
+
+                        <MudChip T="string" Color="Color.Info"
+                                 Size="Size.Small"
+                                 Class="position-absolute top-0 right-0 ma-3">
+                            Scheduled
+                        </MudChip>
+
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">
+                            @if (trip.isRecurring == true)
+                            {
+                                @("RECURRING")
+                            }
+                            else
+                            {
+                                @("ONE-OFF")
+
+                            }
                         </MudText>
-                        <MudText Class="fw-medium">BUS-101</MudText>
-                    </MudStack>
 
-                    <MudStack Row Justify="Justify.SpaceBetween">
-                        <MudText Color="Color.Secondary">
-                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
-                            Driver
+                        <MudText Typo="Typo.h6" Class="fw-bold">
+                            @trip.TripName
                         </MudText>
-                        <MudText Class="fw-medium">John Carter</MudText>
-                    </MudStack>
 
-                    <MudStack Row Justify="Justify.SpaceBetween">
-                        <MudText Color="Color.Secondary">
-                            <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
-                            Helper
-                        </MudText>
-                        <MudText Class="fw-medium">Sarah Lee</MudText>
-                    </MudStack>
-                </MudStack>
+                        <MudPaper Class="pa-3 mt-3 bg-grey-lighten-5 rounded-lg">
+                            @if (trip.TripDays.Any())
+                            {
+                                <MudStack Row Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                                    <MudStack Row Spacing="1">
+                                        @foreach (var d in trip.TripDays)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@d</MudChip>
+                                        }
+                                    </MudStack>
+                                </MudStack>
+                            }
+                            else if (trip.isRecurring == false)
+                            {
+                                <MudStack Row Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Size="Size.Small" />
+                                    <MudStack Row Spacing="1">
 
-                <MudDivider Class="my-3" />
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@trip.TripDate.Value.ToShortDateString()</MudChip>
 
-                <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        Seats: 12 / 40
-                    </MudText>
+                                    </MudStack>
+                                </MudStack>
+                            }
+                            <MudText Typo="Typo.caption" Class="mt-1">
+                                <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                @trip.DepartureTime.ToString("hh-mm-ss")
+                            </MudText>
+                        </MudPaper>
 
-                    <MudButton Variant="Variant.Text"
-                               Color="Color.Primary"
-                               Size="Size.Small">
-                        Manage Manifest
-                    </MudButton>
-                </MudStack>
+                        <MudStack Spacing="1" Class="mt-3">
+                            <MudStack Row Justify="Justify.SpaceBetween">
+                                <MudText Color="Color.Secondary">
+                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsBus" Size="Size.Small" />
+                                    Bus
+                                </MudText>
+                                <MudText Class="fw-medium">@trip.Bus.RegistrationNumber</MudText>
+                            </MudStack>
 
-            </MudPaper>
-        </MudItem>
+                            <MudStack Row Justify="Justify.SpaceBetween">
+                                <MudText Color="Color.Secondary">
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" />
+                                    Driver
+                                </MudText>
+                                <MudText Class="fw-medium">@trip.Driver.FirstName.Substring(0, 1) @trip.Driver.LastName</MudText>
+                            </MudStack>
 
-    </MudGrid>
+                            <MudStack Row Justify="Justify.SpaceBetween">
+                                <MudText Color="Color.Secondary">
+                                    <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
+                                    Helper
+                                </MudText>
+                                <MudText Class="fw-medium">@trip.Attendant.FirstName.Substring(0, 1) @trip.Attendant.LastName</MudText>
+                            </MudStack>
+                        </MudStack>
 
+                        <MudDivider Class="my-3" />
+
+                        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Seats: @trip.bookings.Count/@trip.MaxCapacity
+                            </MudText>
+
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Primary"
+                                       Size="Size.Small">
+                                Manage Manifest
+                            </MudButton>
+                        </MudStack>
+
+                    </MudPaper>
+                </MudItem>
+
+
+            }
+        </MudGrid>
+    }
+    else
+    {
+
+    }
 </MudStack>
 
 
 
 @code {
     protected List<Trip> trips = new();
+    protected List<TripType> tripTypes = new();
+    protected List<TripBooking> tripBookings = new();
+    protected List<BusRoute> busRoutes = new();
+    protected List<Bus> fleet = new();
+    protected List<BusStaff> busStaff = new();
+    protected List<TripDirection> tripDirections = new();
+    private TimeSpan? newTripDepaturetime = new TimeSpan(00, 45, 00);
+    protected Trip newTrip = new()
+    {
+        DepartureTime = new TimeSpan(06, 45, 00),
+        TripDays = new()
+    };
+    bool recurringtrip = true;
+    bool onceoffTrip = false;
+    bool addNewTrip = false;
+    private Func<BusRoute, string> BusRouteConverter = r => r?.Name;
+    private Func<Bus, string> BusConverter = r => r?.RegistrationNumber;
+    private Func<BusStaff, string> BusStaffConverter = r => r?.FirstName.Substring(0, 1) + " " + r.LastName;
+    private Func<TripType, string> TripTypeConverter = r => r?.Name;
+    private Func<AcademicLevel, string> AcademicLevelConverter = r => r?.LevelName;
+    private List<Task> initializationTasks = new();
+    private TripType SelectedTripType = new();
+    #region Model Selects
+    protected BusStaff SelectedDriver = new();
+    protected BusStaff SelectedAttendant = new();
+    protected AcademicLevel selectedLevel = new();
+    #endregion
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait while we prepare everything for you...");
+        initializationTasks
+        .Add(GetBusRoutes());
+        initializationTasks
+        .Add(GetBusStaffAsync());
+        initializationTasks
+        .Add(GetSchoolFleetAsync());
+        initializationTasks
+        .Add(GetSchoolTripTypes());
+        await Task.WhenAll(initializationTasks);
+
+        await GetSchoolTrips();
+        LoaderService.Hide();
+    }
+
+    #region Get Data From Database
+    protected async Task GetSchoolTripTypes()
+    {
+        var service = GenericService.GetService<TripType>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetEntity/{"triptype"}", true);
+        if (result.IsSuccess)
+        {
+            tripTypes = result.Data.ToList();
+        }
+    }
+    protected async Task GetSchoolTrips()
+    {
+        var tripService = GenericService.GetService<Trip>();
+        var result = await tripService.GetAllAsync($"api/Dynamic/GetSchoolTrips/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            var data = result.Data.ToList();
+            foreach (var trip in data)
+            {
+                trip.Bus = fleet.Where(x => x.BusId == trip.BusId).First();
+                trip.Driver = busStaff.Where(x => x.BusStaffId == trip.DriverID).First();
+                trip.Attendant = busStaff.Where(x => x.BusStaffId == trip.AttendantID).First();
+                if (!string.IsNullOrEmpty(trip.RecurringDays))
+                {
+                    trip.TripDays = trip.RecurringDays
+                           .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                           .Select(r => r.Trim())
+                           .ToList() ?? new();
+                }
+            }
+            trips = data.ToList();
+        }
+    }
+    protected async Task GetBusStaffAsync()
+    {
+        var serv = GenericService.GetService<BusStaff>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetTransportStaffBySchool/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            busStaff = result.Data.ToList();
+            foreach (var item in busStaff)
+            {
+                item.Certifications = item.Certificates?
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(r => r.Trim())
+                        .ToList() ?? new();
+            }
+            StateHasChanged();
+        }
+    }
+    protected async Task GetSchoolFleetAsync()
+    {
+        var service = GenericService.GetService<Bus>();
+        var result = await service.GetAllAsync($"Api/Dynamic/GetSchoolBusFleet/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            fleet = result.Data.ToList();
+        }
+    }
+
+    protected async Task GetBusRoutes()
+    {
+        var service = GenericService.GetService<BusRouteDto>();
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetBusRoutesBySchool/{AppState.SchoolID}", true);
+
+        if (!result.IsSuccess || result.Data is null)
+            return;
+
+        var schoolId = Guid.Parse(AppState.SchoolID);
+
+        busRoutes = result.Data
+            .Select(dto => new BusRoute
+            {
+                RouteId = dto.Id,
+                Name = dto.Name,
+                SchoolId = schoolId,
+                BusStops = dto.BusStops
+                    .OrderBy(s => s.Order)
+                    .Select(s => new BusStop
+                    {
+                        StopId = s.Id,
+                        Name = s.Name,
+                        Sequence = s.Order,
+                        RouteId = dto.Id
+                    })
+                    .ToList()
+            })
+            .ToList();
+
+    }
+    #endregion
+
+    private void EnableRecurringTrip()
+    {
+        recurringtrip = true;
+        onceoffTrip = false;
+    }
+    private void EnableOnceOffTrip()
+    {
+        recurringtrip = false;
+        onceoffTrip = true;
+    }
+    private void SetDayItem(string day)
+    {
+        if (newTrip.TripDays.Contains(day))
+        {
+            newTrip.TripDays.Remove(day);
+        }
+        else
+        {
+            newTrip.TripDays.Add(day);
+        }
+    }
+    private async Task AddNewTrip()
+    {
+        LoaderService.Show("Please wait while trip is saved...");
+        try
+        {
+            newTrip.TripId = Guid.NewGuid();
+            newTrip.RouteId = newTrip.Route.RouteId;
+            //newTrip.Direction = newTrip.DirectionNavigation.TripDirectionID;
+            newTrip.MaxCapacity = newTrip.Bus.Capacity;
+            newTrip.BusId = newTrip.Bus.BusId;
+            newTrip.IsActive = true;
+            newTrip.CreatedByStaffId = Guid.Parse(AppState.UserID);
+            newTrip.CreatedDate = DateTime.UtcNow;
+            newTrip.DepartureTime = newTripDepaturetime.Value;
+            if (SelectedTripType.Name == "Academic Level")
+            {
+                newTrip.AcademicLevel = selectedLevel.AcademicLevelID;
+            }
+            else if (SelectedTripType.Name == "Day Scholar")
+            {
+                newTrip.DaySchoolOnly = true;
+            }
+            if (recurringtrip)
+            {
+                newTrip.RecurringDays = string.Join(",",
+        newTrip.TripDays.Select(c => c));
+                newTrip.isRecurring = true;
+            }
+            else
+            {
+                newTrip.isRecurring = false;
+            }
+            newTrip.DriverID = SelectedDriver.BusStaffId;
+            if (SelectedAttendant.BusStaffId != null && SelectedAttendant.BusStaffId != Guid.Empty)
+            {
+                newTrip.AttendantID = SelectedAttendant.BusStaffId;
+            }
+            newTrip.SchoolId = Guid.Parse(AppState.SchoolID);
+
+            //----------------------NULL VIRTUALS---------------\\
+            newTrip.Bus = null;
+            newTrip.Route = null;
+            ///--==================SAVE DATE==================--\\\
+            var tripService = GenericService.GetService<Trip>();
+            var tripResult = await tripService.PostAsync("api/Dynamic/PostEntity", "trip", newTrip);
+            if (tripResult.IsSuccess)
+            {
+                var trip = tripResult.Data;
+                var TripTripType = new TripTripType()
+                {
+                    TripTripTypeId = Guid.NewGuid(),
+                    TripId = trip.TripId,
+                    TripTypeId = SelectedTripType.TripTypeId
+                };
+                var TTService = GenericService.GetService<TripTripType>();
+                var result = await TTService.PostAsync("api/Dynamic/PostEntity", "triptriptype", TripTripType);
+                trip.Bus = fleet.Where(x => x.BusId == trip.BusId).First();
+                trip.Driver = busStaff.Where(x => x.BusStaffId == trip.DriverID).First();
+                trip.Attendant = busStaff.Where(x => x.BusStaffId == trip.AttendantID).First();
+                if (!string.IsNullOrEmpty(trip.RecurringDays))
+                {
+                    trip.TripDays = trip.RecurringDays
+                           .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                           .Select(r => r.Trim())
+                           .ToList() ?? new();
+                }
+                trips.Add(trip);
+                SelectedDriver = new();
+                SelectedAttendant = new();
+                addNewTrip = false;
+                StateHasChanged();
+                Snackbar.Add("Trip Added Succesfully", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+
+            throw;
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+
+    }
 }

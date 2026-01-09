@@ -46,6 +46,8 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetCitiesByCountryNameResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetClassLessonSummaryBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetClinicMedicationsBySchoolResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetClinicStaffBySchoolResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetClinicVisitsWithMedicationLogsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetGradedStudentAssignmentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetGradedStudentExamsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetHostelMaintainanceRequestsBySchoolResult>().HasNoKey().ToView(null);
@@ -88,9 +90,14 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetTop5TeachersByHighRatedLessonsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetUpcomingExamsOrQuizzesResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetUserBadgesByUserIDResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetUserTripsTodayResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<RunDailyJobsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetActiveClinicVisitsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetClinicDashboardMetricsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetExpiringSoonMedicationsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetStudentTimetableResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<usp_GetStaffBySchoolAndRoleResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<usp_GetTripAttendancesByTripResult>().HasNoKey().ToView(null);
         }
     }
 
@@ -520,6 +527,58 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetClinicMedicationsBySchoolResult>("EXEC @returnValue = [SchoolOps].[GetClinicMedicationsBySchool] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetClinicStaffBySchoolResult>> GetClinicStaffBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetClinicStaffBySchoolResult>("EXEC @returnValue = [SchoolOps].[GetClinicStaffBySchool] @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetClinicVisitsWithMedicationLogsResult>> GetClinicVisitsWithMedicationLogsAsync(Guid? ClinicId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "ClinicId",
+                    Value = ClinicId ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetClinicVisitsWithMedicationLogsResult>("EXEC @returnValue = [SchoolOps].[GetClinicVisitsWithMedicationLogs] @ClinicId", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 
@@ -1700,6 +1759,33 @@ namespace EduSphereDomain.Data
             return _;
         }
 
+        public virtual async Task<List<GetUserTripsTodayResult>> GetUserTripsTodayAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "UserID",
+                    Size = 910,
+                    Value = UserID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetUserTripsTodayResult>("EXEC @returnValue = [SchoolOps].[GetUserTripsToday] @UserID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
         public virtual async Task<List<RunDailyJobsResult>> RunDailyJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
@@ -1714,6 +1800,90 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<RunDailyJobsResult>("EXEC @returnValue = [dbo].[RunDailyJobs]", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetActiveClinicVisitsResult>> sp_GetActiveClinicVisitsAsync(Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "ClinicID",
+                    Value = ClinicID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetActiveClinicVisitsResult>("EXEC @returnValue = [SchoolOps].[sp_GetActiveClinicVisits] @ClinicID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetClinicDashboardMetricsResult>> sp_GetClinicDashboardMetricsAsync(Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "ClinicID",
+                    Value = ClinicID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetClinicDashboardMetricsResult>("EXEC @returnValue = [SchoolOps].[sp_GetClinicDashboardMetrics] @ClinicID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetExpiringSoonMedicationsResult>> sp_GetExpiringSoonMedicationsAsync(int? DaysAhead, Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "DaysAhead",
+                    Value = DaysAhead ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.Int,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "ClinicID",
+                    Value = ClinicID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetExpiringSoonMedicationsResult>("EXEC @returnValue = [SchoolOps].[sp_GetExpiringSoonMedications] @DaysAhead, @ClinicID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 
@@ -1819,6 +1989,26 @@ namespace EduSphereDomain.Data
             return _;
         }
 
+        public virtual async Task<int> usp_CreateTripAttendancesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                parameterreturnValue,
+            };
+            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [SchoolOps].[usp_CreateTripAttendances]", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
         public virtual async Task<List<usp_GetStaffBySchoolAndRoleResult>> usp_GetStaffBySchoolAndRoleAsync(Guid? SchoolID, string RoleName, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
@@ -1846,6 +2036,32 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<usp_GetStaffBySchoolAndRoleResult>("EXEC @returnValue = [dbo].[usp_GetStaffBySchoolAndRole] @SchoolID, @RoleName", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<usp_GetTripAttendancesByTripResult>> usp_GetTripAttendancesByTripAsync(Guid? TripID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "TripID",
+                    Value = TripID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<usp_GetTripAttendancesByTripResult>("EXEC @returnValue = [SchoolOps].[usp_GetTripAttendancesByTrip] @TripID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

@@ -7,16 +7,14 @@ using System.Threading.Tasks;
 
 namespace EDUSphereSharedProject.Models
 {
-    public partial class Student
+    public partial class TripAttendance
     {
         [NotMapped]
-        public string Email { get; set; }
+        public string StudentName { get; set; }
         [NotMapped]
-        public string GeneratedUserName { get; set; }
+        public string AcademicLevel { get; set; }
+        [NotMapped]
+        public byte[] ProfilePic { get; set; }
 
-        [NotMapped]
-        public List<ClinicVisit> clinicVisits { get; set; }
-        [NotMapped]
-        public bool isCurrentlyInHospital { get; set; }
     }
 }

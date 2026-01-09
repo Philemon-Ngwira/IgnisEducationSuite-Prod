@@ -653,13 +653,13 @@
 
             // --- Map request for timetable generation ---
             GenerateTimetableRequest request = MapToGenerateRequest(smartRequest);
-
             // --- Send request to API ---
             var response = await HttpClient.PostAsJsonAsync("api/TimeTable/generate", request);
 
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine(error);
                 Snackbar.Add(error, Severity.Error);
                 return;
             }

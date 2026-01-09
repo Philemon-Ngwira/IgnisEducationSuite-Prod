@@ -1,0 +1,438 @@
+﻿@page "/DriverPortal"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+
+<!-- HEADER -->
+<MudPaper Elevation="4" Class="pa-6 rounded-xl  mb-6">
+    <MudStack Row="true" AlignItems="AlignItems.Center">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudAvatar Color="Color.Warning" Variant="Variant.Filled">
+                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" />
+            </MudAvatar>
+
+            <div>
+                <MudText Typo="Typo.h5"><b>Driver Console</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Welcome back, @AppState.FirstName
+                </MudText>
+            </div>
+        </MudStack>
+
+        <MudToggleGroup T="string" @bind-Value="portalState" Color="Color.Warning">
+            <MudToggleItem Value="@("trip")">Current Trip</MudToggleItem>
+            <MudToggleItem Value="@("issues")">Report Issues</MudToggleItem>
+        </MudToggleGroup>
+    </MudStack>
+</MudPaper>
+@if (portalState == "trip")
+{
+    @if (tripSelected)
+    {
+        <!-- MAIN GRID -->
+        <MudGrid>
+            <!-- LEFT COLUMN -->
+            <MudItem xs="12" md="8">
+                <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" OnClick="ReturnToSchedule">Back To Schedule</MudIconButton>
+                <!-- TRIP STATUS CARD -->
+                <MudPaper Class="mb-6 rounded-xl" Elevation="2">
+                    <MudPaper Class="pa-6 mud-background-success-light">
+                        <MudStack Row="true" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudChip T="string" Color="Color.Success" Variant="Variant.Filled" Size="Size.Small">
+                                    ACTIVE ROUTE
+                                </MudChip>
+                                <MudText Typo="Typo.h6" Class="mt-1">
+                                    <b>@ActiveDriverTrip.TripName</b>
+                                </MudText>
+                            </div>
+
+                            <MudText Typo="Typo.h4" Class="font-mono">
+                                @ActiveDriverTrip.DepartureTime.ToString("hh-mm-ss")
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudGrid Class="pa-4">
+                        <MudItem xs="4">
+                            <MudButton FullWidth Color="Color.Success" Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.PlayArrow">
+                                Start Trip
+                            </MudButton>
+                        </MudItem>
+
+                        <MudItem xs="4">
+                            <MudButton FullWidth Color="Color.Warning" Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.Schedule">
+                                Report Delay
+                            </MudButton>
+                        </MudItem>
+
+                        <MudItem xs="4">
+                            <MudButton FullWidth Color="Color.Error" Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.Stop">
+                                End Trip
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- STUDENT MANIFEST -->
+                <MudPaper Elevation="2" Class="rounded-xl">
+                    <MudPaper Class="pa-4 mud-background-grey-lighten-4">
+                        <MudStack Row="true">
+                            <MudText Typo="Typo.subtitle1">
+                                <MudIcon Icon="@Icons.Material.Filled.Group" /> Student Manifest
+                            </MudText>
+
+                            <MudText Typo="Typo.caption">
+                                @boardedStudents/ @ActiveDriverTrip.attendances.Count Boarded
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudList T="string" Dense="true">
+                        @foreach (var attendance in ActiveDriverTrip.attendances)
+                        {
+                            <MudListItem>
+                                <MudAvatar Color="Color.Primary">
+                                    @if (attendance.ProfilePic == null)
+                                    {
+                                        <MudText>@attendance.StudentName.Substring(0, 1)</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudImage Class="profile-pic" Width="250"
+                                                  Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(attendance.ProfilePic)}")" />
+                                    }
+                                </MudAvatar>
+
+                                <MudStack Class="ml-3">
+                                    <MudText>@attendance.StudentName</MudText>
+                                    <MudText Typo="Typo.caption">@attendance.AcademicLevel</MudText>
+                                </MudStack>
+
+                                <MudSpacer />
+                                @if (attendance.Status == "Pending")
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                                   Color="Color.Success"
+                                                   Variant="Variant.Filled"
+                                                   OnClick="() => MarkTripAttendance(attendance, true)" />
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Cancel"
+                                                   Color="Color.Error"
+                                                   Variant="Variant.Filled"
+                                                   OnClick="() => MarkTripAttendance(attendance, false)" />
+                                }
+                                else if (attendance.Status == "Boarded")
+                                {
+                                    <MudAlert Severity="Severity.Success" Elevation="0">
+                                        @attendance.Status
+                                    </MudAlert>
+                                }
+                                else if (attendance.Status == "Not Boarded")
+                                {
+                                    <MudAlert Severity="Severity.Error" Elevation="0">
+                                        @attendance.Status
+                                    </MudAlert>
+                                }
+
+                            </MudListItem>
+                        }
+                    </MudList>
+                </MudPaper>
+            </MudItem>
+
+            <!-- RIGHT COLUMN -->
+            <MudItem xs="12" md="4">
+
+                <!-- STOPS -->
+                <MudPaper Elevation="2" Class="pa-5 rounded-xl mb-6">
+                    <MudText Typo="Typo.subtitle1" Class="mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.Place" /> Stops Sequence
+                    </MudText>
+
+                    <MudTimeline>
+                        @if (ActiveDriverTrip.tripRoute != null)
+                        {
+                            @foreach (var stop in ActiveDriverTrip.tripRoute.BusStops)
+                            {
+                                <MudTimelineItem Color="Color.Success" Icon="@Icons.Material.Filled.Place">
+                                    @stop.Name – @stop.Sequence
+                                </MudTimelineItem>
+                            }
+                        }
+
+                    </MudTimeline>
+                </MudPaper>
+
+                @*  <!-- IMPORTANT NOTICE -->
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                <MudText Typo="Typo.subtitle2">Important</MudText>
+                <MudText Typo="Typo.caption">
+                    School closes early today (13:00). Complete post-trip inspection immediately.
+                </MudText>
+            </MudAlert> *@
+            </MudItem>
+        </MudGrid>
+    }
+    else
+    {
+
+        <MudStack Spacing="3">
+
+            <MudText Typo="Typo.h6" Bold="true">
+                Today’s Assignments
+            </MudText>
+            @if (!driverTrips.Any())
+            {
+                <!-- EMPTY STATE -->
+                <MudPaper Elevation="0"
+                          Class="pa-8 rounded-xl border text-center text-gray-500">
+                    <MudIcon Icon="@Icons.Material.Filled.EventBusy"
+                             Size="Size.Large"
+                             Class="mb-4"
+                             Color="Color.Dark" />
+                    <MudText>No trips assigned to you today.</MudText>
+                </MudPaper>
+            }
+            else
+            {
+                @foreach (var trip in driverTrips)
+                {
+                    @if (trip == ActiveDriverTrip)
+                    {
+                        <!-- TRIP CARD -->
+                        <MudPaper Elevation="2"
+                                  Class="pa-6 rounded-xl border border-success relative cursor-pointer">
+
+                            <!-- LIVE BADGE -->
+                            <MudChip T="string" Color="Color.Success"
+                                     Variant="Variant.Filled"
+                                     Size="Size.Small"
+                                     Class="position-absolute top-0 right-0 rounded-bl-lg animate-pulse">
+                                LIVE NOW
+                            </MudChip>
+
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+
+                                <div>
+                                    <MudText Typo="Typo.h6" Bold="true">
+                                        @trip.TripName
+                                    </MudText>
+
+                                    <MudStack Row="true" Spacing="3" Class="mt-2">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                            @trip.DepartureTime.ToString("hh-mm-ss")
+                                        </MudText>
+
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" />
+                                            @trip.Bus.RegistrationNumber
+                                        </MudText>
+
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
+                                            @trip.bookings.Count
+                                        </MudText>
+                                    </MudStack>
+                                </div>
+
+                                <!-- CHEVRON -->
+                                <MudAvatar Color="Color.Default" Variant="Variant.Outlined">
+                                    <MudIconButton OnClick="() => SelectAsActiveTrip(trip)" Icon="@Icons.Material.Filled.ChevronRight" />
+                                </MudAvatar>
+
+                            </MudStack>
+                        </MudPaper>
+                    }
+                    else
+                    {
+                        <!-- NON-LIVE TRIP CARD -->
+                        <MudPaper Elevation="1"
+                                  Class="pa-6 rounded-xl border cursor-pointer hover-shadow">
+
+                            <MudStack Row="true" AlignItems="AlignItems.Center">
+
+                                <div>
+                                    <MudText Typo="Typo.h6" Bold="true">
+                                        @trip.TripName
+                                    </MudText>
+
+                                    <MudStack Row="true" Spacing="3" Class="mt-2">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                            @trip.DepartureTime.ToString("hh-mm-ss")
+                                        </MudText>
+
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" />
+                                            @trip.Bus.RegistrationNumber
+                                        </MudText>
+
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
+                                            @trip.bookings.Count() students
+                                        </MudText>
+                                    </MudStack>
+                                </div>
+
+                                <MudAvatar Variant="Variant.Outlined">
+                                    <MudIconButton OnClick="() => SelectAsActiveTrip(trip)" Icon="@Icons.Material.Filled.ChevronRight" />
+                                </MudAvatar>
+
+                            </MudStack>
+                        </MudPaper>
+                    }
+                }
+            }
+        </MudStack>
+
+
+    }
+}
+else if (portalState == "issues")
+{
+    <!-- ISSUE REPORTING (UI ONLY) -->
+    <MudPaper Elevation="2" Class="pa-6 rounded-xl mt-8">
+        <MudText Typo="Typo.h6" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.ReportProblem" /> Log New Issue
+        </MudText>
+
+        <MudForm>
+            <MudSelect T="string" Label="Select Bus" Variant="Variant.Outlined" Dense="true">
+                <MudSelectItem Value="1">BUS-101 (Blue Bird)</MudSelectItem>
+                <MudSelectItem Value="2">BUS-102 (IC)</MudSelectItem>
+            </MudSelect>
+
+            <MudToggleGroup T="string" Class="my-4">
+                <MudToggleItem Value="@("Low")">LOW</MudToggleItem>
+                <MudToggleItem Value="@("Medium")">MEDIUM</MudToggleItem>
+                <MudToggleItem Value="@("High")">HIGH</MudToggleItem>
+                <MudToggleItem Value="@("Critical")">CRITICAL</MudToggleItem>
+            </MudToggleGroup>
+
+            <MudTextField T="string" Label="Issue Description"
+                          Variant="Variant.Outlined"
+                          Lines="4"
+                          Placeholder="Describe the issue..." />
+
+            <MudButton Color="Color.Warning"
+                       Variant="Variant.Filled"
+                       FullWidth
+                       StartIcon="@Icons.Material.Filled.Send"
+                       Class="mt-4">
+                Submit Report
+            </MudButton>
+        </MudForm>
+    </MudPaper>
+}
+
+@code {
+    protected List<Trip> driverTrips = new();
+    protected int boardedStudents = 0;
+    protected Trip ActiveDriverTrip = new();
+    protected string portalState = "trip";
+    protected bool tripSelected = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show($"Hi {AppState.FirstName}, Please wait while we fetch your trips...");
+        await GetDriverScheduledTrips();
+
+        LoaderService.Hide();
+    }
+    protected async Task<List<BusRoute>> GetBusRoutes(Guid RouteID)
+    {
+        var service = GenericService.GetService<BusRouteDto>();
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetBusRoutesBySchool/{AppState.SchoolID}", true);
+
+        if (!result.IsSuccess || result.Data is null)
+            return null;
+
+        var schoolId = Guid.Parse(AppState.SchoolID);
+
+        return result.Data
+            .Select(dto => new BusRoute
+            {
+                RouteId = dto.Id,
+                Name = dto.Name,
+                SchoolId = schoolId,
+                BusStops = dto.BusStops
+                    .OrderBy(s => s.Order)
+                    .Select(s => new BusStop
+                    {
+                        StopId = s.Id,
+                        Name = s.Name,
+                        Sequence = s.Order,
+                        RouteId = dto.Id
+                    })
+                    .ToList()
+            })
+            .Where(x => x.RouteId == RouteID)
+            .ToList();
+
+    }
+    protected async Task GetDriverScheduledTrips()
+    {
+        var serv = GenericService.GetService<Trip>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetDriverTripsForToday/{AppState.UserID}", true);
+        if (result.IsSuccess)
+        {
+            driverTrips = result.Data.ToList();
+        }
+    }
+    protected async Task<IEnumerable<TripAttendance>> GetbusAttendanceAsync(Guid TripID)
+    {
+        var serv = GenericService.GetService<TripAttendance>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetbusAttendance/{TripID}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        else
+        {
+            return new List<TripAttendance>();
+        }
+    }
+    private async Task MarkTripAttendance(TripAttendance attendance, bool isBoarded)
+    {
+        if (isBoarded)
+        {
+            attendance.Status = "Boarded";
+        }
+        else
+        {
+            attendance.Status = "Not Boarded";
+        }
+        var serv = GenericService.GetService<TripAttendance>();
+        var result = await serv.UpdateAsync("api/Dynamic/UpdateEntity", "tripattendance", attendance);
+        if (result.IsSuccess)
+        {
+            if (attendance.Status == "Boarded")
+                boardedStudents++;
+            //Email Parent about boarding
+            StateHasChanged();
+        }
+    }
+    protected async Task SelectAsActiveTrip(Trip trip)
+    {
+        ActiveDriverTrip = trip;
+        var busRoutes = await GetBusRoutes(trip.RouteId);
+        var attendance = await GetbusAttendanceAsync(trip.TripId);
+        trip.attendances = attendance.ToList();
+        trip.tripRoute = busRoutes.FirstOrDefault();
+        boardedStudents = attendance.Where(x => x.Status == "Boarded").Count();
+        tripSelected = true;
+        StateHasChanged();
+    }
+
+    protected void ReturnToSchedule()
+    {
+        tripSelected = false;
+        StateHasChanged();
+    }
+}

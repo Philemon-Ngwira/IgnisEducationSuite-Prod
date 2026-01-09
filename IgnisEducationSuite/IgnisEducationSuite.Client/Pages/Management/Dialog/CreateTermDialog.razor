@@ -1,23 +1,98 @@
 ﻿@using EDUSphereSharedProject.Models
 @inherits AppBaseComponent
-<!-- Dialog for Add/Edit -->
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
+
+<MudDialog>
     <DialogContent>
         <MudGrid>
+
             <!-- Form Column -->
             <MudItem xs="12" md="7">
-                <MudTextField @bind-Value="editTerm.TermName" Label="Term Name" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.ActualStartTermDate" Label="Term Start" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.ActualEndTermDate" Label="Term Start" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.MidTermStart" Label="Mid Term Start" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.MidtermEnd" Label="Mid Term End" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.FinalTermStart" Label="Final Term Start" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.FinalTermEnd" Label="Final Term End" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.DeanStart" Label="Dean Start" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.DeanEnd" Label="Dean End" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.PrincipleStart" Label="Principal Start" Required="true" />
-                <MudDatePicker @bind-Date="editTerm.PrincipleEnd" Label="Principal End" Required="true" />
+                <MudTextField @bind-Value="editTerm.TermName"
+                              Label="Term Name"
+                              Required="true" />
 
+                <MudDatePicker @bind-Date="editTerm.ActualStartTermDate"
+                               Label="Term Start"
+                               Required="true" />
+
+                <MudDatePicker @bind-Date="editTerm.ActualEndTermDate"
+                               Label="Term End"
+                               Required="true" />
+
+                <MudDatePicker @bind-Date="editTerm.MidTermStart"
+                               Label="Mid Term Start"
+                               Disabled="IsEdit"
+                               Required="true" />
+
+                <MudDatePicker @bind-Date="editTerm.MidtermEnd"
+                               Label="Mid Term End"
+                               Disabled="IsEdit"
+                               Required="true" />
+
+                <MudDatePicker @bind-Date="editTerm.FinalTermStart"
+                               Label="Final Term Start"
+                               Required="true" />
+
+                <MudDatePicker @bind-Date="editTerm.FinalTermEnd"
+                               Label="Final Term End"
+                               Required="true" />
+
+                <MudDatePicker @bind-Date="editTerm.DeanStart"
+                               Label="Dean Start"
+                               Required="true" />
+
+                <MudDatePicker @bind-Date="editTerm.DeanEnd"
+                               Label="Dean End"
+                               Required="true" />
+
+                <MudDatePicker @bind-Date="editTerm.PrincipleStart"
+                               Label="Principal Start"
+                               Required="true" />
+
+                <MudDatePicker @bind-Date="editTerm.PrincipleEnd"
+                               Label="Principal End"
+                               Required="true" />
+
+                @if (IsEdit)
+                {
+                    <MudDivider Class="my-4" />
+
+                    <MudPaper Class="pa-3"
+                              Elevation="0"
+                              Style="border:1px dashed #ccc;">
+                        <MudText Typo="Typo.h6">Adjust Timeline</MudText>
+
+                        <MudSelect T="string"
+                                   Label="Adjust From"
+                                   @bind-Value="adjustFrom">
+                            <MudSelectItem Value=@("FinalTermStart")>Final Term Start</MudSelectItem>
+                            <MudSelectItem Value=@("FinalTermEnd")>Final Term End</MudSelectItem>
+                            <MudSelectItem Value=@("DeanStart")>Dean Start</MudSelectItem>
+                            <MudSelectItem Value=@("DeanEnd")>Dean End</MudSelectItem>
+                            <MudSelectItem Value=@("PrincipalStart")>Principal Start</MudSelectItem>
+                            <MudSelectItem Value=@("PrincipalEnd")>Principal End</MudSelectItem>
+                        </MudSelect>
+
+                        <MudNumericField T="int"
+                                         Label="Number of Days"
+                                         Min="1"
+                                         @bind-Value="adjustDays" />
+
+                        <MudRadioGroup T="string"
+                                       @bind-Value="adjustAction"
+                                       Class="mt-2">
+                            <MudRadio Value=@("Extend")>Extend</MudRadio>
+                            <MudRadio Value=@("Reduce")>Reduce</MudRadio>
+                        </MudRadioGroup>
+
+                        <MudButton Class="mt-3"
+                                   Color="Color.Warning"
+                                   Variant="Variant.Filled"
+                                   OnClick="ApplyTimelineAdjustment">
+                            Apply Adjustment
+                        </MudButton>
+                    </MudPaper>
+                }
             </MudItem>
 
             <!-- Instructions Column -->
@@ -27,16 +102,16 @@
                     <MudDivider Class="my-2" />
                     <MudText>
                         • Enter the term name (e.g., "Term 1 2025").<br />
-                        • The Term Start and End Dates indicate when this term begins and ends.<br />
-                        • Mid Term dates define when mid-term report cards can be created.<br />
-                        • Final Term dates define when end-term report cards are created.<br />
-                        • Dean dates define the window for dean comments.<br />
-                        • Principal dates define the window for principal approval.<br />
-                        • Ensure dates do not overlap incorrectly with other terms.<br />
-                        • All fields are required for proper automation of report cards.
+                        • Term Start and End define the academic window.<br />
+                        • Mid Term dates are fixed once created.<br />
+                        • Final, Dean, and Principal dates can be adjusted by days.<br />
+                        • All phases must remain in chronological order.<br />
+                        • Dates cannot exceed the term end date.<br />
+                        • Adjustments are previewed before committing.
                     </MudText>
                 </MudPaper>
             </MudItem>
+
         </MudGrid>
     </DialogContent>
 
@@ -47,39 +122,153 @@
 </MudDialog>
 
 @code {
-    [Parameter] public TermSetting editTerm { get; set; } = new TermSetting();
+    [Parameter] public TermSetting editTerm { get; set; } = new();
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool IsEdit => editTerm.TermSettingID != Guid.Empty;
+
+    private string adjustFrom = "FinalTermStart";
+    private int adjustDays = 0;
+    private string adjustAction = "Extend";
 
     private async Task SaveTerm()
     {
+        var service = GenericService.GetService<TermSetting>();
 
-        bool workLoadCompleted = false;
-        if (editTerm.TermSettingID == Guid.Empty)
+        if (!ValidateTimeline(editTerm))
         {
+            Snackbar.Add("Invalid timeline. Please review the dates.", Severity.Error);
+            return;
+        }
 
+        bool success;
+
+        if (!IsEdit)
+        {
             editTerm.TermSettingID = Guid.NewGuid();
             editTerm.SchoolID = Guid.Parse(AppState.SchoolID);
-            var service = GenericService.GetService<TermSetting>();
-            var result = await service.PostAsync("api/Dynamic/PostEntity", "termsetting", editTerm);
-            if (result.IsSuccess)
-            {
-                workLoadCompleted = true;
-            }
-
+            success = (await service.PostAsync("api/Dynamic/PostEntity", "termsetting", editTerm)).IsSuccess;
         }
         else
         {
-            var service = GenericService.GetService<TermSetting>();
-            var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "termsetting", editTerm);
-            if (result.IsSuccess)
-            {
-                workLoadCompleted = true;
-            }
+            success = (await service.UpdateAsync("api/Dynamic/UpdateEntity", "termsetting", editTerm)).IsSuccess;
         }
-        if (workLoadCompleted)
-        {
-            //Close the dialog and return success
+
+        if (success)
             MudDialog.Close(DialogResult.Ok("Successful"));
+    }
+
+    private void ApplyTimelineAdjustment()
+    {
+        if (adjustDays <= 0)
+            return;
+
+        int deltaDays = adjustAction == "Extend" ? adjustDays : -adjustDays;
+
+        // Clone first for safe validation
+        var clone = CloneTerm(editTerm);
+        ShiftDates(clone, adjustFrom, deltaDays);
+
+        if (!ValidateTimeline(clone))
+        {
+            Snackbar.Add("Adjustment breaks timeline rules.", Severity.Error);
+            return;
+        }
+
+        // Commit after validation
+        editTerm = clone;
+
+        adjustDays = 0;
+        Snackbar.Add("Timeline adjusted successfully.", Severity.Success);
+    }
+
+    private void ShiftDates(TermSetting term, string startFrom, int deltaDays)
+    {
+        void Shift(Func<DateTime?> get, Action<DateTime?> set)
+        {
+            var v = get();
+            if (v.HasValue)
+                set(v.Value.AddDays(deltaDays));
+        }
+
+        switch (startFrom)
+        {
+            case "FinalTermStart":
+                Shift(() => term.FinalTermStart, v => term.FinalTermStart = v);
+                Shift(() => term.FinalTermEnd, v => term.FinalTermEnd = v);
+                Shift(() => term.DeanStart, v => term.DeanStart = v);
+                Shift(() => term.DeanEnd, v => term.DeanEnd = v);
+                Shift(() => term.PrincipleStart, v => term.PrincipleStart = v);
+                Shift(() => term.PrincipleEnd, v => term.PrincipleEnd = v);
+                break;
+
+            case "FinalTermEnd":
+                Shift(() => term.FinalTermEnd, v => term.FinalTermEnd = v);
+                Shift(() => term.DeanStart, v => term.DeanStart = v);
+                Shift(() => term.DeanEnd, v => term.DeanEnd = v);
+                Shift(() => term.PrincipleStart, v => term.PrincipleStart = v);
+                Shift(() => term.PrincipleEnd, v => term.PrincipleEnd = v);
+                break;
+
+            case "DeanStart":
+                Shift(() => term.DeanStart, v => term.DeanStart = v);
+                Shift(() => term.DeanEnd, v => term.DeanEnd = v);
+                Shift(() => term.PrincipleStart, v => term.PrincipleStart = v);
+                Shift(() => term.PrincipleEnd, v => term.PrincipleEnd = v);
+                break;
+
+            case "DeanEnd":
+                Shift(() => term.DeanEnd, v => term.DeanEnd = v);
+                Shift(() => term.PrincipleStart, v => term.PrincipleStart = v);
+                Shift(() => term.PrincipleEnd, v => term.PrincipleEnd = v);
+                break;
+
+            case "PrincipalStart":
+                Shift(() => term.PrincipleStart, v => term.PrincipleStart = v);
+                Shift(() => term.PrincipleEnd, v => term.PrincipleEnd = v);
+                break;
+
+            case "PrincipalEnd":
+                Shift(() => term.PrincipleEnd, v => term.PrincipleEnd = v);
+                break;
         }
     }
+
+    private bool ValidateTimeline(TermSetting t)
+    {
+        return
+            t.ActualEndTermDate > t.ActualStartTermDate &&
+            t.MidTermStart >= t.ActualStartTermDate &&
+            t.MidtermEnd >= t.MidTermStart &&
+            t.FinalTermStart >= t.MidtermEnd &&
+            t.FinalTermEnd >= t.FinalTermStart &&
+            t.DeanStart >= t.FinalTermEnd &&
+            t.DeanEnd >= t.DeanStart &&
+            t.PrincipleStart >= t.DeanEnd &&
+            t.PrincipleEnd >= t.PrincipleStart &&
+            t.PrincipleEnd <= t.ActualEndTermDate;
+    }
+
+    private static TermSetting CloneTerm(TermSetting t) =>
+        new()
+        {
+            TermSettingID = t.TermSettingID,
+            SchoolID = t.SchoolID,
+            TermName = t.TermName,
+
+            ActualStartTermDate = t.ActualStartTermDate,
+            ActualEndTermDate = t.ActualEndTermDate,
+
+            MidTermStart = t.MidTermStart,
+            MidtermEnd = t.MidtermEnd,
+
+            FinalTermStart = t.FinalTermStart,
+            FinalTermEnd = t.FinalTermEnd,
+
+            DeanStart = t.DeanStart,
+            DeanEnd = t.DeanEnd,
+
+            PrincipleStart = t.PrincipleStart,
+            PrincipleEnd = t.PrincipleEnd
+        };
 }

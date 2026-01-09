@@ -1,8 +1,11 @@
-﻿using EDUSphereSharedProject.Models;
+﻿using EDUSphereSharedProject.IdentiyModels;
+using EDUSphereSharedProject.Models;
 using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
+using System.Net.Http.Json;
+using static System.Net.WebRequestMethods;
 
 public class AppBaseComponent : ComponentBase, IDisposable
 {
@@ -36,6 +39,20 @@ public class AppBaseComponent : ComponentBase, IDisposable
         "Lunch",
         "Dinner"
     };
+
+    protected async Task<ApplicationUser> GetUserInformation(string UserID)
+    {
+        var service = GenericService.GetService<ApplicationUser>();
+        var result = await HttpClient.GetFromJsonAsync<ApplicationUser>($"api/Admin/getUserById/{UserID}");
+        if (result != null)
+        {
+            return result;
+        }
+        else
+        {
+            return null;
+        }
+    }
     public void Dispose()
     {
         AppState.OnChange -= StateHasChanged;

@@ -624,13 +624,20 @@ namespace IgnisEducationSuite.Controllers
                 "specialdiet" => GetRepository<DiningSpecialDiet>(),
                 "academiclevel" => GetRepository<AcademicLevel>(),
                 "meds" => GetRepository<ClinicMedication>(),
+                "medlog" => GetRepository<ClinicMedicationLog>(),
                 "clinic" => GetRepository<Clinic>(),
+                "clinicvisit" => GetRepository<ClinicVisit>(),
+                "clinicstaff" => GetRepository<ClinicStaff>(),
                 "staff" => GetRepository<Staff>(),
                 "busstaff" => GetRepository<BusStaff>(),
                 "fueltype" => GetRepository<FuelType>(),
                 "bus" => GetRepository<Bus>(),
                 "busroute" => GetRepository<BusRoute>(),
                 "bustop" => GetRepository<BusStop>(),
+                "trip" => GetRepository<Trip>(),
+                "triptype" => GetRepository<TripType>(),
+                "triptriptype" => GetRepository<TripTripType>(),
+                "tripattendance" => GetRepository<TripAttendance>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -691,13 +698,20 @@ namespace IgnisEducationSuite.Controllers
                 "specialdiet" => JsonSerializer.Deserialize<DiningSpecialDiet>(obj.ToString()),
                 "academiclevel" => JsonSerializer.Deserialize<AcademicLevel>(obj.ToString()),
                 "meds" => JsonSerializer.Deserialize<ClinicMedication>(obj.ToString()),
+                "medlog" => JsonSerializer.Deserialize<ClinicMedicationLog>(obj.ToString()),
                 "clinic" => JsonSerializer.Deserialize<Clinic>(obj.ToString()),
+                "clinicvisit" => JsonSerializer.Deserialize<ClinicVisit>(obj.ToString()),
+                "clinicstaff" => JsonSerializer.Deserialize<ClinicStaff>(obj.ToString()),
                 "staff" => JsonSerializer.Deserialize<Staff>(obj.ToString()),
                 "busstaff" => JsonSerializer.Deserialize<BusStaff>(obj.ToString()),
                 "fueltype" => JsonSerializer.Deserialize<FuelType>(obj.ToString()),
                 "bus" => JsonSerializer.Deserialize<Bus>(obj.ToString()),
                 "busroute" => JsonSerializer.Deserialize<BusRoute>(obj.ToString()),
                 "bustop" => JsonSerializer.Deserialize<BusStop>(obj.ToString()),
+                "trip" => JsonSerializer.Deserialize<Trip>(obj.ToString()),
+                "triptype" => JsonSerializer.Deserialize<TripType>(obj.ToString()),
+                "triptriptype" => JsonSerializer.Deserialize<TripTripType>(obj.ToString()),
+                "tripattendance" => JsonSerializer.Deserialize<TripAttendance>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -708,6 +722,12 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Non Generic New Modules
+        [HttpGet("GetSchoolTrips/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolTrips(Guid SchoolID)
+        {
+            var result = await _repository.GetSchoolTrips(SchoolID);
+            return Ok(result);
+        }
         [HttpGet("GetStaffBySchoolAndRole/{SchoolID}/{RoleName}")]
         public async Task<IActionResult> GetStaff(Guid SchoolID, string RoleName)
         {
@@ -866,6 +886,12 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Clinic End Points
+        [HttpGet("GetDashboardMetric/{ClinicID}")]
+        public async Task<IActionResult> GetDashboardMetric(Guid ClinicID)
+        {
+            var result = await _repository.GetDashboardMetric(ClinicID);
+            return Ok(result);
+        }
         [HttpGet("GetSchoolClinics/{SchoolID}")]
         public async Task<IActionResult> GetClinicsBySchool(string SchoolID)
         {
@@ -877,6 +903,24 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetSchoolMedications(string SchoolID)
         {
             var result = await _repository.GetMedicationsBySchoolAsync(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+        [HttpGet("GetClinicStaffBySchool/{SchoolID}")]
+        public async Task<IActionResult> GetClinicStaffBySchool(Guid SchoolID)
+        {
+            var result = await _repository.GetClinicStaffBySchool(SchoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetClinicVisits/{ClinicID}")]
+        public async Task<IActionResult> GetClinicVisits(Guid ClinicID)
+        {
+            var result = await _repository.GetClinicVisits(ClinicID);
+            return Ok(result);
+        }
+        [HttpGet("GetActiveClinicVisits/{ClinicID}")]
+        public async Task<IActionResult> GetActiveClinicVisits(Guid ClinicID)
+        {
+            var result = await _repository.GetActiveClinicVisits(ClinicID);
             return Ok(result);
         }
         #endregion
@@ -899,6 +943,20 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetSchoolBusRoutes(string SchoolID)
         {
             var result = await _repository.GetSchoolBusRoutes(Guid.Parse(SchoolID));
+            return Ok(result);
+        }
+
+        [HttpGet("GetbusAttendance/{TripID}")]
+        public async Task<IActionResult> GetBusAttendance(Guid TripID)
+        {
+            var result = await _repository.TripAttendancesAsync(TripID);
+            return Ok(result);
+        }
+
+        [HttpGet("GetDriverTripsForToday/{DriverID}")]
+        public async Task<IActionResult> GetDriverTripsForToday(string DriverID)
+        {
+            var result = await _repository.GetDriverTripsForToday(DriverID);
             return Ok(result);
         }
         #endregion

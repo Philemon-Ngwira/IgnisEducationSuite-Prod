@@ -23,6 +23,6 @@ namespace EDUSphereSharedProject.Models
         [NotMapped]
         public Guid SubjectId { get; set; }
         [NotMapped]
-        public string SubjectName { get; set; }
+        public string? SubjectName { get; set; } = string.Empty;
     }
 }

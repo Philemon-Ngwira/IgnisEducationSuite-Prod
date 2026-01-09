@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace EDUSphereSharedProject.Models;
 
-public partial class ClinicVisit
+public partial class vw_ClinicDashboard_ActiveVisit
 {
     public Guid VisitId { get; set; }
 
@@ -31,7 +31,15 @@ public partial class ClinicVisit
 
     public bool? isActive { get; set; }
 
-    public virtual Clinic Clinic { get; set; }
+    public Guid? MedicationId { get; set; }
 
-    public virtual ICollection<ClinicMedicationLog> ClinicMedicationLogs { get; set; } = new List<ClinicMedicationLog>();
+    public string MedicationName { get; set; }
+
+    public int? MedicationStock { get; set; }
+
+    public string MedicationUnit { get; set; }
+
+    public DateTime? MedicationExpiryDate { get; set; }
+
+    public string BatchNumber { get; set; }
 }

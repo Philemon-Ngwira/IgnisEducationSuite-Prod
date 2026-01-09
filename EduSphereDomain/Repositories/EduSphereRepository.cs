@@ -1537,12 +1537,36 @@ namespace EduSphereDomain.Repositories
 
         #endregion
         #region Clinic Module
+        public async Task<IEnumerable<vw_ClinicDashboard_Metric>> GetDashboardMetric(Guid ClinicID)
+        {
+            var result = await _contextProcedures.sp_GetClinicDashboardMetricsAsync(ClinicID);
+            return result.Select(x => new vw_ClinicDashboard_Metric
+            {
+                CurrentlySickStudents = x.CurrentlySickStudents,
+                ExpiringSoonMedications = x.ExpiringSoonMedications,
+                LowStockMedications = x.LowStockMedications,
+                VisitsLast30Days = x.VisitsLast30Days,
+            }).ToList();
+        }
         public async Task<IEnumerable<Clinic>> GetSchoolClinics(Guid SchoolID)
         {
             var resuilt = await _context.Clinics.Where(x => x.SchoolId == SchoolID).ToListAsync();
             return resuilt;
         }
-
+        public async Task<IEnumerable<ClinicStaff>> GetClinicStaffBySchool(Guid SchoolId)
+        {
+            var result = await _contextProcedures.GetClinicStaffBySchoolAsync(SchoolId);
+            return result.Select(x => new ClinicStaff
+            {
+                ClinicId = x.ClinicId,
+                Contact = x.Contact,
+                FullName = x.FullName,
+                Role = x.Role,
+                StaffId = x.StaffId,
+                UserID = x.UserID,
+                EmployeeID = x.EmployeeID
+            }).ToList();
+        }
         public async Task<IEnumerable<ClinicMedication>> GetMedicationsBySchoolAsync(Guid SchoolID)
         {
             var result = await _contextProcedures.GetClinicMedicationsBySchoolAsync(SchoolID);
@@ -1556,6 +1580,83 @@ namespace EduSphereDomain.Repositories
                 ClinicID = x.ClinicID,
                 BatchNumber = x.BatchNumber
             }).ToList();
+        }
+
+        public async Task<IEnumerable<ClinicVisit>> GetClinicVisits(Guid clinicId)
+        {
+            var rows = await _contextProcedures
+                .GetClinicVisitsWithMedicationLogsAsync(clinicId);
+
+            var visits = rows
+                .GroupBy(x => x.VisitId)
+                .Select(g =>
+                {
+                    var first = g.First();
+
+                    return new ClinicVisit
+                    {
+                        VisitId = first.VisitId,
+                        ClinicId = first.ClinicId,
+                        StudentId = first.StudentId,
+                        VisitDate = first.VisitDate,
+                        Symptoms = first.Symptoms,
+                        Diagnosis = first.Diagnosis,
+                        Treatment = first.Treatment,
+                        Notes = first.Notes,
+                        AttendedByStaffId = first.AttendedByStaffId,
+                        DaysOff = first.DaysOff,
+                        ReturnToClassDate = first.ReturnToClassDate,
+                        isActive = first.IsActive,
+
+                        ClinicMedicationLogs = g
+                            .Where(x => x.LogId.HasValue)
+                            .Select(x => new ClinicMedicationLog
+                            {
+                                LogId = x.LogId!.Value,
+                                VisitId = x.VisitId,
+                                MedicationId = x.MedicationId!.Value,
+                                QuantityUsed = x.QuantityUsed!.Value
+                            })
+                            .ToList()
+                    };
+                })
+                .ToList();
+
+            return visits;
+        }
+
+        public async Task<IEnumerable<ClinicDashboardVisitsDTO>> GetActiveClinicVisits(Guid ClinicID)
+        {
+            var result = await _contextProcedures.sp_GetActiveClinicVisitsAsync(ClinicID);
+            return result.Select(x => new ClinicDashboardVisitsDTO
+            {
+                FirstName = x.FirstName,
+                LastName = x.LastName,
+                ProfilePic = x.ProfilePic,
+                VisitDate = x.VisitDate,
+                Symptoms = x.Symptoms,
+                Diagnosis = x.Diagnosis,
+                Treatment = x.Treatment,
+            }).ToList();
+        }
+        #endregion
+        #region Transport
+        public async Task<IEnumerable<TripAttendance>> TripAttendancesAsync(Guid TripID)
+        {
+            var result = await _contextProcedures.usp_GetTripAttendancesByTripAsync(TripID);
+            return result.Select(x => new TripAttendance
+            {
+                AcademicLevel = x.AcademicLevel,
+                AttendanceDate = x.AttendanceDate,
+                TripAttendanceId = x.TripAttendanceId,
+                CreatedDate = x.CreatedDate,
+                ProfilePic = x.ProfilePic,
+                Status = x.Status,
+                StudentId = x.StudentId,
+                StudentName = x.FirstName +" "+x.LastName,
+                TripId = x.TripId
+            }).ToList();
+
         }
         public async Task<IEnumerable<Staff>> GetStaffBySchoolAndRole(Guid SchoolID, string RoleName)
         {
@@ -1607,6 +1708,40 @@ namespace EduSphereDomain.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Trip>> GetSchoolTrips(Guid SchoolId)
+        {
+            return await _context.Trips.Where(t => t.SchoolId == SchoolId).ToListAsync();
+        }
+
+        public async Task<IEnumerable<Trip>> GetDriverTripsForToday(string UserID)
+        {
+            var result = await _contextProcedures.GetUserTripsTodayAsync(UserID);
+            return result.Select(x => new Trip
+            {
+                TripId = x.TripId,
+                BusId = x.BusId,
+                RouteId = x.RouteId,
+                SchoolId = x.SchoolId,
+                TripName = x.TripName,
+                Direction = x.Direction,
+                DepartureTime = x.DepartureTime,
+                EstimatedArrivalTime = x.EstimatedArrivalTime,
+                MaxCapacity = x.MaxCapacity,
+                IsActive = x.IsActive,
+                CreatedByStaffId = x.CreatedByStaffId,
+                CreatedDate = x.CreatedDate,
+                Notes = x.Notes,
+                RecurringDays = x.RecurringDays,
+                DriverID = x.DriverID,
+                AttendantID = x.AttendantID,
+                TripDate = x.TripDate,
+                isRecurring = x.isRecurring,
+                AcademicLevel = x.AcademicLevel,
+                DaySchoolOnly = x.DaySchoolOnly,
+                SchoolWide = x.SchoolWide,
+                RequresParentBookIng = x.RequresParentBookIng
+            }).ToList();
+        }
         #endregion
     }
 

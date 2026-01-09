@@ -19,7 +19,7 @@
     <MudCardContent>
 
         <!-- DATE PICKER + SEARCH BUTTON -->
-        <MudGrid Class="mb-4" AlignItems="Center">
+        <MudGrid Class="mb-4" Justify="Justify.Center">
 
             <MudItem xs="12" md="9">
                 <MudDatePicker Variant="Variant.Outlined"
@@ -113,6 +113,7 @@
                 <MudTh>Class</MudTh>
                 <MudTh>Present</MudTh>
                 <MudTh>Late</MudTh>
+                <MudTh>Sick Status</MudTh>
                 <MudTh>Date</MudTh>
             </HeaderContent>
 
@@ -126,18 +127,34 @@
                     <MudCheckBox @bind-Value="context.AttendanceStatus"
                                  Color="Color.Success"
                                  Label="Present"
-                                 Dense="true" />
+                                 Dense="true"
+                                 Disabled="@(context.AttendanceReason == "SICK_OFF" && context.ReasonSource == "CLINIC")" />
                 </MudTd>
 
                 <MudTd DataLabel="Late">
                     <MudCheckBox @bind-Value="context.LateStatus"
                                  Color="Color.Warning"
                                  Label="Late"
-                                 Dense="true" />
+                                 Dense="true"
+                                 Disabled="@(context.AttendanceReason == "SICK_OFF" && context.ReasonSource == "CLINIC")" />
                 </MudTd>
+                <MudTd DataLabel="Sick Status">
+                    @if (context.AttendanceReason == "SICK_OFF" && context.ReasonSource == "CLINIC")
+                    {
+                        <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small">
+                            Sick Off (Clinic)
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">
+                            Available
+                        </MudChip>
+                    }
 
+                </MudTd>
                 <MudTd DataLabel="Date">
-                    @context.AttendanceDate.Value.ToShortDateString()
+                    @context?.AttendanceDate?.ToShortDateString()
                 </MudTd>
             </RowTemplate>
 

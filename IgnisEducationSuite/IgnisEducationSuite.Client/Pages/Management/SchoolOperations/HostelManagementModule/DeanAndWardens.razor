@@ -1,6 +1,8 @@
 ﻿@page "/Deans"
 @page "/hostel-staff"
+@using EDUSphereSharedProject.IdentiyModels
 @using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
 @using IgnisEducationSuite.Client.Pages.Management.Dialog
 @inherits AppBaseComponent
 @inject IDialogService DialogService
@@ -70,6 +72,14 @@
                                 </MudText>
 
 
+                            </MudStack>
+                            <!-- Actions -->
+                            <MudDivider />
+
+                            <MudStack Row Spacing="1" Class="pa-2">
+                                <MudButton FullWidth Variant="Variant.Text" Color="Color.Default" OnClick="() => OpenStaffManageDialog(item)">
+                                    View Profile
+                                </MudButton>
                             </MudStack>
                         </div>
 
@@ -149,5 +159,29 @@
 
         }
     }
+    protected async Task OpenStaffManageDialog(Staff staff)
+    {
+        ApplicationUser user = new();
+        user = await GetUserInformation(staff.UserID);
+        GenericStaffDTO genericStaff = new();
+        genericStaff.Staff = staff;
+        genericStaff.ActiveType = StaffType.General;
+        var parameters = new DialogParameters<ManageGenericStaff>
+    {
+        { x => x.staffDTO, genericStaff },
+        { x => x.genders, genders },
+        {x=>x.applicationUser, user }
+    };
 
+        var dialog = await DialogService.ShowAsync<ManageGenericStaff>($"Update {staff.StaffName} Information", parameters, new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await GetStaffAsync("Dean");
+            LoaderService.Hide();
+            StateHasChanged();
+
+        }
+    }
 }

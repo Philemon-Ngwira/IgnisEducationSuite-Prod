@@ -15,8 +15,6 @@ public partial class BusRoute
 
     public Guid? SchoolId { get; set; }
 
-    public virtual Bus Bus { get; set; }
-
     public virtual ICollection<BusStop> BusStops { get; set; } = new List<BusStop>();
 
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();

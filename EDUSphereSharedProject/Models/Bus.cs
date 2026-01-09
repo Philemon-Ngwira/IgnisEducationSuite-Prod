@@ -39,11 +39,7 @@ public partial class Bus
 
     public virtual ICollection<BusFuelLog> BusFuelLogs { get; set; } = new List<BusFuelLog>();
 
-    public virtual ICollection<BusRoute> BusRoutes { get; set; } = new List<BusRoute>();
-
     public virtual FuelType FuelTypeNavigation { get; set; }
 
     public virtual School School { get; set; }
-
-    public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
 }

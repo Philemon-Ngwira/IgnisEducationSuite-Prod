@@ -1,5 +1,7 @@
 ﻿@page "/BusStaffManagement"
+@using EDUSphereSharedProject.IdentiyModels
 @using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
 @using IgnisEducationSuite.Client.Pages.Management.Dialog
 @inherits AppBaseComponent
 @inject IDialogService DialogService
@@ -148,7 +150,7 @@
                                 <MudDivider />
 
                                 <MudStack Row Spacing="1" Class="pa-2">
-                                    <MudButton FullWidth Variant="Variant.Text" Color="Color.Default">
+                                    <MudButton FullWidth Variant="Variant.Text" Color="Color.Default" OnClick="() => OpenStaffManageDialog(item)">
                                         View Profile
                                     </MudButton>
                                 </MudStack>
@@ -271,6 +273,31 @@
             busStaff.Add(newStaff);
             DriversCount = $"Drivers ({busStaff.Where(x => x.StaffType == 1).ToList().Count})";
             AttendantsCount = $"Attendants/Helpers ({busStaff.Where(x => x.StaffType == 2).ToList().Count})";
+            LoaderService.Hide();
+            StateHasChanged();
+
+        }
+    }
+    protected async Task OpenStaffManageDialog(BusStaff staff)
+    {
+        GenericStaffDTO Bstaff = new();
+        ApplicationUser user = new();
+        user = await GetUserInformation(staff.UserID);
+        Bstaff.BusStaff = staff;
+        Bstaff.ActiveType = StaffType.Bus;
+        var parameters = new DialogParameters<ManageGenericStaff>
+    {
+        { x => x.staffDTO, Bstaff },
+        {x=>x.applicationUser ,user},
+        {x=>x.applicationUser, user }
+    };
+
+        var dialog = await DialogService.ShowAsync<ManageGenericStaff>($"Update {staff.FirstName} {staff.LastName} Information", parameters, new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await GetBusStaffAsync();
             LoaderService.Hide();
             StateHasChanged();
 

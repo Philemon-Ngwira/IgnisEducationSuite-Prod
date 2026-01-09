@@ -15,5 +15,6 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public int? TotalClasses { get; set; }
         public int? TotalPresent { get; set; }
         public int? TotalAbsent { get; set; }
+        public int? SickOffDays { get; set; }
     }
 }

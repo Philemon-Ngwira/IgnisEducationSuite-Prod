@@ -27,7 +27,7 @@ public partial class Trip
 
     public bool? IsActive { get; set; }
 
-    public int CreatedByStaffId { get; set; }
+    public Guid CreatedByStaffId { get; set; }
 
     public DateTime CreatedDate { get; set; }
 
@@ -35,13 +35,27 @@ public partial class Trip
 
     public string RecurringDays { get; set; }
 
-    public virtual Bus Bus { get; set; }
+    public Guid? DriverID { get; set; }
 
-    public virtual TripDirection DirectionNavigation { get; set; }
+    public Guid? AttendantID { get; set; }
+
+    public DateTime? TripDate { get; set; }
+
+    public bool? isRecurring { get; set; }
+
+    public Guid? AcademicLevel { get; set; }
+
+    public bool? DaySchoolOnly { get; set; }
+
+    public bool? SchoolWide { get; set; }
+
+    public bool? RequresParentBookIng { get; set; }
 
     public virtual BusRoute Route { get; set; }
 
     public virtual ICollection<TripBooking> TripBookings { get; set; } = new List<TripBooking>();
 
     public virtual ICollection<TripSchedule> TripSchedules { get; set; } = new List<TripSchedule>();
+
+    public virtual ICollection<TripTripType> TripTripTypes { get; set; } = new List<TripTripType>();
 }

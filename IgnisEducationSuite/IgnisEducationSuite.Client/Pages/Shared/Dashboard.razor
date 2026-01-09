@@ -259,6 +259,8 @@
                                                                         </span>
                                                                         <span class="text-sm text-secondary-light fw-normal">
                                                                             Total Number Classes Missed @item.TotalAbsent
+                                                                            <br />
+                                                                            Total Number Of Days Off @item.SickOffDays
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -837,6 +839,14 @@
                         else if (AppState.UserRole == "Chef/Cook")
                         {
                             <IgnisEducationSuite.Client.Pages.Staff.Kitchen></IgnisEducationSuite.Client.Pages.Staff.Kitchen>
+                        }
+                        else if (AppState.UserRole == "Clinic Staff")
+                        {
+                            <IgnisEducationSuite.Client.Pages.Shared.DashboardLayers.ClinicDashboard />
+                        }
+                        else if (AppState.UserRole == "TransportStaff")
+                        {
+                            <IgnisEducationSuite.Client.Pages.Management.SchoolOperations.TransportManagement.Driver.DriverDashboard />
                         }
                     }
                 }

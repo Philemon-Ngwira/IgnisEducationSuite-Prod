@@ -42,7 +42,7 @@
             <MudItem xs="12" md="6">
                 <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.EmployeeID" Label="Employee ID Number" />
             </MudItem>
-            @if (roleName != "Dean" && roleName != "TransportStaff")
+            @if (roleName != "Dean" && roleName != "TransportStaff" && roleName != "Clinic Staff")
             {
                 <MudItem xs="12" md="6">
 
@@ -86,6 +86,27 @@
                     </MudSelect>
                 </MudItem>
             }
+            @if (roleName == "Clinic Staff")
+            {
+                <MudItem xs="12" md="6">
+
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newClinicStaff.Role" Label="Staff Type" Placeholder="i.e Doctor, Nurse etc" />
+
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSelect Variant="Variant.Outlined"
+                               @bind-Value="SelectedClinic"
+                               Margin="Margin.Dense"
+                               Label="Assign To Clinic"
+                               Placeholder="Assign Staff to Clinic"
+                               ToStringFunc="ClinicTypeconverter">
+                        @foreach (var clinic in Clinics)
+                        {
+                            <MudSelectItem Value="clinic">@clinic.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
             @if (isAlsoTeacher)
             {
                 <MudItem xs="12" md="6">
@@ -123,6 +144,7 @@
     [Parameter] public List<Gender> genders { get; set; } = new();
     [Parameter] public List<CountryDTO> countries { get; set; } = new();
     [Parameter] public bool isDriver { get; set; } = false;
+    [Parameter] public List<Clinic> Clinics { get; set; } = new();
     protected List<CityDTO> Cities = new();
     protected Staff newStaff = new();
     protected UniversalUser newUser = new();
@@ -132,8 +154,11 @@
     protected CountryDTO Country = new();
     protected CityDTO City = new();
     protected BusStaff newBusStaff = new();
+    protected Clinic SelectedClinic = new();
+    protected ClinicStaff newClinicStaff = new();
     protected Func<CountryDTO, string> CountryTypeconverter = p => p?.CountryCode + ":" + p?.CountryName;
     protected Func<CityDTO, string> CityTypeconverter = p => p?.CityName;
+    protected Func<Clinic, string> ClinicTypeconverter = p => p?.Name;
     protected async Task CreateNewUser()
     {
         LoaderService.Show("Please wait, creating user!");
@@ -281,7 +306,7 @@
                 await SaveBusStaffDetails(user, SchoolID);
                 break;
             case "Clinic Staff":
-                await SaveClinicStaffDetails();
+                await SaveClinicStaffDetails(user, SchoolID);
                 break;
         }
     }
@@ -320,8 +345,22 @@
     }
 
 
-    protected async Task SaveClinicStaffDetails()
+    protected async Task SaveClinicStaffDetails(ApplicationUser user, Guid SchoolID)
     {
+        newClinicStaff.StaffId = Guid.NewGuid();
+        newClinicStaff.ClinicId = SelectedClinic.ClinicId;
+        newClinicStaff.Contact = user.PhoneNumber;
+        newClinicStaff.FullName = $"{user.FirstName} {user.LastName}";
+        newClinicStaff.UserID = user.Id;
+        newClinicStaff.EmployeeID = newUser.EmployeeID;
+        var serv = GenericService.GetService<ClinicStaff>();
+        var result = await serv.PostAsync("api/Dynamic/PostEntity", "clinicstaff", newClinicStaff);
+        if (result.IsSuccess)
+        {
+            await SendOneTimePasswordEmail(newUser, newClinicStaff.FullName, "N/A");
+            MudDialog.Close(DialogResult.Ok(newClinicStaff));
+        }
+
 
     }
     protected async Task SaveBusStaffDetails(ApplicationUser user, Guid SchoolID)
@@ -344,6 +383,7 @@
         newBusStaff.LastName = user.LastName;
         newBusStaff.PhoneNumber = user.PhoneNumber;
         newBusStaff.StaffCode = newUser.EmployeeID;
+        newBusStaff.UserID = user.Id;
         var serv = GenericService.GetService<BusStaff>();
         var result = await serv.PostAsync("api/Dynamic/PostEntity", "busstaff", newBusStaff);
         if (result.IsSuccess)

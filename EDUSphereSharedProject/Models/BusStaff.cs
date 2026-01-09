@@ -32,4 +32,6 @@ public partial class BusStaff
     public DateTime? UpdatedAt { get; set; }
 
     public string Certificates { get; set; }
+
+    public string UserID { get; set; }
 }

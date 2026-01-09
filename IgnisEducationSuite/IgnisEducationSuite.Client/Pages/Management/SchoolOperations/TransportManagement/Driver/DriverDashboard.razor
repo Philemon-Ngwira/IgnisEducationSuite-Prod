@@ -1,0 +1,128 @@
+﻿@using MudBlazor
+
+<MudStack Spacing="4">
+
+    <!-- KPI CARDS -->
+    <MudGrid>
+        <MudItem xs="12" md="6" lg="3">
+            <MudPaper Elevation="2" Class="pa-6 rounded-xl">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Total Fleet
+                        </MudText>
+                        <MudText Typo="Typo.h5" Bold="true">
+                            24 Buses
+                        </MudText>
+                    </div>
+
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                        <MudIcon Icon="@Icons.Material.Filled.DirectionsBus" />
+                    </MudAvatar>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6" lg="3">
+            <MudPaper Elevation="2" Class="pa-6 rounded-xl">
+                <MudStack Row="true" JustifyContent="space-between">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Est. Monthly Revenue
+                        </MudText>
+                        <MudText Typo="Typo.h5" Bold="true">
+                            $45,000
+                        </MudText>
+                    </div>
+
+                    <MudAvatar Color="Color.Success" Variant="Variant.Filled">
+                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" />
+                    </MudAvatar>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6" lg="3">
+            <MudPaper Elevation="2" Class="pa-6 rounded-xl">
+                <MudStack Row="true" JustifyContent="space-between">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            In Maintenance
+                        </MudText>
+                        <MudText Typo="Typo.h5" Bold="true">
+                            3 Buses
+                        </MudText>
+                    </div>
+
+                    <MudAvatar Color="Color.Warning" Variant="Variant.Filled">
+                        <MudIcon Icon="@Icons.Material.Filled.ReportProblem" />
+                    </MudAvatar>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6" lg="3">
+            <MudPaper Elevation="2" Class="pa-6 rounded-xl">
+                <MudStack Row="true" JustifyContent="space-between">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Active Trips
+                        </MudText>
+                        <MudText Typo="Typo.h5" Bold="true">
+                            12 Routes
+                        </MudText>
+                    </div>
+
+                    <MudAvatar Color="Color.Secondary" Variant="Variant.Filled">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" />
+                    </MudAvatar>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- FLEET STATUS -->
+    <MudPaper Elevation="2" Class="pa-6 rounded-xl">
+        <MudText Typo="Typo.h6" Bold="true" Class="mb-4">
+            Fleet Status
+        </MudText>
+
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <!-- DONUT CHART (UI ONLY) -->
+              @*   <MudChart ChartType="ChartType.Donut"
+                          Labels="new[] { " Active", "Maintenance" , "Out of Service" }"
+                          Data="new double[] { 18, 3, 3 }"
+                          Width="100%"
+                          Height="220px"
+                          Colors="new[] { Colors.Green.Default, Colors.Yellow.Default, Colors.Red.Default }" />
+ *@
+                <MudStack AlignItems="AlignItems.Center" Class="mt-n8">
+                    <MudText Typo="Typo.h4" Bold="true">24</MudText>
+                    <MudText Typo="Typo.caption">Total Buses</MudText>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <!-- LEGEND -->
+                <MudStack Spacing="2" Class="mt-6">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudAvatar Size="Size.Small" Color="Color.Success" />
+                        <MudText>Active (18)</MudText>
+                    </MudStack>
+
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudAvatar Size="Size.Small" Color="Color.Warning" />
+                        <MudText>Maintenance (3)</MudText>
+                    </MudStack>
+
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudAvatar Size="Size.Small" Color="Color.Error" />
+                        <MudText>Out of Service (3)</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+</MudStack>

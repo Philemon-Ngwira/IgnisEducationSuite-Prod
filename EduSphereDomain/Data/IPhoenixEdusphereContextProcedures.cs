@@ -27,6 +27,8 @@ namespace EduSphereDomain.Data
         Task<List<GetCitiesByCountryNameResult>> GetCitiesByCountryNameAsync(string CountryCode, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetClassLessonSummaryBySchoolResult>> GetClassLessonSummaryBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetClinicMedicationsBySchoolResult>> GetClinicMedicationsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetClinicStaffBySchoolResult>> GetClinicStaffBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetClinicVisitsWithMedicationLogsResult>> GetClinicVisitsWithMedicationLogsAsync(Guid? ClinicId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetGradedStudentAssignmentsResult>> GetGradedStudentAssignmentsAsync(Guid? StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetGradedStudentExamsResult>> GetGradedStudentExamsAsync(Guid? StudentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetHostelMaintainanceRequestsBySchoolResult>> GetHostelMaintainanceRequestsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
@@ -69,11 +71,17 @@ namespace EduSphereDomain.Data
         Task<List<GetTop5TeachersByHighRatedLessonsResult>> GetTop5TeachersByHighRatedLessonsAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetUpcomingExamsOrQuizzesResult>> GetUpcomingExamsOrQuizzesAsync(int? StudentGrade, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetUserBadgesByUserIDResult>> GetUserBadgesByUserIDAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetUserTripsTodayResult>> GetUserTripsTodayAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<RunDailyJobsResult>> RunDailyJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<sp_GetActiveClinicVisitsResult>> sp_GetActiveClinicVisitsAsync(Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<sp_GetClinicDashboardMetricsResult>> sp_GetClinicDashboardMetricsAsync(Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<sp_GetExpiringSoonMedicationsResult>> sp_GetExpiringSoonMedicationsAsync(int? DaysAhead, Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_GetStudentTimetableResult>> sp_GetStudentTimetableAsync(string userID, DateTime? AsOfDate, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> SyncStudentAndParentAccountStatusAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> SyncStudentsToClassesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> UpdateEndTermReportCardStatusAsync(Guid? TermSettingID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<int> usp_CreateTripAttendancesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<usp_GetStaffBySchoolAndRoleResult>> usp_GetStaffBySchoolAndRoleAsync(Guid? SchoolID, string RoleName, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<usp_GetTripAttendancesByTripResult>> usp_GetTripAttendancesByTripAsync(Guid? TripID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
     }
 }

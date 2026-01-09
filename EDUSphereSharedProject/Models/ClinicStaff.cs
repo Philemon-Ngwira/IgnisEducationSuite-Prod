@@ -17,5 +17,11 @@ public partial class ClinicStaff
 
     public string Contact { get; set; }
 
+    public string UserID { get; set; }
+
+    public string EmployeeID { get; set; }
+
+    public Guid? SchoolID { get; set; }
+
     public virtual Clinic Clinic { get; set; }
 }

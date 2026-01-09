@@ -311,6 +311,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[SchoolOps].[TripAttendances]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[SchoolOps].[TripBookings]",
          "ObjectType": 0
       },
@@ -324,6 +328,14 @@
       },
       {
          "Name": "[SchoolOps].[TripSchedules]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[TripTripTypes]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[TripTypes]",
          "ObjectType": 0
       },
       {
@@ -404,6 +416,14 @@
       },
       {
          "Name": "[SchoolOps].[RoomsWithOccupancy]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[SchoolOps].[vw_ClinicDashboard_ActiveVisits]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[SchoolOps].[vw_ClinicDashboard_Metrics]",
          "ObjectType": 3
       },
       {
@@ -656,6 +676,38 @@
       },
       {
          "Name": "[SchoolOps].[GetClinicMedicationsBySchool]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[GetClinicStaffBySchool]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[GetClinicVisitsWithMedicationLogs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[GetUserTripsToday]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[sp_GetActiveClinicVisits]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[sp_GetClinicDashboardMetrics]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[sp_GetExpiringSoonMedications]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[usp_CreateTripAttendances]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[usp_GetTripAttendancesByTrip]",
          "ObjectType": 1
       }
    ],
