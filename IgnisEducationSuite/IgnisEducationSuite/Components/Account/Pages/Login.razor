@@ -100,6 +100,15 @@
                 <div class="col-12">
                     <div class="card form-signin border-0 p-4 rounded shadow">
                         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                            <DataAnnotationsValidator />
+
+                            @if (!string.IsNullOrWhiteSpace(errorMessage))
+                            {
+                                <div class="alert alert-danger mb-3" role="alert">
+                                    @errorMessage
+                                </div>
+                            }
+
                             <div class="text-center mb-4">
                                 <a href="index.html" class="text-primary h4 text-uppercase">IGNIS EDUCATION SUITE</a>
                             </div>
@@ -221,6 +230,7 @@
 
     public async Task LoginUser()
     {
+        errorMessage = null;
         var result = await SignInManager.PasswordSignInAsync(Input.userName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {

@@ -219,6 +219,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[SchoolOps].[AIAdviceLogs]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[SchoolOps].[BusAssignments]",
          "ObjectType": 0
       },
@@ -283,6 +287,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[SchoolOps].[FoodItems]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[SchoolOps].[FuelStations]",
          "ObjectType": 0
       },
@@ -292,6 +300,10 @@
       },
       {
          "Name": "[SchoolOps].[Hostels]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[InventoryBatches]",
          "ObjectType": 0
       },
       {
@@ -655,6 +667,10 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[sp_GetLevelTermReportCard]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[sp_GetStudentTimetable]",
          "ObjectType": 1
       },
@@ -687,7 +703,15 @@
          "ObjectType": 1
       },
       {
+         "Name": "[SchoolOps].[GetUserTripsToday]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[SchoolOps].[sp_GetActiveClinicVisits]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[sp_GetBusMaintenanceRequests]",
          "ObjectType": 1
       },
       {
@@ -696,6 +720,22 @@
       },
       {
          "Name": "[SchoolOps].[sp_GetExpiringSoonMedications]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[usp_CreateTripAttendances]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[usp_GetAvailableTripsForParentBooking]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[usp_GetParentTripAttendances]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[usp_GetTripAttendancesByTrip]",
          "ObjectType": 1
       }
    ],

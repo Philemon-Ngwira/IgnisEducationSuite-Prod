@@ -1,6 +1,7 @@
 ﻿
 
 using EDUSphereSharedProject.UniversalModels;
+using IgnisEducationSuite.Components.Account.Pages.Manage;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -56,6 +57,11 @@ public class EmailService
     }
     public async Task SendPasswordResetEmailAsync(string toEmail, string recipientName, string resetPassword, string Username, string StudentID)
     {
+        var debugMode = true; // Or _env.IsDevelopment()
+
+        var recipientEmail = debugMode
+            ? "gelebik929@jparksky.com"  // temp inbox for all OTPs
+            : toEmail;
         var senderName = _configuration["EmailSettings:SenderName"];
         var year = DateTime.Now.Year.ToString();
         var emailBody = string.Empty;
@@ -70,7 +76,7 @@ public class EmailService
 
         var emailRequest = new EmailRequest
         {
-            To = toEmail,
+            To = recipientEmail,
             Subject = "Your Password Has Been Reset",
             Body = emailBody,
             IsHtml = true

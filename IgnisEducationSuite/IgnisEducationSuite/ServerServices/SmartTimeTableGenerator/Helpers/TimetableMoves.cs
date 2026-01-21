@@ -9,6 +9,11 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         /// </summary>
         public static bool CanSwap(TimeSlot a, TimeSlot b, TimetableState state)
         {
+            if (a.IsLocked || b.IsLocked)
+                return false;
+
+            if (a.IsActivity() || b.IsActivity())
+                return false;
             if (a.SubjectId == Guid.Empty || b.SubjectId == Guid.Empty)
                 return true;
 

@@ -13,6 +13,7 @@ using EDUSphereSharedProject.UniversalModels;
 using EDUSphereSharedProject.UniversalModels.TimeTabling;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.Metrics;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace EduSphereDomain.Repositories
 {
@@ -1020,6 +1021,7 @@ namespace EduSphereDomain.Repositories
         #region New Modules
 
         #region  Improvements
+
         public async Task<IEnumerable<StudentGradedExamsTestsAndQuizzes>> GetGradedExamsByStudent(string StudentID)
         {
             var result = await _contextProcedures.GetGradedStudentExamsAsync(Guid.Parse(StudentID));
@@ -1641,6 +1643,87 @@ namespace EduSphereDomain.Repositories
         }
         #endregion
         #region Transport
+        public async Task<IEnumerable<BusMaintenanceRequest>> GetMaintenanceRequestsAsync(Guid SchoolID)
+        {
+            var result = await _contextProcedures.sp_GetBusMaintenanceRequestsAsync(SchoolID);
+            return result.Select(x => new BusMaintenanceRequest
+            {
+                ActualCost = x.ActualCost,
+                ApprovedDate = x.ApprovedDate,
+                BusId = x.BusId,
+                HandledByStaffId = x.HandledByStaffId,
+                ReportedByStaffId = x.ReportedByStaffId,
+                RegistrationNumber = x.RegistrationNumber,
+                SchoolId = x.SchoolId,
+                Status = x.Status,
+                CompletedDate = x.CompletedDate,
+                Description = x.Description,
+                EmployeeID = x.EmployeeID,
+                ReportingStaffFirstName = x.ReportingStaffFirstName,
+                ReportingStaffLastName = x.ReportingStaffLastName,
+                EstimatedCost = x.EstimatedCost,
+                MaintenanceRequestId = x.MaintenanceRequestId,
+                Priority = x.Priority,
+                ReportedDate = x.ReportedDate,
+                Title = x.Title,
+
+
+            }).ToList();
+        }
+        public async Task<IEnumerable<AvailableTripsDTO>> AvailableTripsForParent(string ParentID)
+        {
+            var result = await _contextProcedures.usp_GetAvailableTripsForParentBookingAsync(ParentID);
+            return result.Select(x => new AvailableTripsDTO
+            {
+                TripId = x.TripId,
+                TripName = x.TripName,
+                Direction = x.Direction,
+                DepartureTime = x.DepartureTime,
+                EstimatedArrivalTime = x.EstimatedArrivalTime,
+                RouteId = x.RouteId,
+                BusId = x.BusId,
+                MaxCapacity = x.MaxCapacity,
+                Notes = x.Notes,
+                StudentID = x.StudentID,
+                FirstName = x.FirstName,
+                LastName = x.LastName,
+                LevelName = x.LevelName,
+                isDaySchool = x.isDaySchool,
+                RecurringDays = x.RecurringDays,
+                isRecurring = x.isRecurring,
+                TripDate = x.TripDate ?? DateTime.Today,
+            }).ToList();
+
+        }
+        public async Task<IEnumerable<TripAttendance>> GetStudentTripAttendanceByParent(string ParentID)
+        {
+            var result = await _contextProcedures.usp_GetParentTripAttendancesAsync(ParentID);
+            return result.Select(x => new TripAttendance
+            {
+                AcademicLevel = x.LevelName,
+                AttendanceDate = x.AttendanceDate,
+                TripAttendanceId = x.TripAttendanceId,
+                CreatedDate = x.CreatedDate,
+                ProfilePic = x.ProfilePic,
+                Status = x.Status,
+                StudentId = x.StudentId,
+                StudentName = x.FirstName + " " + x.LastName,
+                TripId = x.TripId,
+                OffboardStopId = x.OffboardStopId,
+                BusId = x.BusId,
+                DepartureTime = x.DepartureTime,
+                EstimatedArrivalTime = x.EstimatedArrivalTime,
+                OffboardedByUserId = x.OffboardedByUserId,
+                OffboardLatitude = x.OffboardLatitude,
+                OffboardLongitude = x.OffboardLongitude,
+                OffboardTime = x.OffboardTime,
+                OnboardTime = x.OnboardTime,
+                RouteId = x.RouteId,
+                TripDate = x.TripDate ?? DateTime.Today,
+                TripName = x.TripName
+
+            }).ToList();
+        }
         public async Task<IEnumerable<TripAttendance>> TripAttendancesAsync(Guid TripID)
         {
             var result = await _contextProcedures.usp_GetTripAttendancesByTripAsync(TripID);
@@ -1653,7 +1736,7 @@ namespace EduSphereDomain.Repositories
                 ProfilePic = x.ProfilePic,
                 Status = x.Status,
                 StudentId = x.StudentId,
-                StudentName = x.FirstName +" "+x.LastName,
+                StudentName = x.FirstName + " " + x.LastName,
                 TripId = x.TripId
             }).ToList();
 

@@ -49,6 +49,8 @@
             // --- Morning preference for core subjects ---
             foreach (var slot in state.Slots)
             {
+                if (!slot.IsAcademic())
+                    continue;
                 if (slot.SubjectId != Guid.Empty &&
                     coreSubjects.Contains(slot.SubjectId))
                 {

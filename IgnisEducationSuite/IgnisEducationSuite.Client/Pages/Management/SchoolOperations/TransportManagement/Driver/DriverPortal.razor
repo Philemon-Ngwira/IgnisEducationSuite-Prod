@@ -127,10 +127,21 @@
                                 }
                                 else if (attendance.Status == "Boarded")
                                 {
-                                    <MudAlert Severity="Severity.Success" Elevation="0">
-                                        @attendance.Status
+                                    <MudButton Color="Color.Warning"
+                                               Variant="Variant.Filled"
+                                               Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.Place"
+                                               OnClick="() => MarkStudentOffboarded(attendance)">
+                                        Offboard
+                                    </MudButton>
+                                }
+                                else if (attendance.Status == "Offboarded")
+                                {
+                                    <MudAlert Severity="Severity.Info" Elevation="0">
+                                        Dropped Off
                                     </MudAlert>
                                 }
+
                                 else if (attendance.Status == "Not Boarded")
                                 {
                                     <MudAlert Severity="Severity.Error" Elevation="0">
@@ -141,6 +152,41 @@
                             </MudListItem>
                         }
                     </MudList>
+                    <MudDialog @bind-IsVisible="showStopFallback">
+                        <DialogContent>
+                            <MudText Typo="Typo.h6" Class="mb-3">
+                                Select Drop-off Stop
+                            </MudText>
+
+                            <MudSelect T="BusStop"
+                                       Label="Bus Stop"
+                                       Variant="Variant.Outlined"
+                                       Dense="true"
+                                       @bind-Value="selectedFallbackStop">
+                                @foreach (var stop in ActiveDriverTrip.tripRoute.BusStops)
+                                {
+                                    <MudSelectItem Value="stop">
+                                        @stop.Name
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                        </DialogContent>
+
+                        <DialogActions>
+                            <MudButton Variant="Variant.Text"
+                                       OnClick="CloseStopFallback">
+                                Cancel
+                            </MudButton>
+
+                            <MudButton Color="Color.Success"
+                                       Variant="Variant.Filled"
+                                       Disabled="@(selectedFallbackStop == null)"
+                                       OnClick="ConfirmStopFallback">
+                                Confirm Drop-off
+                            </MudButton>
+                        </DialogActions>
+                    </MudDialog>
+
                 </MudPaper>
             </MudItem>
 
@@ -302,28 +348,44 @@ else if (portalState == "issues")
         </MudText>
 
         <MudForm>
-            <MudSelect T="string" Label="Select Bus" Variant="Variant.Outlined" Dense="true">
-                <MudSelectItem Value="1">BUS-101 (Blue Bird)</MudSelectItem>
-                <MudSelectItem Value="2">BUS-102 (IC)</MudSelectItem>
+
+            <MudSelect T="Bus"
+                       @bind-Value="SelectedBus"
+                       ToStringFunc="BusConverter"
+                       Label="Select Bus"
+                       Variant="Variant.Outlined" Dense="true"
+                       Margin="Margin.Dense">
+
+                @foreach (var item in schoolFleet)
+                {
+                    <MudSelectItem Value="item">@item.RegistrationNumber</MudSelectItem>
+
+                }
             </MudSelect>
 
-            <MudToggleGroup T="string" Class="my-4">
-                <MudToggleItem Value="@("Low")">LOW</MudToggleItem>
-                <MudToggleItem Value="@("Medium")">MEDIUM</MudToggleItem>
-                <MudToggleItem Value="@("High")">HIGH</MudToggleItem>
-                <MudToggleItem Value="@("Critical")">CRITICAL</MudToggleItem>
+            <MudToggleGroup T="string" @bind-Value="newRequest.Priority"  Class="my-4">
+                <MudToggleItem Style="color: lawngreen" Value="@("Low")">LOW</MudToggleItem>
+                <MudToggleItem Style="color: yellow" Value="@("Medium")">MEDIUM</MudToggleItem>
+                <MudToggleItem Style="color: orangered" Value="@("High")">HIGH</MudToggleItem>
+                <MudToggleItem Style="color: darkred" Value="@("Critical")">CRITICAL</MudToggleItem>
             </MudToggleGroup>
 
-            <MudTextField T="string" Label="Issue Description"
+            <MudTextField T="string" @bind-Value="newRequest.Description" Label="Issue Description"
                           Variant="Variant.Outlined"
                           Lines="4"
+                          Margin="Margin.Dense"
                           Placeholder="Describe the issue..." />
+            <MudTextField T="decimal?" @bind-Value="newRequest.EstimatedCost" Label="Estimated Cost"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Placeholder="Enter Cost Estimate" />
 
             <MudButton Color="Color.Warning"
                        Variant="Variant.Filled"
                        FullWidth
                        StartIcon="@Icons.Material.Filled.Send"
-                       Class="mt-4">
+                       Class="mt-4"
+                       OnClick="ReportBusIssues">
                 Submit Report
             </MudButton>
         </MudForm>
@@ -332,17 +394,113 @@ else if (portalState == "issues")
 
 @code {
     protected List<Trip> driverTrips = new();
+    protected List<Bus> schoolFleet = new();
     protected int boardedStudents = 0;
     protected Trip ActiveDriverTrip = new();
+    protected Bus SelectedBus = new();
     protected string portalState = "trip";
     protected bool tripSelected = false;
-
+    private bool showStopFallback = false;
+    private TripAttendance? pendingOffboardAttendance;
+    private BusMaintenanceRequest newRequest = new();
+    private BusStop? selectedFallbackStop;
+    private Func<Bus, string> BusConverter = b => b?.RegistrationNumber + " - " + b?.Model + " (" + b?.ModelYear + ")" ?? "";
     protected override async Task OnInitializedAsync()
     {
         LoaderService.Show($"Hi {AppState.FirstName}, Please wait while we fetch your trips...");
         await GetDriverScheduledTrips();
-
+        await GetSchoolFleetAsync();
         LoaderService.Hide();
+    }
+
+    #region Offboarding
+    private async Task MarkStudentOffboarded(TripAttendance attendance)
+    {
+        try
+        {
+            var location = await JS.InvokeAsync<GeoLocationResult>("getCurrentLocation");
+
+            await CompleteOffboarding(
+                attendance,
+                location.Latitude,
+                location.Longitude,
+                null
+            );
+        }
+        catch
+        {
+            // GPS failed → open fallback dialog
+            pendingOffboardAttendance = attendance;
+            selectedFallbackStop = null;
+            showStopFallback = true;
+        }
+    }
+    private async Task CompleteOffboarding(
+    TripAttendance attendance,
+    double? lat,
+    double? lng,
+    BusStop? stop)
+    {
+        attendance.Status = "Offboarded";
+        attendance.OffboardTime = DateTime.UtcNow;
+        attendance.OffboardLatitude = (decimal)lat;
+        attendance.OffboardLongitude = (decimal)lng;
+        attendance.OffboardStopId = stop?.StopId;
+        attendance.OffboardedByUserId = Guid.Parse(AppState.UserID);
+        var serv = GenericService.GetService<TripAttendance>();
+        var result = await serv.UpdateAsync(
+            "api/Dynamic/UpdateEntity",
+            "tripattendance",
+            attendance
+        );
+
+        if (result.IsSuccess)
+        {
+            await SendOffboardEmailAsync(attendance);
+            StateHasChanged();
+        }
+    }
+    private void CloseStopFallback()
+    {
+        showStopFallback = false;
+        pendingOffboardAttendance = null;
+    }
+
+    private async Task ConfirmStopFallback()
+    {
+        if (pendingOffboardAttendance == null || selectedFallbackStop == null)
+            return;
+
+        showStopFallback = false;
+
+        await CompleteOffboarding(
+            pendingOffboardAttendance,
+            null,
+            null,
+            selectedFallbackStop
+        );
+
+        pendingOffboardAttendance = null;
+    }
+
+    private async Task SendOffboardEmailAsync(TripAttendance attendance)
+    {
+        // TODO:
+        // - Get parent email
+        // - Reverse geocode (optional)
+        // - Call MailService.SendAsync(...)
+        await Task.CompletedTask;
+    }
+
+    #endregion
+    protected async Task GetSchoolFleetAsync()
+    {
+        var service = GenericService.GetService<Bus>();
+        var result = await service.GetAllAsync($"Api/Dynamic/GetSchoolBusFleet/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            schoolFleet = result.Data.ToList();
+        }
     }
     protected async Task<List<BusRoute>> GetBusRoutes(Guid RouteID)
     {
@@ -429,7 +587,47 @@ else if (portalState == "issues")
         tripSelected = true;
         StateHasChanged();
     }
+    protected async Task ReportBusIssues()
+    {
+        LoaderService.Show("Please wait... Request is being logged");
+        try
+        {
+            newRequest.BusId = SelectedBus.BusId;
+            newRequest.MaintenanceRequestId = Guid.NewGuid();
+            newRequest.SchoolId = Guid.Parse(AppState.SchoolID);
+            newRequest.Title = $"Maintainace Request Bus: {SelectedBus.RegistrationNumber};{SelectedBus.Model};{SelectedBus.ModelYear} RequestDate: {DateTime.Today}";
+            newRequest.Status = "Pending";
+            newRequest.ReportedDate = DateTime.UtcNow;
+            newRequest.ReportedByStaffId = Guid.Parse(AppState.UserID);
 
+            var serv = GenericService.GetService<BusMaintenanceRequest>();
+            var result = await serv.PostAsync("api/Dynamic/PostEntity", "busmaintainance", newRequest);
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Request Logged Successfully", Severity.Success);
+                newRequest = new();
+                SelectedBus = new();
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add($"Error Logging Request, Error Code: {result.ErrorMessage}; Please contact system admin if problem persists", Severity.Error);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+            Console.Write(_);
+            throw;
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+
+    }
     protected void ReturnToSchedule()
     {
         tripSelected = false;

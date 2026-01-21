@@ -17,5 +17,15 @@ namespace EDUSphereSharedProject.Models
         public TimeSpan? AfternoonStart { get; set; }
         [NotMapped]
         public TimeSpan StartFrom { get; set; }
+        [NotMapped]
+        // ✅ NEW (future-proof)
+        public HashSet<DayOfWeek> Days { get; set; } = new()
+    {
+        DayOfWeek.Monday,
+        DayOfWeek.Tuesday,
+        DayOfWeek.Wednesday,
+        DayOfWeek.Thursday,
+        DayOfWeek.Friday
+    };
     }
 }

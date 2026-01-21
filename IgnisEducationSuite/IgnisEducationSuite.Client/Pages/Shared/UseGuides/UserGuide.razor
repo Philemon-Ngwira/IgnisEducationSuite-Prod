@@ -1,0 +1,38 @@
+﻿@page "/UserGuide"
+@inherits AppBaseComponent
+@switch (UserRole?.ToLower())
+{
+    case "admin":
+        <AdminGuide />
+        break;
+
+    case "teacher":
+        <TeacherGuide />
+        break;
+
+    case "parent":
+        <ParentGuide />
+        break;
+
+    case "student":
+        <StudentGuide />
+        break;
+
+    default:
+        <MudAlert Severity="Severity.Warning">
+            No user guide available for this role.
+        </MudAlert>
+        break;
+}
+
+@code {
+    [Parameter] public string? UserRole { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Assuming you have a method to get the current user's role
+        UserRole = AppState.UserRole;
+    }
+
+
+}

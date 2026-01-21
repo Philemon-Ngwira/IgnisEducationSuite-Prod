@@ -14,35 +14,54 @@
             <MudPaper Class="pa-5 rounded-xl" Style="background:#FEF2F2;border:1px solid #FECACA">
                 <MudText Typo="Typo.h6" Color="Color.Error" Class="fw-bold mb-3">
                     <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Class="me-1" />
-                    Open Driver Reports (2)
+                    Open Driver Reports (@maintenanceRequests.Count)
                 </MudText>
 
                 <MudGrid Spacing="2">
-                    <MudItem xs="12" md="6">
-                        <MudPaper Class="pa-4 rounded-lg border">
-                            <MudStack Spacing="1">
-                                <MudStack Row Justify="Justify.SpaceBetween">
-                                    <MudText Class="fw-bold">BUS-102</MudText>
-                                    <MudChip T="string" Color="Color.Error" Size="Size.Small">CRITICAL</MudChip>
-                                </MudStack>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                    Brake pressure warning detected
-                                </MudText>
-                                <MudDivider Class="my-2" />
-                                <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudText Typo="Typo.caption">
-                                        Reported: 12 Mar by Driver A
-                                    </MudText>
-                                    <MudButton Size="Size.Small"
-                                               Color="Color.Success"
-                                               Variant="Variant.Filled"
-                                               StartIcon="@Icons.Material.Filled.CheckCircle">
-                                        Resolve
-                                    </MudButton>
-                                </MudStack>
-                            </MudStack>
-                        </MudPaper>
-                    </MudItem>
+                    @if (maintenanceRequests.Any())
+                    {
+                        @foreach (var request in maintenanceRequests)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudPaper Class="pa-4 rounded-lg border">
+                                    <MudStack Spacing="1">
+                                        <MudStack Row Justify="Justify.SpaceBetween">
+                                            <MudText Class="fw-bold">@request.RegistrationNumber</MudText>
+                                            <MudChip T="string"
+                                                     Color="@GetPriorityColor(request.Priority)"
+                                                     Size="Size.Small"
+                                                     Variant="Variant.Filled">
+                                                @request.Priority
+                                            </MudChip>
+
+                                        </MudStack>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            @request.Description
+                                        </MudText>
+                                        <MudDivider Class="my-2" />
+                                        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                            <MudText Typo="Typo.caption">
+                                                Reported: @request.ReportedDate.ToShortDateString() by @($"{request.ReportingStaffFirstName.Substring(0, 1)} {request.ReportingStaffLastName}")
+                                            </MudText>
+                                            <MudButton Size="Size.Small"
+                                                       Color="Color.Warning"
+                                                       Variant="Variant.Filled"
+                                                       StartIcon="@MaterialDesignIcons.Normal.EngineOff">
+                                               Maintenance
+                                            </MudButton>
+                                            <MudButton Size="Size.Small"
+                                                       Color="Color.Success"
+                                                       Variant="Variant.Filled"
+                                                       StartIcon="@Icons.Material.Filled.CheckCircle">
+                                                Resolve
+                                            </MudButton>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+
+                        }
+                    }
                 </MudGrid>
             </MudPaper>
 
@@ -212,14 +231,27 @@
 </MudGrid>
 @code {
     protected List<Bus> fleet = new();
-
+    protected List<BusMaintenanceRequest> maintenanceRequests = new();
+    protected List<Task> InitializationTasks = new();
     protected override async Task OnInitializedAsync()
     {
         LoaderService.Show("Please wait while your environment is prepared...");
-        await GetSchoolFleetAsync();
+        InitializationTasks.Add(GetMaintenanceRequestsAsync());
+        InitializationTasks.Add(GetSchoolFleetAsync());
+        await Task.WhenAll(InitializationTasks);
         LoaderService.Hide();
     }
+    protected async Task GetMaintenanceRequestsAsync()
+    {
+        var serv = GenericService.GetService<BusMaintenanceRequest>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetMaintenanceRequestsAsync/{Guid.Parse(AppState.SchoolID)}", true);
 
+        if (result.IsSuccess)
+        {
+            maintenanceRequests = result.Data.ToList();
+            StateHasChanged();
+        }
+    }
     protected async Task GetSchoolFleetAsync()
     {
         var service = GenericService.GetService<Bus>();

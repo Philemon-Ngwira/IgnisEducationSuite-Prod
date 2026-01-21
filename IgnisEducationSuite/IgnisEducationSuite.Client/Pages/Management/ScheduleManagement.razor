@@ -50,8 +50,8 @@
                                    Placeholder="Select slot type">
 
                             <MudSelectItem Value="@(SlotType.None.ToString())" ">Select slot type</MudSelectItem>
-                            <MudSelectItem Value="@(SlotType.Morning.ToString())">Morning</MudSelectItem>
-                            <MudSelectItem Value="@(SlotType.MidMorning.ToString())">Mid-morning</MudSelectItem>
+                            <MudSelectItem Value="@(SlotType.EarlyMorning.ToString())">Morning</MudSelectItem>
+                            <MudSelectItem Value="@(SlotType.Morning.ToString())">Mid-morning</MudSelectItem>
                             <MudSelectItem Value="@(SlotType.Afternoon.ToString())">Afternoon</MudSelectItem>
                             <MudSelectItem Value="@(SlotType.Evening.ToString())">Evening</MudSelectItem>
                             <MudSelectItem Value="@(SlotType.BreakTime.ToString())">Break</MudSelectItem>
@@ -476,8 +476,8 @@
     public enum SlotType
     {
         None = 0,        // ❗ invalid / forces selection
-        Morning = 1,
-        MidMorning = 2,
+        EarlyMorning = 1,
+        Morning = 2,
         Afternoon = 3,
         Evening = 4,
         BreakTime = 5,
@@ -621,6 +621,8 @@
     }
     private async Task GenerateSmartTimetable()
     {
+        LoaderService.Show("Generating Time Table Please wait...");
+
         if (SmartGrade <= 0 || string.IsNullOrWhiteSpace(SmartGradeLevel))
         {
             Snackbar.Add("Please select a grade and class.", Severity.Warning);
@@ -717,6 +719,7 @@
         finally
         {
             IsGenerating = false;
+            LoaderService.Hide();
             StateHasChanged();
         }
     }
@@ -737,7 +740,9 @@
 
         // --- Order slots and determine boundaries ---
         var slotsOrdered = slotsToUse.OrderBy(s => s.StartTime).ToList();
-
+        var ealyMorningEnd = slotsOrdered.Where(s => s.SlotType == "EarlyMorning")
+                                          .OrderByDescending(s => s.EndTime)
+                                          .FirstOrDefault()?.EndTime ?? TimeSpan.Zero;
         var lastMorning = slotsOrdered.Where(s => s.SlotType == "Morning")
                                       .OrderByDescending(s => s.StartTime)
                                       .FirstOrDefault();
@@ -756,6 +761,7 @@
             ScheduledActivityId = s.ScheduledActivityId,
             SchoolMorningEnd = morningEnd,
             SchoolAfternoonStart = afternoonStart,
+            SchoolEarlyMorningEnd = ealyMorningEnd,
             TimeslotID = s.TimeslotID
         }).ToList();
 
@@ -852,9 +858,7 @@
             SubjectId = kvp.Key,
             MustBeMorning = kvp.Value == ClassTimePreference.MorningOnly,
             MustBeAfternoon = kvp.Value == ClassTimePreference.MidMorning,
-            EarlyMorningEnd = slotsOrdered.Where(s => s.SlotType == "EarlyMorning")
-                                          .OrderByDescending(s => s.EndTime)
-                                          .FirstOrDefault()?.EndTime ?? TimeSpan.Zero,
+            EarlyMorningEnd = ealyMorningEnd,
             MorningEnd = morningEnd
         }).ToList();
         foreach (var item in schedules)
@@ -1051,6 +1055,8 @@
 
     private void OnSmartGradeChanged(string grade)
     {
+        SmartGeneratedSchedules.Clear();
+
         var level = academicLevels.FirstOrDefault(x => x.LevelName == grade);
         if (level is null) return;
 

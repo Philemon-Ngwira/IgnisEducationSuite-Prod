@@ -24,5 +24,12 @@ namespace EDUSphereSharedProject.Models
         public Guid SubjectId { get; set; }
         [NotMapped]
         public string? SubjectName { get; set; } = string.Empty;
+        [NotMapped]
+        public bool IsLocked { get; set; } = false;
+        [NotMapped]
+        public bool IsActivity => ScheduledActivityId.HasValue;
+        [NotMapped]
+        public bool IsSubject => SubjectId != Guid.Empty;
+
     }
 }

@@ -3,11 +3,7 @@ using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.UniversalModels.TimeTabling;
 using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
 using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Mono.TextTemplating;
-using Org.BouncyCastle.Utilities;
-using static MudBlazor.Defaults;
 
 namespace IgnisEducationSuite.Controllers
 {

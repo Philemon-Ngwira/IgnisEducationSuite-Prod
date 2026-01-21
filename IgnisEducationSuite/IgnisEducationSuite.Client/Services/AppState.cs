@@ -4,6 +4,7 @@ using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components;
+using System.Linq;
 
 public class AppState
 {
@@ -219,6 +220,12 @@ public class AppState
             UserRole = role;
             NotifyStateChanged();
         }
+    }
+
+    public void SetNewAcademicStructure(List<AcademicLevel> levels)
+    {
+        AcademicLevels = levels.ToList();
+
     }
     #endregion
 }

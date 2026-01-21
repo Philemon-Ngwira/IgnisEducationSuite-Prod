@@ -34,7 +34,7 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
             _weeklyCount = new();
             _dailyCount = new();
 
-            foreach (var slot in Slots.Where(s => s.SubjectId != Guid.Empty))
+            foreach (var slot in Slots.Where(s => s.IsAcademic()))
             {
                 _weeklyCount.TryAdd(slot.SubjectId, 0);
                 _weeklyCount[slot.SubjectId]++;
@@ -43,6 +43,7 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                 _dailyCount.TryAdd(key, 0);
                 _dailyCount[key]++;
             }
+
         }
 
         // ---------- QUERIES ----------

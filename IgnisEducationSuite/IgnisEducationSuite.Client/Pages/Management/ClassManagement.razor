@@ -65,21 +65,21 @@
                 Available Classes
             </MudAlert>
 
-            <MudDataGrid Items="classes" Filterable="false" SortMode="@SortMode.Multiple" Groupable="false">
+            <MudDataGrid Items="classes" Filterable="false" SortMode="@SortMode.Multiple" Groupable="false" QuickFilter="@_quickFilter">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Classes</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                                  AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                </ToolBarContent>
                 <Columns>
                     @if (classes.Any())
                     {
                         <PropertyColumn Property="x => x.Teacher.FirstName" Title="Teacher First Name" />
                         <PropertyColumn Property="x => x.Teacher.LastName" Title="Teacher Last Name" />
                         <PropertyColumn Property="x => x.ClassName" Title="Class Name" />
-                        <PropertyColumn Property="x => x.LevelName" Title="Level" />
-                        <TemplateColumn Title="Actions" CellClass="d-flex justify-end">
-                            <CellTemplate>
-                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">
-                                    Manage
-                                </MudButton>
-                            </CellTemplate>
-                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.LevelName" Sortable=true Title="Level" />
+
                     }
                     else
                     {
@@ -88,7 +88,11 @@
                         </MudAlert>
                     }
                 </Columns>
+                <PagerContent>
+                    <MudDataGridPager T="Class" />
+                </PagerContent>
             </MudDataGrid>
+
         </MudPaper>
 
     </MudCardContent>
@@ -106,6 +110,7 @@
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     [Inject] AppState _appState { get; set; } = default!;
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    private string _searchString = "";
     protected override async Task OnInitializedAsync()
     {
         LoaderService.Show("Please wait...");
@@ -192,7 +197,22 @@
             return new List<Teacher>();
         return teachers.Where(x => x.FirstName.Contains(value, StringComparison.InvariantCultureIgnoreCase) || x.LastName.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
+    private Func<Class, bool> _quickFilter => x =>
+{
+    if (string.IsNullOrWhiteSpace(_searchString))
+        return true;
 
+    if (x.LevelName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+        return true;
+
+    if (x.ClassName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+        return true;
+
+    if ($"{x.Teacher.FirstName} {x.Teacher.LastName}".Contains(_searchString))
+        return true;
+
+    return false;
+};
     #region To String Func
 
     protected Func<Teacher, string> TeacherTypeconverter = p => p?.FirstName + " " + p?.LastName;

@@ -16,12 +16,15 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         /// </summary>
         public void Build(TimetableState state, TimeTableActivity? prepActivity = null)
         {
+            TimetableDebugPrinter.Print("BEFORE REPAIR", state);
             // -------- STAGE 2: REPAIR (HARD CONSTRAINTS) --------
             var repair = new TimeTableRepair();
             repair.Repair(state, prepActivity);
 
+            TimetableDebugPrinter.Print("BEFORE REPAIR", state);
             // -------- STAGE 3: OPTIMIZATION (SOFT CONSTRAINTS) --------
             Optimize(state);
+
         }
 
         /// <summary>
@@ -31,52 +34,58 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         /// </summary>
         private void Optimize(TimetableState state)
         {
-            bool improved;
-            int iteration = 0;
+            // 🔒 SAFE OPTIMIZER
+            // Only moves subjects into free slots on the SAME DAY
+            // Never swaps subject <-> subject
+            // Never touches activities
+            // Never creates same-day duplicates
+            // Never splits doubles
 
-            do
+            foreach (var day in Enum.GetValues<DayOfWeek>())
             {
-                improved = false;
-                iteration++;
+                if (day is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                    continue;
 
-                int baseScore = TimetableScorer.Score(state, _coreSubjects);
+                var daySlots = state.SlotsForDay(day)
+                    .OrderBy(s => s.StartTime)
+                    .ToList();
 
-                foreach (var day in Enum.GetValues<DayOfWeek>())
+                // Track what already exists today
+                var subjectsToday = new HashSet<Guid>(
+                    daySlots
+                        .Where(s => s.SubjectId != Guid.Empty && !s.IsActivity())
+                        .Select(s => s.SubjectId)
+                );
+
+                foreach (var slot in daySlots)
                 {
-                    var daySlots = state.SlotsForDay(day).ToList();
+                    // Only consider FREE, NON-ACTIVITY slots
+                    if (slot.SubjectId != Guid.Empty)
+                        continue;
 
-                    for (int i = 0; i < daySlots.Count; i++)
-                    {
-                        for (int j = i + 1; j < daySlots.Count; j++)
-                        {
-                            var a = daySlots[i];
-                            var b = daySlots[j];
+                    if (slot.IsActivity() || slot.IsLocked)
+                        continue;
 
-                            // Only consider swapping free or safe slots
-                            if (!TimetableMoves.CanSwap(a, b, state))
-                                continue;
+                    var candidates = state.Subjects.Values
+                        .Where(s =>
+                            state.WeeklyRemaining(s.SubjectId) > 0 &&
+                            !subjectsToday.Contains(s.SubjectId) &&             // ❗ no same-day repeat
+                            state.DailyCount(day, s.SubjectId) == 0 &&           // ❗ single only
+                            (!s.EarlyMorningOnly || slot.StartTime < s.EarlyMorningEnd))
+                        .OrderByDescending(s => state.WeeklyRemaining(s.SubjectId))
+                        .ThenBy(s => s.SubjectName)
+                        .ToList();
 
-                            // Apply swap
-                            TimetableMoves.Swap(a, b);
-                            int newScore = TimetableScorer.Score(state, _coreSubjects);
+                    if (!candidates.Any())
+                        continue;
 
-                            if (newScore > baseScore)
-                            {
-                                // Keep swap
-                                improved = true;
-                                baseScore = newScore;
-                                goto NEXT_ITERATION;
-                            }
+                    var chosen = candidates.First();
 
-                            // Revert swap
-                            TimetableMoves.Swap(a, b);
-                        }
-                    }
+                    state.PlaceSubject(slot, chosen.SubjectId);
+                    subjectsToday.Add(chosen.SubjectId);
                 }
-
-            NEXT_ITERATION:
-                ;
-            } while (improved);
+            }
         }
+
     }
 }

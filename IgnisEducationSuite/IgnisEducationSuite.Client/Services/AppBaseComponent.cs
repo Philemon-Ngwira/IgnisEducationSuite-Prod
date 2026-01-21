@@ -39,6 +39,17 @@ public class AppBaseComponent : ComponentBase, IDisposable
         "Lunch",
         "Dinner"
     };
+    protected Color GetPriorityColor(string priority)
+    {
+        return priority switch
+        {
+            "Low" => Color.Success,   // Green
+            "Medium" => Color.Warning,   // Yellow
+            "High" => Color.Error,     // Red
+            "Critical" => Color.Dark,      // Dark / Almost black
+            _ => Color.Default
+        };
+    }
 
     protected async Task<ApplicationUser> GetUserInformation(string UserID)
     {

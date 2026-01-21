@@ -18,4 +18,16 @@ public partial class TripAttendance
     public string Status { get; set; }
 
     public DateTime CreatedDate { get; set; }
+
+    public DateTime? OnboardTime { get; set; }
+
+    public DateTime? OffboardTime { get; set; }
+
+    public decimal? OffboardLatitude { get; set; }
+
+    public decimal? OffboardLongitude { get; set; }
+
+    public Guid? OffboardStopId { get; set; }
+
+    public Guid? OffboardedByUserId { get; set; }
 }

@@ -222,15 +222,18 @@
 </MudStack>
 @code {
     protected List<BusStaff> busStaff = new();
+    protected List<BusMaintenanceRequest> maintenanceRequests = new();
     protected string AttendantsCount = "";
     protected string DriversCount = "";
+    protected List<Task> InitializationTasks = new();
     protected override async Task OnInitializedAsync()
     {
         LoaderService.Show("Please wait...");
-        await GetBusStaffAsync();
+        InitializationTasks.Add(GetBusStaffAsync());
+        await Task.WhenAll(InitializationTasks);
         LoaderService.Hide();
     }
-
+  
     protected async Task GetBusStaffAsync()
     {
         var serv = GenericService.GetService<BusStaff>();

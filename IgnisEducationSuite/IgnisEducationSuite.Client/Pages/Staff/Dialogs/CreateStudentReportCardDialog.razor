@@ -36,13 +36,13 @@
                 <MudDivider Class="mb-3" />
                 @if (AppState.UserRole == "Teacher" || AppState.UserRole == "Admin")
                 {
-                    <MudDataGrid ReadOnly="@(!CanEditScores)" T="ReportCardDetail" Items="_visibleReportCardDetails"
+                    <MudDataGrid T="ReportCardDetail" Items="_visibleReportCardDetails"
                                  EditMode="DataGridEditMode.Cell"
                                  StartedEditingItem="@StartedEditingItem"
                                  CanceledEditingItem="@CanceledEditingItem"
                                  CommittedItemChanges="@CommittedItemChanges"
                                  Bordered="true" Dense="true"
-                                 EditTrigger="@(_editTriggerRowClick ? DataGridEditTrigger.OnRowClick : DataGridEditTrigger.Manual)">
+                                 EditTrigger="DataGridEditTrigger.OnRowClick">
 
                         <Columns>
                             <PropertyColumn Property="x => x.Class.ClassName" Title="Class" Editable="false" />
@@ -131,12 +131,17 @@
     [Parameter] public ReportCard newReportCard { get; set; } = new();
     private DateRange _dateRangeTerm { get; set; }
     [Parameter] public List<ReportCardDetail> reportCardDetails { get; set; } = new();
-    protected bool _editTriggerRowClick = false;
+    protected bool _editTriggerRowClick = true;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     protected bool isLoading = false;
     bool CanEditScores =>
-    AppState.UserRole is "Teacher" or "Staff" or "Admin" &&
-    newReportCard.ApprovalStatus == "DCB75F3C-FF7C-4472-AAEB-667DB7BC86A0"; // TeacherEntryOpen
+     AppState.UserRole is "Teacher" or "Staff" or "Admin"
+     && string.Equals(
+         newReportCard.ApprovalStatus?.Trim(),
+         "DCB75F3C-FF7C-4472-AAEB-667DB7BC86A0",
+         StringComparison.OrdinalIgnoreCase
+     );
+    // TeacherEntryOpen
     private List<ReportCardDetail> _visibleReportCardDetails = new();
     private bool IsTeacher => AppState.UserRole == "Teacher";
     private bool IsAdmin => AppState.UserRole == "Admin";

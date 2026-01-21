@@ -15,6 +15,8 @@ public partial class PhoenixEdusphereContext : DbContext
     {
     }
 
+    public virtual DbSet<AIAdviceLog> AIAdviceLogs { get; set; }
+
     public virtual DbSet<AcademicLevel> AcademicLevels { get; set; }
 
     public virtual DbSet<AspNetRole> AspNetRoles { get; set; }
@@ -97,6 +99,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<ExamTestQuizMultipleChoiceAnswer> ExamTestQuizMultipleChoiceAnswers { get; set; }
 
+    public virtual DbSet<FoodItem> FoodItems { get; set; }
+
     public virtual DbSet<FuelStation> FuelStations { get; set; }
 
     public virtual DbSet<FuelType> FuelTypes { get; set; }
@@ -108,6 +112,8 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<GradingScale> GradingScales { get; set; }
 
     public virtual DbSet<Hostel> Hostels { get; set; }
+
+    public virtual DbSet<InventoryBatch> InventoryBatches { get; set; }
 
     public virtual DbSet<Lesson> Lessons { get; set; }
 
@@ -221,6 +227,24 @@ public partial class PhoenixEdusphereContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AIAdviceLog>(entity =>
+        {
+            entity.HasKey(e => e.AdviceID).HasName("PK__AIAdvice__4C842CE9C206F0D6");
+
+            entity.ToTable("AIAdviceLogs", "SchoolOps");
+
+            entity.Property(e => e.AdviceID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AdviceText).IsRequired();
+            entity.Property(e => e.GeneratedOn)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.Batch).WithMany(p => p.AIAdviceLogs)
+                .HasForeignKey(d => d.BatchID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__AIAdviceL__Batch__2F8501C7");
+        });
+
         modelBuilder.Entity<AcademicLevel>(entity =>
         {
             entity.HasIndex(e => new { e.AcademicLevelID, e.LevelName, e.isActive }, "IX_AcademicLevels_LevelName");
@@ -425,6 +449,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.ToTable("Buses", "SchoolOps");
 
+            entity.HasIndex(e => e.BusId, "IX_Buses_BusId");
+
             entity.Property(e => e.BusId).HasDefaultValueSql("(newid())");
             entity.Property(e => e.AverageKmPerLitre).HasColumnType("decimal(6, 2)");
             entity.Property(e => e.FuelType).HasMaxLength(50);
@@ -503,6 +529,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.ToTable("BusMaintenanceRequests", "SchoolOps");
 
+            entity.HasIndex(e => new { e.SchoolId, e.ReportedDate }, "IX_BusMaintenanceRequests_SchoolId_ReportedDate").IsDescending(false, true);
+
             entity.Property(e => e.MaintenanceRequestId).ValueGeneratedNever();
             entity.Property(e => e.ActualCost).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.Description)
@@ -537,6 +565,8 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.HasKey(e => e.BusStaffId).HasName("PK__BusStaff__DBC48F538ED1DB29");
 
             entity.ToTable("BusStaff", "SchoolOps");
+
+            entity.HasIndex(e => e.UserID, "IX_BusStaff_UserID");
 
             entity.Property(e => e.BusStaffId).ValueGeneratedNever();
             entity.Property(e => e.Certificates).HasMaxLength(455);
@@ -722,7 +752,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Visit).WithMany(p => p.ClinicMedicationLogs)
                 .HasForeignKey(d => d.VisitId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__ClinicMed__Visit__05F8DC4F");
         });
 
@@ -745,7 +774,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Clinic).WithMany(p => p.ClinicStaffs)
                 .HasForeignKey(d => d.ClinicId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__ClinicSta__Clini__0ABD916C");
         });
 
@@ -775,7 +803,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Clinic).WithMany(p => p.ClinicVisits)
                 .HasForeignKey(d => d.ClinicId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__ClinicVis__Clini__7F4BDEC0");
         });
 
@@ -957,6 +984,22 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasConstraintName("FK_ExamTestQuizMultipleChoiceAnswers_ExamQuizTestQuestions");
         });
 
+        modelBuilder.Entity<FoodItem>(entity =>
+        {
+            entity.HasKey(e => e.FoodItemID).HasName("PK__FoodItem__464DCBF230056D36");
+
+            entity.ToTable("FoodItems", "SchoolOps");
+
+            entity.Property(e => e.FoodItemID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Category)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(e => e.Unit).HasMaxLength(20);
+        });
+
         modelBuilder.Entity<FuelStation>(entity =>
         {
             entity.HasKey(e => e.FuelStationId).HasName("PK__FuelStat__D61BFF2C7A70A81D");
@@ -1058,6 +1101,26 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasForeignKey(d => d.SchoolId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Hostels_School");
+        });
+
+        modelBuilder.Entity<InventoryBatch>(entity =>
+        {
+            entity.HasKey(e => e.BatchID).HasName("PK__Inventor__5D55CE3818D517BB");
+
+            entity.ToTable("InventoryBatches", "SchoolOps");
+
+            entity.Property(e => e.BatchID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CurrentTemp).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.ExpiryDate).HasColumnType("datetime");
+            entity.Property(e => e.Quantity).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.ReceivedDate).HasColumnType("datetime");
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.StorageLocation).HasMaxLength(50);
+
+            entity.HasOne(d => d.FoodItem).WithMany(p => p.InventoryBatches)
+                .HasForeignKey(d => d.FoodItemID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Inventory__FoodI__29CC2871");
         });
 
         modelBuilder.Entity<Lesson>(entity =>
@@ -1251,6 +1314,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Student).WithMany(p => p.ReportCards)
                 .HasForeignKey(d => d.StudentID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_ReportCards_Students");
         });
 
@@ -1415,6 +1479,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Student).WithMany(p => p.StudentAssignments)
                 .HasForeignKey(d => d.StudentID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_StudentAssignments_Students");
         });
 
@@ -1461,6 +1526,7 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Student).WithMany(p => p.StudentClasses)
                 .HasForeignKey(d => d.StudentID)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_StudentClasses_Students");
         });
 
@@ -1646,6 +1712,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.ToTable("Trips", "SchoolOps");
 
+            entity.HasIndex(e => new { e.TripDate, e.DepartureTime }, "IX_Trips_TripDate_DepartureTime");
+
             entity.HasIndex(e => e.Direction, "IX_Trips_TripDirectionID");
 
             entity.Property(e => e.TripId).ValueGeneratedNever();
@@ -1679,6 +1747,8 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.TripAttendanceId).HasDefaultValueSql("(newid())");
             entity.Property(e => e.AttendanceDate).HasColumnType("date");
             entity.Property(e => e.CreatedDate).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.OffboardLatitude).HasColumnType("decimal(9, 6)");
+            entity.Property(e => e.OffboardLongitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(20)
@@ -1699,7 +1769,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Trip).WithMany(p => p.TripBookings)
                 .HasForeignKey(d => d.TripId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TripBookings_Trip");
         });
 
@@ -1750,7 +1819,6 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasOne(d => d.Trip).WithMany(p => p.TripTripTypes)
                 .HasForeignKey(d => d.TripId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TripTripTypes_Trips");
 
             entity.HasOne(d => d.TripType).WithMany(p => p.TripTripTypes)

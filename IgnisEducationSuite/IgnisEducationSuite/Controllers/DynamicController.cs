@@ -638,6 +638,8 @@ namespace IgnisEducationSuite.Controllers
                 "triptype" => GetRepository<TripType>(),
                 "triptriptype" => GetRepository<TripTripType>(),
                 "tripattendance" => GetRepository<TripAttendance>(),
+                "booking" => GetRepository<TripBooking>(),
+                "busmaintainance" => GetRepository<BusMaintenanceRequest>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -712,6 +714,8 @@ namespace IgnisEducationSuite.Controllers
                 "triptype" => JsonSerializer.Deserialize<TripType>(obj.ToString()),
                 "triptriptype" => JsonSerializer.Deserialize<TripTripType>(obj.ToString()),
                 "tripattendance" => JsonSerializer.Deserialize<TripAttendance>(obj.ToString()),
+                "booking" => JsonSerializer.Deserialize<TripBooking>(obj.ToString()),
+                "busmaintainance" => JsonSerializer.Deserialize<BusMaintenanceRequest>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -722,6 +726,12 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Non Generic New Modules
+        [HttpGet("AvailableTripsForBooking/{ParentID}")]
+        public async Task<IActionResult> GetAvailableTripsForBooking(string ParentID)
+        {
+            var result = await _repository.AvailableTripsForParent(ParentID);
+            return Ok(result);
+        }
         [HttpGet("GetSchoolTrips/{SchoolID}")]
         public async Task<IActionResult> GetSchoolTrips(Guid SchoolID)
         {
@@ -926,6 +936,18 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Transport Management
+        [HttpGet("GetMaintenanceRequestsAsync/{SchoolID}")]
+        public async Task<IActionResult> GetBusMaintenanceRequests(Guid SchoolID)
+        {
+            var result = await _repository.GetMaintenanceRequestsAsync(SchoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetParentTransportAttendances/{ParentID}")]
+        public async Task<IActionResult> GetParentTransportAttendances(string ParentID)
+        {
+            var result = await _repository.GetStudentTripAttendanceByParent(ParentID);
+            return Ok(result);
+        }
         [HttpGet("GetTransportStaffBySchool/{SchoolID}")]
         public async Task<IActionResult> GetBusStaffAsync(Guid SchoolID)
         {

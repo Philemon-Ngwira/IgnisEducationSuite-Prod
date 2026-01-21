@@ -266,6 +266,7 @@
         if (result.IsSuccess)
         {
             academicLevels.AddRange(newItems);
+            AppState.SetNewAcademicStructure(academicLevels);
             uploadedLevels.Clear();
             newItems.Clear();
             LoaderService.Hide();

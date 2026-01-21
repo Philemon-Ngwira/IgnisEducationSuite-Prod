@@ -61,7 +61,9 @@
     private bool isLoading = false;
     protected override async Task OnInitializedAsync()
     {
+        LoaderService.Show("Loading Please wait...");
         await LoadTermSettings();
+        LoaderService.Hide();
     }
 
     private async Task LoadTermSettings()
@@ -113,6 +115,7 @@
                 var message = (string)dt;
                 if (message == "Successful")
                 {
+                    await LoadTermSettings();
                     Snackbar.Add("Term Updated Successfully", Severity.Success);
                 }
             }

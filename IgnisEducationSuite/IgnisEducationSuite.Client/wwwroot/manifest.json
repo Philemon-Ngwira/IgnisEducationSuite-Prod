@@ -5,7 +5,7 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#29104A",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "prefer_related_applications": false,
   "icons": [
     {

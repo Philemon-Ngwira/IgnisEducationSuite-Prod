@@ -15,6 +15,17 @@ namespace EDUSphereSharedProject.Models
         public string AcademicLevel { get; set; }
         [NotMapped]
         public byte[] ProfilePic { get; set; }
-
+        [NotMapped]
+        public string TripName { get; set; }
+        [NotMapped]
+        public TimeSpan? DepartureTime { get; set; }
+        [NotMapped]
+        public DateTime TripDate { get; set; }
+        [NotMapped]
+        public TimeSpan? EstimatedArrivalTime { get; set; }
+        [NotMapped]
+        public Guid? RouteId { get; set; }
+        [NotMapped]
+        public Guid? BusId { get; set; }
     }
 }

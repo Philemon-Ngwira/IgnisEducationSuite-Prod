@@ -49,7 +49,7 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                 var slots = state.SlotsForDay(day).ToList();
 
                 var grouped = slots
-                    .Where(s => s.SubjectId != Guid.Empty)
+                    .Where(s => s.SubjectId != Guid.Empty && s.IsAcademic())
                     .GroupBy(s => s.SubjectId);
 
                 foreach (var g in grouped)
@@ -71,10 +71,12 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
             }
         }
         void CheckRequiredDoubles(
-    TimetableState state,
-    Dictionary<Guid, SubjectScheduleConfig> subjects,
-    TimetableReportDto report)
+     TimetableState state,
+     Dictionary<Guid, SubjectScheduleConfig> subjects,
+     TimetableReportDto report)
         {
+            var validSubjectIds = subjects.Keys.ToHashSet();
+
             foreach (var subject in subjects.Values)
             {
                 if (subject.RequiredDoubles <= 0)
@@ -85,20 +87,29 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                 foreach (var day in Enum.GetValues<DayOfWeek>())
                 {
                     var slots = state.SlotsForDay(day)
-                        .Where(s => s.SubjectId == subject.SubjectId)
+                        .Where(s =>
+                            s.SubjectId == subject.SubjectId &&           // match subject
+                           s.IsAcademic())        // 🚫 exclude activities
                         .OrderBy(s => s.StartTime)
                         .ToList();
 
-                    if (slots.Count == 2 &&
-                        slots[0].EndTime == slots[1].StartTime)
-                        doublesFound++;
+                    // Count consecutive pairs
+                    for (int i = 0; i < slots.Count - 1; i++)
+                    {
+                        if (slots[i].EndTime == slots[i + 1].StartTime)
+                            doublesFound++;
+                    }
                 }
 
                 if (doublesFound < subject.RequiredDoubles)
+                {
                     report.InvariantViolations.Add(
-                        $"Subject {subject.SubjectName} missing required doubles");
+                        $"Subject {subject.SubjectName} missing required doubles " +
+                        $"(required: {subject.RequiredDoubles}, found: {doublesFound})");
+                }
             }
         }
+
         void CheckEarlyMorningRules(
             TimetableState state,
             Dictionary<Guid, SubjectScheduleConfig> subjects,
@@ -107,6 +118,8 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
             foreach (var slot in state.Slots)
             {
                 if (slot.SubjectId == Guid.Empty)
+                    continue;
+                if (!slot.IsAcademic())
                     continue;
 
                 var subject = subjects[slot.SubjectId];
@@ -125,6 +138,7 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         {
             foreach (var day in Enum.GetValues<DayOfWeek>())
             {
+
                 var slots = state.SlotsForDay(day)
                     .OrderBy(s => s.StartTime)
                     .ToList();
@@ -137,6 +151,8 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                     if (prev.SubjectId == Guid.Empty || curr.SubjectId == Guid.Empty)
                         continue;
 
+                    if (!prev.IsAcademic() || !curr.IsAcademic())
+                        continue;
 
                     if (!adjacency.ContainsKey(curr.SubjectId))
                         continue; // <-- ignore subjects with no constraints
