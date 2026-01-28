@@ -71,6 +71,18 @@ namespace IgnisEducationSuite.Controllers
             );
         }
 
+        [HttpGet("DownloadFoodTemplate")]
+        public IActionResult DownloadFoodTemplate()
+        {
+            byte[] excelBytes = _template.GenerateFoodItemTemplate();
+            // 3. Return file
+            return File(
+                excelBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "FoodItemTemplate.xlsx"
+            );
+        }
+
         [HttpGet("DownloadParentTemplate")]
         public IActionResult DownloadParentTemplate()
         {

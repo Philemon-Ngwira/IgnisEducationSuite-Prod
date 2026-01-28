@@ -112,13 +112,16 @@ public class AppState
 
             if (UserRole != "SuperAdmin")
             {
-                // 2️⃣ Load License
+                //{
+                //    // 2️⃣ Load License
                 var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
                 var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
                 License = licenseResult.IsSuccess && licenseResult.Data.Any()
                     ? licenseResult.Data.First()
                     : new usp_GetPharmacyLicenseStatusResult();
                 LicenseIsActive = License?.IsValid == 1;
+
+                //LicenseIsActive = true;
 
                 // 3️⃣ Load Non-Critical Data Immediately
 

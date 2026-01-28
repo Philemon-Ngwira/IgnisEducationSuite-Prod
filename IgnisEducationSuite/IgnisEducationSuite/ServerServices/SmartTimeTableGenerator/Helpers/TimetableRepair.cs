@@ -8,27 +8,31 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
 {
     public class TimeTableRepair
     {
-        private const int MaxRepairPasses = 2; // Number of iterative repair attempts
+        private const int MaxRepairPasses = 2;
 
         public void Repair(TimetableState state, TimeTableActivity? prepActivity = null)
         {
-            // 1️⃣ Enforce activities
+            // 1️⃣ Enforce fixed activities & locks
             EnforceActivityOwnership(state, prepActivity);
 
-            for (int pass = 0; pass <= MaxRepairPasses; pass++)
+            for (int pass = 0; pass < MaxRepairPasses; pass++)
             {
-                // 2️⃣ Place required doubles first
+                // 2️⃣ Required doubles first (hard structure)
                 PlaceRequiredDoubles(state);
 
-                // 3️⃣ Fill remaining singles safely
+                // 3️⃣ Fill remaining singles (quota-safe)
                 FillRemainingSingles(state);
 
                 // 4️⃣ Validate hard constraints
                 var validator = new TimetableValidator();
-                var report = validator.Analyze(state, state.Subjects, new Dictionary<Guid, SubjectAdjacencyConstraints>());
+                var report = validator.Analyze(
+                    state,
+                    state.Subjects,
+                    new Dictionary<Guid, SubjectAdjacencyConstraints>()
+                );
 
                 if (!report.InvariantViolations.Any())
-                    break; // Stop early if perfect
+                    break;
             }
         }
 
@@ -42,11 +46,11 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                 if (slot.ScheduledActivityId != null)
                 {
                     slot.SubjectId = Guid.Empty;
+                    slot.SubjectName = string.Empty;
                     slot.IsLocked = true;
                 }
             }
 
-            // Optional: if prepActivity provided, ensure its slots are locked
             if (prepActivity != null)
             {
                 foreach (var slot in state.Slots.Where(s => s.StartTime >= prepActivity.StartFrom))
@@ -57,6 +61,8 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                     slot.IsLocked = true;
                 }
             }
+
+            state.RebuildIndexes();
         }
 
         // ------------------------------------------------
@@ -66,98 +72,119 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         {
             foreach (var subject in state.Subjects.Values)
             {
-                int remainingDoubles = state.RequiredDoublesRemaining(subject.SubjectId);
-
-                if (remainingDoubles <= 0)
-                    continue;
-
-                // Try to place doubles earliest-first
-                foreach (var day in Enum.GetValues<DayOfWeek>())
+                while (state.RequiredDoublesRemaining(subject.SubjectId) > 0 &&
+                       state.WeeklyRemaining(subject.SubjectId) >= 2)
                 {
-                    if (state.DailyCount(day, subject.SubjectId) != 0)
-                        continue; // Skip days where subject already appears
+                    bool placed = false;
 
-                    var daySlots = state.SlotsForDay(day).ToList();
-
-                    for (int i = 0; i < daySlots.Count - 1; i++)
+                    foreach (var day in Enum.GetValues<DayOfWeek>())
                     {
-                        var a = daySlots[i];
-                        var b = daySlots[i + 1];
-
-                        if (!IsSlotValidForDouble(a, subject, state) ||
-                            !IsSlotValidForDouble(b, subject, state))
+                        if (state.DailyCount(day, subject.SubjectId) != 0)
                             continue;
 
-                        if (a.EndTime != b.StartTime)
-                            continue; // must be consecutive
+                        var daySlots = state.SlotsForDay(day).OrderBy(s => s.StartTime).ToList();
 
-                        // Place double
-                        PlaceSubject(a, subject.SubjectId, state);
-                        PlaceSubject(b, subject.SubjectId, state);
+                        for (int i = 0; i < daySlots.Count - 1; i++)
+                        {
+                            var a = daySlots[i];
+                            var b = daySlots[i + 1];
 
-                        remainingDoubles--;
-                        if (remainingDoubles == 0) break;
+                            if (!IsSlotValidForDouble(a, subject) ||
+                                !IsSlotValidForDouble(b, subject))
+                                continue;
+
+                            if (a.EndTime != b.StartTime)
+                                continue;
+
+                            if (state.WeeklyRemaining(subject.SubjectId) < 2)
+                                break;
+
+                            PlaceSubject(a, subject.SubjectId, state);
+                            PlaceSubject(b, subject.SubjectId, state);
+
+                            placed = true;
+                            break;
+                        }
+
+                        if (placed) break;
                     }
 
-                    if (remainingDoubles == 0) break;
+                    if (!placed)
+                        break; // No legal double possible
                 }
             }
         }
 
-        private bool IsSlotValidForDouble(TimeSlot slot, SubjectScheduleConfig subject, TimetableState state)
+        private bool IsSlotValidForDouble(TimeSlot slot, SubjectScheduleConfig subject)
         {
-            if (slot.IsLocked || slot.SubjectId != Guid.Empty || slot.ScheduledActivityId != null)
+            if (slot.IsLocked ||
+                slot.SubjectId != Guid.Empty ||
+                slot.ScheduledActivityId != null)
                 return false;
 
-            if (subject.EarlyMorningOnly && slot.StartTime >= TimeSpan.FromHours(10.5))
+            if (subject.EarlyMorningOnly &&
+                slot.StartTime >= TimeSpan.FromHours(10.5))
                 return false;
 
             return true;
         }
 
-        private void PlaceSubject(TimeSlot slot, Guid subjectId, TimetableState state)
-        {
-            slot.SubjectId = subjectId;
-            slot.SubjectName = state.Subjects[subjectId].SubjectName;
-            state.RebuildIndexes(); // update daily/weekly counts
-        }
-
         // ------------------------------------------------
-        // 3️⃣ Fill Remaining Singles
+        // 3️⃣ Fill Remaining Singles (QUOTA SAFE)
         // ------------------------------------------------
         private void FillRemainingSingles(TimetableState state)
         {
             foreach (var subject in state.Subjects.Values)
             {
-                int remaining = state.WeeklyRemaining(subject.SubjectId);
-
-                if (remaining <= 0)
-                    continue;
-
                 foreach (var day in Enum.GetValues<DayOfWeek>())
                 {
-                    if (state.DailyCount(day, subject.SubjectId) >= 2)
-                        continue; // respect daily max
+                    if (state.WeeklyRemaining(subject.SubjectId) <= 0)
+                        break;
 
-                    var daySlots = state.SlotsForDay(day)
-                        .Where(s => s.SubjectId == Guid.Empty && s.ScheduledActivityId == null && !s.IsLocked)
+                    if (state.DailyCount(day, subject.SubjectId) >= 2)
+                        continue;
+
+                    var freeSlots = state.SlotsForDay(day)
+                        .Where(s =>
+                            s.SubjectId == Guid.Empty &&
+                            s.ScheduledActivityId == null &&
+                            !s.IsLocked)
                         .OrderBy(s => s.StartTime)
                         .ToList();
 
-                    foreach (var slot in daySlots)
+                    foreach (var slot in freeSlots)
                     {
-                        if (remaining <= 0) break;
-                        if (subject.EarlyMorningOnly && slot.StartTime >= TimeSpan.FromHours(10.5)) continue;
+                        if (state.WeeklyRemaining(subject.SubjectId) <= 0)
+                            break;
 
-                        // Check adjacency
-                        var prev = state.SlotsForDay(day).Where(s => s.EndTime == slot.StartTime).FirstOrDefault();
-                        if (prev != null && state.ViolatesAdjacency(prev, slot)) continue;
+                        if (subject.EarlyMorningOnly &&
+                            slot.StartTime >= TimeSpan.FromHours(10.5))
+                            continue;
+
+                        var prev = state.SlotsForDay(day)
+                            .FirstOrDefault(s => s.EndTime == slot.StartTime);
+
+                        if (prev != null && state.ViolatesAdjacency(prev, slot))
+                            continue;
 
                         PlaceSubject(slot, subject.SubjectId, state);
-                        remaining--;
                     }
                 }
             }
+        }
+
+        // ------------------------------------------------
+        // HARD GUARD PLACEMENT
+        // ------------------------------------------------
+        private void PlaceSubject(TimeSlot slot, Guid subjectId, TimetableState state)
+        {
+            if (state.WeeklyRemaining(subjectId) <= 0)
+                return; // 🚨 Absolute guard
+
+            slot.SubjectId = subjectId;
+            slot.SubjectName = state.Subjects[subjectId].SubjectName;
+
+            state.RebuildIndexes();
         }
     }
 }

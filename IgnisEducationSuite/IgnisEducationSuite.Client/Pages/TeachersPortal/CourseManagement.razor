@@ -331,10 +331,9 @@
         foreach (var item in classesdata)
         {
 
-
-            item.Teacher = teacher;
-            if (item.Teacher.TeacherID == teacher.TeacherID)
+            if (item.TeacherID == teacher.TeacherID)
             {
+                item.Teacher = teacher;
                 classes.Add(item);
             }
         }
@@ -438,8 +437,8 @@
           var className = p.ClassName ?? "Unknown Class";
           var teacherFirstName = p.Teacher?.FirstName ?? "Unknown";
           var teacherLastName = p.Teacher?.LastName ?? "Teacher";
-
-          return $"{className} {teacherFirstName} {teacherLastName}";
+          var LevlAndSec = p.LevelName + " " + $"({p.GradeSection})";
+          return $"{className}: {LevlAndSec}";
       };
     private async Task UploadFiles(IBrowserFile file)
     {

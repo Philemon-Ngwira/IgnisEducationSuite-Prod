@@ -31,6 +31,12 @@ public partial class ClassSchedule
 
     public Guid? ScheduledActivity { get; set; }
 
+    public int? AcademicLevel { get; set; }
+
+    public Guid? AcademicLevelSection { get; set; }
+
+    public string LevelSectionName { get; set; }
+
     public virtual Class Class { get; set; }
 
     public virtual DayofTheWeek DayOfTheWeek { get; set; }

@@ -15,9 +15,10 @@ namespace EDUSphereSharedProject.UniversalModels
     public enum ActivityTimePreference
     {
         Any = 0,
-        MorningOnly = 1,     // before 10:00
-        MidMorning = 2,      // 10:00+
-        AfternoonOnly = 3    // after lunch (e.g. 13:00+)
+        MorningOnly = 1,        // before 10:00
+        MidMorning = 2,         // 10:00+
+        AfternoonOnly = 3,
+        None = 4 // e.g. after 13:00
     }
 
 }

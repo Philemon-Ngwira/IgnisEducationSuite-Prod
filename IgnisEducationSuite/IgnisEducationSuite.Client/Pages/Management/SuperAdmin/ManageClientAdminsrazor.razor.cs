@@ -99,7 +99,7 @@ namespace IgnisEducationSuite.Client.Pages.Management.SuperAdmin
                 Role = newUser.Role,
                 SchoolID = school.SchoolID,
                 UserID = "N/A",
-                ProfilePic = newUser.profilePic,
+                ProfilePic = newUser.profilePic ?? Array.Empty<byte>(),
                 FirstName = newUser.FirstName,
                 LastName = newUser.LastName
             };

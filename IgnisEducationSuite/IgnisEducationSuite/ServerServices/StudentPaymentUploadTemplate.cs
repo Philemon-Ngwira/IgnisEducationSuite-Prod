@@ -118,7 +118,7 @@ namespace IgnisEducationSuite.ServerServices
             // Headers
             string[] headers = {
         "FirstName", "LastName", "Gender", "Address", "Email","StudentNumber",
-        "DateOnBoarded", "Country", "City", "GradeSection", "LevelName", "PaymentStatus"
+        "DateOnBoarded", "Country", "City", "GradeSection", "LevelName", "PaymentStatus", "DayScholar?","GroupName"
     };
 
             for (int i = 0; i < headers.Length; i++)
@@ -137,6 +137,8 @@ namespace IgnisEducationSuite.ServerServices
             ws.Cell(2, 10).Value = "A"; // GradeSection
             ws.Cell(2, 11).Value = "Grade 8"; // LevelName
             ws.Cell(2, 12).Value = 0; // PaymentStatus default false
+            ws.Cell(2, 13).Value = 0;//daySchool Status
+            ws.Cell(2, 14).Value = "Group 1"; // Any Special Groups
 
             // Formatting headers  
             var headerRange = ws.Range(1, 1, 1, headers.Length);
@@ -151,7 +153,86 @@ namespace IgnisEducationSuite.ServerServices
             workbook.SaveAs(ms);
             return ms.ToArray();
         }
+        public byte[] GenerateFoodItemTemplate()
+        {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("FoodItemTemplate");
 
+            // Headers
+            string[] headers =
+            {
+        "Name",
+        "Category",           // Perishable / Non-perishable
+        "HasFixedExpiry",     // 0 = No, 1 = Yes
+        "DefaultShelfLife",   // Days (nullable)
+        "Unit",               // Selected from predefined list
+        "Notes"
+    };
+
+            for (int i = 0; i < headers.Length; i++)
+                ws.Cell(1, i + 1).Value = headers[i];
+
+            // Example rows
+            ws.Cell(2, 1).Value = "Tomatoes";
+            ws.Cell(2, 2).Value = "Perishable";
+            ws.Cell(2, 3).Value = 0;
+            ws.Cell(2, 4).Value = 5;
+            ws.Cell(2, 5).Value = "kg";
+            ws.Cell(2, 6).Value = "Store in cool dry place";
+
+            ws.Cell(3, 1).Value = "Milk";
+            ws.Cell(3, 2).Value = "Perishable";
+            ws.Cell(3, 3).Value = 1;
+            ws.Cell(3, 4).Value = ""; // must NOT be null
+            ws.Cell(3, 5).Value = "L";
+            ws.Cell(3, 6).Value = "Keep refrigerated";
+
+            // Header formatting
+            var headerRange = ws.Range(1, 1, 1, headers.Length);
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            // -----------------------------
+            // DATA VALIDATION (CORRECT)
+            // -----------------------------
+
+            // Category dropdown
+            var categoryDv = ws.Range("B2:B1000").SetDataValidation();
+            categoryDv.Clear();
+            categoryDv.List("Perishable,Non-perishable");
+            categoryDv.ErrorTitle = "Invalid Category";
+            categoryDv.ErrorMessage = "Choose Perishable or Non-perishable.";
+
+            // HasFixedExpiry (0 / 1)
+            var expiryDv = ws.Range("C2:C1000").SetDataValidation();
+            expiryDv.Clear();
+            expiryDv.WholeNumber.Between(0, 1);
+            expiryDv.ErrorTitle = "Invalid Value";
+            expiryDv.ErrorMessage = "Enter 0 (No) or 1 (Yes).";
+
+            // DefaultShelfLife (days)
+            var shelfLifeDv = ws.Range("D2:D1000").SetDataValidation();
+            shelfLifeDv.Clear();
+            shelfLifeDv.WholeNumber.Between(1, 3650);
+            shelfLifeDv.ErrorTitle = "Invalid Shelf Life";
+            shelfLifeDv.ErrorMessage =
+                "Shelf life must be a number of days. Leave blank if not applicable.";
+
+            // Unit dropdown (predefined)
+            var unitDv = ws.Range("E2:E1000").SetDataValidation();
+            unitDv.Clear();
+            unitDv.List("L,g,loaf,kg,pkt,pcs,ml,bag");
+            unitDv.ErrorTitle = "Invalid Unit";
+            unitDv.ErrorMessage = "Select a unit from the list.";
+
+            // Auto-fit columns
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            return ms.ToArray();
+        }
 
         public byte[] GenerateTeacherTemplate()
         {

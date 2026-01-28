@@ -115,15 +115,21 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<InventoryBatch> InventoryBatches { get; set; }
 
+    public virtual DbSet<KitchenMeasurementStandard> KitchenMeasurementStandards { get; set; }
+
     public virtual DbSet<Lesson> Lessons { get; set; }
 
     public virtual DbSet<LessonMedium> LessonMedia { get; set; }
+
+    public virtual DbSet<LevelSection> LevelSections { get; set; }
 
     public virtual DbSet<LiveMeeting> LiveMeetings { get; set; }
 
     public virtual DbSet<MaintainanceRequest> MaintainanceRequests { get; set; }
 
     public virtual DbSet<Meal> Meals { get; set; }
+
+    public virtual DbSet<MeasurementUnit> MeasurementUnits { get; set; }
 
     public virtual DbSet<MultipleChoiceAssignmentAnswer> MultipleChoiceAssignmentAnswers { get; set; }
 
@@ -176,6 +182,8 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<TimeSlot> TimeSlots { get; set; }
 
     public virtual DbSet<TimeTableActivity> TimeTableActivities { get; set; }
+
+    public virtual DbSet<TimetableOverride> TimetableOverrides { get; set; }
 
     public virtual DbSet<Trip> Trips { get; set; }
 
@@ -634,8 +642,13 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.HasIndex(e => new { e.DayOfTheWeekID, e.TimeSlotID }, "UX_ClassSchedule_Day_Time").IsUnique();
 
+            entity.HasIndex(e => new { e.SchoolID, e.AcademicLevel, e.AcademicLevelSection, e.DayOfTheWeekID, e.TimeSlotID }, "UX_ClassSchedule_Logical")
+                .IsUnique()
+                .HasFilter("([IsActive]=(1))");
+
             entity.Property(e => e.ClassScheduleID).ValueGeneratedNever();
             entity.Property(e => e.EndDate).HasColumnType("datetime");
+            entity.Property(e => e.LevelSectionName).HasMaxLength(50);
             entity.Property(e => e.StartDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.Class).WithMany(p => p.ClassSchedules)
@@ -991,13 +1004,26 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.ToTable("FoodItems", "SchoolOps");
 
             entity.Property(e => e.FoodItemID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AddedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.Category)
                 .IsRequired()
                 .HasMaxLength(50);
+            entity.Property(e => e.DateAdded).HasColumnType("datetime");
+            entity.Property(e => e.DateUpdated).HasColumnType("datetime");
             entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(100);
             entity.Property(e => e.Unit).HasMaxLength(20);
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.UnitNavigation).WithMany(p => p.FoodItems)
+                .HasForeignKey(d => d.UnitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__FoodItems__UnitI__3A02903A");
         });
 
         modelBuilder.Entity<FuelStation>(entity =>
@@ -1123,6 +1149,26 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasConstraintName("FK__Inventory__FoodI__29CC2871");
         });
 
+        modelBuilder.Entity<KitchenMeasurementStandard>(entity =>
+        {
+            entity.HasKey(e => e.KitchenMeasurementID).HasName("PK__KitchenM__496139BD39593D77");
+
+            entity.ToTable("KitchenMeasurementStandards", "SchoolOps");
+
+            entity.Property(e => e.KitchenMeasurementID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.BaseUnit)
+                .HasMaxLength(10)
+                .IsFixedLength();
+            entity.Property(e => e.CreatedOn).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.MeasurementName)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.QuantityInBaseUnit).HasColumnType("decimal(10, 3)");
+        });
+
         modelBuilder.Entity<Lesson>(entity =>
         {
             entity.HasKey(e => e.LessonID).HasName("PK__Lessons__B084ACB08BA07F8D");
@@ -1132,6 +1178,7 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("date");
             entity.Property(e => e.Title).HasMaxLength(100);
+            entity.Property(e => e.url).IsUnicode(false);
 
             entity.HasOne(d => d.Class).WithMany(p => p.Lessons)
                 .HasForeignKey(d => d.ClassID)
@@ -1154,6 +1201,26 @@ public partial class PhoenixEdusphereContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.Url).IsUnicode(false);
+        });
+
+        modelBuilder.Entity<LevelSection>(entity =>
+        {
+            entity.HasKey(e => e.LevelSectionID).HasName("PK__LevelSec__5E1B057666C0477A");
+
+            entity.Property(e => e.LevelSectionID).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.SectionCode)
+                .IsRequired()
+                .HasMaxLength(10);
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.AcademicLevel).WithMany(p => p.LevelSections)
+                .HasForeignKey(d => d.AcademicLevelID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LevelSections_AcademicLevels");
         });
 
         modelBuilder.Entity<LiveMeeting>(entity =>
@@ -1223,6 +1290,27 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.HasOne(d => d.DiningHall).WithMany(p => p.Meals)
                 .HasForeignKey(d => d.DiningHallId)
                 .HasConstraintName("FK__Meals__DiningHal__6B44E613");
+        });
+
+        modelBuilder.Entity<MeasurementUnit>(entity =>
+        {
+            entity.HasKey(e => e.UnitId).HasName("PK__Measurem__44F5ECB59A04BDEF");
+
+            entity.ToTable("MeasurementUnits", "SchoolOps");
+
+            entity.Property(e => e.UnitId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.Symbol)
+                .IsRequired()
+                .HasMaxLength(10);
+            entity.Property(e => e.UnitType)
+                .IsRequired()
+                .HasMaxLength(30);
         });
 
         modelBuilder.Entity<MultipleChoiceAssignmentAnswer>(entity =>
@@ -1452,6 +1540,7 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.FirstName).HasMaxLength(50);
             entity.Property(e => e.Gender).HasMaxLength(10);
             entity.Property(e => e.GradeSection).HasMaxLength(50);
+            entity.Property(e => e.GroupName).HasMaxLength(50);
             entity.Property(e => e.LastName).HasMaxLength(50);
             entity.Property(e => e.LevelName).HasMaxLength(50);
             entity.Property(e => e.StudentNumber)
@@ -1533,6 +1622,10 @@ public partial class PhoenixEdusphereContext : DbContext
         modelBuilder.Entity<StudentClassSchedule>(entity =>
         {
             entity.Property(e => e.StudentClassScheduleID).ValueGeneratedNever();
+
+            entity.HasOne(d => d.EffectiveClass).WithMany(p => p.StudentClassSchedules)
+                .HasForeignKey(d => d.EffectiveClassID)
+                .HasConstraintName("FK_StudentClassSchedules_EffectiveClass");
 
             entity.HasOne(d => d.Schedule).WithMany(p => p.StudentClassSchedules)
                 .HasForeignKey(d => d.ScheduleID)
@@ -1704,6 +1797,30 @@ public partial class PhoenixEdusphereContext : DbContext
                 .IsRequired()
                 .HasMaxLength(100);
             entity.Property(e => e.OptionalNotes).HasMaxLength(250);
+        });
+
+        modelBuilder.Entity<TimetableOverride>(entity =>
+        {
+            entity.HasIndex(e => new { e.AcademicLevel, e.GradeSection, e.StudentGroup, e.DayOfTheWeekID, e.TimeSlotID, e.IsActive }, "IX_TimetableOverrides_Lookup");
+
+            entity.HasIndex(e => new { e.AcademicLevel, e.GradeSection, e.StudentGroup, e.DayOfTheWeekID, e.TimeSlotID }, "UX_TimetableOverrides_Active")
+                .IsUnique()
+                .HasFilter("([IsActive]=(1))");
+
+            entity.Property(e => e.TimetableOverrideID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.EffectiveFrom).HasColumnType("date");
+            entity.Property(e => e.EffectiveTo).HasColumnType("date");
+            entity.Property(e => e.GradeSection)
+                .IsRequired()
+                .HasMaxLength(10);
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.Reason).HasMaxLength(255);
+            entity.Property(e => e.StudentGroup)
+                .IsRequired()
+                .HasMaxLength(50);
         });
 
         modelBuilder.Entity<Trip>(entity =>

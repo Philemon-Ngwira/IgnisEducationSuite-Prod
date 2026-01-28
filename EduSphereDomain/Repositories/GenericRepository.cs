@@ -1,4 +1,5 @@
 ﻿using EduSphereDomain.Data;
+using EDUSphereSharedProject.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -43,7 +44,7 @@ namespace EduSphereDomain.Repositories
                 throw;
             }
         }
-
+        
         public async Task UpdateAsync(T entity)
         {
             try

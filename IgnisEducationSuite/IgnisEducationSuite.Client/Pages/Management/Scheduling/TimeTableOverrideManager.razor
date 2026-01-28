@@ -1,0 +1,178 @@
+﻿@inherits AppBaseComponent
+@using EDUSphereSharedProject.Models
+<MudPaper Class="pa-4" Elevation="2">
+    <MudText Typo="Typo.h6">Timetable Overrides</MudText>
+    <MudText Typo="Typo.caption" Color="Color.Secondary">
+        Overrides apply only to students in the selected group.
+    </MudText>
+
+    <MudGrid Spacing="2" Class="mt-3">
+
+        <!-- Group -->
+        <MudItem xs="12" md="6">
+            <MudSelect T="string"
+                       Label="Student Group"
+                       @bind-Value="model.StudentGroup"
+                       Variant="Variant.Outlined"
+                       Required>
+                @foreach (var grp in GroupNames)
+                {
+                    <MudSelectItem Value="@grp">@grp</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <!-- Day -->
+        <MudItem xs="12" md="6">
+            <MudSelect T="Guid"
+                       Label="Day"
+                       @bind-Value="model.DayOfTheWeekID"
+                       Variant="Variant.Outlined"
+                       Required
+                       Placeholder="--Select Day--">
+                @foreach (var d in Days)
+                {
+                    <MudSelectItem Value="@d.DayID">@d.DayName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <!-- Time Slot -->
+        <MudItem xs="12" md="6">
+            <MudSelect T="Guid"
+                       Label="Time Slot"
+                       @bind-Value="model.TimeSlotID"
+                       Variant="Variant.Outlined"
+                       Required
+                       Placeholder="--Select Time Slot--">
+                @foreach (var slot in TimeSlots)
+                {
+                    <MudSelectItem Value="@slot.TimeslotID">
+                        @($"{slot.StartTime:hh\\:mm} - {slot.EndTime:hh\\:mm}")
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <!-- Replacement -->
+        <MudItem xs="12" md="6">
+            <MudSelect T="Guid"
+                       Label="Override Subject"
+                       @bind-Value="model.ReplacementClassID"
+                       Variant="Variant.Outlined"
+                       Required
+                       Placeholder="--Select Subject Override--">
+                @foreach (var cls in SpecialClasses)
+                {
+                    <MudSelectItem Value="@cls.ClassID">
+                        @cls.ClassName
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+    </MudGrid>
+
+    <MudButton Class="mt-4"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               OnClick="SaveOverride">
+        Save Override
+    </MudButton>
+    <MudButton Class="mt-4"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               OnClick="Complete">
+        Finish
+    </MudButton>
+</MudPaper>
+
+
+@code {
+    [Parameter] public int AcademicLevel { get; set; }
+    [Parameter] public string GradeSection { get; set; } = string.Empty;
+    [Parameter] public List<Class> SpecialClasses { get; set; } = new(); // Group classes
+    [Parameter] public List<Class> AllClasses { get; set; } = new();
+    [Parameter] public List<TimeSlot> TimeSlots { get; set; } = new();
+    [Parameter] public List<DayofTheWeek> Days { get; set; } = new();
+    [Parameter] public Guid SchoolID { get; set; }
+    [Parameter] public ClientAdmin loggedInAdmin { get; set; } = new();
+    [Parameter] public DateRange _dateRange { get; set; } = default!;
+    [Parameter] public EventCallback<List<TimetableOverride>> OnComplete { get; set; }
+
+    public List<TimetableOverride> overridesCreated = new();
+    protected List<TermSetting> termSettings = new();
+
+    #region String Functions
+    #endregion
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var ts = TimeSlots
+        .Where(x => x.SlotType != "BreakTime" & x.SlotType != "LunchTime")
+        .ToList();
+
+        TimeSlots.Clear();
+        TimeSlots = ts.
+        OrderBy(x => x.StartTime).ToList();
+
+        await LoadTermSettings();
+    }
+    private async Task Complete()
+      => await OnComplete.InvokeAsync(overridesCreated);
+
+    private async Task LoadTermSettings()
+    {
+        //termSettings = await DbService.GetTermSettingsAsync();
+        var service = GenericService.GetService<TermSetting>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetTermSettings/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            termSettings = result.Data.ToList();
+        }
+    }
+
+    private TimetableOverride model = new();
+
+    private IEnumerable<string> GroupNames =>
+     SpecialClasses
+         .Select(c => ExtractGroupName(c.ClassName))
+         .Distinct();
+
+    private async Task SaveOverride()
+    {
+        model.AcademicLevel = AcademicLevel;
+        model.GradeSection = GradeSection;
+        model.IsActive = true;
+        model.EffectiveFrom = termSettings.Select(x => x.ActualStartTermDate).First() ?? _dateRange.Start;
+        model.EffectiveTo = termSettings.Select(x => x.ActualEndTermDate).First() ?? _dateRange.End;
+        model.CreatedBy = loggedInAdmin.AdminID;
+        var service = GenericService.GetService<TimetableOverride>();
+        var result = await service.PostAsync(
+            "api/Dynamic/PostEntity",
+            "timetableoverride",
+            model
+        );
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Override saved successfully", Severity.Success);
+            overridesCreated.Add(result.Data);
+            model = new TimetableOverride();
+        }
+        else
+        {
+            Snackbar.Add("Failed to save override", Severity.Error);
+        }
+    }
+
+    private static string ExtractGroupName(string className)
+    {
+        // Example: "Agriculture (Group 1)"
+        var start = className.IndexOf('(');
+        var end = className.IndexOf(')');
+        if (start < 0 || end < 0) return className;
+        return className.Substring(start + 1, end - start - 1);
+    }
+
+}

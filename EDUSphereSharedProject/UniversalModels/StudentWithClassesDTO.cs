@@ -15,8 +15,16 @@ namespace EDUSphereSharedProject.UniversalModels
         public string LevelName { get; set; } = "";
         public string StudentNumber { get; set; } = "";
         public string Gender { get; set; } = "";
-        public List<string> ClassNames { get; set; } = new();
 
-        public bool isInteractable = true;
+        public List<StudentClassDTO> Classes { get; set; } = new();
+
+        public bool isInteractable { get; set; } = true;
+
+        public class StudentClassDTO
+        {
+            public Guid ClassID { get; set; }
+            public string ClassName { get; set; } = "";
+        }
+
     }
 }

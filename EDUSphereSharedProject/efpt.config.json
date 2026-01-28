@@ -119,6 +119,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[LevelSections]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[LiveMeetings]",
          "ObjectType": 0
       },
@@ -215,6 +219,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[TimetableOverrides]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[WorldCities]",
          "ObjectType": 0
       },
@@ -307,11 +315,19 @@
          "ObjectType": 0
       },
       {
+         "Name": "[SchoolOps].[KitchenMeasurementStandards]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[SchoolOps].[MaintainanceRequests]",
          "ObjectType": 0
       },
       {
          "Name": "[SchoolOps].[Meals]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[SchoolOps].[MeasurementUnits]",
          "ObjectType": 0
       },
       {
@@ -667,11 +683,19 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[sp_AssignMissingStudentSchedules]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[sp_GetLevelTermReportCard]",
          "ObjectType": 1
       },
       {
          "Name": "[dbo].[sp_GetStudentTimetable]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[sp_GetTeacherTimetable]",
          "ObjectType": 1
       },
       {
@@ -700,6 +724,10 @@
       },
       {
          "Name": "[SchoolOps].[GetClinicVisitsWithMedicationLogs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[SchoolOps].[GetInventoryBatchesBySchool]",
          "ObjectType": 1
       },
       {

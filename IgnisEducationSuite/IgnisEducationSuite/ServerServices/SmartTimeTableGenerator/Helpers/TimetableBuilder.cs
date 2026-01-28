@@ -21,7 +21,7 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
             var repair = new TimeTableRepair();
             repair.Repair(state, prepActivity);
 
-            TimetableDebugPrinter.Print("BEFORE REPAIR", state);
+            TimetableDebugPrinter.Print("AFTER REPAIR", state);
             // -------- STAGE 3: OPTIMIZATION (SOFT CONSTRAINTS) --------
             Optimize(state);
 

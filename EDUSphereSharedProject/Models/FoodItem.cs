@@ -21,5 +21,19 @@ public partial class FoodItem
 
     public string Notes { get; set; }
 
+    public Guid? SchoolID { get; set; }
+
+    public DateTime? DateAdded { get; set; }
+
+    public DateTime? DateUpdated { get; set; }
+
+    public string UpdatedBy { get; set; }
+
+    public string AddedBy { get; set; }
+
+    public Guid UnitId { get; set; }
+
     public virtual ICollection<InventoryBatch> InventoryBatches { get; set; } = new List<InventoryBatch>();
+
+    public virtual MeasurementUnit UnitNavigation { get; set; }
 }

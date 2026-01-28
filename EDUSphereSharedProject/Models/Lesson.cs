@@ -25,6 +25,8 @@ public partial class Lesson
 
     public bool? Active { get; set; }
 
+    public string url { get; set; }
+
     public virtual Class Class { get; set; }
 
     public virtual ICollection<CourseDetail> CourseDetails { get; set; } = new List<CourseDetail>();

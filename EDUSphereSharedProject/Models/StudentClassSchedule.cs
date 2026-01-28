@@ -13,6 +13,10 @@ public partial class StudentClassSchedule
 
     public Guid? ScheduleID { get; set; }
 
+    public Guid? EffectiveClassID { get; set; }
+
+    public virtual Class EffectiveClass { get; set; }
+
     public virtual ClassSchedule Schedule { get; set; }
 
     public virtual Student Student { get; set; }

@@ -92,6 +92,7 @@
     protected string SelectedClass = string.Empty;
     protected string searchString = string.Empty;
     protected Staff Dean = new();
+    protected Teacher loggedInTeacher = new();
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
 
@@ -133,45 +134,57 @@
     }
     private void ApplyTeacherFiltering()
     {
-        // If user is a teacher, show only their students
         if (AppState.UserRole == "Teacher")
         {
-            var teacherClassNames = classes
-                .Where(c => c.Teacher != null && c.Teacher.UserID == AppState.UserID)
-                .Select(c => c.ClassName)
+            var teacherClassIds = classes
+                .Where(c => c.TeacherID != null && c.TeacherID == loggedInTeacher.TeacherID)
+                .Select(c => c.ClassID)
                 .ToHashSet();
 
             students = students
-                .Where(s => s.ClassNames.Any(cn => teacherClassNames.Contains(cn)))
+                .Where(s => s.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
                 .ToList();
-
-
         }
         else if (AppState.UserRole == "Dean")
         {
-            students = students.Where(x => x.Gender == Dean.DeanForGenderNavigation.GenderDescription).ToList();
+            students = students
+                .Where(s => s.Gender == Dean.DeanForGenderNavigation.GenderDescription)
+                .ToList();
         }
-        else
-        {
-            students = students.ToList();
 
-        }
-        filteredStudents = new List<StudentWithClassesDTO>(students);
-
+        filteredStudents = students.ToList();
     }
+
+
 
     private void PrepareFilterLists()
     {
         TeacherGrades = students.Select(s => s.LevelName).Distinct().ToList();
-        ClassNames = students.SelectMany(s => s.ClassNames).Distinct().ToList();
+        ClassNames = students.SelectMany(s => s.Classes.Select(x => x.ClassName)).Distinct().ToList();
     }
 
     #region API Calls
     protected async Task GetTeachers()
     {
+        loggedInTeacher = null;
+        teachers = new List<Teacher>();
+
         var service = _genericService.GetService<Teacher>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetTeachersBySchool/{AppState.SchoolID}", true);
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetTeachersBySchool/{AppState.SchoolID}",
+            true
+        );
+
+        if (result?.Data == null || !result.Data.Any())
+            return;
+
         teachers = result.Data.ToList();
+
+        // Only match teachers that are linked to a user account
+        loggedInTeacher = teachers.FirstOrDefault(t =>
+            t.UserID != null &&
+            t.UserID == AppState.UserID
+        );
     }
 
     protected async Task GetClasses()
@@ -181,7 +194,8 @@
         classes = result.Data.ToList();
 
         foreach (var c in classes)
-            c.Teacher = teachers.FirstOrDefault(t => t.TeacherID == c.TeacherID);
+            c.Teacher = teachers.Where(x => x.TeacherID == loggedInTeacher.TeacherID).First();
+
     }
 
     protected async Task GetStudents()
@@ -300,16 +314,24 @@
         if (AppState.UserRole == "Teacher")
         {
             classesToSend = classes
-                .Where(c => c.Teacher != null && c.Teacher.UserID == AppState.UserID && c.AcademicLevel == student.AcademicLevel)
+                .Where(c => c.Teacher != null && c.TeacherID == loggedInTeacher.TeacherID && c.AcademicLevel == student.AcademicLevel)
                 .ToList();
 
-            var teacherClassNames = classesToSend.Select(c => c.ClassName).ToHashSet();
+            var teacherClassNames = classesToSend.Select(c => c.ClassID).ToHashSet();
 
-            if (!student.ClassNames.Any(cn => teacherClassNames.Contains(cn)))
+            var teacherClassIds = classesToSend
+         .Select(c => c.ClassID)
+         .ToHashSet();
+
+            if (!student.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
             {
-                Snackbar.Add("You do not have permission to prepare a report card for this student.", Severity.Error);
+                Snackbar.Add(
+                    "You do not have permission to prepare a report card for this student.",
+                    Severity.Error
+                );
                 return;
             }
+
         }
         else
         {
@@ -355,7 +377,7 @@
             query = query.Where(s => s.LevelName == AcademicLvlFilterValue);
 
         if (!string.IsNullOrEmpty(SelectedClass))
-            query = query.Where(s => s.ClassNames.Contains(SelectedClass));
+            query = query.Where(s => s.Classes.Select(x => x.ClassName).Contains(SelectedClass));
 
         if (!string.IsNullOrWhiteSpace(searchString))
             query = query.Where(s =>

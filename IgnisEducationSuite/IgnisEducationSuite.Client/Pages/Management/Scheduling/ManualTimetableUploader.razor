@@ -1,0 +1,378 @@
+﻿@using EDUSphereSharedProject.Models
+@using System.Diagnostics
+@using EDUSphereSharedProject.Models.StoreProModels
+@using EDUSphereSharedProject.UniversalModels
+@using System.Net.Http.Headers
+@inherits AppBaseComponent
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-2">Manual Upload Class Schedule</MudText>
+    <MudText Typo="Typo.caption" Color="Color.Secondary">
+        Use the provided Excel template to define weekly lessons.
+    </MudText>
+
+    <MudStack Direction="Row" Spacing="2" Class="mt-3">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="DownloadScheduleTemplate">
+            Download Template
+        </MudButton>
+
+        <MudFileUpload T="IBrowserFile" FilesChanged="HandleFileUpload">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary">Upload Excel</MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+    </MudStack>
+</MudPaper>
+
+<!-- TIMETABLE PREVIEW -->
+@if (groupedSchedules != null && groupedSchedules.Any())
+{
+    <MudPaper Class="pa-3" Elevation="1">
+        <MudText Typo="Typo.h6" Class="mb-2">@GradeLevel Term Timetable</MudText>
+
+        <table class="timetable">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    @foreach (var day in daysofTheWeek)
+                    {
+                        <th>@day.DayName</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in groupedSchedules)
+                {
+                    <tr>
+                        <td class="time">
+                            @($"{group.Key.StartTime:hh\\:mm}") – @($"{group.Key.EndTime:hh\\:mm}")
+                        </td>
+                        @foreach (var day in dayOrder)
+                        {
+                            var schedule = group.FirstOrDefault(cs => cs.DayOfTheWeek.DayName == day);
+                            <td class="@(schedule == null ? "empty" : "filled")">
+                                @if (schedule != null)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">
+                                        @schedule.Class.ClassName
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <MudDivider Class="my-3" />
+
+        <MudDateRangePicker Variant="Variant.Outlined"
+                            Margin="Margin.Dense"
+                            @bind-DateRange="_dateRange"
+                            PlaceholderStart="Schedule Start Date"
+                            PlaceholderEnd="Schedule End Date" />
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Class="mt-3"
+                   EndIcon="@Icons.Material.Filled.SaveAlt"
+                   OnClick="AssignSchedule">
+            Save Class Timetable
+        </MudButton>
+    </MudPaper>
+}
+else
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        No schedule uploaded yet.
+    </MudAlert>
+}
+
+@code {
+    private IEnumerable<IGrouping<TimeSlot, ClassSchedule>> groupedSchedules;
+    protected string GradeLevel = string.Empty;
+    [Parameter] public List<DayofTheWeek> daysofTheWeek { get; set; } = default!;
+    [Parameter] public List<string> dayOrder { get; set; } = default!;
+    [Parameter] public List<TimeSlot> timeSlots { get; set; } = default!;
+    [Parameter] public List<Class> classes { get; set; } = default!;
+    [Parameter] public List<TimeTableActivity> activities { get; set; } = default!;
+
+    protected List<StudentClassSchedule> classSchedulestoSave = new();
+    protected List<GetStudentsInGradeResult> StudentsInGrade = new();
+    [Parameter] public ClientAdmin loggedInAdmin { get; set; } = default!;
+    private DateRange _dateRange { get; set; }
+    protected int GradeInt = 0;
+    protected List<ClassSchedule> classSchedules = new();
+    protected List<ScheduleMappingClass> schedules = new();
+   
+
+    private async Task HandleFileUpload(IBrowserFile file)
+    {
+        LoaderService.Show("Please wait, processing file...");
+
+        try
+        {
+            if (!classes.Any())
+            {
+                Snackbar.Add("Cannot Create Schedule without Classes, Please add all classes first", Severity.Error);
+                return;
+            }
+
+            if (file == null) return;
+
+            using var content = new MultipartFormDataContent();
+
+            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+            // Important: Name MUST match the parameter name in the API (e.g., "file")
+            content.Add(fileContent, "file", file.Name);
+
+            content.Add(new StringContent(AppState.SchoolID.ToString()), "SchoolID");
+
+            var absoluteUri = new Uri(new Uri(NavigationManager.BaseUri), "api/Upload/uploadSchedules");
+            var response = await HttpClient.PostAsync(absoluteUri, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to upload schedule", Severity.Error);
+                return;
+            }
+
+            // Read schedules safely
+            schedules = await response.Content.ReadFromJsonAsync<List<ScheduleMappingClass>>() ?? new List<ScheduleMappingClass>();
+
+            CreateSchedules(schedules);
+
+            // Null-safe ordering & grouping
+            groupedSchedules = classSchedules
+     .OrderBy(cs => dayOrder.IndexOf(cs.DayOfTheWeek.DayName)) // Order by day
+     .ThenBy(cs => cs.TimeSlot.StartTime)                     // Then by time
+     .GroupBy(cs => cs.TimeSlot)                              // Group by TimeSlot
+     .OrderBy(g => g.Key.StartTime);                          // Order groups by StartTime
+
+            var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
+                       .ToDictionary(x => x.day, x => x.index);
+
+            var orderedDays = daysofTheWeek.OrderBy(x => dayOrderDict[x.DayName]).ToList();
+            daysofTheWeek = orderedDays;
+            GradeLevel = $"{schedules.Select(x => x.GradeLevel).FirstOrDefault()}{schedules.Select(x => x.GradeSection).FirstOrDefault()}";
+            GradeInt = schedules.Select(x => x.GradeLevel).FirstOrDefault();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading schedule: {ex.Message}");
+            Snackbar.Add("An error occurred while uploading the schedule", Severity.Error);
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+
+    }
+
+    protected IEnumerable<ClassSchedule> CreateSchedules(List<ScheduleMappingClass> schedules)
+    {
+        var SchoolTimeSlots = timeSlots
+            .Where(x => x.SchoolID == Guid.Parse(AppState.SchoolID))
+            .OrderBy(x => x.StartTime)
+            .ToList();
+
+        foreach (var item in schedules)
+        {
+            var rowStart = TimeSpan.Parse(item.StartTime);
+            var rowEnd = TimeSpan.Parse(item.EndTime);
+
+            var matchingSlots = SchoolTimeSlots
+                .Where(ts => ts.StartTime >= rowStart && ts.EndTime <= rowEnd)
+                .OrderBy(ts => ts.StartTime)
+                .ToList();
+
+            if (!matchingSlots.Any())
+                continue;
+
+            foreach (var slot in matchingSlots)
+            {
+                Class? cls = null;
+
+                // Only assign a class if this is a "real class", otherwise leave null for activities
+                if (!string.IsNullOrWhiteSpace(item.Class))
+                {
+                    cls = classes
+                        .FirstOrDefault(x => x.AcademicLevel == item.GradeLevel &&
+                                             x.ClassName.ToUpper().Contains(item.Class.ToUpper()));
+                }
+
+                classSchedules.Add(new ClassSchedule
+                {
+                    ClassScheduleID = Guid.NewGuid(),
+                    Class = cls, // null for activities
+                    DayOfTheWeek = daysofTheWeek
+                        .FirstOrDefault(x => x.DayName.Contains(item.Day)),
+                    TimeSlot = slot,
+                    ScheduledActivity = string.IsNullOrWhiteSpace(item.Class) ? item.ScheduledActivityId! : null
+                });
+                foreach (var s in classSchedules)
+                {
+                    if (s.ScheduledActivity != null)
+                    {
+                        s.ScheduledActivityNavigation = activities.Where(x => x.ActivityID == s.ScheduledActivity).First();
+                    }
+                }
+            }
+        }
+
+        return classSchedules;
+    }
+    protected async Task GetStudentsForSchedule()
+    {
+        var service = GenericService.GetService<GetStudentsInGradeResult>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInGrade/{GradeInt}/{loggedInAdmin.SchoolID.ToString()}", true);
+        if (result.IsSuccess)
+        {
+            StudentsInGrade = result.Data.ToList();
+        }
+    }
+    protected async Task AssignSchedule()
+    {
+        LoaderService.Show("Assigning Schedules Please wait!");
+        await GetStudentsForSchedule();
+        // Check for overlapping timeslots first
+        var timeslotGroups = classSchedules
+            .Where(c => c.TimeSlotID != null && c.DayOfTheWeekID != null)
+            .GroupBy(c => new { c.DayOfTheWeekID, c.TimeSlotID })
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        if (timeslotGroups.Any())
+        {
+            // 👇 Breakpoint can be placed here to inspect conflicts
+            Debugger.Break(); // This will pause execution in Visual Studio when debugging
+
+            foreach (var group in timeslotGroups)
+            {
+                Console.WriteLine($"Conflict on DayID {group.Key.DayOfTheWeekID}, TimeSlotID {group.Key.TimeSlotID}");
+                foreach (var conflictItem in group)
+                {
+                    Console.WriteLine($"  ClassScheduleID: {conflictItem.ClassScheduleID}, ClassID: {conflictItem.ClassID}, ActivityID: {conflictItem.ScheduledActivity}");
+                }
+            }
+
+            Snackbar.Add("Warning: There are overlapping timeslots in the schedule!", Severity.Warning);
+        }
+        foreach (var student in StudentsInGrade)
+        {
+            foreach (var schedule in classSchedules)
+            {
+                schedule.StartDate = _dateRange.Start;
+                schedule.EndDate = _dateRange.End;
+                schedule.IsActive = true;
+                schedule.SchoolID = loggedInAdmin.SchoolID;
+                // Create a new StudentClassSchedule for each student and schedule pair
+                StudentClassSchedule newSchedule = new()
+                {
+                    StudentClassScheduleID = Guid.NewGuid(),
+                    StudentID = student.StudentID,
+                    ScheduleID = schedule.ClassScheduleID
+                };
+
+                // Add to the list
+                classSchedulestoSave.Add(newSchedule);
+            }
+        }
+
+        //save Schedules and assign
+        var serviceOne = GenericService.GetService<List<ClassSchedule>>();
+        foreach (var item in classSchedules)
+        {
+            item.TimeSlot = null;
+            // Day (required)
+            if (item.DayOfTheWeek != null)
+            {
+                item.DayOfTheWeekID = item.DayOfTheWeek.DayID;
+                item.DayOfTheWeek = null;
+            }
+            // Either Class OR ScheduledActivity (never both)
+            if (item.Class != null)
+            {
+                item.ClassID = item.Class.ClassID;
+                item.Class = null;
+
+                // Explicitly clear scheduled activity
+                item.ScheduledActivity = null;
+                item.ScheduledActivityNavigation = null;
+            }
+
+            else if (item.ScheduledActivityNavigation != null)
+            {
+                item.ScheduledActivity = item.ScheduledActivityNavigation.ActivityID;
+                item.ScheduledActivityNavigation = null;
+
+                // Explicitly clear class
+                item.ClassID = null;
+                item.Class = null;
+            }
+        }
+
+        var result = await serviceOne.PostAsync("api/Dynamic/PostEntities", "classschedule", classSchedules);
+        if (result.IsSuccess)
+        {
+            //Save Assigned Schedules
+            var ServiceTwo = GenericService.GetService<List<StudentClassSchedule>>();
+            var resultFinal = await ServiceTwo.PostAsync("api/Dynamic/PostEntities", "studentclassschedule", classSchedulestoSave);
+
+            if (resultFinal.IsSuccess)
+            {
+                LoaderService.Hide();
+                classSchedulestoSave.Clear();
+                classSchedules.Clear();
+                Snackbar.Add($"Successfully Saved And TimeTable assigned to all students of Grade: {GradeLevel}", Severity.Success);
+            }
+            else
+            {
+                LoaderService.Hide();
+                classSchedulestoSave.Clear();
+                Snackbar.Add($"Failed to Save And Assign Timetable to all students of Grade: {GradeLevel}", Severity.Error);
+            }
+        }
+        else
+        {
+            LoaderService.Hide();
+            classSchedulestoSave.Clear();
+            Snackbar.Add($"Failed to Save And Assign Timetable to all students of Grade: {GradeLevel}", Severity.Error);
+        }
+
+    }
+    protected async Task DownloadScheduleTemplate()
+    {
+        var response = await HttpClient.GetAsync($"api/Templates/DownloadScheduleTemplate");
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Read the file content as a byte array
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+            // Get file name from response header if present, fallback to default
+            var fileName = "ClassScheduleTemplate.xlsx";
+            if (response.Content.Headers.ContentDisposition != null)
+            {
+                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            }
+
+            // Use JSInterop to trigger the browser download
+            await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, fileBytes);
+        }
+        else
+        {
+            // Handle error (optional)
+            Console.WriteLine("Failed to download template: " + response.StatusCode);
+        }
+    }
+
+    
+
+}

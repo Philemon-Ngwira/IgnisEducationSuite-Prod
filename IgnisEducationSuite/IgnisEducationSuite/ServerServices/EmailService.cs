@@ -57,7 +57,7 @@ public class EmailService
     }
     public async Task SendPasswordResetEmailAsync(string toEmail, string recipientName, string resetPassword, string Username, string StudentID)
     {
-        var debugMode = true; // Or _env.IsDevelopment()
+        var debugMode = false; // Or _env.IsDevelopment()
 
         var recipientEmail = debugMode
             ? "gelebik929@jparksky.com"  // temp inbox for all OTPs

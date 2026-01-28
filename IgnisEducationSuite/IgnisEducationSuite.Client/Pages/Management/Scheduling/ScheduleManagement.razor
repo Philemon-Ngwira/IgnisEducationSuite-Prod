@@ -1,0 +1,198 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@using EDUSphereSharedProject.UniversalModels
+@using System.Net.Http.Headers
+@using EDUSphereSharedProject.UniversalModels.TimeTabling
+@using System.Diagnostics
+@page "/ClassSchedules"
+@inherits AppBaseComponent
+<MudCard Elevation="3" Class="pa-4">
+
+    <!-- PAGE HEADER -->
+    <MudText Typo="Typo.h4"><b>Class Schedules</b></MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        Define school time slots, upload class schedules, and assign them to students.
+    </MudText>
+
+    <!-- MAIN TABS -->
+    <MudTabs Outlined="true" Rounded="true">
+
+        <!-- TAB 1: TIME SLOTS -->
+        <MudTabPanel Text="Time Slots" Icon="@Icons.Material.Filled.Schedule">
+
+            <TimeSlotManager />
+        </MudTabPanel>
+
+        <!-- TAB 2: CREATE MANUAL SCHEDULE -->
+        <MudTabPanel Text="Create Manual Schedule" Icon="@Icons.Material.Filled.UploadFile">
+            <ManualTimetableUploader activities="@activities"
+                                     classes="@classes"
+                                     dayOrder="@dayOrder"
+                                     daysofTheWeek="@daysofTheWeek"
+                                     loggedInAdmin="@loggedInAdmin"
+                                     timeSlots="@timeSlots" />
+        </MudTabPanel>
+
+        <!-- TAB 3: SMART GENERATION -->
+        <MudTabPanel Text="Smart Generation" Icon="@Icons.Material.Filled.AutoAwesome">
+            <SmartTimeTableGenerator activities="@activities"
+                                     classes="@classes"
+                                     daysofTheWeek="@daysofTheWeek"
+                                     dayOrder="@dayOrder"
+                                     loggedInAdmin="@loggedInAdmin"
+                                     timeSlots="@timeSlots" />
+
+        </MudTabPanel>
+    </MudTabs>
+</MudCard>
+
+
+
+
+@code {
+
+
+
+    [Inject] NavigationManager _navigationManager { get; set; } = default!;
+    [Inject] HttpClient Http { get; set; } = default!;
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] AppState _appState { get; set; } = default!;
+    protected ClientAdmin loggedInAdmin = new();
+    protected List<StudentClassSchedule> classSchedulestoSave = new();
+    protected List<GetActiveClassScheduleResult> activeClassSchedules = new();
+    protected List<DayofTheWeek> daysofTheWeek = new();
+    protected List<Class> classes = new();
+    public List<TimeSlot> timeSlots = new();
+    protected List<GetStudentsInGradeResult> StudentsInGrade = new();
+    protected List<GetStudentsInGradeWithoutScheduleResult> StudentsInGradeWithoutSchedule = new();
+    List<TimeSlotGroup> groupedSmartSchedules;
+
+    private Dictionary<Guid, ActivityTimePreference> ActivityTimePreferences = new();
+    private Dictionary<Guid, bool> ActivityFixed = new();
+
+    protected List<TimeTableActivity> activities = new();
+    protected int GradeInt = 0;
+    protected string NoGradeLevel = "N/A";
+    protected MudTabs mudTabs = new();
+    private bool _editable = true;
+    private bool _clearable = true;
+    MudTabPanel panel01;
+    MudTabPanel panel02;
+    MudTabPanel panel03;
+
+
+    private readonly List<string> dayOrder = new List<string>
+
+{
+    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+};
+    protected string UserID = string.Empty;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Initializing Please wait");
+        await GetClasses();
+        await GetTimeSlots();
+        await GetDaysOfWeek();
+        await GetAdminData();
+        await GetSchoolActivities();
+        LoaderService.Hide();
+    }
+
+
+    private async Task GetSchoolActivities()
+    {
+        var service = GenericService.GetService<TimeTableActivity>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolActivities/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            activities = result.Data.ToList();
+            foreach (var act in activities)
+            {
+                ActivityTimePreferences[act.ActivityID] = ActivityTimePreference.Any;
+                ActivityFixed[act.ActivityID] = false;
+            }
+
+        }
+
+    }
+
+
+    #region Get from Database
+    protected async Task GetAdminData()
+    {
+
+        UserID = _appState.UserID;
+
+        if (UserID != string.Empty || UserID != null)
+        {
+            var service = _genericService.GetService<ClientAdmin>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetAdminByUserID/{UserID}", true);
+            if (result.IsSuccess)
+            {
+                loggedInAdmin = result.Data.FirstOrDefault();
+            }
+        }
+    }
+    protected async Task GetClasses()
+    {
+        var result = _genericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"class"}", true);
+        classes = service.Data.Where(x => x.SChoolID == Guid.Parse(AppState.SchoolID)).ToList();
+
+
+    }
+
+    // protected async Task GetUnassignedStudentsForSchedule()
+    // {
+    //     var service = _genericService.GetService<GetStudentsInGradeWithoutScheduleResult>();
+    //     if (GradeLevel == string.Empty)
+    //     {
+    //         GradeLevel = "null";
+    //     }
+    //     var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInGradeWithoutSchedule/{GradeInt}/{loggedInAdmin.SchoolID}/{GradeLevel}", true);
+    //     if (result.IsSuccess)
+    //     {
+    //         StudentsInGradeWithoutSchedule = result.Data.ToList();
+    //     }
+    // }
+    protected async Task GetTimeSlots()
+    {
+        var result = _genericService.GetService<TimeSlot>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"timeslot"}", true);
+        timeSlots = service.Data.Where(x => x.SchoolID == Guid.Parse(AppState.SchoolID)).ToList();
+    }
+    protected async Task GetDaysOfWeek()
+    {
+        var result = _genericService.GetService<DayofTheWeek>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"days"}", true);
+        daysofTheWeek = service.Data.ToList();
+    }
+    // protected async Task GetActiveSchedulesPerClass()
+    // {
+    //     LoaderService.Show("Please wait...");
+    //     var service = _genericService.GetService<GetActiveClassScheduleResult>();
+    //     if (GradeLevel == string.Empty)
+    //     {
+    //         GradeLevel = "null";
+    //     }
+    //     var result = await service.GetAllAsync($"api/Dynamic/GetActiveScheduleByGrade/{GradeInt}/{GradeLevel}/{loggedInAdmin.SchoolID}", true);
+    //     if (result.IsSuccess)
+    //     {
+    //         activeClassSchedules = result.Data.ToList();
+    //         OrganizeTableData();
+    //         LoaderService.Hide();
+    //     }
+    //     else
+    //     {
+    //         LoaderService.Hide();
+    //         Snackbar.Add("Failed to retrieve Schedules please check your connection and try again", Severity.Error);
+    //     }
+    // }
+    #endregion
+
+}
+
+

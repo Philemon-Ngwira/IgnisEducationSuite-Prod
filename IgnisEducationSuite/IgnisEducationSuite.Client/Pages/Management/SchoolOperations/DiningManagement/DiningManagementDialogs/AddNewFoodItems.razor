@@ -1,0 +1,351 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            @if (bulkUpload)
+            {
+
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               OnClick="DownloadFoodTemplate">
+                        Download Template
+                    </MudButton>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFoodItemFile">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.UploadFile">
+                                Bulk upload Food Items
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    @if (selectedFileReady)
+                    {
+                        <MudTable Items="@foodItems" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<FoodItem, bool>(FilterFunc1)" @bind-SelectedItem="selectedItem1">
+                            <ToolBarContent>
+                                <MudText Typo="Typo.h6">Food Items</MudText>
+                                <MudSpacer />
+                                <MudTextField @bind-Value="searchString1" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                            </ToolBarContent>
+                            <HeaderContent>
+                                <MudTh>Name</MudTh>
+                                <MudTh>Category</MudTh>
+                                <MudTh>HasFixedExpiry</MudTh>
+                                <MudTh>ShelfLife</MudTh>
+                                <MudTh>Unit</MudTh>
+                                <MudTh>Notes</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">@context.Name</MudTd>
+                                <MudTd DataLabel="Category">@context.Category</MudTd>
+                                <MudTd DataLabel="HasFixedExpiry">@context.HasFixedExpiry</MudTd>
+                                <MudTd DataLabel="ShelfLife">@context.DefaultShelfLife</MudTd>
+                                <MudTd DataLabel="Unit">@context.Unit</MudTd>
+                                <MudTd DataLabel="Unit">
+                                    <MudTooltip Text="@context.Notes">
+                                        <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">
+                                            @context.Notes
+                                        </div>
+                                    </MudTooltip>
+                                </MudTd>
+                            </RowTemplate>
+                            <PagerContent>
+                                <MudTablePager />
+                            </PagerContent>
+                        </MudTable>
+                    }
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => bulkUpload = true">
+                        Switch to Bulk Upload
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Label="Food Item Name"
+                                  Variant="Variant.Outlined"
+                                  FullWidth="true"
+                                  @bind-Value="foodItem.Name"
+                                  Margin="Margin.Dense"
+                                  Placeholder="Enter Food Item" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSelect @bind-Value="foodItem.Category"
+                               Margin="Margin.Dense"
+                               Variant="Variant.Outlined"
+                               Label="Food Category"
+                               Placeholder="--Select Category--">
+                        @foreach (var category in FoodItemCategories)
+                        {
+                            <MudSelectItem Value="category">@category</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="foodItem.HasFixedExpiry"
+                                 Label="Does food have an expiry Date?"
+                                 LabelPlacement="Placement.Start"
+                                 Color="Color.Secondary">
+                    </MudCheckBox>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSelect @bind-Value="measurementUnit"
+                               Margin="Margin.Dense"
+                               Variant="Variant.Outlined"
+                               ToStringFunc="measurementConverter"
+                               Label="Measurement Unit"
+                               Placeholder="--Select Measurement Unit--">
+                        @foreach (var m in measurementUnits)
+                        {
+                            <MudSelectItem Value="m">@m.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                @if (foodItem.HasFixedExpiry != true)
+                {
+                    <MudItem xs="12">
+                        <MudTextField Label="Shelf Duration (in days)"
+                                      Variant="Variant.Outlined"
+                                      FullWidth="true"
+                                      @bind-Value="foodItem.DefaultShelfLife"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+                }
+                <MudItem xs="12">
+                    <MudTextField Label="Extra Notes"
+                                  Variant="Variant.Outlined"
+                                  FullWidth="true"
+                                  @bind-Value="foodItem.Notes"
+                                  Margin="Margin.Dense"
+                                  Placeholder="Store in cool dry place" />
+                </MudItem>
+            }
+
+
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="() => MudDialog.Cancel()">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddFood">Add Food Item(s)</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    protected bool bulkUpload = false;
+    protected FoodItem foodItem = new FoodItem();
+    protected List<FoodItem> foodItems = new List<FoodItem>();
+    [Parameter] public List<MeasurementUnit> measurementUnits { get; set; } = new List<MeasurementUnit>();
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    protected MeasurementUnit measurementUnit = new MeasurementUnit();
+    protected FoodItem selectedItem1 = new();
+    private Func<MeasurementUnit, string> measurementConverter = m => $"{m.Name} ({m.Symbol})";
+    private List<string> UploadErrors = new();
+    private bool selectedFileReady;
+    private string searchString1 = "";
+    protected List<string> FoodItemCategories = new List<string>
+    {
+        "Perishable",
+        "Non-Perishable",
+
+    };
+    private bool FilterFunc1(FoodItem element) => FilterFunc(element, searchString1);
+
+    private bool FilterFunc(FoodItem element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.Category.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if ($"{element.Unit}".Contains(searchString))
+            return true;
+        return false;
+    }
+    protected async Task DownloadFoodTemplate()
+    {
+        LoaderService.Show("Preparing download, please wait...");
+        try
+        {
+            var response = await HttpClient.GetAsync($"api/Templates/DownloadFoodTemplate");
+
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Read the file content as a byte array
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+                // Get file name from response header if present, fallback to default
+                var fileName = "FoodItemTemplate.xlsx";
+                if (response.Content.Headers.ContentDisposition != null)
+                {
+                    fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+                }
+
+                // Use JSInterop to trigger the browser download
+                await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, fileBytes);
+            }
+            else
+            {
+                // Handle error (optional)
+                Console.WriteLine("Failed to download template: " + response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = $"An error occurred while downloading the template: {ex.Message}";
+            Snackbar.Add(errorMessage, Severity.Error);
+            throw;
+        }
+
+        finally
+        {
+            LoaderService.Hide();
+        }
+    }
+    private async Task UploadFoodItemFile(IBrowserFile file)
+    {
+        if (file == null || file.Size == 0) return;
+
+        LoaderService.Show("Validating parent file, please wait...");
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream(10 * 1024 * 1024);
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType =
+                new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await HttpClient.PostAsync("api/upload/uploadFoodItems", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<UploadPreviewResult>();
+
+                if (result != null)
+                {
+                    foodItems = result.foodItems.ToList();
+                    UploadErrors = result.Errors
+                        .Select(e => $"Row {e.RowIndex}: {e.Message}")
+                        .ToList();
+
+                    selectedFileReady = true;
+                }
+            }
+            else
+            {
+                UploadErrors.Add("Failed to upload parent file.");
+            }
+        }
+        catch (Exception ex)
+        {
+            UploadErrors.Add($"Error uploading parent file: {ex.Message}");
+        }
+        finally
+        {
+            LoaderService.Hide();
+            StateHasChanged();
+        }
+    }
+    protected async Task AddFood()
+    {
+        List<FoodItem> iitemsAdded = new List<FoodItem>();
+        if (!bulkUpload)
+        {
+            foodItem.FoodItemID = Guid.NewGuid();
+            foodItem.Unit = measurementUnit.Symbol;
+            foodItem.UnitId = measurementUnit.UnitId;
+            foodItem.DateAdded = DateTime.UtcNow;
+            foodItem.DateUpdated = DateTime.UtcNow;
+            foodItem.AddedBy = $"{AppState.FirstName} {AppState.LastName}";
+            foodItem.UpdatedBy = $"{AppState.FirstName} {AppState.LastName}";
+            foodItem.SchoolID = Guid.Parse(AppState.SchoolID);
+            var service = GenericService.GetService<FoodItem>();
+            var result = await service.PostAsync("api/Dynamic/PostEntity", "fooditem", foodItem);
+            if (result.IsSuccess)
+            {
+                iitemsAdded.Add(result.Data);
+                InventoryBatch inventoryBatch = new()
+                {
+                    BatchID = Guid.NewGuid(),
+                    FoodItemID = result.Data.FoodItemID,
+                    Quantity = 0,
+                    ReceivedDate = DateTime.Today,
+                    StorageLocation = "",
+                    CurrentTemp = null,
+                    Status = "Active",
+                    Notes = result.Data.Notes,
+
+                };
+                var batchService = GenericService.GetService<InventoryBatch>();
+                var batchResult = await batchService.PostAsync("api/Dynamic/PostEntity", "inventorybatch", inventoryBatch);
+                if (batchResult.IsSuccess)
+                {
+                    Snackbar.Add("Food Item added successfully", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+            }
+            else
+            {
+                Snackbar.Add("Failed to add Food Item. Please try again.", Severity.Error);
+            }
+        }
+        else
+        {
+            foreach (var fooditem in foodItems)
+            {
+                var u = fooditem.Unit;
+                var Unit = measurementUnits.Where(x => x.Symbol.ToLower() == u.ToLower()).FirstOrDefault();
+                fooditem.Unit = Unit!.Symbol;
+                fooditem.UnitId = Unit!.UnitId;
+                fooditem.DateAdded = DateTime.UtcNow;
+                fooditem.DateUpdated = DateTime.UtcNow;
+                fooditem.AddedBy = $"{AppState.FirstName} {AppState.LastName}";
+                fooditem.UpdatedBy = $"{AppState.FirstName} {AppState.LastName}";
+                fooditem.SchoolID = Guid.Parse(AppState.SchoolID);
+            }
+            var service = GenericService.GetService<List<FoodItem>>();
+            var result = await service.PostAsync("api/Dynamic/PostEntities", "fooditem", foodItems);
+            if (result.IsSuccess)
+            {
+                iitemsAdded = result.Data.ToList();
+                var Inventories = new List<InventoryBatch>();
+                foreach (var item in iitemsAdded)
+                {
+                    var InvItem = new InventoryBatch();
+                    InvItem.BatchID = Guid.NewGuid();
+                    InvItem.FoodItemID = item.FoodItemID;
+                    InvItem.Quantity = 0;
+                    InvItem.ReceivedDate = DateTime.Today;
+                    InvItem.StorageLocation = "";
+                    InvItem.CurrentTemp = null;
+                    InvItem.Status = "Active";
+                    InvItem.Notes = item.Notes;
+
+                    Inventories.Add(InvItem);
+                }
+                var batchService = GenericService.GetService<List<InventoryBatch>>();
+                var batchResult = await batchService.PostAsync("api/Dynamic/PostEntities", "inventorybatch", Inventories);
+                if (batchResult.IsSuccess)
+                {
+                    Snackbar.Add("Food Item added successfully", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+            }
+            else
+            {
+                Snackbar.Add("Failed to add Food Item. Please try again.", Severity.Error);
+            }
+        }
+
+    }
+}

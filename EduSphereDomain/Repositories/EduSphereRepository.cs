@@ -1,4 +1,6 @@
 ﻿using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.ExtendedProperties;
+using DocumentFormat.OpenXml.Office2010.CustomUI;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -13,6 +15,8 @@ using EDUSphereSharedProject.UniversalModels;
 using EDUSphereSharedProject.UniversalModels.TimeTabling;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.Metrics;
+using System.Security.Cryptography.X509Certificates;
+using static EDUSphereSharedProject.UniversalModels.StudentWithClassesDTO;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace EduSphereDomain.Repositories
@@ -401,6 +405,79 @@ namespace EduSphereDomain.Repositories
             }
             return stdCls;
         }
+        public async Task<List<ClassSchedule>> UpsertClassSchedulesAsync(
+    List<ClassSchedule> incomingSchedules)
+        {
+            if (incomingSchedules == null || incomingSchedules.Count == 0)
+                return new List<ClassSchedule>();
+
+            // Defensive validation
+            foreach (var s in incomingSchedules)
+            {
+                if (s.SchoolID == Guid.Empty)
+                    throw new ArgumentException("SchoolID is required");
+
+                if (!s.DayOfTheWeekID.HasValue || !s.TimeSlotID.HasValue)
+                    throw new ArgumentException("DayOfTheWeekID and TimeSlotID are required");
+            }
+
+            var schoolId = incomingSchedules.First().SchoolID;
+            var academicLevel = incomingSchedules.First().AcademicLevel;
+            var section = incomingSchedules.First().AcademicLevelSection;
+
+            // Load existing schedules ONCE
+            var existingSchedules = await _context.ClassSchedules
+                .Where(x =>
+                    x.SchoolID == schoolId &&
+                    x.AcademicLevel == academicLevel &&
+                    x.AcademicLevelSection == section &&
+                    x.IsActive == true)
+                .ToListAsync();
+
+            // Logical identity map
+            var existingMap = existingSchedules.ToDictionary(
+                x => (x.DayOfTheWeekID!.Value, x.TimeSlotID!.Value),
+                x => x
+            );
+
+            var persisted = new List<ClassSchedule>();
+
+            foreach (var incoming in incomingSchedules)
+            {
+                var key = (incoming.DayOfTheWeekID!.Value, incoming.TimeSlotID!.Value);
+
+                if (existingMap.TryGetValue(key, out var existing))
+                {
+                    // 🔁 UPDATE
+                    existing.ClassID = incoming.ClassID;
+                    existing.ScheduledActivity = incoming.ScheduledActivity;
+                    existing.IsDoublePeriod = incoming.IsDoublePeriod;
+                    existing.SlotOrder = incoming.SlotOrder;
+                    existing.IsFiller = incoming.IsFiller;
+                    existing.StartDate = incoming.StartDate;
+                    existing.EndDate = incoming.EndDate;
+                    existing.LevelSectionName = incoming.LevelSectionName;
+
+                    persisted.Add(existing);
+                }
+                else
+                {
+                    // ➕ INSERT
+                    incoming.ClassScheduleID = Guid.NewGuid();
+                    incoming.IsActive = true;
+
+                    _context.ClassSchedules.Add(incoming);
+                    persisted.Add(incoming);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return persisted;
+        }
+
+
+
         public async Task<IEnumerable<GetStudentsInGradeResult>> GetStudentsInGrade(int grade, string SchoolID)
         {
             List<GetStudentsInGradeResult> stds = new();
@@ -409,7 +486,9 @@ namespace EduSphereDomain.Repositories
             {
                 GetStudentsInGradeResult studentInGrade = new()
                 {
-                    StudentID = item.StudentID
+                    StudentID = item.StudentID,
+                    GradeSection = item.GradeSection,
+                    GroupName = item.GroupName,
                 };
                 stds.Add(studentInGrade);
             }
@@ -1021,6 +1100,15 @@ namespace EduSphereDomain.Repositories
         #region New Modules
 
         #region  Improvements
+        public async Task<IEnumerable<LevelSection>> GetLevelSectionsAsync(Guid AcademicLevelID)
+        {
+            var result = await _context.LevelSections
+                .Where(x => x.AcademicLevelID == AcademicLevelID)
+                .ToListAsync();
+            return result;
+        }
+
+
 
         public async Task<IEnumerable<StudentGradedExamsTestsAndQuizzes>> GetGradedExamsByStudent(string StudentID)
         {
@@ -1168,33 +1256,37 @@ namespace EduSphereDomain.Repositories
 
         public async Task<List<StudentWithClassesDTO>> GetStudentsWithClassesBySchoolAsync(Guid schoolId)
         {
-            // Project only the necessary fields
             try
             {
                 return await _context.Students
-            .AsNoTracking()
-            .Where(s => s.SchoolID == schoolId)
-            .Select(s => new StudentWithClassesDTO
-            {
-                StudentID = s.StudentID,
-                FirstName = s.FirstName,
-                LastName = s.LastName,
-                AcademicLevel = s.AcademicLevel.Value,
-                LevelName = s.LevelName ?? "", // fallback if null
-                Gender = s.Gender,
-                StudentNumber = s.StudentNumber,
-                ClassNames = s.StudentClasses
-                              .Select(sc => sc.Class.ClassName)
-                              .ToList()
-            })
-            .ToListAsync();
+                    .AsNoTracking()
+                    .Where(s => s.SchoolID == schoolId)
+                    .Select(s => new StudentWithClassesDTO
+                    {
+                        StudentID = s.StudentID,
+                        FirstName = s.FirstName,
+                        LastName = s.LastName,
+                        AcademicLevel = s.AcademicLevel ?? 0,
+                        LevelName = s.LevelName ?? "",
+                        Gender = s.Gender,
+                        StudentNumber = s.StudentNumber,
+
+                        Classes = s.StudentClasses
+                            .Where(sc => sc.Class != null) // safety
+                            .Select(sc => new StudentClassDTO
+                            {
+                                ClassID = sc.Class.ClassID,
+                                ClassName = sc.Class.ClassName
+                            })
+                            .ToList()
+                    })
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-                var _ = ex.Message;
+                // optional logging here
                 throw;
             }
-
         }
 
         public async Task<List<ReportCard>> GetReportCardHeaderByStudent(Guid StudentID)
@@ -1337,6 +1429,32 @@ namespace EduSphereDomain.Repositories
 
         //-------------------------START-----------------------------------------------------------------\\
         #region Dining Management
+
+        public async Task<IEnumerable<InventoryBatch>> GetKitchenInventoryBatchesAsync(Guid SchoolID)
+        {
+            var result = await _contextProcedures.GetInventoryBatchesBySchoolAsync(SchoolID);
+            return result.Select(x => new InventoryBatch
+            {
+                BatchID = x.BatchID,
+                FoodName = x.ItemName,
+                FoodItemID = x.FoodItemID,
+                Quantity = x.Quantity,
+                ReceivedDate = x.ReceivedDate,
+                ExpiryDate = x.ExpiryDate,
+                StorageLocation = x.StorageLocation,
+                CurrentTemp = x.CurrentTemp,
+                Status = x.Status,
+                Notes = x.Notes,
+                AIAdviceGenerated = x.AIAdviceGenerated,
+                Unit = x.Unit,
+                RecievedDateAltered = x.ReceivedDate,
+                hasExpiry = x.HasFixedExpiry,
+                ShelfLifeDays = x.DefaultShelfLife ?? 0,
+                Category = x.Category
+            }).ToList();
+
+
+        }
         public async Task<IEnumerable<DiningHall>> GetDiningHallsBySchoolAsync(Guid SchoolID)
         {
             var result = await _context.DiningHalls.Where(x => x.SchoolId == SchoolID).ToListAsync();

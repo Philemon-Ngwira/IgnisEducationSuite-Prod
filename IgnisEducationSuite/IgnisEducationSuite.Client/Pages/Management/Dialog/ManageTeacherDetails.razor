@@ -54,6 +54,7 @@
                 <MudTh>Subject</MudTh>
                 <MudTh>Academic Level</MudTh>
                 <MudTh>Section</MudTh>
+                <MudTh>Action</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="SubjectID">@context.ClassID</MudTd>
@@ -64,10 +65,14 @@
                     <MudTd DataLabel="Section">@context.GradeSection</MudTd>
 
                 }
-                else{
+                else
+                {
                     <MudTd DataLabel="Section"><MudText>N/A</MudText></MudTd>
 
                 }
+                <MudTd DataLabel="Action">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="@(() => UnassignSubject(context))">Remove</MudButton>
+                </MudTd>
             </RowTemplate>
         </MudTable>
         <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">Assign Subjects</MudAlert>

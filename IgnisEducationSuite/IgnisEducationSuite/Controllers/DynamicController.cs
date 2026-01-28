@@ -5,6 +5,7 @@ using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.ServerServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace IgnisEducationSuite.Controllers
@@ -620,6 +621,8 @@ namespace IgnisEducationSuite.Controllers
                 "maintainancerequest" => GetRepository<MaintainanceRequest>(),
                 "dininghall" => GetRepository<DiningHall>(),
                 "meal" => GetRepository<Meal>(),
+                "fooditem" => GetRepository<FoodItem>(),
+                "inventorybatch" => GetRepository<InventoryBatch>(),
                 "menuitem" => GetRepository<DiningMenu>(),
                 "specialdiet" => GetRepository<DiningSpecialDiet>(),
                 "academiclevel" => GetRepository<AcademicLevel>(),
@@ -640,6 +643,9 @@ namespace IgnisEducationSuite.Controllers
                 "tripattendance" => GetRepository<TripAttendance>(),
                 "booking" => GetRepository<TripBooking>(),
                 "busmaintainance" => GetRepository<BusMaintenanceRequest>(),
+                "measurementunit" => GetRepository<MeasurementUnit>(),
+                "kitchenmeasurement" => GetRepository<KitchenMeasurementStandard>(),
+                "timetableoverride" => GetRepository<TimetableOverride>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -696,6 +702,8 @@ namespace IgnisEducationSuite.Controllers
                 "maintainancerequest" => JsonSerializer.Deserialize<MaintainanceRequest>(obj.ToString()),
                 "dininghall" => JsonSerializer.Deserialize<DiningHall>(obj.ToString()),
                 "meal" => JsonSerializer.Deserialize<Meal>(obj.ToString()),
+                "fooditem" => JsonSerializer.Deserialize<FoodItem>(obj.ToString()),
+                "inventorybatch" => JsonSerializer.Deserialize<InventoryBatch>(obj.ToString()),
                 "menuitem" => JsonSerializer.Deserialize<DiningMenu>(obj.ToString()),
                 "specialdiet" => JsonSerializer.Deserialize<DiningSpecialDiet>(obj.ToString()),
                 "academiclevel" => JsonSerializer.Deserialize<AcademicLevel>(obj.ToString()),
@@ -716,6 +724,9 @@ namespace IgnisEducationSuite.Controllers
                 "tripattendance" => JsonSerializer.Deserialize<TripAttendance>(obj.ToString()),
                 "booking" => JsonSerializer.Deserialize<TripBooking>(obj.ToString()),
                 "busmaintainance" => JsonSerializer.Deserialize<BusMaintenanceRequest>(obj.ToString()),
+                "measurementunit" => JsonSerializer.Deserialize<MeasurementUnit>(obj.ToString()),
+                "kitchenmeasurement" => JsonSerializer.Deserialize<KitchenMeasurementStandard>(obj.ToString()),
+                "timetableoverride" => JsonSerializer.Deserialize<TimetableOverride>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -726,6 +737,23 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Non Generic New Modules
+        [HttpPost("UpsertClassSchedules")]
+        public async Task<IActionResult> UpsertClassSchedules(
+     [FromBody] List<ClassSchedule> schedules)
+        {
+            var saved = await _repository.UpsertClassSchedulesAsync(schedules);
+            return Ok(saved);
+        }
+
+
+
+        [HttpGet("GetLevelSectionByLevel/{LevelID}")]
+        public async Task<IActionResult> GetLevelSectionByLevel(Guid LevelID)
+        {
+            var result = await _repository.GetLevelSectionsAsync(LevelID);
+            return Ok(result);
+        }
+
         [HttpGet("AvailableTripsForBooking/{ParentID}")]
         public async Task<IActionResult> GetAvailableTripsForBooking(string ParentID)
         {
@@ -860,6 +888,12 @@ namespace IgnisEducationSuite.Controllers
             return Ok(result);
         }
         #region DINING MANAGMENT
+        [HttpGet("GetDiningInventory/{SchoolID}")]
+        public async Task<IActionResult> GetDiningInventory(Guid SchoolID)
+        {
+            var result = await _repository.GetKitchenInventoryBatchesAsync(SchoolID);
+            return Ok(result);
+        }
         [HttpGet("GetSchoolDiningHalls/{SchoolID}")]
         public async Task<IActionResult> GetSchoolHalls(Guid SchoolID)
         {

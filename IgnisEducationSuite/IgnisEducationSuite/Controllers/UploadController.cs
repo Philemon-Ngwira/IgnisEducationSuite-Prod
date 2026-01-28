@@ -7,6 +7,7 @@ using IgnisEducationSuite.ServerServices;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using OpenAI.Assistants;
 using System.Text;
 using UglyToad.PdfPig;
@@ -21,10 +22,13 @@ namespace IgnisEducationSuite.Controllers
     {
         private readonly PDFService _pDFService;
         private readonly EduSphereRepository _repository;
-        public UploadController(PDFService pDFService, EduSphereRepository repository)
+
+        private readonly IConfiguration _configuration;
+        public UploadController(PDFService pDFService, EduSphereRepository repository, IConfiguration configuration)
         {
             _pDFService = pDFService;
             _repository = repository;
+            _configuration = configuration;
         }
         [HttpPost("uploadWord")]
         public async Task<IActionResult> UploadWordDocument(IFormFile file)
@@ -52,15 +56,16 @@ namespace IgnisEducationSuite.Controllers
 
         #region Lesson Endpoints
         [HttpPost("uploadLesson")]
-        public async Task<IActionResult> UploadLesson(IFormFile file)
+        public async Task<IActionResult> UploadLesson(
+     IFormFile file,
+     [FromQuery] Guid schoolId)
         {
             if (file == null || file.Length == 0)
-            {
                 return BadRequest("File is empty or not provided.");
-            }
 
             string extractedText = string.Empty;
 
+            // 1️⃣ Extract text (for editor preview only)
             if (file.FileName.EndsWith(".pdf"))
             {
                 extractedText = await ExtractTextFromPdfAsync(file.OpenReadStream());
@@ -74,8 +79,28 @@ namespace IgnisEducationSuite.Controllers
                 return BadRequest("Unsupported file type.");
             }
 
-            return Ok(extractedText);
+            // 2️⃣ Upload to Azure
+            await using var stream = file.OpenReadStream();
+            var uploader = new BlobUploader(_configuration);
+
+            var safeFileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var blobPath = $"schools/{schoolId}/IgnisEduSuitelessons/{DateTime.UtcNow:yyyy/MM}/{safeFileName}";
+
+            var url = await uploader.UploadFileAsync(
+                stream,
+                blobPath,
+                containerName: "IgnisEduSuitelessons"
+            );
+
+            // 3️⃣ Return both
+            return Ok(new
+            {
+                Url = url,
+                ExtractedText = extractedText
+            });
         }
+
+
         private async Task<string> ExtractTextFromPdfAsync(Stream fileStream)
         {
             StringBuilder text = new StringBuilder();
@@ -176,7 +201,7 @@ namespace IgnisEducationSuite.Controllers
                     string lastName = row.Row.Cell(2).GetValue<string>()?.Trim();
                     string gender = row.Row.Cell(3).GetValue<string>()?.Trim();
                     string address = row.Row.Cell(4).GetValue<string>()?.Trim();
-                    string email = row.Row.Cell(5).GetValue<string>()?.Trim()?? string.Empty;
+                    string email = row.Row.Cell(5).GetValue<string>()?.Trim() ?? string.Empty;
                     string studentNumber = row.Row.Cell(6).GetValue<string>()?.Trim();
                     var dateCell = row.Row.Cell(7).GetValue<string>()?.Trim();
                     string country = row.Row.Cell(8).GetValue<string>()?.Trim();
@@ -184,7 +209,8 @@ namespace IgnisEducationSuite.Controllers
                     string gradeSection = row.Row.Cell(10).GetValue<string>()?.Trim();
                     string levelName = row.Row.Cell(11).GetValue<string>()?.Trim();
                     bool paymentStatus = row.Row.Cell(12).GetValue<int>() == 1;
-
+                    bool isDaySchool = row.Row.Cell(13).GetValue<int>() == 1;
+                    string GroupName = row.Row.Cell(14).GetValue<string>()?.Trim() ?? string.Empty;
                     // Validate required fields
                     if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName) ||
                         string.IsNullOrEmpty(studentNumber) || string.IsNullOrEmpty(levelName))
@@ -219,6 +245,8 @@ namespace IgnisEducationSuite.Controllers
                         GradeSection = gradeSection,
                         LevelName = levelName,
                         PaymentStatus = paymentStatus,
+                        isDaySchool = isDaySchool,
+                        GroupName = GroupName ?? null
                     });
                 }
                 catch (Exception exRow)
@@ -505,6 +533,90 @@ namespace IgnisEducationSuite.Controllers
             return Ok(new UploadPreviewResult
             {
                 Medications = levels,
+                Errors = errors
+            });
+        }
+
+
+        //uploadFoodItems
+        [HttpPost("uploadFoodItems")]
+        public async Task<IActionResult> UploadFoodInventory([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var levels = new List<FoodItem>();
+            var errors = new List<RowError>();
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1)
+         .Select((r, i) => new { Row = r, RowIndex = i + 2 }))
+            {
+                try
+                {
+                    var name = row.Row.Cell(1).GetValue<string>()?.Trim();
+                    if (string.IsNullOrWhiteSpace(name))
+                        throw new Exception("Name is required.");
+
+                    var category = row.Row.Cell(2).GetValue<string>()?.Trim();
+                    if (category != "Perishable" && category != "Non-perishable")
+                        throw new Exception("Category must be Perishable or Non-perishable.");
+
+                    if (!int.TryParse(row.Row.Cell(3).GetValue<string>(), out var hasExpiry)
+                        || (hasExpiry != 0 && hasExpiry != 1))
+                        throw new Exception("HasFixedExpiry must be 0 or 1.");
+
+                    int? shelfLife = null;
+                    var shelfLifeCell = row.Row.Cell(4);
+                    if (!shelfLifeCell.IsEmpty())
+                    {
+                        if (int.TryParse(shelfLifeCell.GetValue<string>(), out var parsed))
+                            shelfLife = parsed;
+                        else
+                            throw new Exception("DefaultShelfLife must be a number.");
+                    }
+
+                    if (hasExpiry == 1 && shelfLife.HasValue)
+                        throw new Exception("DefaultShelfLife must be empty when HasFixedExpiry = 1.");
+
+                    var allowedUnits = new HashSet<string> { "L", "g", "kg", "ml", "pcs", "pkt", "bag", "loaf" };
+                    var unit = row.Row.Cell(5).GetValue<string>()?.Trim();
+
+                    if (!allowedUnits.Contains(unit))
+                        throw new Exception($"Invalid unit '{unit}'.");
+
+                    var notes = row.Row.Cell(6).GetValue<string>();
+
+                    levels.Add(new FoodItem
+                    {
+                        FoodItemID = Guid.NewGuid(),
+                        Name = name,
+                        Category = category,
+                        HasFixedExpiry = hasExpiry == 1,
+                        DefaultShelfLife = shelfLife,
+                        Unit = unit,
+                        Notes = notes
+                    });
+                }
+                catch (Exception exRow)
+                {
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
+                }
+            }
+
+            return Ok(new UploadPreviewResult
+            {
+                foodItems = levels,
                 Errors = errors
             });
         }

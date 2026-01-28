@@ -79,6 +79,7 @@
                         <PropertyColumn Property="x => x.Teacher.LastName" Title="Teacher Last Name" />
                         <PropertyColumn Property="x => x.ClassName" Title="Class Name" />
                         <PropertyColumn Property="x => x.LevelName" Sortable=true Title="Level" />
+                        <PropertyColumn Property="x => x.GradeSection" Sortable=true Title="Section" />
 
                     }
                     else
@@ -130,18 +131,22 @@
     protected async Task GetClasses()
     {
         var result = _genericService.GetService<Class>();
-        var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{loggedInAdmin.SchoolID}", true);
-        classes = service.Data.ToList();
-        classes.OrderBy(p => p.AcademicLevel);
+        var service = await result.GetAllAsync(
+            $"api/Dynamic/GetClassesBySchoolID/{loggedInAdmin.SchoolID}",
+            true
+        );
 
+        classes = service.Data
+            .OrderBy(c => c.AcademicLevel)
+            .ThenBy(c => c.GradeSection)
+            .ToList();
 
         foreach (var item in classes)
         {
-            item.Teacher = teachers.Where(x => x.TeacherID == item.TeacherID).FirstOrDefault();
-
+            item.Teacher = teachers.FirstOrDefault(x => x.TeacherID == item.TeacherID);
         }
-
     }
+
     protected async Task GetLoggedInAdmin()
     {
         string UserID = string.Empty;

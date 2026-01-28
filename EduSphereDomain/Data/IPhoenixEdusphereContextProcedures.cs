@@ -34,6 +34,7 @@ namespace EduSphereDomain.Data
         Task<List<GetHostelMaintainanceRequestsBySchoolResult>> GetHostelMaintainanceRequestsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetHostelsBySchoolResult>> GetHostelsBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetInitializationDataResult>> GetInitializationDataAsync(string UserId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetInventoryBatchesBySchoolResult>> GetInventoryBatchesBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetLessonCountBySchoolResult>> GetLessonCountBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetLessonsBySchoolResult>> GetLessonsBySchoolAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetLiveMeetingResult>> GetLiveMeetingAsync(string MeetingNumber, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
@@ -73,12 +74,14 @@ namespace EduSphereDomain.Data
         Task<List<GetUserBadgesByUserIDResult>> GetUserBadgesByUserIDAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetUserTripsTodayResult>> GetUserTripsTodayAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<RunDailyJobsResult>> RunDailyJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<int> sp_AssignMissingStudentSchedulesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_GetActiveClinicVisitsResult>> sp_GetActiveClinicVisitsAsync(Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_GetBusMaintenanceRequestsResult>> sp_GetBusMaintenanceRequestsAsync(Guid? SchoolId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_GetClinicDashboardMetricsResult>> sp_GetClinicDashboardMetricsAsync(Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_GetExpiringSoonMedicationsResult>> sp_GetExpiringSoonMedicationsAsync(int? DaysAhead, Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> sp_GetLevelTermReportCardAsync(Guid? LevelID, DateTime? TermStartDate, DateTime? TermEndDate, int? level, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_GetStudentTimetableResult>> sp_GetStudentTimetableAsync(string userID, DateTime? AsOfDate, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<sp_GetTeacherTimetableResult>> sp_GetTeacherTimetableAsync(string TeacherUserID, DateTime? AsOfDate, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> SyncStudentAndParentAccountStatusAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> SyncStudentsToClassesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> UpdateEndTermReportCardStatusAsync(Guid? TermSettingID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);

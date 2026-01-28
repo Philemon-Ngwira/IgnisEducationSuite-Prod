@@ -5,6 +5,7 @@
 @inherits AppBaseComponent
 @using Blazored.TextEditor
 @using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
 @inject ISnackbar SnackBar
 
 ```razor
@@ -362,28 +363,47 @@
 
     private async Task OnFileChange(IBrowserFile file)
     {
-        LoaderService.Show("Hang in tight as we process your file...");
-        var content = new MultipartFormDataContent();
-        content.Add(new StreamContent(file.OpenReadStream()), "file", file.Name);
-        var absoluteUri = new Uri(new Uri(_navigationManager.BaseUri), "api/Upload/uploadLesson");
-        var response = await Http.PostAsync(absoluteUri, content);
+        LoaderService.Show("Uploading lesson...");
 
-        if (response.IsSuccessStatusCode)
+        try
         {
+            var content = new MultipartFormDataContent();
+            content.Add(
+                new StreamContent(file.OpenReadStream(maxAllowedSize: 20_000_000)),
+                "file",
+                file.Name
+            );
 
-            var returned = await response.Content.ReadAsStringAsync();
-            body = $"<p>{returned}</p>";
-            await this.richTextEditor.LoadHTMLContent(body);
+            var uploadUrl = $"api/Upload/uploadLesson?schoolId={teacher.SchoolID}";
+            var response = await Http.PostAsync(uploadUrl, content);
 
-            StateHasChanged();
-            // Extracted text
+            if (!response.IsSuccessStatusCode)
+            {
+                SnackBar.Add("Lesson upload failed.", Severity.Error);
+                return;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<LessonUploadResult>();
+
+            // ✅ Store URL on lesson
+            newLesson.url = result!.Url;
+
+            // Optional: preview extracted text
+            if (!string.IsNullOrWhiteSpace(result.ExtractedText))
+            {
+                body = $"<p>{result.ExtractedText}</p>";
+                await richTextEditor.LoadHTMLContent(body);
+                responseisEmpty = false;
+            }
+
+            SnackBar.Add("Lesson uploaded successfully.", Severity.Success);
         }
-        else
+        finally
         {
-            body = "Error reading file.";
+            LoaderService.Hide();
         }
-        LoaderService.Hide();
     }
+
     private async Task SendMessage()
     {
         LoaderService.Show("Thinking....Please wait");

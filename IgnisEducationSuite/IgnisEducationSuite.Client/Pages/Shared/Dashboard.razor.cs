@@ -92,7 +92,8 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 if (!(user.Identity?.IsAuthenticated ?? false))
                 {
                     _navigationManager.NavigateTo(
-                        $"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}"
+                        $"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}",
+                        forceLoad: true
                     );
                     return;
                 }

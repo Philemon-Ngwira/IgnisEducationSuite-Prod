@@ -43,6 +43,8 @@ public partial class Student
 
     public bool? isDaySchool { get; set; }
 
+    public string GroupName { get; set; }
+
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
 
     public virtual ICollection<Grade> Grades { get; set; } = new List<Grade>();

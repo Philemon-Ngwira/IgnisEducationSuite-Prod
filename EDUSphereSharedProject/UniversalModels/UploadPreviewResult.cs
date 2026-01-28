@@ -16,5 +16,6 @@ namespace EDUSphereSharedProject.UniversalModels
         public List<AcademicLevel> academicLevels { get; set; } = new();
         public List<Class> classes { get; set; } = new();
         public List<ClinicMedication> Medications { get; set; } = new();
+        public List<FoodItem> foodItems { get; set; } = new();
     }
 }

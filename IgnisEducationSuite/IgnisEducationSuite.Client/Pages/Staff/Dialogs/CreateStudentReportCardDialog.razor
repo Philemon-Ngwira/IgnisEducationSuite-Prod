@@ -131,6 +131,7 @@
     [Parameter] public ReportCard newReportCard { get; set; } = new();
     private DateRange _dateRangeTerm { get; set; }
     [Parameter] public List<ReportCardDetail> reportCardDetails { get; set; } = new();
+    [Parameter] public Guid TeacherID { get; set; }
     protected bool _editTriggerRowClick = true;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     protected bool isLoading = false;
@@ -155,11 +156,15 @@
         };
 
         // ADMIN / STAFF / DEAN / PRINCIPAL → SEE EVERYTHING
+        var studentClassIds = student.Classes
+       .Select(x => x.ClassID)
+       .ToHashSet();
+
         var allowedClasses = IsTeacher
-            ? Classes.Where(c =>
-                c.Teacher?.UserID == AppState.UserID &&
-                student.ClassNames.Any(n =>
-                    string.Equals(n, c.ClassName, StringComparison.OrdinalIgnoreCase)))
+            ? Classes
+                .Where(c =>
+                    c.TeacherID == TeacherID &&
+                    studentClassIds.Contains(c.ClassID))
                 .ToList()
             : Classes.ToList();
 

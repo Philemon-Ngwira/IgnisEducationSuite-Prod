@@ -16,12 +16,18 @@ namespace IgnisEducationSuite.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
 
-        public AdminController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        private readonly ApplicationDbContext _context;
+
+        public AdminController(
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            ApplicationDbContext context)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _context = context;
         }
-       
+
         // API endpoint to get all users grouped by role
         [HttpGet("GetChatUsers/{SchoolID}")]
         public async Task<IActionResult> GetChatUsers(Guid SchoolID)
@@ -29,31 +35,49 @@ namespace IgnisEducationSuite.Controllers
             var users = await _userManager.Users.Where(x => x.SchoolID == SchoolID).ToListAsync();
             return Ok(users);
         }
-        [HttpGet("getUsersByRole/{SchoolID}")]
-        public async Task<IActionResult> GetUsersByRole(Guid SchoolID)
+        [HttpGet("getUsersByRole/{schoolId}")]
+        public async Task<IActionResult> GetUsersByRole(Guid schoolId)
         {
-            var users = await _userManager.Users.ToListAsync();
-            var roles = await _roleManager.Roles.ToListAsync();
-            var userRoles = new Dictionary<string, List<ApplicationUser>>();
+            var data = await (
+                from role in _context.Roles.AsNoTracking()
 
-            foreach (var role in roles)
-            {
-                var usersInRole = new List<ApplicationUser>();
+                join ur in _context.UserRoles
+                    on role.Id equals ur.RoleId into roleUsers
+                from ur in roleUsers.DefaultIfEmpty()
 
-                // Collect users in the role asynchronously
-                foreach (var user in users)
+                join user in _context.Users
+                    on ur.UserId equals user.Id into users
+                from user in users.DefaultIfEmpty()
+
+                where user == null || user.SchoolID == schoolId
+
+                select new
                 {
-                    if (await _userManager.IsInRoleAsync(user, role.Name) && user.SchoolID == SchoolID)
+                    RoleName = role.Name,
+                    User = user == null ? null : new
                     {
-                        usersInRole.Add(user);
+                        user.Id,
+                        user.UserName,
+                        user.Email,
+                        user.FirstName,
+                        user.LastName
                     }
                 }
+            ).ToListAsync();
 
-                userRoles[role.Name] = usersInRole;
-            }
+            var result = data
+                .GroupBy(x => x.RoleName)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Where(x => x.User != null)
+                          .Select(x => x.User)
+                          .ToList()
+                );
 
-            return Ok(userRoles);
+            return Ok(result);
         }
+
+
         [HttpGet("getUsersByRoleAdmin/{SchoolID}")]
         public async Task<IActionResult> GetUsersByRoleAdmin(Guid SchoolID)
         {
@@ -222,7 +246,7 @@ namespace IgnisEducationSuite.Controllers
 
             var ret = await _userManager.RemovePasswordAsync(user);
 
-            var result = await _userManager.AddPasswordAsync(user, newPassword);
+            var result = await _userManager.AddPasswordAsync(user, "P@ssword1");
 
             if (result.Succeeded)
             {
