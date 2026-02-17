@@ -904,6 +904,7 @@ namespace EduSphereDomain.Repositories
                     ClassName = item.ClassName,
                     AcademicLevel = item.AcademicLevel,
                     LevelName = item.LevelName,
+                    StudentID = item.StudentID,
                 };
                 stdAttdances.Add(attendanceByTeacherAndDateResult);
             }
@@ -1301,6 +1302,12 @@ namespace EduSphereDomain.Repositories
         #endregion
         //-------------------------START-----------------------------------------------------------------\\
         #region Hostel Management
+
+        public async Task<IEnumerable<RoomAsset>> GetRoomAssetsByRoom(Guid RoomID)
+        {
+            var rooms = await _context.RoomAssets.Where(x => x.RoomId == RoomID).ToListAsync();
+            return rooms;
+        }
         public async Task<IEnumerable<GetRoomsBySchoolResult>> GetRoomsBySchools(Guid SchoolID)
         {
             try
@@ -1323,6 +1330,21 @@ namespace EduSphereDomain.Repositories
             catch (Exception ex)
             {
                 var _ = ex.Message;
+                throw;
+            }
+        }
+        public async Task<StudentRoomLog> GetRoomLogByID(Guid RoomID)
+        {
+            try
+            {
+                var log = await _context.StudentRoomLogs.Where(x => x.RoomId == RoomID && x.Status == "Active")
+                            .FirstAsync();
+                return log;
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                Console.WriteLine(_);
                 throw;
             }
         }

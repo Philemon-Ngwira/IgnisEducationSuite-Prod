@@ -1,0 +1,116 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@inherits AppBaseComponent
+
+<MudDialog >
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-3">
+            Room Asset Condition - @RoomNumber
+        </MudText>
+
+        @if (roomAssets == null || !roomAssets.Any())
+        {
+            <MudText>No assets found for this room.</MudText>
+        }
+        else
+        {
+            <MudTable Items="roomAssets" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Asset</MudTh>
+                    <MudTh>Condition</MudTh>
+                    <MudTh>Notes</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.AssetName</MudTd>
+                    <MudTd>
+                        <MudSelect T="string" @bind-Value="context.ConditionStatus" Dense="true" Label="Select Condition">
+                            <MudSelectItem Value="@("Perfect")">Perfect</MudSelectItem>
+                            <MudSelectItem Value="@("Good")">Good</MudSelectItem>
+                            <MudSelectItem Value="@("Fair")">Fair</MudSelectItem>
+                            <MudSelectItem Value="@("Damaged")">Damaged</MudSelectItem>
+                            <MudSelectItem Value="@("Broken")">Broken</MudSelectItem>
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField T="string" @bind-Value="context.Notes" Placeholder="Optional notes" Dense="true" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="MudDialog.Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveConditions">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public Guid RoomID { get; set; }
+    [Parameter] public string RoomNumber { get; set; } = "";
+    [Parameter] public Guid StudentRoomLogId { get; set; } // Check-in / Check-out log
+    [Parameter] public Guid StaffId { get; set; } // Who is reporting
+    [Parameter] public bool IsCheckIn { get; set; } = true; // Check-in or check-out
+
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    private List<RoomAssetConditionEvent> roomAssets = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoomAssets();
+    }
+
+    private async Task LoadRoomAssets()
+    {
+        var service = GenericService.GetService<RoomAsset>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetRoomAssets/{RoomID}", true);
+        if (result.IsSuccess)
+        {
+            roomAssets = result.Data.Select(a => new RoomAssetConditionEvent
+            {
+                RoomAssetId = a.Id,
+                AssetName = a.Name,
+                ConditionStatus = "Perfect",
+                Notes = "",
+                
+            }).ToList();
+        }
+        else
+        {
+            Snackbar.Add("Failed to load room assets.", Severity.Error);
+        }
+    }
+
+    private async Task SaveConditions()
+    {
+        if (!roomAssets.Any()) return;
+
+        var eventsToSave = roomAssets.Select(a => new RoomAssetConditionEvent
+        {
+            Id = Guid.NewGuid(),
+            StudentRoomLogId = StudentRoomLogId,
+            RoomAssetId = a.RoomAssetId,
+            ConditionStatus = a.ConditionStatus,
+            Notes = a.Notes,
+            EventDate = DateTime.UtcNow,
+            ReportedByStaffId = StaffId
+        }).ToList();
+
+        var service = GenericService.GetService<List<RoomAssetConditionEvent>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "roomassetconditionevents", eventsToSave);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add($"Room asset conditions {(IsCheckIn ? "checked in" : "checked out")} successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            Snackbar.Add("Failed to save asset conditions.", Severity.Error);
+        }
+    }
+
+
+}

@@ -114,14 +114,14 @@ public class AppState
             {
                 //{
                 //    // 2️⃣ Load License
-                var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
-                var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
-                License = licenseResult.IsSuccess && licenseResult.Data.Any()
-                    ? licenseResult.Data.First()
-                    : new usp_GetPharmacyLicenseStatusResult();
-                LicenseIsActive = License?.IsValid == 1;
+                //var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
+                //var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
+                //License = licenseResult.IsSuccess && licenseResult.Data.Any()
+                //    ? licenseResult.Data.First()
+                //    : new usp_GetPharmacyLicenseStatusResult();
+                //LicenseIsActive = License?.IsValid == 1;
 
-                //LicenseIsActive = true;
+                LicenseIsActive = true;
 
                 // 3️⃣ Load Non-Critical Data Immediately
 

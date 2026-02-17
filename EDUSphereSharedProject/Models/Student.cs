@@ -61,5 +61,7 @@ public partial class Student
 
     public virtual ICollection<StudentCompletedLesson> StudentCompletedLessons { get; set; } = new List<StudentCompletedLesson>();
 
+    public virtual ICollection<StudentDamageReport> StudentDamageReports { get; set; } = new List<StudentDamageReport>();
+
     public virtual ICollection<StudentExamsTestsAndQuiz> StudentExamsTestsAndQuizzes { get; set; } = new List<StudentExamsTestsAndQuiz>();
 }

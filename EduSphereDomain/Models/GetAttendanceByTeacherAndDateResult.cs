@@ -15,6 +15,7 @@ namespace EduSphereDomain.Models
         public string AttendanceReason { get; set; }
         public string ReasonSource { get; set; }
         public DateTime? CreatedDate { get; set; }
+        public Guid StudentID { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string ClassName { get; set; }

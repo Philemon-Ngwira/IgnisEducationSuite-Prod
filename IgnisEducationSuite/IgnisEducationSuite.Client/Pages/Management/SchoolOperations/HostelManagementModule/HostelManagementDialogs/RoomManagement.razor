@@ -6,35 +6,115 @@
     <DialogContent>
         <MudText Align="Align.Left">Add New Room</MudText>
         <MudGrid>
+            @if (!isEdit)
+            {
+                <MudItem xs="12">
+                    <MudSelect T="GetHostelsBySchoolResult"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               @bind-Value="selectedHostel"
+                               Label="Hostel"
+                               Placeholder="Select Hostel"
+                               ToStringFunc="HostelTypeconverter">
+                        @foreach (var item in hostels)
+                        {
+                            <MudSelectItem Value="item">@item.HostelName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  @bind-Value="newRoom.RoomNumber"
+                                  Placeholder="e.g 101"
+                                  Label="Room Number"></MudTextField>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="int"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  @bind-Value="newRoom.MaxOccupancy"
+                                  Placeholder="e.g 4"
+                                  Label="Max Occupancy"></MudTextField>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  @bind-Value="roomToEdit.RoomNumber"
+                                  Placeholder="e.g 101"
+                                  Label="Room Number"></MudTextField>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="int"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  @bind-Value="roomToEdit.MaxOccupancy"
+                                  Placeholder="e.g 4"
+                                  Label="Max Occupancy"></MudTextField>
+                </MudItem>
+            }
             <MudItem xs="12">
-                <MudSelect T="GetHostelsBySchoolResult"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           @bind-Value="selectedHostel"
-                           Label="Hostel"
-                           Placeholder="Select Hostel"
-                           ToStringFunc="HostelTypeconverter">
-                    @foreach (var item in hostels)
-                    {
-                        <MudSelectItem Value="item">@item.HostelName</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField T="string"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
-                              @bind-Value="newRoom.RoomNumber"
-                              Placeholder="e.g 101"
-                              Label="Room Number"></MudTextField>
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField T="int"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
-                              @bind-Value="newRoom.MaxOccupancy"
-                              Placeholder="e.g 4"
-                              Label="Max Occupancy"></MudTextField>
+                <MudExpansionPanels>
+                    <MudExpansionPanel MaxHeight="1000" ExpandedChanged="GetRoomAssetsAndAssetTypes">
+                        <TitleContent>
+                            <div class="d-flex">
+                                <MudIcon Icon="@Icons.Material.Filled.Info" class="mr-3"></MudIcon>
+                                <MudText>Manage <strong>Room Assets</strong></MudText>
+                            </div>
+                        </TitleContent>
+
+                        <ChildContent>
+                            <MudGrid>
+                                <MudItem xs="12">
+                                    <MudButton Disabled="addroomAsset"
+                                               OnClick="() => addroomAsset = true"
+                                               Color="Color.Primary"
+                                               Variant="Variant.Filled">
+                                        Add Room Asset
+                                    </MudButton>
+                                </MudItem>
+
+                                @if (addroomAsset)
+                                {
+                                    <MudItem xs="12">
+                                        <MudStack>
+                                            <MudTextField Variant="Variant.Outlined"
+                                                          @bind-Value="newRoomAsset.Name"
+                                                          Margin="Margin.Dense"
+                                                          Placeholder="Asset Name"
+                                                          Label="Asset Name"></MudTextField>
+                                            <MudAutocomplete T="RoomAssetType" Label="Asset Type" Placeholder="Search Asset Type" @bind-Value="roomAssetType" SearchFunc="@SearchRoomAssetType"
+                                                             ResetValueOnEmptyText="true"
+                                                             SelectValueOnTab="true"
+                                                             AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary"
+                                                             ToStringFunc="assetTypeConverter" />
+
+                                            <MudButton OnClick="AddNewRoomAsset"
+                                                       Color="Color.Primary"
+                                                       Variant="Variant.Filled">
+                                                Add Asset
+                                            </MudButton>
+                                        </MudStack>
+                                    </MudItem>
+                                }
+
+                                <MudItem xs="12">
+                                    <MudDataGrid Items="roomAssets">
+                                        <Columns>
+                                            <PropertyColumn Property="x => x.AssetType" Title="Asset Type" />
+                                            <PropertyColumn Property="x => x.Name" />
+                                        </Columns>
+                                    </MudDataGrid>
+                                </MudItem>
+                            </MudGrid>
+                        </ChildContent>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
             </MudItem>
         </MudGrid>
     </DialogContent>
@@ -45,39 +125,136 @@
                        OnClick="MudDialog.Cancel">Cancel</MudButton>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
-                       OnClick="SaveNewRoom">Create</MudButton>
+                       OnClick="SaveNewRoom">Create/Update Room Details</MudButton>
         </MudButtonGroup>
     </DialogActions>
 </MudDialog>
 
 @code {
-    private Room newRoom = new();
+    private Room newRoom = new()
+    {
+        RoomId = Guid.NewGuid()
+    };
+    [Parameter] public Room roomToEdit { get; set; } = new();
+    [Parameter] public bool isEdit { get; set; } = false;
     [Parameter] public List<GetHostelsBySchoolResult> hostels { get; set; } = default!;
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     protected GetHostelsBySchoolResult selectedHostel = new();
     protected Func<GetHostelsBySchoolResult, string> HostelTypeconverter = p => p?.HostelName ?? "";
+    protected List<RoomAsset> roomAssets = new();
+    protected List<RoomAssetType> roomAssetTypes = new();
+    private Func<RoomAssetType, string> assetTypeConverter = p => p?.Name ?? "";
+    protected bool addroomAsset = false;
+    protected RoomAsset newRoomAsset = new();
+    protected RoomAssetType roomAssetType = new();
 
 
-
-    protected async Task SaveNewRoom()
+    protected void AddNewRoomAsset()
     {
-        newRoom.RoomId = Guid.NewGuid();
-        newRoom.isActive = true;
-        newRoom.HostelId = selectedHostel.HostelId;
-        if(newRoom.HostelId == Guid.Empty)
+
+        if (string.IsNullOrEmpty(newRoomAsset.Name) || roomAssetType == null)
         {
-            Snackbar.Add("Please Select a hostel to add room to", Severity.Error);
+            Snackbar.Add("Please provide asset name and type", Severity.Error);
             return;
         }
-        var service = GenericService.GetService<Room>();
-        var result = await service.PostAsync("api/Dynamic/PostEntity", "room", newRoom);
-        if (result.IsSuccess)
-        {
-            await UpdateHostel(result.Data);
-            MudDialog.Close(DialogResult.Ok(result.Data));
-        }
+        newRoomAsset.Id = Guid.NewGuid();
+        newRoomAsset.RoomId = isEdit && roomToEdit != null
+     ? roomToEdit.RoomId
+     : newRoom.RoomId;
+
+        newRoomAsset.AssetTypeId = roomAssetType.Id;
+        newRoomAsset.AssetType = roomAssetType.Name;
+        newRoomAsset.isNew = true;
+        roomAssets.Add(newRoomAsset);
+        newRoomAsset = new();
     }
 
+    protected async Task GetRoomAssets()
+    {
+        if (!isEdit)
+        {
+            return;
+        }
+
+        var service = GenericService.GetService<RoomAsset>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetRoomAssets/{roomToEdit.RoomId}", true);
+        if (result.IsSuccess)
+        {
+            roomAssets = result.Data.ToList();
+        }
+    }
+    protected async Task GetRoomAssetTypes()
+    {
+        var service = GenericService.GetService<RoomAssetType>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetEntity/{"roomassettype"}", true);
+        if (result.IsSuccess)
+        {
+            roomAssetTypes = result.Data.ToList();
+        }
+    }
+    protected async Task SaveNewRoom()
+    {
+        if (!isEdit)
+        {
+            newRoom.isActive = true;
+            newRoom.HostelId = selectedHostel.HostelId;
+            if (newRoom.HostelId == Guid.Empty)
+            {
+                Snackbar.Add("Please Select a hostel to add room to", Severity.Error);
+                return;
+            }
+            var service = GenericService.GetService<Room>();
+            var result = await service.PostAsync("api/Dynamic/PostEntity", "room", newRoom);
+            if (result.IsSuccess)
+            {
+                await UpdateHostel(result.Data);
+                await SaveRoomAssets();
+                MudDialog.Close(DialogResult.Ok(result.Data));
+            }
+        }
+        else
+        {
+            var service = GenericService.GetService<Room>();
+            var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "room", roomToEdit);
+            if (result.IsSuccess)
+            {
+                await SaveRoomAssets();
+                MudDialog.Close(DialogResult.Ok(result.Data));
+            }
+        }
+    }
+    protected async Task GetRoomAssetsAndAssetTypes(bool newVal)
+    {
+        LoaderService.Show("Loading Room Assets...");
+        var Tasks = new List<Task>();
+        if (newVal)
+        {
+
+            Tasks.Add(GetRoomAssets());
+            Tasks.Add(GetRoomAssetTypes());
+
+            await Task.WhenAll(Tasks);
+        }
+        else
+        {
+            roomAssets.Clear();
+            roomAssetTypes.Clear();
+
+        }
+        LoaderService.Hide();
+    }
+    private async Task<IEnumerable<RoomAssetType>> SearchRoomAssetType(string value, CancellationToken token)
+    {
+        await Task.Delay(200);
+        if (string.IsNullOrEmpty(value))
+            return new List<RoomAssetType>();
+        return roomAssetTypes.Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase) || x.Description.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+    protected async Task SaveRoomAssets()
+    {
+        var service = GenericService.GetService<List<RoomAsset>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "roomasset", roomAssets.Where(x => x.isNew == true).ToList());
+    }
     protected async Task UpdateHostel(Room room)
     {
         var service = GenericService.GetService<GetHostelsBySchoolResult>();

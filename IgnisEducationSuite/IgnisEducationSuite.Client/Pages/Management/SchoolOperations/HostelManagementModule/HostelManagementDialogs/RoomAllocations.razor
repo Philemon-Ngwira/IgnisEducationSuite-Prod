@@ -1,20 +1,16 @@
 ﻿@using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.Models.StoreProModels
 @inherits AppBaseComponent
-
+@inject IDialogService DialogService
 <MudDialog>
     <DialogContent>
+
         @if (isLoading)
         {
-            <div id="loader-overlay" class="fixed inset-0 bg-primary/80 backdrop-blur-md flex items-center justify-center z-50">
-                <div class="loader-container text-center">
-                    <div class="spinner relative w-16 h-16 rounded-full border-4 border-transparent border-t-accent animate-spin">
-                        <div class="absolute inset-0 rounded-full animate-pulse glow"></div>
-                    </div>
-                    <div class="loader-icon text-4xl mt-6 animate-pulse text-accent-light">🔄</div>
-                    <p class="loading-text text-accent-light mt-4 text-lg font-semibold animate-bounce">
-                        Loading, please wait...
-                    </p>
+            <div class="loader-overlay">
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Loading, please wait...</p>
                 </div>
             </div>
         }
@@ -25,8 +21,8 @@
         <MudGrid Spacing="2" Class="mb-4 justify-center">
             @for (int i = 0; i < MaxOccupancy; i++)
             {
-                int bedIndexCopy = i;   @* FIX: Correct bed index *@
-                var slot = (BedSlots != null && BedSlots.Length > i) ? BedSlots[i] : null;
+                int bedIndexCopy = i;
+                var slot = BedSlots.ElementAtOrDefault(i);
                 bool isTaken = slot != null;
 
                 <MudItem xs="4" sm="3" Class="d-flex flex-column align-center">
@@ -36,20 +32,17 @@
                                    Variant="Variant.Filled"
                                    Class="d-flex flex-column align-center"
                                    OnClick="() => BedClicked(bedIndexCopy)">
-                            @* USE COPY *@
-
                             <MudIcon Icon="@MaterialDesignIcons.Normal.Bed" Size="Size.Large" />
                             <MudText Typo="Typo.caption">
-                                @(isTaken ? $"{slot.FirstName} {slot.LastName}" : $"Bed {bedIndexCopy + 1}")
+                                @(isTaken ? $"{slot.FirstName} {slot.LastName}" : $"Bed {i + 1}")
                             </MudText>
-
                         </MudButton>
                     </MudTooltip>
                 </MudItem>
             }
         </MudGrid>
 
-        <!-- Auto Complete -->
+        <!-- Student Selection -->
         @if (!ShowOccupantsList)
         {
             <MudAutocomplete T="StudentsWithoutRoomDTO"
@@ -62,9 +55,9 @@
                              AdornmentIcon="@Icons.Material.Filled.Search"
                              AdornmentColor="Color.Primary"
                              Class="mb-3"
-                             ToStringFunc="StudentTypeconverter" 
+                             ToStringFunc="StudentTypeconverter"
                              Variant="Variant.Outlined"
-                             Margin="Margin.Dense"/>
+                             Margin="Margin.Dense" />
         }
 
         <!-- Occupants List -->
@@ -73,14 +66,13 @@
             <MudPaper Class="p-3 mb-3">
                 <MudText Typo="Typo.subtitle2" Class="mb-2">Students in this room:</MudText>
 
-                @for (int i = 0; i < MaxOccupancy; i++)
+                @if (Occupants.Any())
                 {
-                    var slot = (BedSlots != null && BedSlots.Length > i) ? BedSlots[i] : null;
-                    if (slot != null)
+                    @foreach (var slot in Occupants)
                     {
                         <MudGrid Class="align-center mb-1">
                             <MudItem xs="8">
-                                <MudText><b>Bed @((i + 1)):</b> @slot.FirstName @slot.LastName</MudText>
+                                <MudText><b>Bed @((Array.IndexOf(BedSlots, slot) + 1)):</b> @slot.FirstName @slot.LastName</MudText>
                                 <MudText Typo="Typo.caption">Student#: @slot.StudentNumber</MudText>
                             </MudItem>
                             <MudItem xs="4" Class="d-flex justify-end">
@@ -94,8 +86,7 @@
                         </MudGrid>
                     }
                 }
-
-                @if (!BedSlots.Any(s => s != null))
+                else
                 {
                     <MudText Typo="Typo.body2"><i>No occupants in this room</i></MudText>
                 }
@@ -105,6 +96,7 @@
                 </div>
             </MudPaper>
         }
+
     </DialogContent>
 
     <DialogActions>
@@ -116,11 +108,11 @@
 @code {
     [Parameter] public Guid RoomID { get; set; }
     [Parameter] public string RoomNumber { get; set; } = "";
-    [Parameter] public string RoomGender { get; set; } = "";
     [Parameter] public int MaxOccupancy { get; set; }
     [Parameter] public Guid GenderID { get; set; }
-
+    [Parameter] public string RoomGender { get; set; } = "";
     private List<StudentsWithoutRoomDTO> StudentsWithoutRoom = new();
+    private List<RoomAsset> roomAssets = new();
     private List<StudentsInRoomDTO> Occupants = new();
     private StudentsInRoomDTO?[] BedSlots = Array.Empty<StudentsInRoomDTO?>();
     private StudentsWithoutRoomDTO? SelectedStudentWithoutRoom { get; set; }
@@ -136,10 +128,9 @@
         isLoading = true;
         StateHasChanged();
 
-        var tasks = new List<Task> { LoadStudentsWithoutRoom(), LoadRoomOccupants() };
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(LoadStudentsWithoutRoom(), LoadRoomOccupants());
 
-        if (BedSlots == null || BedSlots.Length != MaxOccupancy)
+        if (BedSlots.Length != MaxOccupancy)
             BedSlots = new StudentsInRoomDTO?[MaxOccupancy];
 
         isLoading = false;
@@ -158,73 +149,135 @@
         var service = GenericService.GetService<StudentsInRoomDTO>();
         var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInRoom/{RoomID}", true);
 
-        if (result.IsSuccess)
-        {
-            Occupants = result.Data.OrderBy(r => r.CheckInDate).ToList();
+        Occupants = result.IsSuccess ? result.Data.OrderBy(r => r.CheckInDate).ToList() : new List<StudentsInRoomDTO>();
+        BedSlots = new StudentsInRoomDTO?[MaxOccupancy];
 
-            BedSlots = new StudentsInRoomDTO?[MaxOccupancy];
+        for (int i = 0; i < Occupants.Count && i < MaxOccupancy; i++)
+            BedSlots[i] = Occupants[i];
 
-            for (int i = 0; i < Occupants.Count && i < MaxOccupancy; i++)
-                BedSlots[i] = Occupants[i];
-
-            if (Occupants.Count > MaxOccupancy)
-                Snackbar.Add($"Warning: {Occupants.Count} occupants found but MaxOccupancy is {MaxOccupancy}.", Severity.Warning);
-        }
-        else
-        {
-            BedSlots = new StudentsInRoomDTO?[MaxOccupancy];
-        }
+        if (Occupants.Count > MaxOccupancy)
+            Snackbar.Add($"Warning: {Occupants.Count} occupants found but MaxOccupancy is {MaxOccupancy}.", Severity.Warning);
     }
 
     private async Task<IEnumerable<StudentsWithoutRoomDTO>> SearchStudents(string value, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(value)) return StudentsWithoutRoom;
-
         return StudentsWithoutRoom.Where(s =>
             s.FirstName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
             s.LastName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
             s.StudentNumber.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
-
-    private void BedClicked(int bedIndex)
+    protected async Task GetRoomAssets()
+    {
+        var service = GenericService.GetService<RoomAsset>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetRoomAssets/{RoomID}", true);
+        if (result.IsSuccess)
+        {
+            roomAssets = result.Data.ToList();
+        }
+    }
+    private async Task BedClicked(int bedIndex)
     {
         if (isLoading) return;
         if (bedIndex < 0 || bedIndex >= MaxOccupancy) return;
 
         var slot = BedSlots[bedIndex];
 
+        // If bed is taken, just show occupants
         if (slot != null)
         {
             ShowOccupantsList = true;
+            return;
         }
-        else
+
+        if (SelectedStudentWithoutRoom == null)
         {
-            if (SelectedStudentWithoutRoom != null)
-            {
-                var newOccupant = new StudentsInRoomDTO
-                {
-                    AllocationId = Guid.Empty,
-                    StudentID = SelectedStudentWithoutRoom.StudentID,
-                    FirstName = SelectedStudentWithoutRoom.FirstName,
-                    LastName = SelectedStudentWithoutRoom.LastName,
-                    StudentNumber = SelectedStudentWithoutRoom.StudentNumber,
-                    GenderDescription = SelectedStudentWithoutRoom.GenderDescription,
-                    CheckInDate = DateTime.UtcNow
-                };
-
-                BedSlots[bedIndex] = newOccupant;
-                Occupants.Add(newOccupant);
-
-                StudentsWithoutRoom.Remove(SelectedStudentWithoutRoom);
-                SelectedStudentWithoutRoom = null;
-
-                Snackbar.Add($"{newOccupant.FirstName} allocated to bed {bedIndex + 1}.", Severity.Success);
-            }
-            else
-            {
-                Snackbar.Add("Select a student from the list to allocate to this bed.", Severity.Info);
-            }
+            Snackbar.Add("Select a student from the list to allocate to this bed.", Severity.Info);
+            return;
         }
+
+        bool isFirstOccupant = Occupants.Count == 0;
+
+        // 1️⃣ Allocate student in UI FIRST (so bed turns red immediately)
+        var newOccupant = new StudentsInRoomDTO
+        {
+            AllocationId = Guid.Empty,
+            StudentID = SelectedStudentWithoutRoom.StudentID,
+            FirstName = SelectedStudentWithoutRoom.FirstName,
+            LastName = SelectedStudentWithoutRoom.LastName,
+            StudentNumber = SelectedStudentWithoutRoom.StudentNumber,
+            GenderDescription = SelectedStudentWithoutRoom.GenderDescription,
+            CheckInDate = DateTime.UtcNow
+        };
+
+        BedSlots[bedIndex] = newOccupant;
+        Occupants.Add(newOccupant);
+        StudentsWithoutRoom.Remove(SelectedStudentWithoutRoom);
+        SelectedStudentWithoutRoom = null;
+
+        // 🔴 Force UI refresh so bed color updates BEFORE async work
+        StateHasChanged();
+
+        StudentRoomLog? studentRoomLog = null;
+
+        // 2️⃣ Create room log ONLY if first occupant
+        if (isFirstOccupant)
+        {
+            studentRoomLog = new StudentRoomLog
+            {
+                StudentId = newOccupant.StudentID,
+                RoomId = RoomID,
+                CheckInDate = DateTime.UtcNow,
+                CheckedInByStaffId = Guid.Parse(AppState.UserID),
+                OccupancyType = "Allocated",
+                Status = "Active"
+            };
+
+            var logService = GenericService.GetService<StudentRoomLog>();
+            var logResult = await logService.PostAsync(
+                "api/Dynamic/PostEntity",
+                "studentroomlog",
+                studentRoomLog
+            );
+
+            if (!logResult.IsSuccess)
+            {
+                Snackbar.Add("Failed to create room log.", Severity.Error);
+                return;
+            }
+
+            studentRoomLog = logResult.Data;
+
+            // 3️⃣ Capture initial room asset condition
+            await GetRoomAssets();
+
+            var parameters = new DialogParameters<RoomAssetConditionModal>
+        {
+            { x => x.RoomID, RoomID },
+            { x => x.RoomNumber, RoomNumber },
+            { x => x.StudentRoomLogId, studentRoomLog.Id },
+            { x => x.StaffId, Guid.Parse(AppState.UserID) },
+            { x => x.IsCheckIn, true }
+        };
+
+            var options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                BackdropClick = false,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+            var dialog = DialogService.Show<RoomAssetConditionModal>(
+                "Room Asset Condition",
+                parameters,
+                options
+            );
+
+            await dialog.Result;
+        }
+
+        Snackbar.Add($"{newOccupant.FirstName} allocated to bed {bedIndex + 1}.", Severity.Success);
     }
 
     private StudentsWithoutRoomDTO MapToWithoutRoom(StudentsInRoomDTO student) => new()
@@ -237,8 +290,7 @@
     };
 
     private RoomAllocation MapToRoomAllocation(StudentsInRoomDTO student, string status)
-    {
-        return new RoomAllocation
+        => new()
         {
             AllocationId = student.AllocationId != Guid.Empty ? student.AllocationId : Guid.NewGuid(),
             RoomId = RoomID,
@@ -247,18 +299,66 @@
             CheckOutDate = status == "Deactive" ? DateTime.UtcNow : null,
             Status = status
         };
-    }
 
+    private async Task<StudentRoomLog?> GetRoomLogByID()
+    {
+        var service = GenericService.GetService<StudentRoomLog>();
+        var result = await service.GetByIdAsync("api/Dynamic/GetActiveRoomLog", RoomID);
+        if (!result.IsSuccess)
+        {
+            return null;
+        }
+        return result.Data;
+    }
     private async Task CheckOutStudent(StudentsInRoomDTO student)
     {
-        try
+        int slotIndex = Array.FindIndex(BedSlots, s => s != null && s.StudentID == student.StudentID);
+        if (slotIndex >= 0) BedSlots[slotIndex] = null;
+
+        Occupants.RemoveAll(x => x.StudentID == student.StudentID);
+        StudentsWithoutRoom.Add(MapToWithoutRoom(student));
+
+        bool isLastOccupantLeaving = Occupants.Count == 0;
+
+        // ✅ Update StudentRoomLog as well
+        var studentRoomLog = await GetRoomLogByID();
+        var LogID = Guid.Empty;
+        if (studentRoomLog != null)
         {
-            int slotIndex = Array.FindIndex(BedSlots, s => s != null && s.StudentID == student.StudentID);
+            var logService = GenericService.GetService<StudentRoomLog>();
+            studentRoomLog.CheckOutDate = DateTime.UtcNow;
+            studentRoomLog.CheckedOutByStaffId = Guid.Parse(AppState.UserID);
+            studentRoomLog.Status = "Closed";
+            var logResult = await logService.UpdateAsync("api/Dynamic/UpdateEntity", "studentroomlog", studentRoomLog);
+            if (!logResult.IsSuccess)
+            {
+                Snackbar.Add("Failed to update room log. Cannot allocate student.", Severity.Error);
+                return;
 
-            if (slotIndex >= 0) BedSlots[slotIndex] = null;
+            }
+            LogID = logResult.Data.Id;
+            if (isLastOccupantLeaving)
+            {
+                await GetRoomAssets();
+                var parameters = new DialogParameters<RoomAssetConditionModal>
+        {
+            { x => x.RoomID, RoomID },
+            { x => x.RoomNumber, RoomNumber },
+            { x => x.StudentRoomLogId, LogID },
+            { x => x.StaffId, Guid.Parse(AppState.UserID) },
+            { x => x.IsCheckIn, false }
+        };
 
-            Occupants.RemoveAll(x => x.StudentID == student.StudentID);
-            StudentsWithoutRoom.Add(MapToWithoutRoom(student));
+                var options = new DialogOptions
+                {
+                    CloseOnEscapeKey = true,
+                    BackdropClick = false,
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true
+                };
+                var dialog = DialogService.Show<RoomAssetConditionModal>("Room Asset Condition", parameters, options);
+                await dialog.Result;
+            }
 
             var allocationToUpdate = MapToRoomAllocation(student, "Deactive");
             var service = GenericService.GetService<RoomAllocation>();
@@ -275,43 +375,36 @@
             {
                 Snackbar.Add($"Checked out {student.FirstName} {student.LastName}.", Severity.Success);
             }
+
         }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error checking out student: {ex.Message}", Severity.Error);
-        }
+
+
     }
 
     private async Task SaveAllocations()
     {
-        try
+        var newAllocations = Occupants
+            .Where(s => s.AllocationId == Guid.Empty)
+            .Select(s => MapToRoomAllocation(s, "Active"))
+            .ToList();
+
+        if (!newAllocations.Any())
         {
-            var newAllocations = Occupants
-                .Where(s => s.AllocationId == Guid.Empty)
-                .Select(s => MapToRoomAllocation(s, "Active"))
-                .ToList();
-
-            if (!newAllocations.Any())
-            {
-                MudDialog.Close(DialogResult.Ok(true));
-            }
-
-            var service = GenericService.GetService<List<RoomAllocation>>();
-            var result = await service.PostAsync("api/Dynamic/PostEntities", "roomallocation", newAllocations);
-
-            if (result.IsSuccess)
-            {
-                MudDialog.Close(DialogResult.Ok(true));
-                Snackbar.Add("Allocations saved.", Severity.Success);
-            }
-            else
-            {
-                Snackbar.Add("Failed to save new allocations. Please try again.", Severity.Error);
-            }
+            MudDialog.Close(DialogResult.Ok(true));
+            return;
         }
-        catch (Exception ex)
+
+        var service = GenericService.GetService<List<RoomAllocation>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "roomallocation", newAllocations);
+
+        if (result.IsSuccess)
         {
-            Snackbar.Add($"Error saving allocations: {ex.Message}", Severity.Error);
+            MudDialog.Close(DialogResult.Ok(true));
+            Snackbar.Add("Allocations saved.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to save new allocations. Please try again.", Severity.Error);
         }
     }
 }

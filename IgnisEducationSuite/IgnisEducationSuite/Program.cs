@@ -3,6 +3,7 @@ using DinkToPdf.Contracts;
 using EduSphereDomain.AchievementData;
 using EduSphereDomain.ChatData;
 using EduSphereDomain.Data;
+using EduSphereDomain.FinanceData;
 using EduSphereDomain.MessagingData;
 using EduSphereDomain.Repositories;
 using IgnisEducationSuite.Client.Pages.Achievements;
@@ -71,6 +72,7 @@ namespace IgnisEducationSuite
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<PhoenixEdusphereContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<PhoenixEdusphereChatContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<PhoenixEdusphereFinanceContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<MessagingContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<AchievementContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();

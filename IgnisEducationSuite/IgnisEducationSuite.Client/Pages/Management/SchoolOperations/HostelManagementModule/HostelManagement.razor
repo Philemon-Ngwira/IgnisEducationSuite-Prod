@@ -166,6 +166,12 @@
 
                                 <MudCardActions>
                                     <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Primary"
+                                               StartIcon="@Icons.Material.Filled.Edit"
+                                               FullWidth="true" OnClick="()=>OpenEditRoomDialogAsync(item)">
+                                       Edit
+                                    </MudButton>
+                                    <MudButton Variant="Variant.Outlined"
                                                Color="Color.Error"
                                                StartIcon="@Icons.Material.Filled.Delete"
                                                FullWidth="true" OnClick="()=>DeleteAsync(item)">
@@ -286,6 +292,7 @@
                 break;
         }
     }
+
     private async Task DeleteAsync<T>(T model)
     {
         if (model == null)
@@ -511,6 +518,43 @@
                             return;
                         }
                     }
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+    private async Task OpenEditRoomDialogAsync(GetRoomsBySchoolResult room)
+    {
+        Room room1 = new Room
+        {
+            RoomId = room.RoomId,
+            HostelId = room.HostelId,
+            RoomNumber = room.RoomNumber,
+            MaxOccupancy = room.MaxOccupancy,
+            RoomType = room.RoomType,
+            isActive = true
+        };
+        var genders = await GetGenders();
+        var parameters = new DialogParameters<RoomManagement>
+        {
+            {x=>x.isEdit, true},
+            {x=>x.roomToEdit, room1}
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true, NoHeader = true, Position = DialogPosition.Center };
+
+        var dialog = await DialogService.ShowAsync<RoomManagement>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var data = result.Data;
+            if (data is Room)
+            {
+                var newRoom = data as Room;
+                bool completed = true;
+                if (completed)
+                {
+                    Snackbar.Add("Room Updated Successfully", Severity.Success);
                     StateHasChanged();
                 }
             }

@@ -22,4 +22,8 @@ public partial class Room
     public virtual ICollection<MaintainanceRequest> MaintainanceRequests { get; set; } = new List<MaintainanceRequest>();
 
     public virtual ICollection<RoomAllocation> RoomAllocations { get; set; } = new List<RoomAllocation>();
+
+    public virtual ICollection<RoomAsset> RoomAssets { get; set; } = new List<RoomAsset>();
+
+    public virtual ICollection<StudentRoomLog> StudentRoomLogs { get; set; } = new List<StudentRoomLog>();
 }

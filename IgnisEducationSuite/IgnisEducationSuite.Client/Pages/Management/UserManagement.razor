@@ -404,7 +404,7 @@
             Snackbar.Add("App reinitializing");
             _navigationManager.NavigateTo("/", true);
         }
-        await GetUserLimit();
+        //await GetUserLimit();
         await GetAdminData();
         await GetUsersWithRoles();
         await GetGenders();
@@ -793,11 +793,11 @@
             item.AcademicLevel = academicLevels.Where(x => x.LevelName.ToLower() == item.LevelName.ToLower()).Select(x => x.LevelInt).FirstOrDefault();
             item.StudentID = Guid.NewGuid();
             var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
-            if (count >= LicenseUserLimit.UserLimit) // Corrected condition
-            {
-                Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
-                return;
-            }
+            // if (count >= LicenseUserLimit.UserLimit) // Corrected condition
+            // {
+            //     Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
+            //     return;
+            // }
             item.UserID = await CreateNewUser(item.Email, item.StudentID, "Student", item.StudentNumber);
 
             await SendOneTimePasswordEmail(item.Email, newUser.Password, newUser.UserName, $"{item.FirstName} {item.LastName}", item.StudentNumber);
@@ -1029,11 +1029,11 @@
         if (Role == "Student")
         {
             var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
-            if (count >= LicenseUserLimit.UserLimit) // Corrected condition
-            {
-                Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
-                return;
-            }
+            // if (count >= LicenseUserLimit.UserLimit) // Corrected condition
+            // {
+            //     Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
+            //     return;
+            // }
         }
 
         var parameters = new DialogParameters<CreateUserDialog>

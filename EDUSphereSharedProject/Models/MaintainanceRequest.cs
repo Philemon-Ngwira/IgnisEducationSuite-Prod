@@ -26,4 +26,6 @@ public partial class MaintainanceRequest
     public virtual Hostel Hostel { get; set; }
 
     public virtual Room Room { get; set; }
+
+    public virtual ICollection<StudentDamageReport> StudentDamageReports { get; set; } = new List<StudentDamageReport>();
 }

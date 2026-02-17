@@ -10,6 +10,7 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public Guid StudentAttendanceID { get; set; }
         public DateTime? AttendanceDate { get; set; }
         public Guid? StudentScheduleID { get; set; }
+        public Guid? StudentID { get; set; }
         public bool? LateStatus { get; set; }
         public bool? AttendanceStatus { get; set; }
         public string AttendanceReason { get; set; }
@@ -20,5 +21,43 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public string ClassName { get; set; }
         public int? AcademicLevel { get; set; }
         public string LevelName { get; set; }
+
+        [NotMapped]
+        public int PeriodCount { get; set; } = 1;
+        [NotMapped] // So EF / API ignores it if needed
+        public bool IsPresent { get; set; }
+
+        [NotMapped]
+        public bool IsAbsent { get; set; }
+
+        // Helper to enforce only one true at a time
+        public void SetPresent(bool value)
+        {
+            IsPresent = value;
+            if (value) IsAbsent = false;
+        }
+
+        public void SetAbsent(bool value)
+        {
+            IsAbsent = value;
+            if (value) IsPresent = false;
+        }
+
+        public bool ComputeAttendanceStatus(List<GetAttendanceByTeacherAndDateResult> allPeriodsForClass)
+        {
+            if (allPeriodsForClass == null || !allPeriodsForClass.Any())
+                return false; // No periods? default to false
+
+            if (allPeriodsForClass.Any(x => x.IsPresent))
+                return true;
+
+            if (allPeriodsForClass.All(x => x.IsAbsent))
+                return false;
+
+            return false; // fallback for mixed/unmarked
+        }
+
+
+
     }
 }

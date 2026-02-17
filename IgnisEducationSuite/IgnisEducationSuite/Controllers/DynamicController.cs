@@ -646,6 +646,10 @@ namespace IgnisEducationSuite.Controllers
                 "measurementunit" => GetRepository<MeasurementUnit>(),
                 "kitchenmeasurement" => GetRepository<KitchenMeasurementStandard>(),
                 "timetableoverride" => GetRepository<TimetableOverride>(),
+                "roomassettype" => GetRepository<RoomAssetType>(),
+                "roomasset" => GetRepository<RoomAsset>(),
+                "roomassetconditionevents" => GetRepository<RoomAssetConditionEvent>(),
+                "studentroomlog" => GetRepository<StudentRoomLog>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -727,6 +731,10 @@ namespace IgnisEducationSuite.Controllers
                 "measurementunit" => JsonSerializer.Deserialize<MeasurementUnit>(obj.ToString()),
                 "kitchenmeasurement" => JsonSerializer.Deserialize<KitchenMeasurementStandard>(obj.ToString()),
                 "timetableoverride" => JsonSerializer.Deserialize<TimetableOverride>(obj.ToString()),
+                "roomassettype" => JsonSerializer.Deserialize<RoomAssetType>(obj.ToString()),
+                "roomasset" => JsonSerializer.Deserialize<RoomAsset>(obj.ToString()),
+                "roomassetconditionevents" => JsonSerializer.Deserialize<RoomAssetConditionEvent>(obj.ToString()),
+                "studentroomlog" => JsonSerializer.Deserialize<StudentRoomLog>(obj.ToString()),
 
                 // Add more entity conversions here as needed
                 _ => null
@@ -861,13 +869,24 @@ namespace IgnisEducationSuite.Controllers
             var result = await _repository.GetHostelsBySchool(Guid.Parse(SchoolID));
             return Ok(result);
         }
+        [HttpGet("GetActiveRoomLog/{RoomID}")]
+        public async Task<IActionResult> GetRoomLogByID(Guid RoomID)
+        {
+            var result = await _repository.GetRoomLogByID(RoomID);
+            return Ok(result);
+        }
         [HttpGet("GetRoomsBySchool/{SchoolID}")]
         public async Task<IActionResult> GetRoomsBySchools(string SchoolID)
         {
             var result = await _repository.GetRoomsBySchools(Guid.Parse(SchoolID));
             return Ok(result);
         }
-
+        [HttpGet("GetRoomAssets/{RoomID}")]
+        public async Task<IActionResult> GetRoomAssets(Guid RoomID)
+        {
+            var result = await _repository.GetRoomAssetsByRoom(RoomID);
+            return Ok(result);
+        }
         [HttpGet("GetStudentsInRoom/{RoomID}")]
         public async Task<IActionResult> GetStudentsInRoom(Guid RoomID)
         {

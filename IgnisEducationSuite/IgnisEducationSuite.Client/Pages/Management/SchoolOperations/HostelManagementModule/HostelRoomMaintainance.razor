@@ -6,7 +6,7 @@
 <MudCard Class="mb-4">
     <MudCardContent>
         <MudText Typo="Typo.h5" Class="font-weight-bold">
-            Maintenance Requests
+            Hostel Room Maintenance & Inspections
         </MudText>
     </MudCardContent>
 </MudCard>
@@ -16,276 +16,347 @@
     <MudCard Class="mb-4">
         <MudCardHeader>
             <CardHeaderContent>
-                <MudText Typo="Typo.h6" Class="font-weight-bold">
-                    New Maintenance Request
-                </MudText>
+                <MudText Typo="Typo.h6">Routine Room Inspection</MudText>
             </CardHeaderContent>
         </MudCardHeader>
 
         <MudCardContent>
 
-            <!-- Room Selector -->
+            <!-- ROOM -->
             <MudAutocomplete T="GetRoomsBySchoolResult"
                              Label="Select Room"
-                             @bind-Value="selectedRoom"
-                             SearchFunc="@SearchRooms"
-                             ResetValueOnEmptyText="true"
-                             CoerceText="true"
-                             CoerceValue="true"
-                             SelectValueOnTab="true"
-                             AdornmentIcon="@Icons.Material.Filled.MeetingRoom"
-                             AdornmentColor="Color.Primary"
-                             Class="mb-3"
+                             Value="selectedRoom"
+                             SearchFunc="SearchRooms"
                              ToStringFunc="RoomTypeconverter"
                              Variant="Variant.Outlined"
-                             Margin="Margin.Dense" />
+                             Margin="Margin.Dense"
+                             Class="mb-3"
+                             ValueChanged=" async _ => await OnRoomSelected(_)" />
 
-            <!-- Problem Description -->
-            <MudTextField Lines="4"
-                          Variant="Variant.Outlined"
-                          @bind-Value="newRequest.ProblemDescription"
-                          Label="Problem Description"
-                          Placeholder="Describe the issue in detail"
-                          Margin="Margin.Dense"
-                          Class="mb-3" />
+            @if (activeRoomLog == null && selectedRoom?.RoomId != Guid.Empty)
+            {
+                <MudAlert Severity="Severity.Warning">
+                    No active occupancy log found for this room.
+                </MudAlert>
+            }
 
-            <!-- Reported By -->
-            <MudTextField Variant="Variant.Outlined"
-                          @bind-Value="newRequest.ReportedBy"
-                          Label="Reported By"
-                          Margin="Margin.Dense"
-                          Disabled="true"
-                          ReadOnly="true"
-                          Class="mb-2" />
+            @if (activeRoomLog != null)
+            {
+                <!-- ASSET -->
+                <MudAutocomplete T="RoomAsset"
+                                 Label="Select Room Asset"
+                                 @bind-Value="selectedAsset"
+                                 SearchFunc="SearchAssets"
+                                 ToStringFunc="a => a.Name"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Class="mb-3" />
+
+                <!-- CONDITION -->
+                <MudSelect T="string"
+                           Label="Condition Status"
+                           @bind-Value="newConditionStatus"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="mb-3">
+                    <MudSelectItem Value="@("Perfect")">Perfect</MudSelectItem>
+                    <MudSelectItem Value="@("Good")">Good</MudSelectItem>
+                    <MudSelectItem Value="@("Fair")">Fair</MudSelectItem>
+                    <MudSelectItem Value="@("Damaged")">Damaged</MudSelectItem>
+                    <MudSelectItem Value="@("Broken")">Broken</MudSelectItem>
+                </MudSelect>
+
+                <!-- NOTES -->
+                <MudTextField Lines="3"
+                              Label="Inspection Notes"
+                              @bind-Value="newConditionNotes"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Class="mb-3" />
+
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           OnClick="LogConditionEvent">
+                    Save Inspection
+                </MudButton>
+            }
+
+            @if (lastLoggedEvent != null &&
+                    (lastLoggedEvent.ConditionStatus == "Damaged" ||
+                    lastLoggedEvent.ConditionStatus == "Broken"))
+            {
+                <MudStack Row>
+                    <MudCheckBox T="bool" Value="isStudentDamage" ValueChanged="(e) => OnStudentDamageChanged(e)"></MudCheckBox>
+                    <MudText>Was Damage Caused By Student?</MudText>
+                    @if (isStudentDamage && studentsInRoom.Any())
+                    {
+                        <MudAlert Variant="Variant.Filled" Severity="Severity.Info">Select Student Responsible</MudAlert>
+                        <MudGrid>
+                            @foreach (var item in studentsInRoom)
+                            {
+                                <MudItem xs="12"
+                                         md="6">
+                                    <MudCard Class="mb-2"
+                                             @onclick="@(() => responsibleStudent = item)">
+                                        <MudCardHeader>
+                                            <CardHeaderAvatar>
+                                                @if (item.ProfilePic == null)
+                                                {
+                                                    <MudImage Height="250" Src="@(item.GenderDescription == "Male" ? "images/Avatar/Man.png" : "images/Avatar/Woman.png")" Class="profile-pic" />
+                                                }
+                                                else
+                                                {
+                                                    <MudImage Class="profile-pic" Width="250"
+                                                              Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.ProfilePic)}")" />
+                                                }
+                                            </CardHeaderAvatar>
+                                        </MudCardHeader>
+                                        <MudCardContent>
+                                            <MudText>@item.FirstName @item.LastName</MudText>
+                                            <MudText>@item.StudentNumber</MudText>
+                                            @if (responsibleStudent?.StudentID == item.StudentID)
+                                            {
+                                                <MudChip T="string" Color="Color.Error" Size="Size.Small">Selected</MudChip>
+                                            }
+                                        </MudCardContent>
+                                    </MudCard>
+                                </MudItem>
+
+
+
+                            }
+                        </MudGrid>
+
+
+                    }
+
+                </MudStack>
+
+
+                <MudAlert Severity="Severity.Warning" Class="mt-4">
+                    This asset requires maintenance.
+                    <MudButton Color="Color.Error"
+                               Variant="Variant.Text"
+                               OnClick="RaiseMaintenanceRequest">
+                        Raise Maintenance Request
+                    </MudButton>
+                </MudAlert>
+            }
 
         </MudCardContent>
-
-        <MudCardActions Class="px-4 pb-3">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add" OnClick="SubmitRequest">
-                Submit Request
-            </MudButton>
-        </MudCardActions>
     </MudCard>
 }
 
 <!-- ============================================
-     LIST OF MAINTENANCE REQUESTS (Student/Admin)
+     EXISTING MAINTENANCE REQUEST LIST (UNCHANGED)
      ============================================ -->
-<MudGrid>
 
+<MudGrid>
     @foreach (var item in maintainanceRequests)
     {
         <MudItem xs="12">
-            <MudCard Class="mb-3 elevation-1">
+            <MudCard Class="mb-3">
 
                 <MudCardHeader>
-                    <CardHeaderContent>
+                    <MudChip T="string" Color="@(item.Status == "Pending" ? Color.Warning :
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     item.Status == "In Progress" ? Color.Info : Color.Success)">
+                    @item.Status
+                </MudChip>
 
-                        <!-- STATUS CHIP -->
-                        @switch (item.Status)
-                        {
-                            case "Pending":
-                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled">@item.Status</MudChip>
-                                break;
+                    <MudSpacer />
 
-                            case "In Progress":
-                                <MudChip T="string" Color="Color.Info" Variant="Variant.Filled">@item.Status</MudChip>
-                                break;
-
-                            case "Completed":
-                                <MudChip T="string" Color="Color.Success" Variant="Variant.Filled">@item.Status</MudChip>
-                                break;
-                        }
-
-                        <!-- DATE REPORTED -->
-                        <MudText Typo="Typo.caption" Class="text-secondary">
-                            Reported: @item.DateReported?.ToShortDateString()
-                        </MudText>
-
-                        <MudSpacer />
-
-
-                    </CardHeaderContent>
-                    <CardHeaderActions>
-                        <!-- ACTION BUTTONS (Admin/Staff only) -->
-                        @if (AppState.UserRole != "Dean")
-                        {
-                            var name = "In Progress";
-                            var mark = "completed";
-                            @switch (item.Status)
-                            {
-
-                                case "Pending":
-
-                                    <MudButtonGroup OverrideStyles="false">
-                                        <MudButton Color="Color.Info"
-                                                   Variant="Variant.Text"
-                                                   Size="Size.Small"
-                                                   OnClick="() => UpdateMaintananceRequest(name, item)">
-                                            Mark In Progress
-                                        </MudButton>
-
-                                        <MudButton Class="text-success" Color="Color.Success"
-                                                   Variant="Variant.Text"
-                                                   Size="Size.Small"
-                                                   OnClick="() => UpdateMaintananceRequest(mark, item)">
-                                            Mark Complete
-                                        </MudButton>
-                                    </MudButtonGroup>
-                                    break;
-
-                                case "In Progress":
-                                    <MudButton Class="text-success" Color="Color.Success"
-                                               Variant="Variant.Text"
-                                               Size="Size.Small"
-                                               OnClick="() => UpdateMaintananceRequest(mark, item)">
-                                        Mark Complete
-                                    </MudButton>
-                                    break;
-
-                                case "completed":
-                                    <MudAlert Severity="Severity.Success" Class="text-success">
-                                        Resolved: @item.DateResolved?.ToShortDateString()
-                                    </MudAlert>
-                                    break;
-                            }
-                        }
-                    </CardHeaderActions>
+                    <MudText Typo="Typo.caption">
+                        @item.DateReported?.ToShortDateString()
+                    </MudText>
                 </MudCardHeader>
 
                 <MudCardContent>
-
-                    <!-- PROBLEM DESCRIPTION -->
-                    <MudText Typo="Typo.body1" Class="mb-1">
-                        <b>Description: </b>@item.ProblemDescription
+                    <MudText><b>Description:</b> @item.ProblemDescription</MudText>
+                    <MudText Typo="Typo.caption">
+                        Room @item.RoomNumber • @item.HostelName
                     </MudText>
-
-                    <!-- DETAILS -->
-                    <MudText Typo="Typo.body2" Class="text-secondary">
-                        <b>Hostel:</b> @item.HostelName
-                        &nbsp;•&nbsp;
-                        <b>Room:</b> @item.RoomNumber
-                        &nbsp;•&nbsp;
-                        <b>Reported By:</b> @item.ReportedBy
-                    </MudText>
-
                 </MudCardContent>
 
             </MudCard>
         </MudItem>
-    }
+        }
 </MudGrid>
 
 @code {
-    protected List<Staff> Deans = new();
+    // DATA
     protected List<GetRoomsBySchoolResult> rooms = new();
-    protected GetRoomsBySchoolResult selectedRoom = new();
-    protected MaintainanceRequest newRequest = new();
+    protected List<RoomAsset> roomAssets = new();
     protected List<MaintainanceRequestsDTO> maintainanceRequests = new();
-    protected Func<GetRoomsBySchoolResult, string> RoomTypeconverter = p => $"Room:{p?.RoomNumber}, Hostel-{p?.HostelName}";
-    bool isLoading = false;
+    protected List<StudentsInRoomDTO> studentsInRoom = new();
+    protected GetRoomsBySchoolResult? selectedRoom;
+    protected RoomAsset? selectedAsset;
+    protected StudentRoomLog? activeRoomLog;
+    protected RoomAssetConditionEvent? lastLoggedEvent;
+    protected StudentsInRoomDTO? responsibleStudent;
+
+    protected string newConditionStatus = "Good";
+    protected string newConditionNotes = "";
+    protected bool isStudentDamage = false;
+    protected Func<GetRoomsBySchoolResult, string> RoomTypeconverter =
+        r => $"Room {r.RoomNumber} - {r.HostelName}";
+
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
-
-        newRequest.ReportedBy = AppState.FirstName + " " + AppState.LastName;
-
-        var s = await GetStaffAsync("Dean");
-        Deans = s.ToList();
-        var tasks = new List<Task>(){
-
-          GetRooms(),
-          GetRequests()
-        };
-        await Task.WhenAll(tasks);
-        isLoading = false;
+        await Task.WhenAll(GetRooms(), GetRequests());
     }
-    private async Task UpdateMaintananceRequest(string status, MaintainanceRequestsDTO request)
+
+    private async Task OnRoomSelected(GetRoomsBySchoolResult room)
     {
-        MaintainanceRequest requestToUpdate = new();
-        switch (status)
-        {
-            case "In Progress":
-                requestToUpdate.RequestID = request.RequestID;
-                requestToUpdate.RoomID = request.RoomID;
-                requestToUpdate.HostelID = request.HostelID;
-                requestToUpdate.ProblemDescription = request.ProblemDescription;
-                requestToUpdate.Status = status;
-                requestToUpdate.DateReported = request.DateReported;
-                requestToUpdate.DateResolved = request.DateResolved;
-                requestToUpdate.ReportedBy = request.ReportedBy;
-                break;
-            case "completed":
-                requestToUpdate.RequestID = request.RequestID;
-                requestToUpdate.RoomID = request.RoomID;
-                requestToUpdate.HostelID = request.HostelID;
-                requestToUpdate.ProblemDescription = request.ProblemDescription;
-                requestToUpdate.Status = status;
-                requestToUpdate.DateResolved = DateTime.UtcNow;
-                requestToUpdate.DateReported = request.DateReported;
-                requestToUpdate.ReportedBy = request.ReportedBy;
-                break;
+        selectedRoom = room;
+        roomAssets.Clear();
+        selectedAsset = null;
+        activeRoomLog = null;
 
-        }
+        await Task.WhenAll(
+            LoadRoomAssets(),
+            LoadActiveRoomLog()
+        );
+    }
 
-        var updateService = GenericService.GetService<MaintainanceRequest>();
-        var result = await updateService.UpdateAsync("api/Dynamic/UpdateEntity", "maintainancerequest", requestToUpdate);
+    private async Task LoadRoomAssets()
+    {
+        var service = GenericService.GetService<RoomAsset>();
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetRoomAssets/{selectedRoom!.RoomId}", true);
+
         if (result.IsSuccess)
-        {
-            await GetRequests();
-            StateHasChanged();
-        }
+            roomAssets = result.Data.ToList();
     }
-    private async Task<IEnumerable<GetRoomsBySchoolResult>> SearchRooms(string value, CancellationToken token)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return rooms;
 
-        return rooms.Where(s =>
-            s.RoomNumber.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-            s.HostelName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    private async Task LoadActiveRoomLog()
+    {
+        var service = GenericService.GetService<StudentRoomLog>();
+        var result = await service.GetByIdAsync(
+            "api/Dynamic/GetActiveRoomLog",
+            selectedRoom!.RoomId);
+
+        activeRoomLog = result.IsSuccess ? result.Data : null;
     }
+
+    private async Task OnStudentDamageChanged(bool value)
+    {
+        isStudentDamage = value;
+
+        if (!value)
+        {
+            studentsInRoom.Clear();
+            return;
+        }
+
+        if (selectedRoom == null)
+            return;
+
+        var service = GenericService.GetService<StudentsInRoomDTO>();
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetStudentsInRoom/{selectedRoom.RoomId}", true);
+
+        studentsInRoom = result.IsSuccess
+            ? result.Data.ToList()
+            : new();
+    }
+
+    private Task<IEnumerable<GetRoomsBySchoolResult>> SearchRooms(string value, CancellationToken _)
+        => Task.FromResult(string.IsNullOrWhiteSpace(value)
+            ? rooms.AsEnumerable()
+            : rooms.Where(r => r.RoomNumber.Contains(value, StringComparison.OrdinalIgnoreCase)));
+
+    private Task<IEnumerable<RoomAsset>> SearchAssets(string value, CancellationToken _)
+        => Task.FromResult(string.IsNullOrWhiteSpace(value)
+            ? roomAssets.AsEnumerable()
+            : roomAssets.Where(a => a.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
+
+    private async Task LogConditionEvent()
+    {
+        if (selectedAsset == null || activeRoomLog == null)
+            return;
+
+        lastLoggedEvent = new RoomAssetConditionEvent
+        {
+            Id = Guid.NewGuid(),
+            StudentRoomLogId = activeRoomLog.Id,
+            RoomAssetId = selectedAsset.Id,
+            EventDate = DateTime.UtcNow,
+            ConditionStatus = newConditionStatus,
+            Notes = newConditionNotes,
+            ReportedByStaffId = Guid.Parse(AppState.UserID)
+        };
+
+        var service = GenericService.GetService<RoomAssetConditionEvent>();
+        await service.PostAsync(
+            "api/Dynamic/PostEntity",
+            "roomassetconditionevents",
+            lastLoggedEvent);
+
+        Snackbar.Add("Inspection logged.", Severity.Success);
+    }
+
+    private async Task RaiseMaintenanceRequest()
+    {
+        if (lastLoggedEvent == null || selectedRoom == null)
+            return;
+
+        var request = new MaintainanceRequest
+        {
+            RequestID = Guid.NewGuid(),
+            RoomID = selectedRoom.RoomId,
+            HostelID = selectedRoom.HostelId,
+            ProblemDescription = lastLoggedEvent.Notes,
+            Status = "Pending",
+            DateReported = DateTime.UtcNow,
+            ReportedBy = $"{AppState.FirstName} {AppState.LastName}"
+        };
+
+        var service = GenericService.GetService<MaintainanceRequest>();
+        var result = await service.PostAsync(
+            "api/Dynamic/PostEntity",
+            "maintainancerequest",
+            request);
+
+        if (!result.IsSuccess) return;
+
+        lastLoggedEvent.MaintenanceRequestId = request.RequestID;
+
+        var evtService = GenericService.GetService<RoomAssetConditionEvent>();
+        await evtService.UpdateAsync(
+            "api/Dynamic/UpdateEntity",
+            "roomassetconditionevents",
+            lastLoggedEvent);
+        var damageReport = new StudentDamageReport
+        {
+            Id = Guid.NewGuid(),
+            StudentId = responsibleStudent.StudentID,
+            RoomAssetConditionEventId = lastLoggedEvent.Id,
+            MaintenanceRequestId = (Guid)lastLoggedEvent.MaintenanceRequestId,
+            CreatedAt = DateTime.UtcNow,
+            //Notes = newConditionNotes
+        };
+
+        Snackbar.Add("Maintenance request raised.", Severity.Success);
+        await GetRequests();
+    }
+
     private async Task GetRooms()
     {
-
         var service = GenericService.GetService<GetRoomsBySchoolResult>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetRoomsBySchool/{AppState.SchoolID}", true);
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetRoomsBySchool/{AppState.SchoolID}", true);
+
         if (result.IsSuccess)
-        {
-
-            var loggedInDean = Deans.Where(x => x.UserID == AppState.UserID).First();
-            rooms = result.Data.Where(x => x.GenderId == loggedInDean.DeanForGender).ToList();
-        }
-
+            rooms = result.Data.ToList();
     }
 
     private async Task GetRequests()
     {
         var service = GenericService.GetService<MaintainanceRequestsDTO>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetHostelMaintainanceRequests/{AppState.SchoolID}", true);
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetHostelMaintainanceRequests/{AppState.SchoolID}", true);
+
         if (result.IsSuccess)
-        {
             maintainanceRequests = result.Data.ToList();
-        }
-
-    }
-
-    private async Task SubmitRequest()
-    {
-        newRequest.RequestID = Guid.NewGuid();
-        newRequest.RoomID = selectedRoom.RoomId;
-        newRequest.HostelID = selectedRoom.HostelId;
-        newRequest.Status = "Pending";
-        newRequest.DateReported = DateTime.Today;
-
-        var service = GenericService.GetService<MaintainanceRequest>();
-        var result = await service.PostAsync("api/Dynamic/PostEntity", "maintainancerequest", newRequest);
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("Issue Successfully Reported");
-            await GetRequests();
-            StateHasChanged();
-        }
     }
 }

@@ -147,6 +147,14 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<RoomAllocation> RoomAllocations { get; set; }
 
+    public virtual DbSet<RoomAsset> RoomAssets { get; set; }
+
+    public virtual DbSet<RoomAssetCondition> RoomAssetConditions { get; set; }
+
+    public virtual DbSet<RoomAssetConditionEvent> RoomAssetConditionEvents { get; set; }
+
+    public virtual DbSet<RoomAssetType> RoomAssetTypes { get; set; }
+
     public virtual DbSet<RoomsWithOccupancy> RoomsWithOccupancies { get; set; }
 
     public virtual DbSet<School> Schools { get; set; }
@@ -170,6 +178,8 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<StudentExamQuizAndTestAnswer> StudentExamQuizAndTestAnswers { get; set; }
 
     public virtual DbSet<StudentExamsTestsAndQuiz> StudentExamsTestsAndQuizzes { get; set; }
+
+    public virtual DbSet<StudentRoomLog> StudentRoomLogs { get; set; }
 
     public virtual DbSet<Subject> Subjects { get; set; }
 
@@ -1467,6 +1477,97 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasConstraintName("FK__RoomAlloc__RoomI__61BB7BD9");
         });
 
+        modelBuilder.Entity<RoomAsset>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RoomAsse__3214EC07706B1BCB");
+
+            entity.ToTable("RoomAssets", "SchoolOps");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.AssetType)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.HasOne(d => d.AssetTypeNavigation).WithMany(p => p.RoomAssets)
+                .HasForeignKey(d => d.AssetTypeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RoomAssets_RoomAssetTypes");
+
+            entity.HasOne(d => d.Room).WithMany(p => p.RoomAssets)
+                .HasForeignKey(d => d.RoomId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RoomAssets_Rooms");
+        });
+
+        modelBuilder.Entity<RoomAssetCondition>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RoomAsse__3214EC0781CA05AA");
+
+            entity.ToTable("RoomAssetConditions", "SchoolOps");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.ConditionStatus)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.InspectionType)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.Notes).HasMaxLength(255);
+
+            entity.HasOne(d => d.RoomAsset).WithMany(p => p.RoomAssetConditions)
+                .HasForeignKey(d => d.RoomAssetId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AssetConditions_Asset");
+
+            entity.HasOne(d => d.StudentRoomLog).WithMany(p => p.RoomAssetConditions)
+                .HasForeignKey(d => d.StudentRoomLogId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AssetConditions_Log");
+        });
+
+        modelBuilder.Entity<RoomAssetConditionEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RoomAsse__3214EC074F77FA6D");
+
+            entity.ToTable("RoomAssetConditionEvents", "SchoolOps");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.ConditionStatus)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.EventDate).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Notes).HasMaxLength(255);
+
+            entity.HasOne(d => d.RoomAsset).WithMany(p => p.RoomAssetConditionEvents)
+                .HasForeignKey(d => d.RoomAssetId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RoomAssetEvent_Asset");
+
+            entity.HasOne(d => d.StudentRoomLog).WithMany(p => p.RoomAssetConditionEvents)
+                .HasForeignKey(d => d.StudentRoomLogId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RoomAssetEvent_Log");
+        });
+
+        modelBuilder.Entity<RoomAssetType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RoomAsse__3214EC076A669085");
+
+            entity.ToTable("RoomAssetTypes", "SchoolOps");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Description).HasMaxLength(150);
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(50);
+        });
+
         modelBuilder.Entity<RoomsWithOccupancy>(entity =>
         {
             entity
@@ -1688,6 +1789,26 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.HasOne(d => d.Student).WithMany(p => p.StudentExamsTestsAndQuizzes)
                 .HasForeignKey(d => d.StudentID)
                 .HasConstraintName("FK_StudentExamsTestsAndQuizzes_Students");
+        });
+
+        modelBuilder.Entity<StudentRoomLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__StudentR__3214EC071FE933DA");
+
+            entity.ToTable("StudentRoomLogs", "SchoolOps");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.OccupancyType)
+                .IsRequired()
+                .HasMaxLength(30);
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.Room).WithMany(p => p.StudentRoomLogs)
+                .HasForeignKey(d => d.RoomId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StudentRoomLogs_Rooms");
         });
 
         modelBuilder.Entity<Subject>(entity =>
