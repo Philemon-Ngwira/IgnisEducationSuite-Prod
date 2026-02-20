@@ -11,5 +11,7 @@ namespace EDUSphereSharedProject.Models
     {
         [NotMapped]
         public string LevelName { get; set; }
+        [NotMapped]
+        public string sectionName { get; set; } 
     }
 }

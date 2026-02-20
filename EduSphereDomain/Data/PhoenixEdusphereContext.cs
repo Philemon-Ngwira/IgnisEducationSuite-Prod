@@ -2166,6 +2166,7 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.LastName).HasMaxLength(50);
+            entity.Property(e => e.GradeSection).HasMaxLength(50);
         });
 
         modelBuilder.Entity<vw_ClassTimetable>(entity =>

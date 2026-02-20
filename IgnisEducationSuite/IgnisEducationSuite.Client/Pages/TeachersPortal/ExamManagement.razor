@@ -863,8 +863,8 @@
        var teacherFirstName = p.FirstName ?? "";
        var teacherLastName = p.LastName ?? "Teacher";
        var gradeName = p.LevelName ?? "";
-
-       return $"{className}:{gradeName},{teacherFirstName.Substring(0, 1)}.{teacherLastName}";
+       var levelSect = p.GradeSection ?? "";
+       return $"{className}:{gradeName}{levelSect}-({teacherFirstName.Substring(0, 1)}.{teacherLastName})";
    };
     #endregion
 }
