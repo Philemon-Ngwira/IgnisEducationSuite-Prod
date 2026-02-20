@@ -131,40 +131,43 @@
         else
         {
             <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudItem xs="12" md="6">
-                    <MudTextField Label="Lesson Title"
-                                  Variant="Variant.Outlined"
-                                  @bind-Value="newLesson.Title"
-                                  FullWidth="true" 
-                                  Margin="Margin.Dense"/>
-                </MudItem>
+                <MudGrid>
+                    <MudItem xs="12" md="8">
+                        <MudTextField Label="Lesson Title"
+                                      Variant="Variant.Outlined"
+                                      @bind-Value="newLesson.Title"
+                                      FullWidth="true"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
 
-                <MudItem xs="12" md="4">
-                    <MudAutocomplete T="Class"
-                                     Label="Class"
-                                     @bind-Value="selectedClass"
-                                     Variant="Variant.Outlined"
-                                     SearchFunc="@Search"
-                                     ToStringFunc="ClassTypeConverter"
-                                     FullWidth="true"
-                                     Margin="Margin.Dense" />
-                </MudItem>
-                <MudItem xs="12">
-                    <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChange">
-                        <ActivatorContent>
-                            <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
-                                Upload Lesson
-                            </MudButton>
-                        </ActivatorContent>
-                    </MudFileUpload>
-                </MudItem>
-                <MudItem xs="12">
-                    <BlazoredTextEditor @ref="richTextEditor">
-                        <ToolbarContent>@((MarkupString)toolbar)</ToolbarContent>
-                        <EditorContent>@((MarkupString)body)</EditorContent>
-                    </BlazoredTextEditor>
-                </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudAutocomplete T="Class"
+                                         Label="Class"
+                                         @bind-Value="selectedClass"
+                                         Variant="Variant.Outlined"
+                                         SearchFunc="@Search"
+                                         ToStringFunc="ClassTypeConverter"
+                                         FullWidth="true"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChange">
+                            <ActivatorContent>
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
+                                    Upload Lesson
+                                </MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <BlazoredTextEditor @ref="richTextEditor">
+                            <ToolbarContent>@((MarkupString)toolbar)</ToolbarContent>
+                            <EditorContent>@((MarkupString)body)</EditorContent>
+                        </BlazoredTextEditor>
+                    </MudItem>
+                </MudGrid>
+              
             </MudPaper>
 
 
