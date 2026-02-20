@@ -1,5 +1,6 @@
 ﻿@page "/ClientManagement"
 @using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
 @using IgnisEducationSuite.Client.Pages.Management.Dialog
 @inherits AppBaseComponent
 @inject AppState appState
@@ -27,6 +28,20 @@
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudTextField Variant="Variant.Outlined" @bind-Value="@newSchool.SchoolWebsite" T="string" Label="Enter School Website" Placeholder="School Website" Margin="Margin.Dense"></MudTextField>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="CountryInfo"
+                                     Label="Select School Currency"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     ToStringFunc="CountryWithCurrencyConverter"
+                                     @bind-Value="selectedCurrencyCountry"
+                                     SearchFunc="SearchCountriesWithCurrency"
+                                     ResetValueOnEmptyText="true"
+                                     SelectValueOnTab="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     AdornmentColor="Color.Primary" />
+
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
@@ -71,13 +86,20 @@
 @code {
     protected School newSchool = new();
     protected List<School> schools = new();
+    protected List<CountryInfo> CountriesWithCurrency = new();
     protected string searchString = string.Empty;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     [Inject] IDialogService DialogService { get; set; } = default!;
+    [Inject] CountryCurrencyService countryCurrencyService { get; set; } = default!;
+    protected Func<CountryInfo, string> CountryWithCurrencyConverter => c =>
+      $"{c?.Name} ({c?.CurrencySymbol})";
+
+    protected CountryInfo selectedCurrencyCountry = new();
     protected override async Task OnInitializedAsync()
     {
         await GetSchools();
+        await LoadCurrencyCountries();
     }
     protected async Task GetSchools()
     {
@@ -88,9 +110,20 @@
             schools = result.Data.ToList();
         }
     }
+    private async Task<IEnumerable<CountryInfo>> SearchCountriesWithCurrency(string value, CancellationToken token)
+    {
+        await Task.Delay(5, token);
+        if (string.IsNullOrWhiteSpace(value)) return new List<CountryInfo>();
+        return CountriesWithCurrency.Where(x => x.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
     protected async Task AddSchool()
     {
         newSchool.SchoolID = Guid.NewGuid();
+
+        newSchool.SchoolCurrencyName = selectedCurrencyCountry.CurrencyName;
+        newSchool.CurrencySymbol = selectedCurrencyCountry.CurrencySymbol;
+        newSchool.CurrencyCountry = selectedCurrencyCountry.Name;
+        newSchool.CurrencyCode = selectedCurrencyCountry.CurrencyCode;
         var service = _genericService.GetService<School>();
         var result = await service.PostAsync("api/Dynamic/PostEntity", "school", newSchool);
         if (result.IsSuccess)
@@ -104,6 +137,18 @@
         {
             Snackbar.Add("Error Saving School", Severity.Error);
 
+        }
+    }
+    private async Task LoadCurrencyCountries()
+    {
+        try
+        {
+            var result = await countryCurrencyService.GetAllCountriesWithCurrencyAsync();
+            CountriesWithCurrency = result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load currency data: {ex.Message}", Severity.Error);
         }
     }
     private async Task UploadFiles(IBrowserFile file)

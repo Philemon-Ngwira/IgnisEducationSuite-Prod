@@ -17,6 +17,10 @@ namespace EduSphereDomain.Models
         public Guid? SchoolID { get; set; }
         public string SchoolName { get; set; }
         public byte[] SchoolLogo { get; set; }
+        public string CurrencyCode { get; set; }
+        public string CurrencyCountry { get; set; }
+        public string CurrencySymbol { get; set; }
+        public string SchoolCurrencyName { get; set; }
         public bool? HasplagerismEnaabled { get; set; }
     }
 }

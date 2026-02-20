@@ -17,6 +17,8 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
     public virtual DbSet<Invoice> Invoices { get; set; }
 
+    public virtual DbSet<InvoiceType> InvoiceTypes { get; set; }
+
     public virtual DbSet<Payment> Payments { get; set; }
 
     public virtual DbSet<StudentFinance> StudentFinances { get; set; }
@@ -25,12 +27,16 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
     {
         modelBuilder.Entity<Invoice>(entity =>
         {
-            entity.ToTable("Invoice", "Finance");
+            entity.ToTable("Invoice", "Finance", tb => tb.HasTrigger("TR_Invoice_UpdateStudentOutstanding"));
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newsequentialid())");
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.DueDate).HasColumnType("date");
+            entity.Property(e => e.InvoiceType)
+                .IsRequired()
+                .HasMaxLength(50)
+                .HasDefaultValueSql("('Tuition')");
             entity.Property(e => e.IssuedDate).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.PaymentStatus)
@@ -44,6 +50,28 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .HasForeignKey(d => d.StudentFinanceId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Invoice_StudentFinance");
+        });
+
+        modelBuilder.Entity<InvoiceType>(entity =>
+        {
+            entity.ToTable("InvoiceType", "Finance");
+
+            entity.HasIndex(e => e.Code, "UX_InvoiceType_Code").IsUnique();
+
+            entity.HasIndex(e => e.Name, "UX_InvoiceType_Name").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.Code)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
         });
 
         modelBuilder.Entity<Payment>(entity =>
@@ -72,6 +100,8 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
         modelBuilder.Entity<StudentFinance>(entity =>
         {
             entity.ToTable("StudentFinance", "Finance");
+
+            entity.HasIndex(e => e.StudentId, "UQ_StudentFinance_StudentId").IsUnique();
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newsequentialid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");

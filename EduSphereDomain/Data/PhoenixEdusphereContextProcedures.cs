@@ -93,6 +93,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<GetUserBadgesByUserIDResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetUserTripsTodayResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<RunDailyJobsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_CreateStudentFinanceForExistingStudentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetActiveClinicVisitsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetBusMaintenanceRequestsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetClinicDashboardMetricsResult>().HasNoKey().ToView(null);
@@ -1851,6 +1852,26 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[sp_AssignMissingStudentSchedules]", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_CreateStudentFinanceForExistingStudentsResult>> sp_CreateStudentFinanceForExistingStudentsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_CreateStudentFinanceForExistingStudentsResult>("EXEC @returnValue = [Finance].[sp_CreateStudentFinanceForExistingStudents]", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

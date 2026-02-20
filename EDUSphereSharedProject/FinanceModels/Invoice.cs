@@ -29,6 +29,8 @@ public partial class Invoice
 
     public DateTime? UpdatedAt { get; set; }
 
+    public string InvoiceType { get; set; }
+
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual StudentFinance StudentFinance { get; set; }

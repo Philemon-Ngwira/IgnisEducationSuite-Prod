@@ -75,6 +75,7 @@ namespace EduSphereDomain.Data
         Task<List<GetUserTripsTodayResult>> GetUserTripsTodayAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<RunDailyJobsResult>> RunDailyJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> sp_AssignMissingStudentSchedulesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<sp_CreateStudentFinanceForExistingStudentsResult>> sp_CreateStudentFinanceForExistingStudentsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_GetActiveClinicVisitsResult>> sp_GetActiveClinicVisitsAsync(Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_GetBusMaintenanceRequestsResult>> sp_GetBusMaintenanceRequestsAsync(Guid? SchoolId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_GetClinicDashboardMetricsResult>> sp_GetClinicDashboardMetricsAsync(Guid? ClinicID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);

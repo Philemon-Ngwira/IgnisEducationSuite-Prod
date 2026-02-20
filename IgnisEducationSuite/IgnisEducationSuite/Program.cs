@@ -126,6 +126,7 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<LessonMediaService>();
             builder.Services.AddScoped<ZoomService>();
             builder.Services.AddScoped<ZoomInteropBridge>();
+            builder.Services.AddScoped<CountryCurrencyService>();
             builder.Services.AddScoped<StudentPaymentUploadTemplate>();
             builder.Services.AddScoped<ITimetableGenerator, TimetableGenerator>();
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory

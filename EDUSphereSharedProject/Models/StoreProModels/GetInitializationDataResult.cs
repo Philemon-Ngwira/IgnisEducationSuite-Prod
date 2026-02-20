@@ -12,12 +12,15 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public int HideStudentDashboard { get; set; }
         public string UserName { get; set; }
         public string Email { get; set; }
-
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public Guid? SchoolID { get; set; }
         public string SchoolName { get; set; }
         public byte[] SchoolLogo { get; set; }
+        public string CurrencyCode { get; set; }
+        public string CurrencyCountry { get; set; }
+        public string CurrencySymbol { get; set; }
+        public string SchoolCurrencyName { get; set; }
         public bool? HasplagerismEnaabled { get; set; }
     }
 }

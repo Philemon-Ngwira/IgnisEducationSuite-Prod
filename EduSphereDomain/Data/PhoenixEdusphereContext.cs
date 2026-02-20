@@ -175,6 +175,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<StudentCompletedLesson> StudentCompletedLessons { get; set; }
 
+    public virtual DbSet<StudentDamageReport> StudentDamageReports { get; set; }
+
     public virtual DbSet<StudentExamQuizAndTestAnswer> StudentExamQuizAndTestAnswers { get; set; }
 
     public virtual DbSet<StudentExamsTestsAndQuiz> StudentExamsTestsAndQuizzes { get; set; }
@@ -1583,6 +1585,18 @@ public partial class PhoenixEdusphereContext : DbContext
         modelBuilder.Entity<School>(entity =>
         {
             entity.Property(e => e.SchoolID).ValueGeneratedNever();
+            entity.Property(e => e.CurrencyCode)
+                .HasMaxLength(10)
+                .IsUnicode(false);
+            entity.Property(e => e.CurrencyCountry)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.CurrencySymbol)
+                .HasMaxLength(10)
+                .IsFixedLength();
+            entity.Property(e => e.SchoolCurrencyName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.SchoolEmail)
                 .HasMaxLength(255)
                 .IsUnicode(false);
@@ -1753,6 +1767,32 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.HasOne(d => d.Student).WithMany(p => p.StudentCompletedLessons)
                 .HasForeignKey(d => d.StudentID)
                 .HasConstraintName("FK_StudentCompletedLessons_Students");
+        });
+
+        modelBuilder.Entity<StudentDamageReport>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__StudentD__3214EC07BCF07BB8");
+
+            entity.ToTable("StudentDamageReports", "SchoolOps");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Description).HasMaxLength(500);
+
+            entity.HasOne(d => d.MaintenanceRequest).WithMany(p => p.StudentDamageReports)
+                .HasForeignKey(d => d.MaintenanceRequestId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StudentDamageReports_Maintenance");
+
+            entity.HasOne(d => d.RoomAssetConditionEvent).WithMany(p => p.StudentDamageReports)
+                .HasForeignKey(d => d.RoomAssetConditionEventId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StudentDamageReports_RoomAssetConditionEvents");
+
+            entity.HasOne(d => d.Student).WithMany(p => p.StudentDamageReports)
+                .HasForeignKey(d => d.StudentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StudentDamageReports_Students");
         });
 
         modelBuilder.Entity<StudentExamQuizAndTestAnswer>(entity =>

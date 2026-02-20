@@ -5,7 +5,6 @@ using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.ServerServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace IgnisEducationSuite.Controllers

@@ -24,6 +24,8 @@ public class AppState
     public List<string> UserRoles { get; private set; } = new List<string>();
     public bool HideStudentDashboard { get; private set; }
     public bool LicenseIsActive { get; private set; }
+    public SchoolCurrency Currency { get; private set; } = new();
+   
     public usp_GetPharmacyLicenseStatusResult License { get; private set; } = new();
 
     // --- Global Data ---
@@ -108,6 +110,10 @@ public class AppState
             FirstName = data.FirstName ?? "";
             LastName = data.LastName ?? "";
             SchoolLogo = data.SchoolLogo?.Length > 0 ? Convert.ToBase64String(data.SchoolLogo) : string.Empty;
+            Currency.Currency = data.SchoolCurrencyName;
+            Currency.CurrencyCode = data.CurrencyCode;
+            Currency.CurrencyCountry = data.CurrencyCountry;
+            Currency.CurrencySymbol = data.CurrencySymbol;
             HideStudentDashboard = data.HideStudentDashboard == 1;
 
             if (UserRole != "SuperAdmin")
@@ -231,4 +237,13 @@ public class AppState
 
     }
     #endregion
+
+  
+}
+public class SchoolCurrency
+{
+    public string Currency { get; set; }
+    public string CurrencyCode { get; set; }
+    public string CurrencyCountry { get; set; }
+    public string CurrencySymbol { get; set; }
 }

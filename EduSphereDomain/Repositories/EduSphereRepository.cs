@@ -1,12 +1,4 @@
-﻿using DocumentFormat.OpenXml.Bibliography;
-using DocumentFormat.OpenXml.ExtendedProperties;
-using DocumentFormat.OpenXml.Office2010.CustomUI;
-using DocumentFormat.OpenXml.Office2010.Excel;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using DocumentFormat.OpenXml.Spreadsheet;
-using DocumentFormat.OpenXml.Wordprocessing;
-using EduSphereDomain.AchievementData;
-using EduSphereDomain.ChatData;
+﻿using EduSphereDomain.AchievementData;
 using EduSphereDomain.Data;
 using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
@@ -14,10 +6,7 @@ using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using EDUSphereSharedProject.UniversalModels.TimeTabling;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics.Metrics;
-using System.Security.Cryptography.X509Certificates;
 using static EDUSphereSharedProject.UniversalModels.StudentWithClassesDTO;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace EduSphereDomain.Repositories
 {
@@ -118,6 +107,10 @@ namespace EduSphereDomain.Repositories
                     HasplagerismEnaabled = x.HasplagerismEnaabled,
                     FirstName = x.FirstName,
                     LastName = x.LastName,
+                    SchoolCurrencyName = x.SchoolCurrencyName,
+                    CurrencySymbol = x.CurrencySymbol,
+                    CurrencyCode = x.CurrencyCode,
+                    CurrencyCountry = x.CurrencyCountry,
                 });
             }
             catch (Exception ex)

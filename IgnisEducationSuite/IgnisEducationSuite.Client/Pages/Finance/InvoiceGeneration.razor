@@ -1,0 +1,122 @@
+﻿@using EDUSphereSharedProject.FinanceModels
+@inherits AppBaseComponent
+<MudCard Class="pa-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5">Invoice Generation</MudText>
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                Generate bulk invoices for a selected term and invoice type.
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudGrid Spacing="3">
+
+            <!-- Term Dates -->
+            <MudItem xs="12" md="6">
+                <MudDatePicker Label="Term Start Date"
+                               @bind-Date="_termStartDate"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudDatePicker Label="Term End Date"
+                               @bind-Date="_termEndDate"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <!-- Invoice Type -->
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Invoice Type"
+                           @bind-Value="_invoiceType"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var type in invoiceTypes)
+                    {
+                        <MudSelectItem Value="@type.Name">@type.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <!-- Amount -->
+            <MudItem xs="12" md="6">
+                <MudNumericField T="decimal?"
+                                 Label="Amount"
+                                 @bind-Value="_amount"
+                                 Required="true"
+                                 Variant="Variant.Outlined"
+                                 Adornment="Adornment.Start"
+                                 Margin="Margin.Dense"
+                                 AdornmentText="@(AppState.Currency.CurrencySymbol ?? "$")" /> @* REMEMBER TO UPDATE BY ADDING DYNAMIC SCHOOL CURRENCY *@
+            </MudItem>
+
+            <!-- Due Date -->
+            <MudItem xs="12" md="6">
+                <MudDatePicker Label="Due Date"
+                               @bind-Date="_dueDate"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <!-- Generate Button -->
+            <MudItem xs="12">
+                <MudDivider Class="my-2" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Large"
+                           OnClick="GenerateInvoices"
+                           Disabled="_isGenerating">
+                    @if (_isGenerating)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small"
+                                             Class="me-2" />
+                        <span>Generating...</span>
+                    }
+                    else
+                    {
+                        <span>Generate Invoices</span>
+                    }
+                </MudButton>
+            </MudItem>
+
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private DateTime? _termStartDate;
+    private DateTime? _termEndDate;
+    private DateTime? _dueDate;
+    private string _invoiceType;
+    private decimal? _amount;
+    private bool _isGenerating = false;
+    protected List<InvoiceType> invoiceTypes = new List<InvoiceType>();
+    private async Task GenerateInvoices()
+    {
+        if (_termStartDate == null || _termEndDate == null ||
+            _dueDate == null || string.IsNullOrWhiteSpace(_invoiceType) ||
+            _amount == null)
+            return;
+
+        _isGenerating = true;
+
+        try
+        {
+            // You’ll call your API here
+            // await _financeService.GenerateInvoices(...);
+        }
+        finally
+        {
+            _isGenerating = false;
+        }
+    }
+}

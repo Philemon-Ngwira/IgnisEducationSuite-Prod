@@ -21,6 +21,14 @@ public partial class School
 
     public string SchoolWebsite { get; set; }
 
+    public string SchoolCurrencyName { get; set; }
+
+    public string CurrencySymbol { get; set; }
+
+    public string CurrencyCode { get; set; }
+
+    public string CurrencyCountry { get; set; }
+
     public virtual ICollection<BusFuelLog> BusFuelLogs { get; set; } = new List<BusFuelLog>();
 
     public virtual ICollection<Bus> Buses { get; set; } = new List<Bus>();

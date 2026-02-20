@@ -62,6 +62,7 @@ namespace IgnisEducationSuite.Client
             builder.Services.AddScoped<AchievementDecider>();
             builder.Services.AddScoped<ILessonMediaClientService, LessonMediaClientService>();
             builder.Services.AddScoped<ZoomInteropBridge>();
+            builder.Services.AddScoped<CountryCurrencyService>();
             builder.Services.AddScoped<LoaderService>();
 
             await builder.Build().RunAsync();
