@@ -300,6 +300,7 @@
                                 .Select(a => a.LevelName).First();
             }
             classes.Add(item);
+            classes.OrderBy(x => x.LevelName);
         }
     }
 
