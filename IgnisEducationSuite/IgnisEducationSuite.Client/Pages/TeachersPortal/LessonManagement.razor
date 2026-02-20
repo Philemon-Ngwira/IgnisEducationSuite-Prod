@@ -93,13 +93,22 @@
             <!-- METADATA & FILES -->
             <MudPaper Class="pa-4 mb-4" Elevation="2">
                 <MudGrid Spacing="3">
-                    <MudItem xs="12" md="6">
+                    <MudItem xs="12" md="8">
                         <MudTextField Label="Lesson Title"
                                       Variant="Variant.Outlined"
                                       @bind-Value="newLesson.Title"
                                       FullWidth="true" />
                     </MudItem>
 
+                    <MudItem xs="12" md="4">
+                        <MudAutocomplete T="Class"
+                                         Label="Class"
+                                         @bind-Value="selectedClass"
+                                         Variant="Variant.Outlined"
+                                         SearchFunc="@Search"
+                                         ToStringFunc="ClassTypeConverter"
+                                         FullWidth="true" />
+                    </MudItem>
                     <MudItem xs="12">
                         <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles">
                             <ActivatorContent>
@@ -118,6 +127,22 @@
         else
         {
             <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudItem xs="12" md="8">
+                    <MudTextField Label="Lesson Title"
+                                  Variant="Variant.Outlined"
+                                  @bind-Value="newLesson.Title"
+                                  FullWidth="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudAutocomplete T="Class"
+                                     Label="Class"
+                                     @bind-Value="selectedClass"
+                                     Variant="Variant.Outlined"
+                                     SearchFunc="@Search"
+                                     ToStringFunc="ClassTypeConverter"
+                                     FullWidth="true" />
+                </MudItem>
                 <MudItem xs="12">
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChange">
                         <ActivatorContent>
@@ -589,8 +614,8 @@ Write the best possible educational lesson.
         var teacherFirstName = p.Teacher?.FirstName ?? "";
         var teacherLastName = p.Teacher?.LastName ?? "Teacher";
         var gradeName = p.LevelName ?? "";
-
-        return $"{className}:{gradeName},{teacherFirstName.Substring(0, 1)}.{teacherLastName}";
+        var levelSect = p.GradeSection ?? "";
+        return $"{className}:{gradeName} {levelSect}-({teacherFirstName.Substring(0, 1)}.{teacherLastName})";
     };
 
     #endregion
