@@ -111,7 +111,9 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
             builder.Services.AddScoped<GenericServiceFactory>();
             builder.Services.AddScoped<EduSphereRepository>();
+            builder.Services.AddScoped<FinananceRepository>();
             builder.Services.AddScoped<PhoenixEdusphereContextProcedures>();
+            builder.Services.AddScoped<PhoenixEdusphereFinanceContextProcedures>();
             builder.Services.AddScoped<AchievementContextProcedures>();
             builder.Services.AddScoped<ImageService>();
             builder.Services.AddScoped<StudentNumberGenerator>();

@@ -1,12 +1,12 @@
 ﻿{
    "CodeGenerationMode": 3,
-   "ContextClassName": "PhoenixEdusphereContext",
+   "ContextClassName": "PhoenixEdusphereFinanceContext",
    "ContextNamespace": null,
    "DefaultDacpacSchema": null,
    "FilterSchemas": false,
    "IncludeConnectionString": false,
    "ModelNamespace": null,
-   "OutputContextPath": "Data",
+   "OutputContextPath": "FinanceData",
    "OutputPath": "Models",
    "PreserveCasingWithRegex": true,
    "ProjectRootNamespace": "EduSphereDomain",
@@ -15,379 +15,23 @@
    "SelectedToBeGenerated": 1,
    "Tables": [
       {
-         "Name": "[dbo].[AcademicLevels]",
+         "Name": "[Finance].[FinanceLedger]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[AspNetRoleClaims]",
+         "Name": "[Finance].[Invoice]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[AspNetRoles]",
+         "Name": "[Finance].[InvoiceType]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[AspNetUserClaims]",
+         "Name": "[Finance].[Payment]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[AspNetUserLogins]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[AspNetUserRoles]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[AspNetUsers]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[AspNetUserTokens]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[AssignmentQuestions]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Assignments]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Attendance]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Classes]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[ClassSchedule]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[ClientAdmins]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[ClientsWithoutStudentDashboards]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[CourseDetail]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Courses]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[DayofTheWeek]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[ExamQuizTestHeader]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[ExamQuizTestQuestions]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[ExamTestQuizMultipleChoiceAnswers]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Gender]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Grades]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[GradingScale]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[LessonMedia]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Lessons]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[LevelSections]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[LiveMeetings]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[MultipleChoiceAssignmentAnswers]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Notifications]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Parents]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[ReportCardDetails]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[ReportCards]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[ReportCardStates]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Schools]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Staff]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[StudentAssignmentAnswers]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[StudentAssignments]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[StudentAttendance]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[StudentClasses]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[StudentClassSchedules]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[StudentCompletedLessons]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[StudentExamQuizAndTestAnswers]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[StudentExamsTestsAndQuizzes]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Students]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Subject]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Teachers]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[TeacherSubjectNormalized]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[TermSettings]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[TimeSlots]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[TimeTableActivity]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[TimetableOverrides]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[WorldCities]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[AIAdviceLogs]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[BusAssignments]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[Buses]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[BusFuelLogs]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[BusMaintenanceRequests]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[BusRoutes]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[BusStaff]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[BusStops]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[ClinicMedicationLogs]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[ClinicMedications]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[Clinics]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[ClinicStaff]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[ClinicVisits]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[DiningAttendance]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[DiningHalls]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[DiningMenu]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[DiningSpecialDiets]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[FoodItems]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[FuelStations]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[FuelTypes]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[Hostels]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[InventoryBatches]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[KitchenMeasurementStandards]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[MaintainanceRequests]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[Meals]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[MeasurementUnits]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[RoomAllocations]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[RoomAssetConditionEvents]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[RoomAssetConditions]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[RoomAssets]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[RoomAssetTypes]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[Rooms]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[StudentDamageReports]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[StudentRoomLogs]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[TripAttendances]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[TripBookings]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[TripDirections]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[Trips]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[TripSchedules]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[TripTripTypes]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[SchoolOps].[TripTypes]",
+         "Name": "[Finance].[StudentFinance]",
          "ObjectType": 0
       },
       {
@@ -736,6 +380,10 @@
       },
       {
          "Name": "[dbo].[usp_GetStaffBySchoolAndRole]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[Finance].[GetStudentFinanceBySchool]",
          "ObjectType": 1
       },
       {

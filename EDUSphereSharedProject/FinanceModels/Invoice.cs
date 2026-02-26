@@ -31,6 +31,10 @@ public partial class Invoice
 
     public string InvoiceType { get; set; }
 
+    public Guid? InvoiceTypeID { get; set; }
+
+    public Guid? SchoolID { get; set; }
+
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual StudentFinance StudentFinance { get; set; }

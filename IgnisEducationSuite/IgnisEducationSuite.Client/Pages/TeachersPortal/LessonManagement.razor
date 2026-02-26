@@ -40,10 +40,16 @@
     <!-- LESSON CREATION -->
     <MudCardContent>
 
-        @if (_lessonMode == "Use GPT")
-        {
-            <!-- AI QUERY -->
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
+      @if (_lessonMode == "Use GPT")
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudGrid>
+            <MudItem xs="12" md="2">
+                <!-- Mascot Component -->
+                <Mascot State="@CurrentBotState" />
+            </MudItem>
+
+            <MudItem xs="12" md="10">
                 <MudText Typo="Typo.h6" Class="mb-1">Ask AI to Draft a Lesson</MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
                     ChatGPT will generate a draft lesson which you can fully edit.
@@ -78,8 +84,10 @@
                            OnClick="SendMessage">
                     Generate Lesson
                 </MudButton>
-            </MudPaper>
-        }
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
 
         else if (_lessonMode == "Manual")
         {
@@ -245,6 +253,7 @@
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
     [Inject] ILessonMediaClientService mediaClientService { get; set; } = default!;
+
     protected List<LessonMedium> lessonMedia = new();
     private BlazoredTextEditor richTextEditor;
     string toolbar = """"...markup here..."""";
@@ -440,6 +449,7 @@
     private async Task SendMessage()
     {
         LoaderService.Show("Thinking....Please wait");
+        CurrentBotState = Mascot.BotState.Research;
         if (!string.IsNullOrEmpty(Query))
         {
             var message = EnhanceTeacherQuery(Query, selectedClass.ClassName);
@@ -455,6 +465,7 @@
             Query = string.Empty;
             StateHasChanged();
         }
+        CurrentBotState = Mascot.BotState.Explain;
         LoaderService.Hide();
     }
     private string EnhanceTeacherQuery(string rawQuery, string subject = "General")

@@ -23,5 +23,9 @@ public partial class StudentFinance
 
     public DateTime? UpdatedAt { get; set; }
 
+    public Guid? SchoolID { get; set; }
+
+    public virtual ICollection<FinanceLedger> FinanceLedgers { get; set; } = new List<FinanceLedger>();
+
     public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

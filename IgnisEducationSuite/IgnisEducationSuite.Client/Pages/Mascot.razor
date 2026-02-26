@@ -1,0 +1,36 @@
+﻿@inject IJSRuntime JS
+
+<div class="mascot-container">
+    <img src="@MascotImage" alt="Mascot" class="@MascotClass" />
+</div>
+
+@code {
+    [Parameter]
+    public BotState State { get; set; } = BotState.Idle;
+
+    private string MascotImage => State switch
+    {
+        BotState.Idle => "mascot/Idle.png",
+        BotState.Idle2 => "mascot/Idle2.png",
+        BotState.Research => "mascot/Research.png",
+        BotState.Think => "mascot/Think.png",
+        BotState.Explain => "mascot/Explain.png",
+         _ => "images/mascot/idle.png"
+    };
+    public enum BotState
+    {
+        Idle,
+        Idle2,
+        Research,
+        Think,
+        Explain,
+        Loading,
+        Warning
+    }
+    private string MascotClass => State switch
+    {
+        BotState.Loading => "mascot loading",
+        BotState.Warning => "mascot warning",
+        _ => "mascot"
+    };
+}

@@ -1,5 +1,7 @@
 ﻿@using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.UniversalModels
 @inherits AppBaseComponent
+
 <MudCard Class="pa-4">
     <MudCardHeader>
         <CardHeaderContent>
@@ -32,15 +34,16 @@
 
             <!-- Invoice Type -->
             <MudItem xs="12" md="6">
-                <MudSelect T="string"
+                <MudSelect T="InvoiceType"
                            Label="Invoice Type"
-                           @bind-Value="_invoiceType"
+                           @bind-Value="selectedType"
                            Required="true"
                            Variant="Variant.Outlined"
-                           Margin="Margin.Dense">
+                           Margin="Margin.Dense"
+                ToStringFunc="Converter">
                     @foreach (var type in invoiceTypes)
                     {
-                        <MudSelectItem Value="@type.Name">@type.Name</MudSelectItem>
+                        <MudSelectItem Value="@type">@type.Name</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -54,7 +57,7 @@
                                  Variant="Variant.Outlined"
                                  Adornment="Adornment.Start"
                                  Margin="Margin.Dense"
-                                 AdornmentText="@(AppState.Currency.CurrencySymbol ?? "$")" /> @* REMEMBER TO UPDATE BY ADDING DYNAMIC SCHOOL CURRENCY *@
+                                 AdornmentText="@(AppState.Currency?.CurrencySymbol ?? "$")" />
             </MudItem>
 
             <!-- Due Date -->
@@ -93,17 +96,29 @@
 </MudCard>
 
 @code {
+
     private DateTime? _termStartDate;
     private DateTime? _termEndDate;
     private DateTime? _dueDate;
-    private string _invoiceType;
+    private Guid? _invoiceTypeId;
     private decimal? _amount;
     private bool _isGenerating = false;
-    protected List<InvoiceType> invoiceTypes = new List<InvoiceType>();
+
+    protected List<InvoiceType> invoiceTypes = new();
+    protected InvoiceType selectedType = new();
+    protected Func<InvoiceType, string> Converter = p => p.Name;
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        await GetInvoiceTypes();
+        LoaderService.Hide();
+    }
+
     private async Task GenerateInvoices()
     {
-        if (_termStartDate == null || _termEndDate == null ||
-            _dueDate == null || string.IsNullOrWhiteSpace(_invoiceType) ||
+        if (_termStartDate == null ||
+            _termEndDate == null ||
+            _dueDate == null ||
             _amount == null)
             return;
 
@@ -111,12 +126,42 @@
 
         try
         {
-            // You’ll call your API here
-            // await _financeService.GenerateInvoices(...);
+            var service = GenericService.GetService<BulkInvoiceRequest>();
+
+            var request = new BulkInvoiceRequest
+            {
+                TermStartDate = _termStartDate.Value,
+                TermEndDate = _termEndDate.Value,
+                DueDate = _dueDate.Value,
+                InvoiceTypeId = selectedType.Id,
+                InvoiceType = selectedType.Name,
+                Amount = _amount.Value,
+                SchoolID = Guid.Parse(AppState.SchoolID)
+            };
+
+            var result = await service.PostAsync("api/Invoice/generate-bulk", "invoice",request);
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Invoices generated successfully.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(result.ErrorMessage ?? "Failed to generate invoices.", Severity.Error);
+            }
         }
         finally
         {
             _isGenerating = false;
         }
+    }
+
+    protected async Task GetInvoiceTypes()
+    {
+        var service = GenericService.GetService<InvoiceType>();
+        var result = await service.GetAllAsync("api/Invoice/GetInvoiceTypes", true);
+
+        if (result.IsSuccess)
+            invoiceTypes = result.Data.ToList();
     }
 }

@@ -1,5 +1,6 @@
 ﻿using EDUSphereSharedProject.IdentiyModels;
 using EDUSphereSharedProject.Models;
+using IgnisEducationSuite.Client.Pages;
 using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -16,6 +17,7 @@ public class AppBaseComponent : ComponentBase, IDisposable
     [Inject] protected NavigationManager NavigationManager { get; set; } = default!;
     [Inject] protected ISnackbar Snackbar { get; set; } = default!;
     [Inject] protected LoaderService LoaderService { get; set; } = default!;
+    protected Mascot.BotState CurrentBotState { get; set; } = Mascot.BotState.Idle;
     protected List<AcademicLevel> academicLevels { get; set; } = new List<AcademicLevel>();
     protected override void OnInitialized()
     {
