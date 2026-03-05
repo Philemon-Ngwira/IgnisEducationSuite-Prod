@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EduSphereDomain", "EduSpher
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EDUSphereSharedProject", "EDUSphereSharedProject\EDUSphereSharedProject.csproj", "{43670FA1-BE90-462A-B7C9-06DE7AEC7D91}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppLicensingAPI", "C:\Users\Phoenix\source\repos\AppLicensingAPI\AppLicensingAPI\AppLicensingAPI.csproj", "{9A9BD715-25ED-4164-8830-06EAA252033B}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,10 +33,6 @@ Global
 		{43670FA1-BE90-462A-B7C9-06DE7AEC7D91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{43670FA1-BE90-462A-B7C9-06DE7AEC7D91}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{43670FA1-BE90-462A-B7C9-06DE7AEC7D91}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9A9BD715-25ED-4164-8830-06EAA252033B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9A9BD715-25ED-4164-8830-06EAA252033B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9A9BD715-25ED-4164-8830-06EAA252033B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9A9BD715-25ED-4164-8830-06EAA252033B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
