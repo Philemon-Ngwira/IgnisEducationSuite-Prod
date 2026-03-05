@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using QuestPDF.Infrastructure;
+using Radzen;
 
 namespace IgnisEducationSuite
 {
@@ -32,7 +33,7 @@ namespace IgnisEducationSuite
             var builder = WebApplication.CreateBuilder(args);
             //Mudblazor
             builder.Services.AddMudServices();
-
+            builder.Services.AddRadzenComponents();
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents()

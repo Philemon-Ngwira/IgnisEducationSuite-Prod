@@ -101,25 +101,25 @@
                                 <ChildContent>
                                     <MudStep Title="Download Template">
                                         Download the Excel template and fill in your clinic inventory details.
-                                        <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-                                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DownloadTemplate">
+                                        <MudStack Row AlignItems="MudBlazor.AlignItems.Center" Spacing="2" Class="mb-3">
+                                            <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" OnClick="DownloadTemplate">
                                                 Download Inventory Template
                                             </MudButton>
                                         </MudStack>
                                     </MudStep>
                                     <MudStep Title="Upload Inventory" Skippable="false">
                                         Upload your completed inventory template.
-                                        <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                        <MudStack Row AlignItems="MudBlazor.AlignItems.Center" Spacing="2" Class="mb-3">
                                             <MudFileUpload T="IBrowserFile" FilesChanged="UploadTemplateFile">
                                                 <ActivatorContent>
-                                                    <MudButton Variant="Variant.Filled"
+                                                    <MudButton Variant="MudBlazor.Variant.Filled"
                                                                Color="Color.Primary"
                                                                StartIcon="@Icons.Material.Filled.UploadFile">
                                                         Bulk Upload Inventory
                                                     </MudButton>
                                                 </ActivatorContent>
                                             </MudFileUpload>
-                                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(!selectedFileReady)" OnClick="ConfirmUpload">
+                                            <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Secondary" Disabled="@(!selectedFileReady)" OnClick="ConfirmUpload">
                                                 Confirm Upload
                                             </MudButton>
                                         </MudStack>
@@ -153,7 +153,7 @@
                                     </MudStep>
                                     <MudStep Title="Review Data">
                                         Review and verify all uploaded items.
-                                        <MudSelect Variant="Variant.Outlined"
+                                        <MudSelect Variant="MudBlazor.Variant.Outlined"
                                                    Margin="Margin.Dense"
                                                    @bind-Value="SelectedClinic"
                                                    ToStringFunc="ClinicStringFunc"
@@ -185,7 +185,7 @@
                                     <MudStep Title="Complete Process" @bind-Completed="_completed">
                                         All inventory has been uploaded. Confirm to save.
 
-                                        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Primary" OnClick="() => SaveInventory(1)">
+                                        <MudButton Variant="MudBlazor.Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Primary" OnClick="() => SaveInventory(1)">
                                             Save Inventory
                                         </MudButton>
                                     </MudStep>

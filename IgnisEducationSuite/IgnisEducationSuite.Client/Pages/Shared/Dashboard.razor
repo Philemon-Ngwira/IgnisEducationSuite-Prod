@@ -50,7 +50,7 @@
                     }
                     else
                     {
-                        <MudAlert Variant="Variant.Filled" Class="mb-3" Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person2">Date and Time: @DateTime.Now</MudAlert>
+                        <MudAlert Variant="MudBlazor.Variant.Filled" Class="mb-3" Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person2">Date and Time: @DateTime.Now</MudAlert>
                         @if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
                         {
 
@@ -67,7 +67,7 @@
                                                     <MudText Typo="Typo.body2">Check Lessons From Teachers and Study them</MudText>
                                                 </MudCardContent>
                                                 <MudCardActions>
-                                                    <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.NavigateNext" Href="/StudentLessons" Color="Color.Primary">Go</MudButton>
+                                                    <MudButton Variant="MudBlazor.Variant.Filled" EndIcon="@Icons.Material.Filled.NavigateNext" Href="/StudentLessons" Color="Color.Primary">Go</MudButton>
                                                 </MudCardActions>
                                             </MudCard>
                                         </MudItem>
@@ -482,58 +482,6 @@
                                         </div>
                                     </div>
 
-                                    @* <div class="col-xxl-12 col-md-12">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
-                                                    <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Dining Menu</h6>
-                                                </div>
-                                            </div>
-                                            <div class="card-body">
-                                                @if (schoolMenu.Any())
-                                                {
-                                                    <MudGrid>
-                                                        @foreach (var item in schoolMenu)
-                                                        {
-
-                                                            <MudItem xs="12" md="4">
-                                                                <MudCard Class="mb-3">
-                                                                    <MudCardHeader>
-                                                                        <CardHeaderAvatar>
-                                                                            <MudIcon Icon="@Icons.Material.Filled.Dining"></MudIcon>
-                                                                        </CardHeaderAvatar>
-                                                                        <CardHeaderContent>
-                                                                            <MudText Typo="Typo.h6"><b>@item.MealName</b></MudText>
-                                                                        </CardHeaderContent>
-                                                                    </MudCardHeader>
-                                                                    <MudCardContent>
-                                                                        <MudText Typo="Typo.body2">Main Dish</MudText>
-                                                                        <MudText Typo="Typo.subtitle1"><b>@item.MainDish</b></MudText>
-                                                                        <MudGrid>
-                                                                            <MudItem xs="12" sm="6">
-                                                                                <MudText Typo="Typo.body2">Side Dish</MudText>
-                                                                                <MudText Typo="Typo.body1"><b>@item.SideDish</b></MudText>
-                                                                            </MudItem>
-                                                                            <MudItem xs="12" sm="6">
-                                                                                <MudText Typo="Typo.body2">Drink</MudText>
-                                                                                <MudText Typo="Typo.body1"><b>@item.Drink</b></MudText>
-                                                                            </MudItem>
-                                                                        </MudGrid>
-                                                                    </MudCardContent>
-                                                                </MudCard>
-                                                            </MudItem>
-
-
-                                                        }
-                                                    </MudGrid>
-                                                }
-                                                else
-                                                {
-
-                                                }
-                                            </div>
-                                        </div>
-                                    </div> *@
                                 </div>
                             }
                         }
@@ -624,11 +572,24 @@
                                                         <div id="enrollmentChart" class="apexcharts-tooltip-style-1">
                                                             @if (StudentCountryChartConfig == null)
                                                             {
-                                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No Data found to visualize</MudAlert>
+                                                                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No Data found to visualize</MudAlert>
                                                             }
                                                             else
                                                             {
-                                                                <Chart Config="@StudentCountryChartConfig"></Chart>
+                                                                <div class="rz-p-0 rz-p-md-12">
+                                                                    <Radzen.Blazor.RadzenChart>
+                                                                        <Radzen.Blazor.RadzenColumnSeries Data="@StudentCountryDemographicRadzen"
+                                                                                            CategoryProperty="Country"
+                                                                                            ValueProperty="StudentCount"
+                                                                                            Title="Total Students">
+                                                                            <Radzen.Blazor.RadzenSeriesDataLabels Visible="true" />
+                                                                        </Radzen.Blazor.RadzenColumnSeries>
+
+                                                                        <Radzen.Blazor.RadzenCategoryAxis Title="Countries" />
+                                                                        <Radzen.Blazor.RadzenValueAxis Title="Total Number" />
+                                                                    </Radzen.Blazor.RadzenChart>
+                                                                </div>
+                                                                @* <Chart Config="@StudentCountryChartConfig"></Chart> *@
                                                             }
                                                             @* <MudChart ChartType="ChartType.StackedBar" ChartSeries="@StudentCountryDemographic" @bind-SelectedIndex="Index" LegendPosition="@LegendPosition" XAxisLabels="@CountryNames" Width="100%" Height="550px"></MudChart> *@
 
@@ -652,11 +613,38 @@
                                             <div id="enrollmentChart" class="apexcharts-tooltip-style-1">
                                                 @if (StudentCityChartConfig == null)
                                                 {
-                                                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No Data found to visualize</MudAlert>
+                                                    <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No Data found to visualize</MudAlert>
                                                 }
                                                 else
                                                 {
-                                                    <Chart Config="@StudentCityChartConfig"></Chart>
+                                                    @*  <Chart Config="@StudentCityChartConfig"></Chart> *@
+                                                    <Radzen.Blazor.RadzenStack class="rz-p-0 rz-p-md-6 rz-p-lg-12" AlignItems="Radzen.AlignItems.Center">
+                                                        <Radzen.Blazor.RadzenCard Variant="Radzen.Variant.Outlined" Style="width: 100%;">
+                                                            <Radzen.Blazor.RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="Radzen.AlignItems.Center" Gap="0.5rem" Wrap="Radzen.FlexWrap.Wrap">
+                                                                <Radzen.Blazor.RadzenCheckBox @bind-Value="@showDataLabels" Name="dataLabels"></Radzen.Blazor.RadzenCheckBox>
+                                                                <Radzen.Blazor.RadzenLabel Text="Show Data Labels" Component="dataLabels" />
+                                                                <Radzen.Blazor.RadzenCheckBox @bind-Value="@showTooltipOnLegend" Name="legendTooltip"></Radzen.Blazor.RadzenCheckBox>
+                                                                <Radzen.Blazor.RadzenLabel Text="Show Tooltip On Legend" Component="legendTooltip" />
+                                                            </Radzen.Blazor.RadzenStack>
+                                                        </Radzen.Blazor.RadzenCard>
+
+                                                        <Radzen.Blazor.RadzenStack Style="width: 100%; max-width: 600px;">
+                                                            <Radzen.Blazor.RadzenChart>
+                                                                <Radzen.Blazor.RadzenDonutSeries Data="@StudentCityDemographicRadzen" CategoryProperty="City" ValueProperty="StudentCount"
+                                                                                                 TotalAngle="180" StartAngle="180" ShowTooltipOnLegend="@showTooltipOnLegend">
+                                                                    <ChildContent>
+                                                                        <Radzen.Blazor.RadzenSeriesDataLabels Visible="@showDataLabels" />
+                                                                    </ChildContent>
+                                                                    <TitleTemplate>
+                                                                        <div class="rz-donut-content">
+                                                                            <div>Students</div>
+                                                                            <div>by City</div>
+                                                                        </div>
+                                                                    </TitleTemplate>
+                                                                </Radzen.Blazor.RadzenDonutSeries>
+                                                            </Radzen.Blazor.RadzenChart>
+                                                        </Radzen.Blazor.RadzenStack>
+                                                    </Radzen.Blazor.RadzenStack>
                                                 }
                                                 @* <MudChart ChartType="ChartType.Pie" InputData="@StudentCityDemographic" @bind-SelectedIndex="Index" InputLabels="@CityNames" Width="300px" Height="500px" /> *@
 
@@ -709,7 +697,7 @@
                                             else
                                             {
 
-                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No data found, Please wait for ratings to be submitted</MudAlert>
+                                                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No data found, Please wait for ratings to be submitted</MudAlert>
 
                                             }
 
@@ -765,7 +753,7 @@
                                             }
                                             else
                                             {
-                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No data found</MudAlert>
+                                                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No data found</MudAlert>
                                             }
 
 
@@ -824,7 +812,7 @@
                                             }
                                             else
                                             {
-                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No data found</MudAlert>
+                                                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No data found</MudAlert>
 
                                             }
 

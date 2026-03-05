@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Caching.Memory;
 using MudBlazor.Services;
+using Radzen;
 using System.Net.Http;
 
 namespace IgnisEducationSuite.Client
@@ -20,7 +21,8 @@ namespace IgnisEducationSuite.Client
 
             // --- MudBlazor ---
             builder.Services.AddMudServices();
-
+            //----Radzen ---
+            builder.Services.AddRadzenComponents();
             // --- HTTP Clients ---
             builder.Services.AddScoped(sp => new HttpClient
             {

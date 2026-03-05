@@ -19,6 +19,24 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         protected int activeDayIndex = 0;
         protected bool isLoading = false;
         protected bool isAuthenticated = false;
+        protected bool showDataLabels = false;
+        protected bool showTooltipOnLegend = true;
+
+        // Replace your PieConfig dataset
+        protected class CityData
+        {
+            public string City { get; set; }
+            public double StudentCount { get; set; }
+        }
+        protected CityData[] StudentCityDemographicRadzen = Array.Empty<CityData>();
+
+        protected class CountryData
+        {
+            public string Country { get; set; }
+            public double StudentCount { get; set; }
+        }
+
+        protected CountryData[] StudentCountryDemographicRadzen = Array.Empty<CountryData>();
         private BarConfig StudentPerformanceChartConfig { get; set; }
         private BarConfig StudentCountryChartConfig { get; set; }
         private PieConfig StudentCityChartConfig { get; set; }
@@ -76,7 +94,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         {
             AppState.OnChange -= StateHasChanged;
         }
-        
+
         protected override async Task OnInitializedAsync()
         {
             LoaderService.Show("Initializing Dashboard please wait....");
@@ -155,7 +173,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                         GetUnCompletedClasses(),
                         GetAttendances(),
                         GetDiningMenus()
-                       
+
                     );
 
                     // This MUST run AFTER timeSlots + daysOfWeek load
@@ -194,6 +212,43 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 bestPerformingStudents = result.Data.ToList();
             }
 
+        }
+
+        private void LoadCityDemographics()
+        {
+            try
+            {
+                if (StudentDemographicsCity.Any())
+                {
+                    StudentCityDemographicRadzen = StudentDemographicsCity
+                        .Select(x => new CityData { City = x.City, StudentCount = Convert.ToDouble(x.StudentCount) })
+                        .ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error loading city demographics: {ex.Message}");
+            }
+        }
+        private void LoadCountryDemographics()
+        {
+            try
+            {
+                if (StudentDemographicsCountries.Any())
+                {
+                    StudentCountryDemographicRadzen = StudentDemographicsCountries
+                        .Select(x => new CountryData
+                        {
+                            Country = x.Country,
+                            StudentCount = (double)(x.StudentCount ?? 0)
+                        })
+                        .ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error loading country demographics: {ex.Message}");
+            }
         }
         protected async Task LoadInfomation()
         {
@@ -346,6 +401,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 if (result.IsSuccess)
                 {
                     StudentDemographicsCountries = result.Data.ToList();
+                    LoadCountryDemographics();
                     OrganizeCountryDemographicData();
                     StateHasChanged();
                 }
@@ -368,6 +424,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 if (result.IsSuccess)
                 {
                     StudentDemographicsCity = result.Data.ToList();
+                    LoadCityDemographics();
                     OrganizeCityDemographicData(); StateHasChanged();
                 }
                 else
@@ -403,7 +460,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             }
         }
 
-      
+
         private async Task<List<UserActivity>> GetUserActivitiesDone(string UserRole, string UserID)
         {
             if (UserRole == "Student")
@@ -483,6 +540,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             {
                 if (StudentDemographicsCountries.Any())
                 {
+
                     CountryNames = StudentDemographicsCountries.Select(x => x.Country).ToArray();
                     //Prepare the datasets
                     var currentMonthDataset = new BarDataset<double>
