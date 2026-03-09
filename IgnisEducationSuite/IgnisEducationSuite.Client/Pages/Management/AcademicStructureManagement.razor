@@ -252,6 +252,12 @@
         AcademicLevels = academicLevels.ToList();
         LevelSections = levelSections.ToList();
         await LoadTeachers();
+        // Ensure dictionary has all levels
+        foreach (var level in academicLevels)
+        {
+            if (!levelTeacherAssignments.ContainsKey(level.AcademicLevelID))
+                levelTeacherAssignments[level.AcademicLevelID] = null;
+        }
         LoaderService.Hide();
     }
 
