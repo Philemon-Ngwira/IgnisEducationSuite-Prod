@@ -11,5 +11,8 @@ namespace EDUSphereSharedProject.Models
     {
         [NotMapped]
         public string GeneratedUserName { get; set; }
+
+        [NotMapped]
+        public string FullName { get { return $"{FirstName} {LastName}"; } }
     }
 }

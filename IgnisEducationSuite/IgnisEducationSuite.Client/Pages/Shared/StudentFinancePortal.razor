@@ -1,0 +1,74 @@
+﻿@page "/FinancePortal"
+@inherits AppBaseComponent
+@using EDUSphereSharedProject.FinanceModels
+@using IgnisEducationSuite.Client.Pages.Finance
+
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Align="Align.Center" Typo="Typo.h4"><b>Finance Portal</b></MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudGrid Spacing="3">
+
+            <!-- Left Sidebar -->
+            <MudItem xs="12" md="3">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6"><b>Navigation</b></MudText>
+                    <MudNavMenu>
+                        <MudNavLink OnClick="@(() => ShowSection = "Invoices")">Invoices</MudNavLink>
+                        <MudNavLink OnClick="@(() => ShowSection = "Payments")">Payments</MudNavLink>
+                        <MudNavLink OnClick="@(() => ShowSection = "Balance")">Account Balance</MudNavLink>
+                        <MudNavLink OnClick="@(() => ShowSection = "Receipts")">Receipts</MudNavLink>
+                    </MudNavMenu>
+                </MudPaper>
+            </MudItem>
+
+            <!-- Main Content -->
+            <MudItem xs="12" md="9">
+                @if (ShowSection == "Invoices")
+                {
+                    <InvoiceSection Invoices="Invoices" CurrencySymbol="@CurrencySymbol" />
+                }
+                else if (ShowSection == "Balance")
+                {
+                    <BalanceSection Balance="AccountBalance" CurrencySymbol="AppState.Currency?.CurrencySymbol" />
+                }
+                else if (ShowSection == "Receipts")
+                {
+                    <ReceiptsSection Receipts="Receipts" />
+                }
+            </MudItem>
+
+        </MudGrid>
+
+    </MudCardContent>
+</MudCard>
+
+
+@code {
+    private string ShowSection = "Invoices";
+
+    // These lists / properties will be populated via API
+    private List<Invoice> Invoices = new();
+    private List<Payment> Payments = new();
+    private decimal AccountBalance;
+    private string CurrencySymbol = "$";
+
+    protected override async Task OnInitializedAsync()
+    {
+        CurrencySymbol = AppState.Currency?.CurrencySymbol ?? "$";
+        await LoadFinancialDataAsync();
+    }
+    //private List<Reciept> Receipts = new();
+
+    private async Task LoadFinancialDataAsync()
+    {
+        var userId = "82f5035d-5c1e-4f59-bdc5-d875410db9d4"/* AppState.UserID */;
+        var service = GenericService.GetService<Invoice>();
+        var result = await service.GetAllAsync($"api/Invoice/GetStudentInvoices/{userId}", true);
+        Invoices = result.Data.ToList() ?? new List<Invoice>();
+        await Task.Delay(500); // Simulate network delay
+    }
+}

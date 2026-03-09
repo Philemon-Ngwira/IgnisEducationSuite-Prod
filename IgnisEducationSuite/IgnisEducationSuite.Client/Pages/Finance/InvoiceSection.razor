@@ -1,0 +1,57 @@
+﻿@using EDUSphereSharedProject.FinanceModels
+@inherits AppBaseComponent
+
+<MudCard Class="pa-4 mb-4">
+    <MudCardHeader>
+        <MudText Typo="Typo.h6">Invoices</MudText>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudTable Items="Invoices" Hover="true" Dense="true" Bordered="true">
+            <HeaderContent>
+
+                <MudTh>Term</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Amount</MudTh>
+                <MudTh>Paid</MudTh>
+                <MudTh>Outstanding</MudTh>
+                <MudTh>Due Date</MudTh>
+                <MudTh>Status</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+
+                <MudTd>@context.TermStartDate.ToShortDateString() - @context.TermEndDate.ToShortDateString()</MudTd>
+                <MudTd>@context.InvoiceType</MudTd>
+                <MudTd>@($"{CurrencySymbol}{context.Amount:N2}")</MudTd>
+                <MudTd>@($"{CurrencySymbol}{context.PaidAmount:N2}")</MudTd>
+                <MudTd>@($"{CurrencySymbol}{context.GetOutstandingAmount():N2}")</MudTd>
+                <MudTd>@context.DueDate.ToShortDateString()</MudTd>
+                <MudTd>
+                    <MudChip T="string" Color="@GetStatusColor(context.PaymentStatus)" Variant="Variant.Filled">
+                        @context.PaymentStatus
+                    </MudChip>
+                </MudTd>
+            </RowTemplate>
+
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public List<Invoice> Invoices { get; set; } = new();
+    [Parameter] public string CurrencySymbol { get; set; } = "$";
+
+
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Paid" => Color.Success,
+        "Partial" => Color.Info,
+        "Pending" => Color.Warning,
+        _ => Color.Default
+    };
+}

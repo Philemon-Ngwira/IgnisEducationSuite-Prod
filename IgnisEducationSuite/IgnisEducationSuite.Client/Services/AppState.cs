@@ -25,13 +25,14 @@ public class AppState
     public bool HideStudentDashboard { get; private set; }
     public bool LicenseIsActive { get; private set; }
     public SchoolCurrency Currency { get; private set; } = new();
-   
+
     public usp_GetPharmacyLicenseStatusResult License { get; private set; } = new();
 
     // --- Global Data ---
     public List<Badge> Badges { get; private set; } = new();
     public List<UserActivity> UserActivities { get; private set; } = new();
     public List<AcademicLevel> AcademicLevels { get; private set; } = new();
+    public List<LevelSection> AcademicSections { get; private set; } = new();
     public int NewAssignmentsCount { get; private set; }
 
     // --- Initialization State ---
@@ -133,6 +134,7 @@ public class AppState
 
                 await LoadBadgesAsync();
                 await LoadAcademicLevelsAsync();
+                await LoadAcademicSections();
                 if (UserRole == "Student")
                 {
                     await LoadUserActivitiesAsync();
@@ -183,7 +185,20 @@ public class AppState
             AcademicLevels = new();
         }
     }
+    private async Task LoadAcademicSections()
+    {
+        try
+        {
+            var levelSectService = _genericService.GetService<LevelSection>();
+            var result = await levelSectService.GetAllAsync($"api/Dynamic/GetSchoolAcademicSections/{Guid.Parse(SchoolID)}", true);
+            AcademicSections = result.IsSuccess ? result.Data.ToList() : new();
+        }
+        catch (Exception)
+        {
 
+            throw;
+        }
+    }
     private async Task LoadUserActivitiesAsync()
     {
         try
@@ -238,7 +253,7 @@ public class AppState
     }
     #endregion
 
-  
+
 }
 public class SchoolCurrency
 {

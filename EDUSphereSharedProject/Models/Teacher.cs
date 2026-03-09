@@ -41,6 +41,8 @@ public partial class Teacher
 
     public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
 
+    public virtual ICollection<ClassTeacher> ClassTeachers { get; set; } = new List<ClassTeacher>();
+
     public virtual ICollection<Class> Classes { get; set; } = new List<Class>();
 
     public virtual ICollection<ExamQuizTestHeader> ExamQuizTestHeaders { get; set; } = new List<ExamQuizTestHeader>();

@@ -1,0 +1,326 @@
+﻿@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+
+<MudStack Spacing="3">
+
+    <MudText Typo="Typo.h5">
+        Academic Structure Management
+    </MudText>
+
+    <MudText Typo="Typo.caption">
+        Manage levels, sections and class teacher assignments.
+    </MudText>
+
+    <MudDivider />
+
+    <MudExpansionPanels MultiExpansion="true">
+
+        @foreach (var level in AcademicLevels.OrderBy(x => x.SortOrder))
+        {
+            <MudExpansionPanel>
+
+                <!-- HEADER -->
+
+                <TitleContent>
+
+                    <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+
+                        <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+
+                            <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">
+                                @level.LevelName
+                            </MudChip>
+
+                            <MudChip T="string" Color="@(level.isActive == true ? Color.Success : Color.Error)" Variant="Variant.Outlined">
+                                @(level.isActive == true ? "Active" : "Inactive")
+                            </MudChip>
+
+                            <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined">
+                                @GetLevelStudentCount(level.AcademicLevelID) Students
+                            </MudChip>
+
+                        </MudStack>
+
+                        <MudStack Row Spacing="1">
+
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => ToggleEdit(level))" />
+
+                            <MudIconButton Icon="@Icons.Material.Filled.PowerSettingsNew"
+                                           Color="Color.Warning"
+                                           OnClick="@(() => ToggleLevelStatus(level))" />
+
+                        </MudStack>
+
+                    </MudStack>
+
+                </TitleContent>
+
+                <!-- BODY -->
+
+                <ChildContent>
+
+                    <!-- LEVEL EDIT -->
+                    @if (editingLevels.Contains(level.AcademicLevelID))
+                    {
+                        <MudPaper Class="pa-3 mb-3">
+
+                            <MudGrid>
+
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Label="Level Name"
+                                                  Margin="Margin.Dense"
+                                                  @bind-Value="level.LevelName" />
+                                </MudItem>
+
+                                <MudItem xs="12" md="3">
+                                    <MudNumericField Label="Sort Order"
+                                                     Margin="Margin.Dense"
+                                                     @bind-Value="level.SortOrder" />
+                                </MudItem>
+
+                                <MudItem xs="12" md="3">
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               OnClick="@(() => SaveLevel(level))">
+                                        Save
+                                    </MudButton>
+                                </MudItem>
+
+                            </MudGrid>
+
+                        </MudPaper>
+                    }
+
+                    <!-- SECTIONS -->
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">
+                        Sections
+                    </MudText>
+
+                    @if (levelSections.Any(x => x.AcademicLevelID == level.AcademicLevelID))
+                    {
+
+                        <MudTable Dense="true"
+                                  Items="levelSections.Where(x => x.AcademicLevelID == level.AcademicLevelID)">
+
+                            <HeaderContent>
+                                <MudTh>Section</MudTh>
+                                <MudTh>Students</MudTh>
+                                <MudTh>Class Teacher</MudTh>
+                                <MudTh>Actions</MudTh>
+                            </HeaderContent>
+
+                            <RowTemplate>
+
+                                <!-- Section Name -->
+
+                                <MudTd>
+                                    <MudTextField Margin="Margin.Dense"
+                                                  @bind-Value="context.SectionCode" />
+                                </MudTd>
+
+                                <!-- Student Count -->
+
+                                <MudTd>
+                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined">
+                                        @GetSectionStudentCount(context.LevelSectionID) Students
+                                    </MudChip>
+                                </MudTd>
+
+                                <!-- Teacher -->
+
+                                <MudTd>
+
+                                    <MudSelect T="Guid?"
+                                               Dense="true"
+                                               Placeholder="Assign Teacher"
+                                               @bind-Value="sectionTeacherAssignments[context.LevelSectionID]">
+
+                                        @foreach (var teacher in teachers)
+                                        {
+                                            <MudSelectItem Value="@((Guid?)teacher.TeacherID)">
+                                                @teacher.FullName
+                                            </MudSelectItem>
+                                        }
+
+                                    </MudSelect>
+
+                                </MudTd>
+
+                                <!-- Actions -->
+
+                                <MudTd>
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Save"
+                                                   Color="Color.Success"
+                                                   OnClick="@(() => SaveSection(context))" />
+
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => DeleteSection(context))" />
+
+                                </MudTd>
+
+                            </RowTemplate>
+
+                        </MudTable>
+
+                    }
+                    else
+                    {
+
+                        <!-- NO SECTIONS SCHOOL -->
+
+                        <MudAlert Severity="Severity.Info">
+                            This level has no sections. Assign a class teacher for the entire level.
+                        </MudAlert>
+
+                        <MudStack Row Spacing="2" Class="mt-2">
+
+                            <MudSelect T="Guid?"
+                                       Dense="true"
+                                       Placeholder="Assign Class Teacher"
+                                       @bind-Value="levelTeacherAssignments[level.AcademicLevelID]">
+
+                                @foreach (var teacher in teachers)
+                                {
+                                    <MudSelectItem Value="@((Guid?)teacher.TeacherID)">
+                                        @teacher.FullName
+                                    </MudSelectItem>
+                                }
+
+                            </MudSelect>
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="@(() => SaveLevelTeacher(level))">
+                                Save
+                            </MudButton>
+
+                        </MudStack>
+
+                    }
+
+                    <!-- ADD SECTION -->
+
+                    <MudDivider Class="my-3" />
+
+                    <MudStack Row Spacing="2">
+
+                        <MudTextField Placeholder="New Section Name"
+                                      Margin="Margin.Dense"
+                                      @bind-Value="newSectionPerLevel[level.AcademicLevelID]" />
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => AddSection(level))">
+                            Add Section
+                        </MudButton>
+
+                    </MudStack>
+
+                </ChildContent>
+
+            </MudExpansionPanel>
+        }
+
+    </MudExpansionPanels>
+
+</MudStack>
+
+@code {
+
+    protected List<AcademicLevel> AcademicLevels = new();
+    protected List<LevelSection> LevelSections = new();
+    protected List<Teacher> teachers = new();
+    protected List<ClassTeacher> classTeachers = new();
+
+    protected List<Student> students = new(); // for student counts
+
+    private HashSet<Guid> editingLevels = new();
+
+    private Dictionary<Guid, string> newSectionPerLevel = new();
+
+    private Dictionary<Guid, Guid?> sectionTeacherAssignments = new();
+    private Dictionary<Guid, Guid?> levelTeacherAssignments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait while we load the academic structure...");
+        AcademicLevels = academicLevels.ToList();
+        LevelSections = levelSections.ToList();
+        await LoadTeachers();
+        LoaderService.Hide();
+    }
+
+    void ToggleEdit(AcademicLevel level)
+    {
+        if (editingLevels.Contains(level.AcademicLevelID))
+            editingLevels.Remove(level.AcademicLevelID);
+        else
+            editingLevels.Add(level.AcademicLevelID);
+    }
+    private async Task LoadTeachers()
+    {
+        var result = GenericService.GetService<Teacher>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetTeachersBySchoolID/{Guid.Parse(AppState.SchoolID)}", true);
+        teachers = service.Data.ToList() ?? new List<Teacher>();
+    }
+
+    void ToggleLevelStatus(AcademicLevel level)
+    {
+        level.isActive = !level.isActive;
+    }
+
+    int GetLevelStudentCount(Guid levelId)
+    {
+        return students.Count(x => x.AcademicLevelID == levelId);
+    }
+
+    int GetSectionStudentCount(Guid sectionId)
+    {
+        return students.Count(x => x.LevelSectionID == sectionId);
+    }
+
+    private async Task SaveLevel(AcademicLevel level)
+    {
+        // API call
+        editingLevels.Remove(level.AcademicLevelID);
+    }
+
+    private async Task SaveSection(LevelSection section)
+    {
+        var teacherId = sectionTeacherAssignments.ContainsKey(section.LevelSectionID)
+            ? sectionTeacherAssignments[section.LevelSectionID]
+            : null;
+
+        // API call
+    }
+
+    private async Task DeleteSection(LevelSection section)
+    {
+        // API call
+    }
+
+    private async Task AddSection(AcademicLevel level)
+    {
+        var name = newSectionPerLevel[level.AcademicLevelID];
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            // API call
+
+            newSectionPerLevel[level.AcademicLevelID] = string.Empty;
+        }
+    }
+
+    private async Task SaveLevelTeacher(AcademicLevel level)
+    {
+        var teacherId = levelTeacherAssignments[level.AcademicLevelID];
+
+        // API call
+    }
+
+}

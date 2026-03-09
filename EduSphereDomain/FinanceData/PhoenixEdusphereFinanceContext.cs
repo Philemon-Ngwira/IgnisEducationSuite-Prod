@@ -123,6 +123,12 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
         {
             entity.ToTable("FinanceLedger", "Finance");
 
+            entity.HasIndex(e => e.ReferenceId, "IX_FinanceLedger_ReferenceId");
+
+            entity.HasIndex(e => e.SchoolId, "IX_FinanceLedger_SchoolId");
+
+            entity.HasIndex(e => e.StudentFinanceId, "IX_FinanceLedger_StudentFinanceId");
+
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");

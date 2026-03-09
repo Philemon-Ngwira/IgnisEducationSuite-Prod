@@ -22,5 +22,6 @@ public partial class vw_ClassTeacherDetail
     public string Gender { get; set; }
 
     public string UserID { get; set; }
+
     public string GradeSection { get; set; }
 }

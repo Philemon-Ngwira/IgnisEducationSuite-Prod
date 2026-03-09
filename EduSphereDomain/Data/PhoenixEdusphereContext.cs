@@ -65,6 +65,8 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<ClassSchedule> ClassSchedules { get; set; }
 
+    public virtual DbSet<ClassTeacher> ClassTeachers { get; set; }
+
     public virtual DbSet<ClientAdmin> ClientAdmins { get; set; }
 
     public virtual DbSet<ClientsWithoutStudentDashboard> ClientsWithoutStudentDashboards { get; set; }
@@ -681,6 +683,36 @@ public partial class PhoenixEdusphereContext : DbContext
                 .HasConstraintName("FK_ClassSchedule_TimeSlots");
         });
 
+        modelBuilder.Entity<ClassTeacher>(entity =>
+        {
+            entity.Property(e => e.ClassTeacherID).ValueGeneratedNever();
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(455)
+                .IsUnicode(false);
+            entity.Property(e => e.DateCreated).HasColumnType("datetime");
+            entity.Property(e => e.DateUpdated).HasColumnType("datetime");
+
+            entity.HasOne(d => d.AcademicLevel).WithMany(p => p.ClassTeachers)
+                .HasForeignKey(d => d.AcademicLevelID)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_ClassTeachers_AcademicLevels");
+
+            entity.HasOne(d => d.LevelSection).WithMany(p => p.ClassTeachers)
+                .HasForeignKey(d => d.LevelSectionID)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_ClassTeachers_LevelSections");
+
+            entity.HasOne(d => d.School).WithMany(p => p.ClassTeachers)
+                .HasForeignKey(d => d.SchoolID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ClassTeachers_Schools");
+
+            entity.HasOne(d => d.Teacher).WithMany(p => p.ClassTeachers)
+                .HasForeignKey(d => d.TeacherID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ClassTeachers_Teachers");
+        });
+
         modelBuilder.Entity<ClientAdmin>(entity =>
         {
             entity.HasKey(e => e.AdminID);
@@ -1218,6 +1250,8 @@ public partial class PhoenixEdusphereContext : DbContext
         modelBuilder.Entity<LevelSection>(entity =>
         {
             entity.HasKey(e => e.LevelSectionID).HasName("PK__LevelSec__5E1B057666C0477A");
+
+            entity.HasIndex(e => new { e.AcademicLevelID, e.SectionCode, e.SchoolID }, "UQ_LevelSections_Level_Section_School").IsUnique();
 
             entity.Property(e => e.LevelSectionID).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
@@ -2165,8 +2199,8 @@ public partial class PhoenixEdusphereContext : DbContext
             entity.Property(e => e.Gender)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.LastName).HasMaxLength(50);
             entity.Property(e => e.GradeSection).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
         });
 
         modelBuilder.Entity<vw_ClassTimetable>(entity =>

@@ -27,6 +27,28 @@ namespace EduSphereDomain.Repositories
             var result = await _context.InvoiceTypes.ToListAsync();
             return result;
         }
+
+        public async Task<IEnumerable<Invoice>> GetStudentInvoices(string StudentID)
+        {
+            var result = await _procedures.GetStudentInvoicesAsync(StudentID);
+            return result.Select(x => new Invoice
+            {
+                Id = x.Id,
+                StudentFinanceId = x.StudentFinanceId,
+                Amount = x.Amount,
+                PaidAmount = x.PaidAmount,
+                PaymentStatus = x.PaymentStatus,
+                TermStartDate = x.TermStartDate,
+                TermEndDate = x.TermEndDate,
+                DueDate = x.DueDate,
+                IssuedDate = x.IssuedDate,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt,
+                InvoiceTypeID = x.InvoiceTypeID,
+                InvoiceType = x.InvoiceType,
+                SchoolID = x.SchoolID
+            }).ToList();
+        }
         public async Task<IEnumerable<StudentFinance>> GetStudentFinances(Guid SchoolID)
         {
             var result = await _procedures.GetStudentFinanceBySchoolAsync(SchoolID);

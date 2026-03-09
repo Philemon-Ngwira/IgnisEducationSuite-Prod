@@ -45,6 +45,10 @@ public partial class Student
 
     public string GroupName { get; set; }
 
+    public Guid? AcademicLevelID { get; set; }
+
+    public Guid? LevelSectionID { get; set; }
+
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
 
     public virtual ICollection<Grade> Grades { get; set; } = new List<Grade>();

@@ -1,0 +1,553 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+<MudStepper @bind-ActiveIndex="_activeStep">
+
+    <!-- STEP 1 -->
+    <MudStep Title="Current Structure">
+
+        <MudText Typo="Typo.h6" Class="mb-2">
+            Existing Academic Levels
+        </MudText>
+
+        @if (academicLevels.Any())
+        {
+            <MudList T="string" Dense="true">
+                @foreach (var level in academicLevels.OrderBy(x => x.SortOrder))
+                {
+                    <MudListItem>
+                        <MudChip Variant="Variant.Outlined">
+                            @level.LevelName
+                        </MudChip>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">
+                No academic levels configured yet.
+            </MudAlert>
+        }
+
+        <MudButton Class="mt-4" OnClick="@(() => _activeStep++)">
+            Continue
+        </MudButton>
+
+    </MudStep>
+
+
+    <!-- STEP 2 -->
+    <MudStep Title="Upload Structure">
+
+        <MudStack Spacing="2">
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       OnClick="DownloadStructureTemplate">
+                Download Template
+            </MudButton>
+
+            <MudFileUpload T="IBrowserFile" FilesChanged="UploadAcademicFile">
+                <ActivatorContent>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary">
+                        Upload Excel File
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+
+            @if (uploadErrors.Any())
+            {
+                <MudAlert Severity="Severity.Error">
+                    @foreach (var error in uploadErrors)
+                    {
+                        <div>@error</div>
+                    }
+                </MudAlert>
+            }
+
+            <MudButton Disabled="!uploadedLevels.Any()"
+                       OnClick="@(() => _activeStep++)">
+                Review Changes
+            </MudButton>
+
+        </MudStack>
+
+    </MudStep>
+
+
+    <!-- STEP 3 -->
+    <MudStep Title="Review Changes">
+
+        <MudText Typo="Typo.h6" Class="mb-3">
+            Level Change Summary
+        </MudText>
+
+        <MudList T="string" Dense="true">
+
+            @foreach (var diff in previewDiffs)
+            {
+                <MudListItem>
+
+                    @switch (diff.State)
+                    {
+                        case DiffState.New:
+                            <MudChip Color="Color.Success" Variant="Variant.Filled">
+                                + @diff.Level.LevelName
+                            </MudChip>
+                            break;
+
+                        case DiffState.Existing:
+                            <MudChip Color="Color.Default" Variant="Variant.Outlined">
+                                = @diff.Level.LevelName
+                            </MudChip>
+                            break;
+                    }
+
+                    <MudText Typo="Typo.caption" Class="ml-2">
+                        @diff.Reason
+                    </MudText>
+
+                </MudListItem>
+            }
+
+        </MudList>
+
+        <MudDivider Class="my-3" />
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="ProceedToSections">
+            Continue
+        </MudButton>
+
+    </MudStep>
+
+
+    <!-- STEP 4 -->
+    <MudStep Title="Level Sections" CompletedChanged="MoveToTeacherAssignment">
+
+        <MudText Typo="Typo.h6" Class="mb-3">
+            Configure Sections
+        </MudText>
+        <MudText Typo="Typo.caption" Class="mb-2">
+            Add sections if applicable. Leave blank if this level has no sections.
+        </MudText>
+        @foreach (var level in academicLevels.OrderBy(x => x.SortOrder))
+        {
+            <MudPaper Class="pa-4 mb-3">
+
+                <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.subtitle1">
+                        @level.LevelName (@levelSections.Count(x => x.AcademicLevelID == level.AcademicLevelID) sections)
+                    </MudText>
+                </MudStack>
+
+                <MudStack Row Spacing="1" Class="mt-2" Wrap="Wrap.Wrap">
+
+                    @foreach (var section in levelSections
+                                    .Where(x => x.AcademicLevelID == level.AcademicLevelID))
+                    {
+                        <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined">
+                            @(section.SectionCode)
+                        </MudChip>
+                    }
+
+                </MudStack>
+
+                <MudStack Row Spacing="1" Class="mt-2">
+                    <MudTextField @bind-Value="newSectionNamePerLevel[level.AcademicLevelID]"
+                                  Placeholder="Enter Section Name"
+                                  Class="mr-2"
+                                  Immediate="true"
+                                  OnKeyDown="@(async e => { if (e.Key == "Enter") await AddSection(level); })" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                   Color="Color.Primary"
+                                   OnClick="async () => await AddSection(level)" />
+                </MudStack>
+
+            </MudPaper>
+        }
+
+        <MudButton Class="mt-4"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="MoveToTeacherAssignment">
+            Continue
+        </MudButton>
+
+    </MudStep>
+
+    <!-- STEP 5 -->
+    <MudStep Title="Class Teachers">
+
+        <MudText Typo="Typo.h6" Class="mb-3">
+            Assign Class Teachers
+        </MudText>
+
+        <MudTable Items="classTeacherAssignments" Dense="true">
+
+            <HeaderContent>
+                <MudTh>Class</MudTh>
+                <MudTh>Teacher</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+
+                <MudTd>
+                    @if (!string.IsNullOrWhiteSpace(context.SectionCode))
+                    {
+                        <span>@context.LevelName (@context.SectionCode)</span>
+                    }
+                    else
+                    {
+                        <span>@context.LevelName</span>
+                    }
+                </MudTd>
+                @if (!classTeacherAssignments.Any())
+                {
+                    <MudText Typo="Typo.caption" Class="ml-2">
+                        No sections or levels available for teacher assignment.
+                    </MudText>
+                }
+
+                <MudTd>
+
+                    <MudSelect T="Guid?"
+                               Dense="true"
+                               @bind-Value="context.TeacherID"
+                               Placeholder="Select Teacher"
+                               ToStringFunc="GetTeacherName">
+
+                        @foreach (var teacher in teachers)
+                        {
+                            <MudSelectItem Value="@((Guid?)teacher.TeacherID)">
+                                @teacher.FullName
+                            </MudSelectItem>
+                        }
+
+                    </MudSelect>
+
+                </MudTd>
+
+            </RowTemplate>
+
+
+        </MudTable>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   Class="mt-4"
+                   OnClick="SaveChanges">
+            Confirm Setup
+        </MudButton>
+
+    </MudStep>
+</MudStepper>
+@code {
+
+    protected List<AcademicLevel> academicLevels = new();
+    protected List<AcademicLevel> uploadedLevels = new();
+
+    protected List<LevelSection> levelSections = new();
+    protected List<ClassTeacherAssignmentVM> classTeacherAssignments = new();
+
+    protected List<Teacher> teachers = new();
+
+    protected List<string> uploadErrors = new();
+
+    protected int _activeStep = 0;
+
+    private List<AcademicLevelDiff> previewDiffs = new();
+    // New: stores user input per level
+    private Dictionary<Guid, string> newSectionNamePerLevel = new();
+
+    public class AcademicLevelDiff
+    {
+        public AcademicLevel Level { get; set; }
+        public DiffState State { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    public enum DiffState
+    {
+        Existing,
+        New
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        await GetAcademicStructureAsync();
+        await LoadTeachers();
+        if (academicLevels.Any())
+        {
+            foreach (var level in academicLevels)
+            {
+                if (!newSectionNamePerLevel.ContainsKey(level.AcademicLevelID))
+                    newSectionNamePerLevel[level.AcademicLevelID] = string.Empty;
+            }
+        }
+        LoaderService.Hide();
+    }
+    protected async Task DownloadStructureTemplate()
+    {
+        var response = await HttpClient.GetAsync($"api/Templates/DownloadAcademicStructureTemplate");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+            var fileName = "AcademicStructureTemplate.xlsx";
+
+            if (response.Content.Headers.ContentDisposition != null)
+            {
+                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            }
+
+            await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, fileBytes);
+        }
+    }
+    private async Task UploadAcademicFile(IBrowserFile file)
+    {
+        if (file == null || file.Size == 0) return;
+
+        LoaderService.Show("Validating Structure file, please wait...");
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream(10 * 1024 * 1024);
+
+            var fileContent = new StreamContent(stream);
+
+            fileContent.Headers.ContentType =
+                new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await HttpClient.PostAsync("api/upload/uploadStructures", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<UploadPreviewResult>();
+
+                if (result != null)
+                {
+                    uploadedLevels = result.academicLevels;
+
+                    uploadErrors = result.Errors
+                        .Select(e => $"Row {e.RowIndex}: {e.Message}")
+                        .ToList();
+
+                    BuildDiff();
+                }
+            }
+            else
+            {
+                uploadErrors.Add("Failed to upload structure file.");
+            }
+        }
+        catch (Exception ex)
+        {
+            uploadErrors.Add($"Error uploading file: {ex.Message}");
+        }
+        finally
+        {
+            LoaderService.Hide();
+            StateHasChanged();
+        }
+    }
+    private void BuildDiff()
+    {
+        previewDiffs.Clear();
+
+        foreach (var uploaded in uploadedLevels)
+        {
+            var exists = academicLevels.Any(x =>
+                x.LevelName.Trim().Equals(uploaded.LevelName.Trim(),
+                StringComparison.OrdinalIgnoreCase));
+
+            previewDiffs.Add(new AcademicLevelDiff
+            {
+                Level = uploaded,
+                State = exists ? DiffState.Existing : DiffState.New,
+                Reason = exists ? "Already exists" : "Will be added"
+            });
+        }
+    }
+
+
+    protected async Task GetAcademicStructureAsync()
+    {
+        var service = GenericService.GetService<AcademicLevel>();
+
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetFullSchoolAcademicStructure/{Guid.Parse(AppState.SchoolID)}",
+            true);
+
+        if (result.IsSuccess)
+            academicLevels = result.Data.ToList();
+    }
+
+
+    private async Task LoadTeachers()
+    {
+        var result = GenericService.GetService<Teacher>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetTeachersBySchoolID/{Guid.Parse(AppState.SchoolID)}", true);
+        teachers = service.Data.ToList() ?? new List<Teacher>();
+    }
+
+
+    private void ProceedToSections()
+    {
+        var newLevels = previewDiffs
+            .Where(x => x.State == DiffState.New)
+            .Select(x => x.Level)
+            .ToList();
+
+        academicLevels.AddRange(newLevels);
+        foreach (var level in academicLevels)
+        {
+            if (!newSectionNamePerLevel.ContainsKey(level.AcademicLevelID))
+                newSectionNamePerLevel[level.AcademicLevelID] = string.Empty;
+        }
+
+        _activeStep++;
+    }
+
+
+    private async Task AddSection(AcademicLevel level)
+    {
+        string sectionCode;
+
+        if (newSectionNamePerLevel.ContainsKey(level.AcademicLevelID) &&
+            !string.IsNullOrWhiteSpace(newSectionNamePerLevel[level.AcademicLevelID]))
+        {
+            sectionCode = newSectionNamePerLevel[level.AcademicLevelID].Trim();
+        }
+        else
+        {
+            // fallback to letters
+            sectionCode = ((char)('A' +
+                levelSections.Count(x => x.AcademicLevelID == level.AcademicLevelID))).ToString();
+        }
+
+        levelSections.Add(new LevelSection
+        {
+            LevelSectionID = Guid.NewGuid(),
+            AcademicLevelID = level.AcademicLevelID,
+            SectionCode = sectionCode,
+            SchoolID = Guid.Parse(AppState.SchoolID),
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        // reset the input for this level
+        newSectionNamePerLevel[level.AcademicLevelID] = string.Empty;
+
+        StateHasChanged(); // ensures the UI updates immediately
+    }
+
+    private void MoveToTeacherAssignment()
+    {
+        BuildTeacherAssignments();
+        _activeStep++;
+    }
+
+    private void BuildTeacherAssignments()
+    {
+        classTeacherAssignments = new List<ClassTeacherAssignmentVM>();
+
+        foreach (var level in academicLevels)
+        {
+            var sections = levelSections
+                .Where(s => s.AcademicLevelID == level.AcademicLevelID)
+                .ToList();
+
+            if (sections.Any())
+            {
+                // Teacher per section
+                foreach (var section in sections)
+                {
+                    classTeacherAssignments.Add(new ClassTeacherAssignmentVM
+                    {
+                        AcademicLevelID = level.AcademicLevelID,
+                        LevelSectionID = section.LevelSectionID,
+                        LevelName = level.LevelName,
+                        SectionCode = section.SectionCode
+                    });
+                }
+            }
+            else
+            {
+                // Teacher for whole level
+                classTeacherAssignments.Add(new ClassTeacherAssignmentVM
+                {
+                    AcademicLevelID = level.AcademicLevelID,
+                    LevelSectionID = null,
+                    LevelName = level.LevelName,
+                    SectionCode = null
+                });
+            }
+        }
+    }
+
+    private async Task SaveChanges()
+    {
+        LoaderService.Show($"Setting up Academic Structure for {AppState.SchoolName}");
+
+        var sectionService = GenericService.GetService<List<LevelSection>>();
+        var classTeacherService = GenericService.GetService<List<ClassTeacher>>();
+
+        var schoolID = Guid.Parse(AppState.SchoolID);
+
+        var classTeachers = new List<ClassTeacher>();
+
+        foreach (var assignment in classTeacherAssignments)
+        {
+            if (assignment.TeacherID == null) continue;
+
+            classTeachers.Add(new ClassTeacher
+            {
+                ClassTeacherID = Guid.NewGuid(),
+                TeacherID = assignment.TeacherID,
+                LevelSectionID = assignment.LevelSectionID,
+                SchoolID = schoolID,
+                AcademicLevelID = assignment.AcademicLevelID,
+                DateCreated = DateTime.UtcNow,
+                DateUpdated = DateTime.UtcNow
+            });
+        }
+        if (levelSections.Any())
+        {
+            await sectionService.PostAsync("api/Dynamic/PostEntities", "levelsection", levelSections);
+        }
+        await classTeacherService.PostAsync("api/Dynamic/PostEntities", "classteachers", classTeachers);
+
+        LoaderService.Hide();
+
+        Snackbar.Add("Academic Structure Successfully Set Up.", Severity.Success);
+    }
+    private string GetTeacherName(Guid? teacherId)
+    {
+        if (teacherId == null)
+            return string.Empty;
+
+        return teachers
+            .FirstOrDefault(t => t.TeacherID == teacherId)?
+            .FullName ?? string.Empty;
+    }
+
+    public class ClassTeacherAssignmentVM
+    {
+        public Guid? LevelSectionID { get; set; }
+        public string LevelName { get; set; }
+        public string SectionCode { get; set; }
+        public Guid? TeacherID { get; set; }
+        public Guid AcademicLevelID { get; set; }
+    }
+
+}

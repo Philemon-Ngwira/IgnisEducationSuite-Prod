@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IgnisEducationSuite.Controllers
 {
-    [Authorize(Roles = "Admin, Finance")]
+    [Authorize(Roles = "Admin, Finance, Parent, Student")]
     [Route("api/[controller]")]
     [ApiController]
     public class InvoiceController : ControllerBase
@@ -31,7 +31,12 @@ namespace IgnisEducationSuite.Controllers
             var result = await _finananceRepository.GetStudentFinances(SchoolID);
             return Ok(result);
         }
-
+        [HttpGet("GetStudentInvoices/{UserID}")]
+        public async Task<IActionResult> GetStudentInvoices(string UserID)
+        {
+            var result = await _finananceRepository.GetStudentInvoices(UserID);
+            return Ok(result);
+        }
 
         [HttpPost("generate-bulk")]
         public async Task<IActionResult> GenerateBulkInvoices(

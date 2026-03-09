@@ -790,7 +790,10 @@
                 profilePic = item.ProfilePic ?? Array.Empty<byte>(),
             };
             item.SchoolID = Guid.Parse(AppState.SchoolID);
+            item.GradeSection = levelSections.Where(x => x.SectionCode.ToLower() == item.GradeSection.ToLower()).Select(x => x.SectionCode).FirstOrDefault();
             item.AcademicLevel = academicLevels.Where(x => x.LevelName.ToLower() == item.LevelName.ToLower()).Select(x => x.LevelInt).FirstOrDefault();
+            item.AcademicLevelID = academicLevels.Where(x => x.LevelName.ToLower() == item.LevelName.ToLower()).Select(x => x.AcademicLevelID).FirstOrDefault();
+            item.LevelSectionID = levelSections.Where(x => x.SectionCode.ToLower() == item.GradeSection.ToLower() && x.AcademicLevelID == item.AcademicLevelID).Select(x => x.LevelSectionID).FirstOrDefault();
             item.StudentID = Guid.NewGuid();
             var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
             // if (count >= LicenseUserLimit.UserLimit) // Corrected condition

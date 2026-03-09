@@ -33,6 +33,8 @@ public partial class School
 
     public virtual ICollection<Bus> Buses { get; set; } = new List<Bus>();
 
+    public virtual ICollection<ClassTeacher> ClassTeachers { get; set; } = new List<ClassTeacher>();
+
     public virtual ICollection<Class> Classes { get; set; } = new List<Class>();
 
     public virtual ICollection<ClientAdmin> ClientAdmins { get; set; } = new List<ClientAdmin>();

@@ -649,6 +649,8 @@ namespace IgnisEducationSuite.Controllers
                 "roomasset" => GetRepository<RoomAsset>(),
                 "roomassetconditionevents" => GetRepository<RoomAssetConditionEvent>(),
                 "studentroomlog" => GetRepository<StudentRoomLog>(),
+                "classteachers" => GetRepository<ClassTeacher>(),
+                "levelsection" => GetRepository<LevelSection>(),
                 // Add more entities here as needed
                 _ => null
             };
@@ -734,7 +736,8 @@ namespace IgnisEducationSuite.Controllers
                 "roomasset" => JsonSerializer.Deserialize<RoomAsset>(obj.ToString()),
                 "roomassetconditionevents" => JsonSerializer.Deserialize<RoomAssetConditionEvent>(obj.ToString()),
                 "studentroomlog" => JsonSerializer.Deserialize<StudentRoomLog>(obj.ToString()),
-
+                "classteachers" => JsonSerializer.Deserialize<ClassTeacher>(obj.ToString()),
+                "levelsection" => JsonSerializer.Deserialize<LevelSection>(obj.ToString()),
                 // Add more entity conversions here as needed
                 _ => null
             };
@@ -758,6 +761,12 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetLevelSectionByLevel(Guid LevelID)
         {
             var result = await _repository.GetLevelSectionsAsync(LevelID);
+            return Ok(result);
+        }
+        [HttpGet("GetSchoolAcademicSections/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolAcademicSections(Guid SchoolID)
+        {
+            var result = await _repository.GetLevelSectionsBySchoolAsync(SchoolID);
             return Ok(result);
         }
 

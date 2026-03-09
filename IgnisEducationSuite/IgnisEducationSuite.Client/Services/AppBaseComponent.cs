@@ -19,10 +19,12 @@ public class AppBaseComponent : ComponentBase, IDisposable
     [Inject] protected LoaderService LoaderService { get; set; } = default!;
     protected Mascot.BotState CurrentBotState { get; set; } = Mascot.BotState.Idle;
     protected List<AcademicLevel> academicLevels { get; set; } = new List<AcademicLevel>();
+    protected List<LevelSection> levelSections { get; set; } = new List<LevelSection>();
     protected override void OnInitialized()
     {
         AppState.OnChange += StateHasChanged;
         academicLevels = AppState.AcademicLevels;
+        levelSections = AppState.AcademicSections;
     }
 
     protected async Task<IEnumerable<Staff>> GetStaffAsync(string roleName)

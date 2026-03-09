@@ -1,0 +1,163 @@
+﻿@using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+
+<MudCard Class="pa-4">
+
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5">Record Payment</MudText>
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                Log a payment received from a parent or guardian.
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudCardContent>
+
+        <MudGrid Spacing="3">
+
+            <!-- Student Search -->
+            <MudItem xs="12" md="6">
+                <MudAutocomplete T="Student"
+                                 Label="Search Student"
+                                 SearchFunc="SearchStudents"
+                                 ToStringFunc="@(s => s?.FirstName +" "+ s?.LastName)"
+                                 @bind-Value="_selectedStudent"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+
+            <!-- Invoice -->
+            <MudItem xs="12" md="6">
+                <MudSelect T="Invoice"
+                           Label="Select Invoice"
+                           @bind-Value="_selectedInvoice"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    @foreach (var invoice in studentInvoices)
+                    {
+                        <MudSelectItem Value="@invoice">
+                            @invoice.InvoiceType - @invoice.TermStartDate.ToShortDateString()
+                        </MudSelectItem>
+                    }
+
+                </MudSelect>
+            </MudItem>
+
+            <!-- Payment Amount -->
+            <MudItem xs="12" md="6">
+                <MudNumericField T="decimal?"
+                                 Label="Payment Amount"
+                                 @bind-Value="_paymentAmount"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Adornment="Adornment.Start"
+                                 AdornmentText="@(AppState.Currency.CurrencySymbol ?? "$")" />
+            </MudItem>
+
+            <!-- Payment Method -->
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Payment Method"
+                           @bind-Value="_paymentMethod"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+
+                    <MudSelectItem Value="@("Cash")">Cash</MudSelectItem>
+                    <MudSelectItem Value="@("BankTransfer")">Bank Transfer</MudSelectItem>
+                    <MudSelectItem Value="@("MobileMoney")">Mobile Money</MudSelectItem>
+                    <MudSelectItem Value="@("POS")">POS</MudSelectItem>
+
+                </MudSelect>
+            </MudItem>
+
+            <!-- Payment Date -->
+            <MudItem xs="12" md="6">
+                <MudDatePicker Label="Payment Date"
+                               @bind-Date="_paymentDate"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <!-- Notes -->
+            <MudItem xs="12">
+                <MudTextField Label="Notes / Reference"
+                              @bind-Value="_notes"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2" />
+            </MudItem>
+
+            <!-- Submit -->
+            <MudItem xs="12">
+                <MudDivider Class="my-2" />
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Success"
+                           Size="Size.Large"
+                           OnClick="RecordPayment"
+                           Disabled="_saving">
+
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span>Record Payment</span>
+                    }
+
+                </MudButton>
+            </MudItem>
+
+        </MudGrid>
+
+    </MudCardContent>
+
+</MudCard>
+
+@code {
+
+    private Student _selectedStudent;
+    private Invoice _selectedInvoice;
+    private List<Student> students = new();
+    private decimal? _paymentAmount;
+    private string _paymentMethod;
+    private DateTime? _paymentDate = DateTime.Today;
+    private string _notes;
+
+    private bool _saving = false;
+
+    private List<Invoice> studentInvoices = new();
+
+    private async Task<IEnumerable<Student>> SearchStudents(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return students;
+
+        return students.Where(s =>
+            s.FirstName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+              s.LastName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            s.StudentNumber.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task RecordPayment()
+    {
+        if (_selectedStudent == null || _selectedInvoice == null || _paymentAmount == null)
+            return;
+
+        _saving = true;
+
+        try
+        {
+            // call API
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}
