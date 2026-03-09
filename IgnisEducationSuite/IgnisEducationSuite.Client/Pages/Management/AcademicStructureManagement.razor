@@ -346,7 +346,58 @@
             ? sectionTeacherAssignments[section.LevelSectionID]
             : null;
 
-        // API call
+        LoaderService.Show("Saving section teacher assignment...");
+
+        try
+        {
+            var classTeacherService = GenericService.GetService<List<ClassTeacher>>();
+            var schoolID = Guid.Parse(AppState.SchoolID);
+
+            // If no teacher is selected, we can skip sending it (or optionally send to unassign)
+            if (teacherId == null)
+            {
+                // Remove from local list if exists
+                var existing = classTeachers.FirstOrDefault(x => x.LevelSectionID == section.LevelSectionID);
+                if (existing != null)
+                    classTeachers.Remove(existing);
+
+                sectionTeacherAssignments[section.LevelSectionID] = null;
+                Snackbar.Add("Teacher unassigned from section.", Severity.Info);
+            }
+            else
+            {
+                var newAssignment = new ClassTeacher
+                {
+                    ClassTeacherID = Guid.NewGuid(),
+                    TeacherID = teacherId.Value,
+                    LevelSectionID = section.LevelSectionID,
+                    AcademicLevelID = section.AcademicLevelID,
+                    SchoolID = schoolID,
+                    DateCreated = DateTime.UtcNow,
+                    DateUpdated = DateTime.UtcNow
+                };
+
+                // Save via API
+                await classTeacherService.PostAsync("api/Dynamic/PostEntities", "classteachers", new List<ClassTeacher> { newAssignment });
+
+                // Update local list
+                classTeachers.RemoveAll(x => x.LevelSectionID == section.LevelSectionID);
+                classTeachers.Add(newAssignment);
+
+                // Update UI dictionary
+                sectionTeacherAssignments[section.LevelSectionID] = teacherId;
+
+                Snackbar.Add("Section teacher assignment saved successfully.", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving section: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
     }
 
     private async Task DeleteSection(LevelSection section)
