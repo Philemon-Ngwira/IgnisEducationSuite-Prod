@@ -252,6 +252,7 @@
         AcademicLevels = academicLevels.ToList();
         LevelSections = levelSections.ToList();
         await LoadTeachers();
+        await LoadClassTeachers();
         // Ensure dictionary has all levels
         foreach (var level in academicLevels)
         {
@@ -267,6 +268,17 @@
             editingLevels.Remove(level.AcademicLevelID);
         else
             editingLevels.Add(level.AcademicLevelID);
+    }
+
+    private async Task LoadClassTeachers()
+    {
+        var service = GenericService.GetService<ClassTeacher>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetClassTeachersBySchoolID/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            classTeachers = result.Data.ToList() ?? new List<ClassTeacher>();
+            PopulateTeacherAssignments();
+        }
     }
     private async Task LoadTeachers()
     {
@@ -289,7 +301,39 @@
     {
         return students.Count(x => x.LevelSectionID == sectionId);
     }
+    private void PopulateTeacherAssignments()
+    {
+        // Clear existing
+        sectionTeacherAssignments.Clear();
+        levelTeacherAssignments.Clear();
 
+        // Sections
+        foreach (var ct in classTeachers)
+        {
+            if (ct.LevelSectionID != Guid.Empty && ct.LevelSectionID != null)
+            {
+                sectionTeacherAssignments[(Guid)ct.LevelSectionID] = ct.TeacherID;
+            }
+            else
+            {
+                levelTeacherAssignments[(Guid)ct.AcademicLevelID] = ct.TeacherID;
+            }
+        }
+
+        // Ensure every level has a key in case there is no assignment yet
+        foreach (var level in AcademicLevels)
+        {
+            if (!levelTeacherAssignments.ContainsKey(level.AcademicLevelID))
+                levelTeacherAssignments[level.AcademicLevelID] = null;
+        }
+
+        // Ensure every section has a key in case there is no assignment yet
+        foreach (var section in LevelSections)
+        {
+            if (!sectionTeacherAssignments.ContainsKey(section.LevelSectionID))
+                sectionTeacherAssignments[section.LevelSectionID] = null;
+        }
+    }
     private async Task SaveLevel(AcademicLevel level)
     {
         // API call

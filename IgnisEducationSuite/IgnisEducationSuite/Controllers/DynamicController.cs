@@ -755,7 +755,12 @@ namespace IgnisEducationSuite.Controllers
             return Ok(saved);
         }
 
-
+        [HttpGet("GetClassTeachersBySchoolID/{SchoolID}")]
+        public async Task<IActionResult> GetClassTeachersBySchoolID(Guid SchoolID)
+        {
+            var result = await _repository.GetClassTeachersBySchoolIDAsync(SchoolID);
+            return Ok(result);
+        }
 
         [HttpGet("GetLevelSectionByLevel/{LevelID}")]
         public async Task<IActionResult> GetLevelSectionByLevel(Guid LevelID)

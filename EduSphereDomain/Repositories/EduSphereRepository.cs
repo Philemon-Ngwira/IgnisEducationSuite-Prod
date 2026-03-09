@@ -1094,7 +1094,14 @@ namespace EduSphereDomain.Repositories
                 .ToListAsync();
             return result;
         }
+        public async Task<IEnumerable<ClassTeacher>> GetClassTeachersBySchoolIDAsync(Guid SchoolID)
+        {
+            var result = await _context.ClassTeachers
+                .Where(x => x.SchoolID == SchoolID)
+                .ToListAsync();
 
+            return result;
+        }
         public async Task<IEnumerable<LevelSection>> GetLevelSectionsBySchoolAsync(Guid SchoolID)
         {
             var result = await _context.LevelSections
