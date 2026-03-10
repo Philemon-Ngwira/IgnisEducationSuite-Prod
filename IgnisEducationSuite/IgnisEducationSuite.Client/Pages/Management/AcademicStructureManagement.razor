@@ -251,8 +251,11 @@
         LoaderService.Show("Please wait while we load the academic structure...");
         AcademicLevels = academicLevels.ToList();
         LevelSections = levelSections.ToList();
-        await LoadTeachers();
-        await LoadClassTeachers();
+        var ParallelTasks = new List<Task>();
+        ParallelTasks.Add(LoadTeachers());
+        ParallelTasks.Add(GetStudent());
+        ParallelTasks.Add(LoadClassTeachers());
+        await Task.WhenAll(ParallelTasks);
         // Ensure dictionary has all levels
         foreach (var level in academicLevels)
         {
@@ -263,7 +266,13 @@
 
         LoaderService.Hide();
     }
+    protected async Task GetStudent()
+    {
+        var result = GenericService.GetService<Student>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetStudentsBySchoolID/{Guid.Parse(AppState.SchoolID)}", true);
+        students = service.Data.ToList();
 
+    }
     void ToggleEdit(AcademicLevel level)
     {
         if (editingLevels.Contains(level.AcademicLevelID))
