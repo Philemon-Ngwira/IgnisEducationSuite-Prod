@@ -1278,7 +1278,8 @@ namespace EduSphereDomain.Repositories
                             .Select(sc => new StudentClassDTO
                             {
                                 ClassID = sc.Class.ClassID,
-                                ClassName = sc.Class.ClassName
+                                ClassName = sc.Class.ClassName,
+                                TeacherID = sc.Class.TeacherID
                             })
                             .ToList()
                     })

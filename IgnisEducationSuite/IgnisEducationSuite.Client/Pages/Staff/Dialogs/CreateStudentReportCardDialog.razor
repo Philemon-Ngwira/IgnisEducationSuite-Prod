@@ -157,13 +157,16 @@
 
     /// Detect if logged teacher is the class teacher of this student
     bool IsClassTeacherForStudent =>
-        ClassTeachers.Any(ct =>
-            ct.TeacherID == TeacherID &&
-            ct.AcademicLevelID == student.AcademicLevelID &&
-            (
-                !SchoolUsesSections ||
-                ct.LevelSectionID == student.LevelSectionID
-            ));
+     ClassTeachers.Any(ct =>
+         ct.TeacherID == TeacherID &&
+         ct.AcademicLevelID == student.AcademicLevelID &&
+         (
+             !SchoolUsesSections ||
+             (
+                 ct.LevelSectionID == student.LevelSectionID ||
+                 (!ct.LevelSectionID.HasValue && !student.LevelSectionID.HasValue)
+             )
+         ));
 
     protected override void OnParametersSet()
     {
@@ -177,27 +180,54 @@
             .Select(x => x.ClassID)
             .ToHashSet();
 
-        // Determine which classes are visible
-        var allowedClasses = IsTeacher
-            ? (IsClassTeacherForStudent
-                ? Classes.Where(c => studentClassIds.Contains(c.ClassID)).ToList()
-                : Classes.Where(c =>
-                    c.TeacherID == TeacherID &&
-                    studentClassIds.Contains(c.ClassID)).ToList())
-            : Classes.Where(c => studentClassIds.Contains(c.ClassID)).ToList();
+        List<Class> allowedClasses;
 
+        // Determine which classes the user can SEE
+        if (IsAdmin)
+        {
+            // Admin sees all student classes
+            allowedClasses = Classes
+                .Where(c => studentClassIds.Contains(c.ClassID))
+                .ToList();
+        }
+        else if (IsTeacher)
+        {
+            if (IsClassTeacherForStudent)
+            {
+                // Class teacher sees all student classes
+                allowedClasses = Classes
+                    .Where(c => studentClassIds.Contains(c.ClassID))
+                    .ToList();
+            }
+            else
+            {
+                // Subject teacher sees only their subjects
+                allowedClasses = Classes
+                    .Where(c =>
+                        c.TeacherID == TeacherID &&
+                        studentClassIds.Contains(c.ClassID))
+                    .ToList();
+            }
+        }
+        else
+        {
+            allowedClasses = new List<Class>();
+        }
+
+        // Build the visible report card rows
         _visibleReportCardDetails = allowedClasses.Select(cls =>
         {
-            var detail = reportCardDetails.FirstOrDefault(r => r.ClassID == cls.ClassID);
+            var detail = reportCardDetails
+                .FirstOrDefault(r => r.ClassID == cls.ClassID);
+
+            bool canEdit =
+                IsAdmin ||
+                (IsTeacher && cls.TeacherID == TeacherID);
 
             if (detail != null)
             {
                 detail.Class = cls;
-
-                detail.CanBeEditied =
-                    IsAdmin ||
-                    (IsTeacher && cls.TeacherID == TeacherID);
-
+                detail.CanBeEditied = canEdit;
                 return detail;
             }
 
@@ -208,9 +238,7 @@
                 ClassID = cls.ClassID,
                 Class = cls,
                 Score = 0,
-                CanBeEditied =
-                    IsAdmin ||
-                    (IsTeacher && cls.TeacherID == TeacherID)
+                CanBeEditied = canEdit
             };
         }).ToList();
     }

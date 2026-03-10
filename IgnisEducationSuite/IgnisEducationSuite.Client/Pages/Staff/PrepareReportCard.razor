@@ -268,7 +268,11 @@
         classes = result.Data.ToList();
 
         foreach (var c in classes)
-            c.Teacher = teachers.Where(x => x.TeacherID == loggedInTeacher.TeacherID).First();
+        {
+            c.Teacher = teachers.Where(x => x.TeacherID == c.TeacherID).First();
+
+
+        }
 
     }
 
@@ -384,18 +388,38 @@
         // TEACHER SPECIFIC VALIDATION (only when teacher)
         // ----------------------------------------------
         List<Class> classesToSend;
-
+        var ClassTeachers = await LoadClassTeachers();
         if (AppState.UserRole == "Teacher")
         {
-            classesToSend = classes
-                .Where(c => c.Teacher != null && c.TeacherID == loggedInTeacher.TeacherID && c.AcademicLevel == student.AcademicLevel)
-                .ToList();
+            bool isClassTeacher = ClassTeachers.Any(ct =>
+                ct.TeacherID == loggedInTeacher.TeacherID &&
+                ct.AcademicLevelID == student.AcademicLevelID &&
+                (
+                    student.LevelSectionID == null ||
+                    ct.LevelSectionID == student.LevelSectionID
+                ));
 
-            var teacherClassNames = classesToSend.Select(c => c.ClassID).ToHashSet();
+            if (isClassTeacher)
+            {
+                // Class teacher → send ALL classes for the student's level
+                classesToSend = classes
+                    .Where(c => c.AcademicLevel == student.AcademicLevel)
+                    .ToList();
+            }
+            else
+            {
+                // Subject teacher → send only subjects they teach
+                classesToSend = classes
+                    .Where(c =>
+                        c.Teacher != null &&
+                        c.TeacherID == loggedInTeacher.TeacherID &&
+                        c.AcademicLevel == student.AcademicLevel)
+                    .ToList();
+            }
 
             var teacherClassIds = classesToSend
-         .Select(c => c.ClassID)
-         .ToHashSet();
+                .Select(c => c.ClassID)
+                .ToHashSet();
 
             if (!student.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
             {
@@ -405,14 +429,15 @@
                 );
                 return;
             }
-
         }
         else
         {
-            classesToSend = classes.Where(x => x.AcademicLevel == student.AcademicLevel).ToList();
+            classesToSend = classes
+                .Where(x => x.AcademicLevel == student.AcademicLevel)
+                .ToList();
         }
         var reportCardDetails = await GetReportCardDetails(reportCardHeader.ReportCardID);
-        var classTeachers = await LoadClassTeachers();
+
         // ----------------------------------------------
         // OPEN DIALOG
         // ----------------------------------------------
@@ -423,7 +448,8 @@
         { g => g.GradingScales, gradingScales },
         { r => r.newReportCard, reportCardHeader },
         { d => d.reportCardDetails, reportCardDetails },
-        { c=>c.ClassTeachers, classTeachers}
+        { c=>c.ClassTeachers, ClassTeachers},
+        {t => t.TeacherID, loggedInTeacher.TeacherID }
     };
 
         var opt = new DialogOptions
