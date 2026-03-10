@@ -124,6 +124,17 @@
         StateHasChanged();
         LoaderService.Hide();
     }
+    private async Task<List<ClassTeacher>> LoadClassTeachers()
+    {
+        var service = GenericService.GetService<ClassTeacher>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetClassTeachersBySchoolID/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList() ?? new List<ClassTeacher>();
+
+        }
+        return new List<ClassTeacher>();
+    }
     protected async Task GetGenders()
     {
         var result = GenericService.GetService<Gender>();
@@ -132,98 +143,98 @@
         if (AppState.UserRole == "Dean")
             Dean.DeanForGenderNavigation = genders.Where(x => x.GenderId == Dean.DeanForGender).FirstOrDefault();
     }
-   private void ApplyTeacherFiltering()
-{
-    // ADMIN → see all students
-    if (AppState.UserRole == "Admin")
+    private void ApplyTeacherFiltering()
     {
-        filteredStudents = students.ToList();
-        return;
-    }
-
-    // TEACHER
-    if (AppState.UserRole == "Teacher")
-    {
-        // No linked teacher account yet → show none safely
-        if (loggedInTeacher == null)
+        // ADMIN → see all students
+        if (AppState.UserRole == "Admin")
         {
-            filteredStudents = new List<StudentWithClassesDTO>();
+            filteredStudents = students.ToList();
             return;
         }
 
+        // TEACHER
+        if (AppState.UserRole == "Teacher")
+        {
+            // No linked teacher account yet → show none safely
+            if (loggedInTeacher == null)
+            {
+                filteredStudents = new List<StudentWithClassesDTO>();
+                return;
+            }
+
+            var teacherClassIds = classes
+                .Where(c => c.TeacherID == loggedInTeacher.TeacherID)
+                .Select(c => c.ClassID)
+                .ToHashSet();
+
+            filteredStudents = students
+                .Where(s => s.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
+                .ToList();
+
+            return;
+        }
+
+        // DEAN
+        if (AppState.UserRole == "Dean")
+        {
+            filteredStudents = students
+                .Where(s => s.Gender == Dean.DeanForGenderNavigation.GenderDescription)
+                .ToList();
+
+            return;
+        }
+
+        // Fallback (future roles)
+        filteredStudents = students.ToList();
+    }
+
+
+    private void PrepareFilterLists()
+    {
+        // ADMIN (or non-teacher roles) → see everything
+        if (AppState.UserRole != "Teacher")
+        {
+            TeacherGrades = students
+                .Select(s => s.LevelName)
+                .Distinct()
+                .ToList();
+
+            ClassNames = students
+                .SelectMany(s => s.Classes)
+                .Select(c => c.ClassName)
+                .Distinct()
+                .ToList();
+
+            return;
+        }
+
+        // TEACHER but no linked teacher account yet
+        if (loggedInTeacher == null)
+        {
+            TeacherGrades = new List<string>();
+            ClassNames = new List<string>();
+            return;
+        }
+
+        // Teacher-specific filtering
         var teacherClassIds = classes
             .Where(c => c.TeacherID == loggedInTeacher.TeacherID)
             .Select(c => c.ClassID)
             .ToHashSet();
 
-        filteredStudents = students
-            .Where(s => s.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
-            .ToList();
-
-        return;
-    }
-
-    // DEAN
-    if (AppState.UserRole == "Dean")
-    {
-        filteredStudents = students
-            .Where(s => s.Gender == Dean.DeanForGenderNavigation.GenderDescription)
-            .ToList();
-
-        return;
-    }
-
-    // Fallback (future roles)
-    filteredStudents = students.ToList();
-}
-
-
-  private void PrepareFilterLists()
-{
-    // ADMIN (or non-teacher roles) → see everything
-    if (AppState.UserRole != "Teacher")
-    {
         TeacherGrades = students
+            .Where(s => s.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
             .Select(s => s.LevelName)
             .Distinct()
             .ToList();
 
         ClassNames = students
             .SelectMany(s => s.Classes)
+            .Where(c => teacherClassIds.Contains(c.ClassID))
             .Select(c => c.ClassName)
             .Distinct()
             .ToList();
-
-        return;
     }
-
-    // TEACHER but no linked teacher account yet
-    if (loggedInTeacher == null)
-    {
-        TeacherGrades = new List<string>();
-        ClassNames = new List<string>();
-        return;
-    }
-
-    // Teacher-specific filtering
-    var teacherClassIds = classes
-        .Where(c => c.TeacherID == loggedInTeacher.TeacherID)
-        .Select(c => c.ClassID)
-        .ToHashSet();
-
-    TeacherGrades = students
-        .Where(s => s.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
-        .Select(s => s.LevelName)
-        .Distinct()
-        .ToList();
-
-    ClassNames = students
-        .SelectMany(s => s.Classes)
-        .Where(c => teacherClassIds.Contains(c.ClassID))
-        .Select(c => c.ClassName)
-        .Distinct()
-        .ToList();
-}
 
 
     #region API Calls
@@ -401,6 +412,7 @@
             classesToSend = classes.Where(x => x.AcademicLevel == student.AcademicLevel).ToList();
         }
         var reportCardDetails = await GetReportCardDetails(reportCardHeader.ReportCardID);
+        var classTeachers = await LoadClassTeachers();
         // ----------------------------------------------
         // OPEN DIALOG
         // ----------------------------------------------
@@ -410,7 +422,8 @@
         { c => c.Classes, classesToSend },
         { g => g.GradingScales, gradingScales },
         { r => r.newReportCard, reportCardHeader },
-        { d => d.reportCardDetails, reportCardDetails }
+        { d => d.reportCardDetails, reportCardDetails },
+        { c=>c.ClassTeachers, classTeachers}
     };
 
         var opt = new DialogOptions

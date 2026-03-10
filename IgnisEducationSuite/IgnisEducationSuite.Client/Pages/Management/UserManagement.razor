@@ -511,7 +511,7 @@
             parent.UserId = await CreateNewUser(
                 parent.Email,
                 parent.ParentID,
-                "Parent",null);
+                "Parent", null);
 
             // ✅ Always send credentials
             await SendOneTimePasswordEmail(
@@ -790,10 +790,20 @@
                 profilePic = item.ProfilePic ?? Array.Empty<byte>(),
             };
             item.SchoolID = Guid.Parse(AppState.SchoolID);
-            item.GradeSection = levelSections.Where(x => x.SectionCode.ToLower() == item.GradeSection.ToLower()).Select(x => x.SectionCode).FirstOrDefault();
-            item.AcademicLevel = academicLevels.Where(x => x.LevelName.ToLower() == item.LevelName.ToLower()).Select(x => x.LevelInt).FirstOrDefault();
-            item.AcademicLevelID = academicLevels.Where(x => x.LevelName.ToLower() == item.LevelName.ToLower()).Select(x => x.AcademicLevelID).FirstOrDefault();
-            item.LevelSectionID = levelSections.Where(x => x.SectionCode.ToLower() == item.GradeSection.ToLower() && x.AcademicLevelID == item.AcademicLevelID).Select(x => x.LevelSectionID).FirstOrDefault();
+            var academicLevel = academicLevels
+    .FirstOrDefault(x => x.LevelName.ToLower() == item.LevelName.ToLower());
+
+            var levelSection = levelSections
+                .FirstOrDefault(x =>
+                    x.SectionCode.ToLower() == item.GradeSection.ToLower() &&
+                    academicLevel != null &&
+                    x.AcademicLevelID == academicLevel.AcademicLevelID);
+
+            item.AcademicLevel = academicLevel?.LevelInt;
+            item.AcademicLevelID = academicLevel?.AcademicLevelID;
+
+            item.LevelSectionID = levelSection?.LevelSectionID;
+            item.GradeSection = levelSection?.SectionCode;
             item.StudentID = Guid.NewGuid();
             var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
             // if (count >= LicenseUserLimit.UserLimit) // Corrected condition

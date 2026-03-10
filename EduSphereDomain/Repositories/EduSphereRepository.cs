@@ -1270,6 +1270,8 @@ namespace EduSphereDomain.Repositories
                         LevelName = s.LevelName ?? "",
                         Gender = s.Gender,
                         StudentNumber = s.StudentNumber,
+                        AcademicLevelID = s.AcademicLevelID,
+                        LevelSectionID = s.LevelSectionID,
 
                         Classes = s.StudentClasses
                             .Where(sc => sc.Class != null) // safety

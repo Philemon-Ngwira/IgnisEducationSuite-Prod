@@ -125,27 +125,45 @@
 
 @code {
     [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<ClassTeacher> ClassTeachers { get; set; } = new();
     [Parameter] public StudentWithClassesDTO student { get; set; } = new();
     [Parameter] public List<Class> Classes { get; set; } = new();
     [Parameter] public List<GradingScale> GradingScales { get; set; } = new();
     [Parameter] public ReportCard newReportCard { get; set; } = new();
-    private DateRange _dateRangeTerm { get; set; }
     [Parameter] public List<ReportCardDetail> reportCardDetails { get; set; } = new();
     [Parameter] public Guid TeacherID { get; set; }
-    protected bool _editTriggerRowClick = true;
-    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
-    protected bool isLoading = false;
-    bool CanEditScores =>
-     AppState.UserRole is "Teacher" or "Staff" or "Admin"
-     && string.Equals(
-         newReportCard.ApprovalStatus?.Trim(),
-         "DCB75F3C-FF7C-4472-AAEB-667DB7BC86A0",
-         StringComparison.OrdinalIgnoreCase
-     );
-    // TeacherEntryOpen
+
+    private DateRange _dateRangeTerm { get; set; }
     private List<ReportCardDetail> _visibleReportCardDetails = new();
+
+    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
+
+    protected bool isLoading = false;
+    protected bool _editTriggerRowClick = true;
+
     private bool IsTeacher => AppState.UserRole == "Teacher";
     private bool IsAdmin => AppState.UserRole == "Admin";
+
+    bool CanEditScores =>
+        AppState.UserRole is "Teacher" or "Staff" or "Admin"
+        && string.Equals(
+            newReportCard.ApprovalStatus?.Trim(),
+            "DCB75F3C-FF7C-4472-AAEB-667DB7BC86A0",
+            StringComparison.OrdinalIgnoreCase
+        );
+
+    /// Detect if school uses sections
+    bool SchoolUsesSections => student.LevelSectionID != null;
+
+    /// Detect if logged teacher is the class teacher of this student
+    bool IsClassTeacherForStudent =>
+        ClassTeachers.Any(ct =>
+            ct.TeacherID == TeacherID &&
+            ct.AcademicLevelID == student.AcademicLevelID &&
+            (
+                !SchoolUsesSections ||
+                ct.LevelSectionID == student.LevelSectionID
+            ));
 
     protected override void OnParametersSet()
     {
@@ -155,18 +173,18 @@
             End = newReportCard.TermEndDate
         };
 
-        // ADMIN / STAFF / DEAN / PRINCIPAL → SEE EVERYTHING
         var studentClassIds = student.Classes
-       .Select(x => x.ClassID)
-       .ToHashSet();
+            .Select(x => x.ClassID)
+            .ToHashSet();
 
+        // Determine which classes are visible
         var allowedClasses = IsTeacher
-            ? Classes
-                .Where(c =>
+            ? (IsClassTeacherForStudent
+                ? Classes.Where(c => studentClassIds.Contains(c.ClassID)).ToList()
+                : Classes.Where(c =>
                     c.TeacherID == TeacherID &&
-                    studentClassIds.Contains(c.ClassID))
-                .ToList()
-            : Classes.ToList();
+                    studentClassIds.Contains(c.ClassID)).ToList())
+            : Classes.Where(c => studentClassIds.Contains(c.ClassID)).ToList();
 
         _visibleReportCardDetails = allowedClasses.Select(cls =>
         {
@@ -175,7 +193,11 @@
             if (detail != null)
             {
                 detail.Class = cls;
-                detail.CanBeEditied = IsTeacher || IsAdmin;
+
+                detail.CanBeEditied =
+                    IsAdmin ||
+                    (IsTeacher && cls.TeacherID == TeacherID);
+
                 return detail;
             }
 
@@ -186,12 +208,12 @@
                 ClassID = cls.ClassID,
                 Class = cls,
                 Score = 0,
-                CanBeEditied = IsTeacher || IsAdmin
+                CanBeEditied =
+                    IsAdmin ||
+                    (IsTeacher && cls.TeacherID == TeacherID)
             };
         }).ToList();
     }
-
-
 
     private void CloseDialog() => MudDialog.Cancel();
 
@@ -201,20 +223,28 @@
 
         var service = _genericService.GetService<ReportCard>();
 
-        // Calculate final GPA
-        var subjectGPAs = _visibleReportCardDetails.Select(x => (double)x.GPA.GetValueOrDefault()).ToList();
+        var subjectGPAs = _visibleReportCardDetails
+            .Select(x => (double)x.GPA.GetValueOrDefault())
+            .ToList();
+
         newReportCard.GPA = (decimal?)CalculateFinalGPA(subjectGPAs);
 
-        // Save report card header
-        var savedHeader = await service.UpdateAsync("api/Dynamic/UpdateEntity", "reportcard", newReportCard);
+        var savedHeader = await service.UpdateAsync(
+            "api/Dynamic/UpdateEntity",
+            "reportcard",
+            newReportCard);
+
         if (savedHeader.IsSuccess)
         {
-            // Remove navigation properties before saving details
             foreach (var item in _visibleReportCardDetails)
                 item.Class = null;
 
             var serviceDetails = _genericService.GetService<List<ReportCardDetail>>();
-            var result = await serviceDetails.PostAsync("api/Dynamic/PostEntities", "reportcarddetail", _visibleReportCardDetails);
+
+            var result = await serviceDetails.PostAsync(
+                "api/Dynamic/PostEntities",
+                "reportcarddetail",
+                _visibleReportCardDetails);
 
             if (result.IsSuccess)
                 MudDialog.Close(DialogResult.Ok(true));
@@ -223,25 +253,34 @@
         LoaderService.Hide();
     }
 
-    public (string Grade, double? GPA, string? Comment) GetGradeAndCalculateGPA(ReportCardDetail detail, List<GradingScale> gradingScales)
+    public (string Grade, double? GPA, string? Comment)
+        GetGradeAndCalculateGPA(ReportCardDetail detail, List<GradingScale> gradingScales)
     {
-        var grade = gradingScales.FirstOrDefault(gs => detail.Score >= gs.LoweScore && detail.Score <= gs.UpperScore);
+        var grade = gradingScales.FirstOrDefault(gs =>
+            detail.Score >= gs.LoweScore &&
+            detail.Score <= gs.UpperScore);
+
         if (grade == null)
-            throw new ArgumentException($"Score {detail.Score} does not fall within any defined grading scale.");
+            throw new ArgumentException(
+                $"Score {detail.Score} does not fall within any defined grading scale.");
 
         return (grade.Description, (double)grade.GPA.Value, grade.Comment);
     }
 
     #region DataGrid Events
+
     void StartedEditingItem(ReportCardDetail item) { }
+
     void CanceledEditingItem(ReportCardDetail item) { }
 
     void CommittedItemChanges(ReportCardDetail item)
     {
         var gradeAndGPA = GetGradeAndCalculateGPA(item, GradingScales);
+
         item.Grade = gradeAndGPA.Grade;
         item.GPA = gradeAndGPA.GPA;
         item.FinalComment = gradeAndGPA.Comment;
+
         StateHasChanged();
     }
 
@@ -252,5 +291,6 @@
 
         return Math.Round(gpas.Sum() / gpas.Count, 2);
     }
+
     #endregion
 }
