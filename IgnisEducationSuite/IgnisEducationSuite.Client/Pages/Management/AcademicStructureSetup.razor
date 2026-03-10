@@ -442,7 +442,8 @@
             SchoolID = Guid.Parse(AppState.SchoolID),
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            CreatedBy = $"{AppState.FirstName} {AppState.LastName}"
         });
 
         // reset the input for this level
@@ -495,6 +496,8 @@
         }
     }
 
+
+
     private async Task SaveChanges()
     {
         LoaderService.Show($"Setting up Academic Structure for {AppState.SchoolName}");
@@ -505,7 +508,24 @@
         var schoolID = Guid.Parse(AppState.SchoolID);
 
         var classTeachers = new List<ClassTeacher>();
+        // ONLY SAVE NEW LEVELS
+        var newLevels = previewDiffs
+            .Where(x => x.State == DiffState.New)
+            .Select(x => x.Level)
+            .ToList();
 
+        if (newLevels.Any())
+        {
+            foreach (var level in newLevels)
+            {
+                level.SchoolID = schoolID;
+                level.CreatedAt = DateTime.UtcNow;
+                level.UpdatedAt = DateTime.UtcNow;
+                level.CreatedBy = $"{AppState.FirstName} {AppState.LastName}";
+            }
+
+            await GenericService.GetService<List<AcademicLevel>>().PostAsync("api/Dynamic/PostEntities", "academiclevel", newLevels);
+        }
         foreach (var assignment in classTeacherAssignments)
         {
             if (assignment.TeacherID == null) continue;
@@ -518,7 +538,8 @@
                 SchoolID = schoolID,
                 AcademicLevelID = assignment.AcademicLevelID,
                 DateCreated = DateTime.UtcNow,
-                DateUpdated = DateTime.UtcNow
+                DateUpdated = DateTime.UtcNow,
+                CreatedBy = $"{AppState.FirstName} {AppState.LastName}"
             });
         }
         if (levelSections.Any())

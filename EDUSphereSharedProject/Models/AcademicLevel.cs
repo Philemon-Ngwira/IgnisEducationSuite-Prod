@@ -25,6 +25,8 @@ public partial class AcademicLevel
 
     public DateTime? UpdatedAt { get; set; }
 
+    public string CreatedBy { get; set; }
+
     public virtual ICollection<ClassTeacher> ClassTeachers { get; set; } = new List<ClassTeacher>();
 
     public virtual ICollection<LevelSection> LevelSections { get; set; } = new List<LevelSection>();

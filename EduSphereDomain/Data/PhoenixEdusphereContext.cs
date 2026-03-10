@@ -273,6 +273,9 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.Property(e => e.AcademicLevelID).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(455)
+                .IsUnicode(false);
             entity.Property(e => e.GroupName)
                 .HasMaxLength(50)
                 .IsUnicode(false);
@@ -1255,6 +1258,9 @@ public partial class PhoenixEdusphereContext : DbContext
 
             entity.Property(e => e.LevelSectionID).ValueGeneratedNever();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(455)
+                .IsUnicode(false);
             entity.Property(e => e.IsActive)
                 .IsRequired()
                 .HasDefaultValueSql("((1))");

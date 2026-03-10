@@ -51,7 +51,7 @@ namespace EduSphereDomain.Repositories
 
         public async Task<IEnumerable<AcademicLevel>> GetAcademicLevelsAsync(string SchoolID)
         {
-            var result = await _context.AcademicLevels.Where(x => x.SchoolID == Guid.Parse(SchoolID)).ToListAsync();
+            var result = await _context.AcademicLevels.Where(x => x.SchoolID == Guid.Parse(SchoolID) && x.isActive == true).ToListAsync();
             return result;
         }
 
@@ -1090,7 +1090,7 @@ namespace EduSphereDomain.Repositories
         public async Task<IEnumerable<LevelSection>> GetLevelSectionsAsync(Guid AcademicLevelID)
         {
             var result = await _context.LevelSections
-                .Where(x => x.AcademicLevelID == AcademicLevelID)
+                .Where(x => x.AcademicLevelID == AcademicLevelID && x.IsActive == true)
                 .ToListAsync();
             return result;
         }
@@ -1105,7 +1105,7 @@ namespace EduSphereDomain.Repositories
         public async Task<IEnumerable<LevelSection>> GetLevelSectionsBySchoolAsync(Guid SchoolID)
         {
             var result = await _context.LevelSections
-                .Where(x => x.SchoolID == SchoolID)
+                .Where(x => x.SchoolID == SchoolID && x.IsActive == true)
                 .ToListAsync();
             return result;
         }
