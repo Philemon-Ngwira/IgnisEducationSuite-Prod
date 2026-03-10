@@ -289,9 +289,13 @@
         teachers = service.Data.ToList() ?? new List<Teacher>();
     }
 
-    void ToggleLevelStatus(AcademicLevel level)
+    async Task ToggleLevelStatus(AcademicLevel level)
     {
         level.isActive = !level.isActive;
+        await GenericService.GetService<AcademicLevel>().
+            UpdateAsync("api/Dynamic/UpdateEntity", "academiclevel", level);
+
+
     }
 
     int GetLevelStudentCount(Guid levelId)
