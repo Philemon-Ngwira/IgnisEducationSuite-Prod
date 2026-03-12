@@ -9,11 +9,14 @@
     </MudCardContent>
 </MudCard>
 <MudTabs>
-    <MudTabPanel Text="Invoices">
+    <MudTabPanel Icon="@MaterialDesignIcons.Normal.Invoice" Text="Invoices">
         <InvoiceGeneration />
     </MudTabPanel>
-    <MudTabPanel Text="Manage Payments">
+    <MudTabPanel Icon="@Icons.Material.Filled.Payments" Text="Manage Payments">
         <PaymentsSection />
+    </MudTabPanel>
+    <MudTabPanel Icon="@MaterialDesignIcons.Normal.PiggyBank" Text="Account Statements">
+        <AccountStatements />
     </MudTabPanel>
 </MudTabs>
 @code {

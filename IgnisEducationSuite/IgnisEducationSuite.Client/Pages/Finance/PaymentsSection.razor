@@ -22,8 +22,9 @@
                 <MudAutocomplete T="Student"
                                  Label="Search Student"
                                  SearchFunc="SearchStudents"
-                                 ToStringFunc="@(s => s?.FirstName +" "+ s?.LastName)"
-                                 @bind-Value="_selectedStudent"
+                                 ToStringFunc="@(s => s == null ? "" : $"{s.FirstName} {s.LastName}")"
+                                 Value="_selectedStudent"
+                                 ValueChanged="LoadFinancialDataAsync"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense" />
             </MudItem>
@@ -39,20 +40,51 @@
                     @foreach (var invoice in studentInvoices)
                     {
                         <MudSelectItem Value="@invoice">
-                            @invoice.InvoiceType - @invoice.TermStartDate.ToShortDateString()
+                            @($"{invoice.InvoiceType} | Outstanding: {(invoice.Amount - invoice.PaidAmount):N2}")
                         </MudSelectItem>
                     }
 
                 </MudSelect>
             </MudItem>
 
+            <!-- Invoice Summary -->
+            @if (_selectedInvoice != null)
+            {
+                <MudItem xs="12">
+
+                    <MudPaper Class="pa-3">
+
+                        <MudText Typo="Typo.subtitle2">Invoice Summary</MudText>
+
+                        <MudText>
+                            Invoice Amount:
+                            @(AppState.Currency.CurrencySymbol) @_selectedInvoice.Amount
+                        </MudText>
+
+                        <MudText>
+                            Paid So Far:
+                            @(AppState.Currency.CurrencySymbol) @_selectedInvoice.PaidAmount
+                        </MudText>
+
+                        <MudText Color="Color.Error">
+                            Outstanding:
+                            @(AppState.Currency.CurrencySymbol) @(_selectedInvoice.Amount - _selectedInvoice.PaidAmount)
+                        </MudText>
+
+                    </MudPaper>
+
+                </MudItem>
+            }
+
             <!-- Payment Amount -->
             <MudItem xs="12" md="6">
                 <MudNumericField T="decimal?"
                                  Label="Payment Amount"
-                                 @bind-Value="_paymentAmount"
+                                 Value="_paymentAmount"
+                                 ValueChanged="CheckPayment"
                                  Variant="Variant.Outlined"
                                  Margin="Margin.Dense"
+                                 Disabled="_selectedInvoice == null"
                                  Adornment="Adornment.Start"
                                  AdornmentText="@(AppState.Currency.CurrencySymbol ?? "$")" />
             </MudItem>
@@ -98,7 +130,7 @@
                            Color="Color.Success"
                            Size="Size.Large"
                            OnClick="RecordPayment"
-                           Disabled="_saving">
+                           Disabled="_saving || disablePaymentButton || _selectedInvoice == null || _paymentAmount == null">
 
                     @if (_saving)
                     {
@@ -123,15 +155,73 @@
 
     private Student _selectedStudent;
     private Invoice _selectedInvoice;
+
     private List<Student> students = new();
+    private List<Invoice> studentInvoices = new();
+
     private decimal? _paymentAmount;
     private string _paymentMethod;
     private DateTime? _paymentDate = DateTime.Today;
     private string _notes;
 
     private bool _saving = false;
+    private bool disablePaymentButton = true;
 
-    private List<Invoice> studentInvoices = new();
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait while we prepare your environment...");
+        await GetStudents();
+        LoaderService.Hide();
+    }
+
+    private async Task LoadFinancialDataAsync(Student student)
+    {
+        _selectedStudent = student;
+
+        _selectedInvoice = null;
+        _paymentAmount = null;
+        disablePaymentButton = true;
+
+        var service = GenericService.GetService<Invoice>();
+
+        var result = await service.GetAllAsync(
+            $"api/Invoice/GetStudentInvoices/{_selectedStudent.UserID}", true);
+
+        studentInvoices = result.Data?.ToList() ?? new List<Invoice>();
+    }
+
+    private void CheckPayment(decimal? payment)
+    {
+        _paymentAmount = payment;
+
+        if (_selectedInvoice == null || _paymentAmount == null)
+        {
+            disablePaymentButton = true;
+            return;
+        }
+
+        var outstanding = _selectedInvoice.Amount - _selectedInvoice.PaidAmount;
+
+        if (_paymentAmount > outstanding)
+        {
+            Snackbar.Add("Payment exceeds outstanding balance.", Severity.Error);
+            disablePaymentButton = true;
+        }
+        else
+        {
+            disablePaymentButton = false;
+        }
+    }
+
+    private async Task GetStudents()
+    {
+        var result = GenericService.GetService<Student>();
+
+        var service = await result.GetAllAsync(
+            $"api/Dynamic/GetStudentsBySchoolID/{Guid.Parse(AppState.SchoolID)}", true);
+
+        students = service.Data?.ToList() ?? new List<Student>();
+    }
 
     private async Task<IEnumerable<Student>> SearchStudents(string value, CancellationToken token)
     {
@@ -140,7 +230,7 @@
 
         return students.Where(s =>
             s.FirstName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
-              s.LastName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            s.LastName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
             s.StudentNumber.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -153,11 +243,34 @@
 
         try
         {
-            // call API
+            // API call here
+            var _payment = new Payment
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = _selectedInvoice.Id,
+                AmountPaid = _paymentAmount.Value,
+                CreatedAt = DateTime.UtcNow,
+                PaymentDate = _paymentDate ?? DateTime.Today,
+                PaymentMethod = _paymentMethod,
+                UpdatedAt = DateTime.UtcNow,
+            };
+
+            var paymentResult = await GenericService.GetService<Payment>()
+                .PostAsync("api/Payment/SavePayment", "payment", _payment);
+            if (paymentResult.IsSuccess)
+            {
+                Snackbar.Add("Payment recorded successfully!", Severity.Success);
+                _selectedInvoice = new();
+                _selectedStudent = new();
+                _paymentAmount = null;
+                _paymentDate = DateTime.Today;
+                _paymentMethod = "";
+            }
         }
         finally
         {
             _saving = false;
         }
     }
+
 }

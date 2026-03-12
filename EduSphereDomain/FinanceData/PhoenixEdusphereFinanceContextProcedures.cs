@@ -100,6 +100,10 @@ namespace EduSphereDomain.FinanceData
             modelBuilder.Entity<sp_GetBusMaintenanceRequestsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetClinicDashboardMetricsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetExpiringSoonMedicationsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetFinanceDashboardSummaryResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetMonthlyPaymentTrendResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetRecentPaymentsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetStudentPaymentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetStudentTimetableResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetTeacherTimetableResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<usp_GetAvailableTripsForParentBookingResult>().HasNoKey().ToView(null);
@@ -2043,6 +2047,32 @@ namespace EduSphereDomain.FinanceData
             return _;
         }
 
+        public virtual async Task<List<sp_GetFinanceDashboardSummaryResult>> sp_GetFinanceDashboardSummaryAsync(Guid? SchoolId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolId",
+                    Value = SchoolId ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetFinanceDashboardSummaryResult>("EXEC @returnValue = [Finance].[sp_GetFinanceDashboardSummary] @SchoolId", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
         public virtual async Task<int> sp_GetLevelTermReportCardAsync(Guid? LevelID, DateTime? TermStartDate, DateTime? TermEndDate, int? level, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
@@ -2081,6 +2111,91 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[sp_GetLevelTermReportCard] @LevelID, @TermStartDate, @TermEndDate, @level", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetMonthlyPaymentTrendResult>> sp_GetMonthlyPaymentTrendAsync(Guid? SchoolId, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolId",
+                    Value = SchoolId ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetMonthlyPaymentTrendResult>("EXEC @returnValue = [Finance].[sp_GetMonthlyPaymentTrend] @SchoolId", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetRecentPaymentsResult>> sp_GetRecentPaymentsAsync(Guid? SchoolId, int? Top, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolId",
+                    Value = SchoolId ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "Top",
+                    Value = Top ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.Int,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetRecentPaymentsResult>("EXEC @returnValue = [Finance].[sp_GetRecentPayments] @SchoolId, @Top", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetStudentPaymentsResult>> sp_GetStudentPaymentsAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "UserID",
+                    Size = 455,
+                    Value = UserID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.VarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetStudentPaymentsResult>("EXEC @returnValue = [Finance].[sp_GetStudentPayments] @UserID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

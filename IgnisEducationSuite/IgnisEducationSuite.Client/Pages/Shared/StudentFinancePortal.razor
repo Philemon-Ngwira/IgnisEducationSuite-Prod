@@ -33,7 +33,7 @@
                 }
                 else if (ShowSection == "Balance")
                 {
-                    <BalanceSection Balance="AccountBalance" CurrencySymbol="AppState.Currency?.CurrencySymbol" />
+                    <BalanceSection outstandingInvoices=@(Invoices.Where(x => x.Amount > x.PaidAmount).ToList()) CurrencySymbol="@CurrencySymbol" />
                 }
                 else if (ShowSection == "Receipts")
                 {
@@ -65,10 +65,9 @@
 
     private async Task LoadFinancialDataAsync()
     {
-        var userId = "82f5035d-5c1e-4f59-bdc5-d875410db9d4"/* AppState.UserID */;
+        var userId = "187003c3-30bb-4493-84b5-9f7de1d7bb14"/* AppState.UserID */;
         var service = GenericService.GetService<Invoice>();
         var result = await service.GetAllAsync($"api/Invoice/GetStudentInvoices/{userId}", true);
         Invoices = result.Data.ToList() ?? new List<Invoice>();
-        await Task.Delay(500); // Simulate network delay
     }
 }

@@ -1677,6 +1677,8 @@ public partial class PhoenixEdusphereContext : DbContext
         {
             entity.HasKey(e => e.StudentID).HasName("PK__Students__32C52A7994DE34D7");
 
+            entity.ToTable(tb => tb.HasTrigger("trg_CreateStudentFinanceOnStudentInsert"));
+
             entity.HasIndex(e => new { e.SchoolID, e.LevelName, e.PaymentStatus, e.isDaySchool }, "IX_Students_LevelName");
 
             entity.HasIndex(e => new { e.ParentID, e.PaymentStatus }, "IX_Students_ParentID_PaymentStatus");

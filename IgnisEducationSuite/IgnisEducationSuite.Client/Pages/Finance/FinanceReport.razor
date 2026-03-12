@@ -1,0 +1,180 @@
+﻿@page "/finance/dashboard"
+@using EDUSphereSharedProject.FinanceModels.DTOs
+@inherits AppBaseComponent
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+
+    <!-- HEADER -->
+    <MudText Typo="Typo.h4" Class="mb-4">
+        Finance Dashboard
+    </MudText>
+
+
+    <!-- SUMMARY CARDS -->
+    <MudGrid Spacing="3" Justify="Justify.SpaceEvenly">
+        <MudItem xs="12">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Elevation="2">
+                <MudText Typo="Typo.subtitle2" Class="mb-4" Style="color:azure">
+                    All financial amounts are displayed in <b>@AppState.Currency.Currency (@AppState.Currency.CurrencySymbol.Trim()</b>)
+                </MudText>
+            </MudAlert>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2">Total Invoiced</MudText>
+                    <MudText Typo="Typo.h5">@dashboardSummary.TotalInvoiced</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="2">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2">Total Collected</MudText>
+                    <MudText Typo="Typo.h5">@dashboardSummary.TotalCollected</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="2">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2">Outstanding Balance</MudText>
+                    <MudText Typo="Typo.h5">@dashboardSummary.OutstandingBalance</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="2">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2">Payments Today</MudText>
+                    <MudText Typo="Typo.h5">@dashboardSummary.PaymentsToday</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="2">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2">Overdue Invoices</MudText>
+                    <MudText Typo="Typo.h5">@dashboardSummary.OverdueInvoices</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+    </MudGrid>
+
+
+    <!-- CHART -->
+    <MudPaper Class="pa-4 mt-6" Elevation="2">
+
+        <MudText Typo="Typo.h6" Class="mb-3">
+            Payments This Month
+        </MudText>
+
+        <Radzen.Blazor.RadzenChart>
+
+            <Radzen.Blazor.RadzenLineSeries Smooth="true"
+                                            Data="@monthlyPayments"
+                                            CategoryProperty="Month"
+                                            ValueProperty="Amount"
+                                            Title="Monthly Payments">
+
+                <Radzen.Blazor.RadzenSeriesTrendLine Visible="true"
+                                                     Stroke="var(--rz-primary)"
+                                                     LineType="Radzen.Blazor.LineType.Dashed" />
+
+            </Radzen.Blazor.RadzenLineSeries>
+
+            <Radzen.Blazor.RadzenCategoryAxis Padding="20">
+                <Radzen.Blazor.RadzenAxisTitle Text="Month" />
+            </Radzen.Blazor.RadzenCategoryAxis>
+
+            <Radzen.Blazor.RadzenValueAxis Formatter="@FormatCurrency">
+                <Radzen.Blazor.RadzenGridLines Visible="true" />
+                <Radzen.Blazor.RadzenAxisTitle Text="Payments" />
+            </Radzen.Blazor.RadzenValueAxis>
+
+        </Radzen.Blazor.RadzenChart>
+
+    </MudPaper>
+
+
+    <!-- RECENT PAYMENTS -->
+    <MudPaper Class="pa-4 mt-6" Elevation="2">
+
+        <MudText Typo="Typo.h6" Class="mb-3">
+            Recent Payments
+        </MudText>
+
+        <MudTable Items="recentPayments"
+                  Hover="true"
+                  Striped="true"
+                  Bordered="false">
+
+            <HeaderContent>
+                <MudTh>Student</MudTh>
+                <MudTh>Invoice</MudTh>
+                <MudTh>Amount</MudTh>
+                <MudTh>Method</MudTh>
+                <MudTh>Date</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+                <MudTd>@context.StudentName</MudTd>
+                <MudTd>@context.InvoiceNumber</MudTd>
+                <MudTd>@context.AmountPaid</MudTd>
+                <MudTd>@context.PaymentMethod</MudTd>
+                <MudTd>@context.PaymentDate.ToShortDateString()</MudTd>
+            </RowTemplate>
+
+        </MudTable>
+
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    public DashboardSummaryDTO dashboardSummary = new();
+    public List<MonthlyPaymentTrend> monthlyPayments = new();
+    public List<RecentPayments> recentPayments = new();
+    string FormatCurrency(object value)
+    {
+        return $"{AppState.Currency.CurrencySymbol}{((double)value):N0}";
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Loading dashboard data...");
+        await LoadDashboardSummary();
+        await LoadFinanceTrends();
+        await LoadRecentPayments();
+        LoaderService.Hide();
+    }
+
+    protected async Task LoadDashboardSummary()
+    {
+        var service = GenericService.GetService<DashboardSummaryDTO>();
+        var result = await service.GetByIdAsync("api/Finance/GetDashboardSummary", Guid.Parse(AppState.SchoolID));
+        if (result.IsSuccess)
+            dashboardSummary = result.Data;
+    }
+
+    protected async Task LoadFinanceTrends()
+    {
+        var service = GenericService.GetService<MonthlyPaymentTrend>();
+        var result = await service.GetAllAsync($"api/Finance/GetFinancialTrends/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+            monthlyPayments = result.Data.ToList();
+    }
+
+    protected async Task LoadRecentPayments()
+    {
+        var service = GenericService.GetService<RecentPayments>();
+        var result = await service.GetAllAsync($"api/Finance/GetRecentPayments/{Guid.Parse(AppState.SchoolID)}", true);
+
+        if (result.IsSuccess)
+            recentPayments = result.Data.ToList();
+    }
+}

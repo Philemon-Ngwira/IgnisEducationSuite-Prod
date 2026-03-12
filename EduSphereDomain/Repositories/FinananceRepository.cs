@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Office2010.Excel;
 using EduSphereDomain.FinanceData;
 using EDUSphereSharedProject.FinanceModels;
+using EDUSphereSharedProject.FinanceModels.DTOs;
 using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.UniversalModels;
 using Microsoft.EntityFrameworkCore;
@@ -27,7 +28,32 @@ namespace EduSphereDomain.Repositories
             var result = await _context.InvoiceTypes.ToListAsync();
             return result;
         }
+        public async Task<string> GenerateInvoiceNumberAsync(string SchoolName, string invoiceType, Guid SchoolId)
+        {
+            // Get school short code (first 3 letters)
 
+
+            if (string.IsNullOrEmpty(SchoolName)) throw new Exception("School not found");
+
+            string schoolCode = SchoolName.Substring(0, Math.Min(3, SchoolName.Length)).ToUpper();
+            string typeCode = invoiceType.Substring(0, Math.Min(2, invoiceType.Length)).ToUpper();
+
+            string yyyyMM = DateTime.UtcNow.ToString("yyyyMM");
+
+            // Count invoices for this school, type, and month
+            int sequence = await _context.Invoices
+                .Where(i => i.SchoolID == SchoolId
+                            && i.InvoiceType == invoiceType
+                            && i.IssuedDate.Year == DateTime.UtcNow.Year
+                            && i.IssuedDate.Month == DateTime.UtcNow.Month)
+                .CountAsync() + 1;
+
+            string seqStr = sequence.ToString("D3"); // pad 3 digits
+
+            string invoiceNumber = $"{schoolCode}-{typeCode}-{yyyyMM}-{seqStr}";
+
+            return invoiceNumber;
+        }
         public async Task<IEnumerable<Invoice>> GetStudentInvoices(string StudentID)
         {
             var result = await _procedures.GetStudentInvoicesAsync(StudentID);
@@ -100,7 +126,7 @@ namespace EduSphereDomain.Repositories
                 foreach (var finance in studentFinances)
                 {
                     var invoiceId = Guid.NewGuid();
-
+                    var invoiceNumber = await GenerateInvoiceNumberAsync(request.SchoolName, request.InvoiceType, schoolId);
                     var invoice = new Invoice
                     {
                         Id = invoiceId,
@@ -115,7 +141,9 @@ namespace EduSphereDomain.Repositories
                         DueDate = request.DueDate,
                         IssuedDate = now,
                         CreatedAt = now,
-                        UpdatedAt = now
+                        UpdatedAt = now,
+                        InvoiceNumber = invoiceNumber,
+                        InvoiceType = request.InvoiceType
                     };
 
                     invoices.Add(invoice);
@@ -149,6 +177,83 @@ namespace EduSphereDomain.Repositories
                 await transaction.RollbackAsync();
                 return (false, $"Error generating invoices: {ex.Message}", 0);
             }
+        }
+
+        public async Task<Payment> RecordPayment(Payment paymentData)
+        {
+            try
+            {
+                var result = await _context.AddAsync(paymentData);
+                await _context.SaveChangesAsync();
+                return result.Entity;
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+
+        }
+        public async Task<IEnumerable<StudentPayments>> GetStudentPayments(string StudentID)
+        {
+            var result = await _procedures.sp_GetStudentPaymentsAsync(StudentID);
+            return result.Select(x => new StudentPayments
+            {
+                InvoiceId = x.InvoiceId,
+                PaymentId = x.PaymentId,
+                AmountPaid = x.AmountPaid,
+                InvoiceAmount = x.InvoiceAmount,
+                InvoicePaidAmount = x.InvoicePaidAmount,
+                OutstandingAmount = x.OutstandingAmount,
+                PaymentCreatedAt = x.PaymentCreatedAt,
+                InvoiceType = x.InvoiceType,
+                StudentFinanceStatus = x.StudentFinanceStatus,
+                PaymentDate = x.PaymentDate,
+                TermEndDate = x.TermEndDate,
+                TermStartDate = x.TermStartDate,
+                PaymentMethod = x.PaymentMethod,
+                TotalFees = x.TotalFees,
+                InvoiceNumber = x.InvoiceNumber
+
+            }).ToList();
+        }
+
+        public async Task<DashboardSummaryDTO> GetDashboardSummary(Guid SchoolID)
+        {
+            var result = await _procedures.sp_GetFinanceDashboardSummaryAsync(SchoolID);
+            var summary = result.FirstOrDefault();
+            return new DashboardSummaryDTO
+            {
+                OutstandingBalance = summary?.OutstandingBalance,
+                OverdueInvoices = summary?.OverdueInvoices,
+                PaymentsToday = summary?.PaymentsToday,
+                TotalCollected = summary?.TotalCollected,
+                TotalInvoiced = summary?.TotalInvoiced
+            };
+
+        }
+
+        public async Task<IEnumerable<MonthlyPaymentTrend>> GetMonthlyPaymentTrends(Guid SchoolID)
+        {
+            var result = await _procedures.sp_GetMonthlyPaymentTrendAsync(SchoolID);
+            return result.Select(x => new MonthlyPaymentTrend
+            {
+                Amount = x.Amount,
+                Month = x.Month,
+            }).ToList();
+        }
+
+        public async Task<IEnumerable<RecentPayments>> GetRecentPaymentsAsync(Guid SchoolID)
+        {
+            var result = await _procedures.sp_GetRecentPaymentsAsync(SchoolID, 10);
+            return result.Select(x => new RecentPayments
+            {
+                AmountPaid = x.AmountPaid,
+                InvoiceNumber = x.InvoiceNumber,
+                PaymentDate = x.PaymentDate,
+                StudentName = x.StudentName,
+                PaymentMethod = x.PaymentMethod
+            }).ToList();
         }
     }
 }

@@ -16,5 +16,7 @@ namespace EDUSphereSharedProject.UniversalModels
         public string InvoiceType { get; set; } = "";
         public decimal Amount {get; set;  }
         public Guid SchoolID { get; set; }
+        public string InvoiceNumber { get; set; } = "";
+        public string SchoolName { get; set; }
     }
 }

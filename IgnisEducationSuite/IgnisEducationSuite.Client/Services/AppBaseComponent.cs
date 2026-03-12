@@ -3,6 +3,7 @@ using EDUSphereSharedProject.Models;
 using IgnisEducationSuite.Client.Pages;
 using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using MudBlazor;
 using System.Net.Http.Json;
@@ -54,7 +55,7 @@ public class AppBaseComponent : ComponentBase, IDisposable
             _ => Color.Default
         };
     }
-
+  
     protected async Task<ApplicationUser> GetUserInformation(string UserID)
     {
         var service = GenericService.GetService<ApplicationUser>();

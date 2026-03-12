@@ -1,5 +1,101 @@
-﻿<h3>BalanceSection</h3>
+﻿@using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.FinanceModels.DTOs
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+
+<MudCard Class="pa-4">
+
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5">Finance Overview</MudText>
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                View your outstanding fees and payment history.
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudCardContent>
+
+        <MudGrid Spacing="3">
+
+            <!-- Outstanding Fees -->
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudText Typo="Typo.h6">Outstanding Fees</MudText>
+                    <MudTable Items="outstandingInvoices" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>Term</MudTh>
+                            <MudTh>Invoice Type</MudTh>
+                            <MudTh>Amount</MudTh>
+                            <MudTh>Paid</MudTh>
+                            <MudTh>Outstanding</MudTh>
+                            <MudTh>Due Date</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.TermStartDate.ToShortDateString() - @context.TermEndDate.ToShortDateString()</MudTd>
+                            <MudTd>@context.InvoiceType</MudTd>
+                            <MudTd>@CurrencySymbol @context.Amount</MudTd>
+                            <MudTd>@CurrencySymbol @context.PaidAmount</MudTd>
+                            <MudTd>@CurrencySymbol @(context.Amount - context.PaidAmount)</MudTd>
+                            <MudTd>@context.DueDate.ToShortDateString()</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+
+            <!-- Payment History -->
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudText Typo="Typo.h6">Payment History</MudText>
+                    <MudTable Items="studentPayments" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>Inv #</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Invoice Type</MudTh>
+                            <MudTh>Amount</MudTh>
+                            <MudTh>Method</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.InvoiceNumber</MudTd>
+                            <MudTd>@context.PaymentDate.ToShortDateString()</MudTd>
+                            <MudTd>@context.InvoiceType</MudTd>
+                            <MudTd>@CurrencySymbol @context.AmountPaid</MudTd>
+                            <MudTd>@context.PaymentMethod</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+
+        </MudGrid>
+
+    </MudCardContent>
+
+</MudCard>
 
 @code {
 
+    [Parameter] public List<Invoice> outstandingInvoices { get; set; } = new();
+    private List<StudentPayments> studentPayments = new();
+    [Parameter] public string CurrencySymbol { get; set; } = "$";
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Loading finance data...");
+
+        // await LoadOutstandingFeesAsync();
+        await LoadPaymentHistoryAsync();
+
+        LoaderService.Hide();
+    }
+
+ 
+
+    private async Task LoadPaymentHistoryAsync()
+    {
+        var userId =/*  AppState.UserID */ "187003c3-30bb-4493-84b5-9f7de1d7bb14";
+        var service = GenericService.GetService<StudentPayments>();
+        var result = await service.GetAllAsync($"api/Payment/GetStudentPayments/{userId}", true);
+
+        if (result.IsSuccess)
+            studentPayments = result.Data.ToList();
+    }
 }

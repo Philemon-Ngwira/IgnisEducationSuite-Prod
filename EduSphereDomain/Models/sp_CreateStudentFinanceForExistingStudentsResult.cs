@@ -9,5 +9,7 @@ namespace EduSphereDomain.Models
     {
         public Guid StudentFinanceId { get; set; }
         public Guid StudentId { get; set; }
+        public Guid? SchoolId { get; set; }
+        public string StudentName { get; set; }
     }
 }

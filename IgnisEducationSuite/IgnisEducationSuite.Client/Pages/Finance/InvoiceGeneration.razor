@@ -40,7 +40,7 @@
                            Required="true"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
-                ToStringFunc="Converter">
+                           ToStringFunc="Converter">
                     @foreach (var type in invoiceTypes)
                     {
                         <MudSelectItem Value="@type">@type.Name</MudSelectItem>
@@ -136,10 +136,12 @@
                 InvoiceTypeId = selectedType.Id,
                 InvoiceType = selectedType.Name,
                 Amount = _amount.Value,
-                SchoolID = Guid.Parse(AppState.SchoolID)
+                SchoolID = Guid.Parse(AppState.SchoolID),
+                SchoolName
+                = AppState.SchoolName
             };
 
-            var result = await service.PostAsync("api/Invoice/generate-bulk", "invoice",request);
+            var result = await service.PostAsync("api/Invoice/generate-bulk", "invoice", request);
 
             if (result.IsSuccess)
             {

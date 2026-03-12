@@ -1,0 +1,102 @@
+﻿
+@using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+
+<MudCard Class="pa-4">
+
+    <!-- Header: Student Info -->
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5">Student Account Statement</MudText>
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                Detailed ledger of payments and charges
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudCardContent>
+
+        <MudGrid Spacing="3">
+
+            <!-- Student Selection -->
+            <MudItem xs="12" md="6">
+                <MudAutocomplete T="Student"
+                                 Label="Search Student"
+                                 SearchFunc="SearchStudents"
+                                 ToStringFunc="@(s => s?.FirstName + " " + s?.LastName)"
+                                 Value="_selectedStudent"
+                                 ValueChanged="LoadLedgerAsync"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+
+            <!-- School/Term Info (Optional) -->
+            <MudItem xs="12" md="6">
+                <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                    Selected Student Balance:
+                    <b>@(_selectedStudent != null ? FormatCurrency(_runningBalance) : "-")</b>
+                </MudText>
+            </MudItem>
+
+            <!-- Ledger Table -->
+            <MudItem xs="12">
+                <MudTable Items="ledgerEntries" Hover="true" Bordered="true" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Date</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Description</MudTh>
+                        <MudTh>Debit</MudTh>
+                        <MudTh>Credit</MudTh>
+                        <MudTh>Balance</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.CreatedAt.ToShortDateString()</MudTd>
+                        <MudTd>@context.EntryType</MudTd>
+                        <MudTd>@context.Description</MudTd>
+                        <MudTd>@(context.EntryType == "Debit" ? FormatCurrency(context.Amount) : "-")</MudTd>
+                        <MudTd>@(context.EntryType == "Credit" ? FormatCurrency(context.Amount) : "-")</MudTd>
+                        <MudTd>@FormatCurrency(context.RunningBalance)</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+
+            <!-- Footer: Total Outstanding -->
+            <MudItem xs="12">
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.h6" Align="Align.Right">
+                    Current Outstanding Balance: <b>@FormatCurrency(_runningBalance)</b>
+                </MudText>
+            </MudItem>
+
+            <!-- Optional Export Buttons -->
+            <MudItem xs="12" Class="d-flex justify-end gap-2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ExportToPdf">
+                    Export PDF
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="ExportToExcel">
+                    Export Excel
+                </MudButton>
+            </MudItem>
+
+        </MudGrid>
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private Student _selectedStudent;
+    private List<FinanceLedger> ledgerEntries = new();
+    private decimal _runningBalance = 0;
+
+    private string FormatCurrency(decimal amount)
+    {
+        return (AppState.Currency.CurrencySymbol ?? "$") + amount.ToString("N2");
+    }
+
+    // Placeholder methods you can bind
+    private Task<IEnumerable<Student>> SearchStudents(string value, CancellationToken token) => Task.FromResult(Enumerable.Empty<Student>());
+    private Task LoadLedgerAsync(Student student) => Task.CompletedTask;
+    private void ExportToPdf() { }
+    private void ExportToExcel() { }
+}

@@ -100,6 +100,7 @@ namespace EduSphereDomain.Data
             modelBuilder.Entity<sp_GetBusMaintenanceRequestsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetClinicDashboardMetricsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetExpiringSoonMedicationsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetStudentPaymentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetStudentTimetableResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetTeacherTimetableResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<usp_GetAvailableTripsForParentBookingResult>().HasNoKey().ToView(null);
@@ -2081,6 +2082,33 @@ namespace EduSphereDomain.Data
                 parameterreturnValue,
             };
             var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[sp_GetLevelTermReportCard] @LevelID, @TermStartDate, @TermEndDate, @level", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetStudentPaymentsResult>> sp_GetStudentPaymentsAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "UserID",
+                    Size = 455,
+                    Value = UserID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.VarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetStudentPaymentsResult>("EXEC @returnValue = [Finance].[sp_GetStudentPayments] @UserID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 
