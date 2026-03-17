@@ -1,4 +1,5 @@
 ﻿using EduSphereDomain.Repositories;
+using EDUSphereSharedProject.FinanceModels.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +28,12 @@ namespace IgnisEducationSuite.Controllers
             var result = await _finananceRepository.GetMonthlyPaymentTrends(SchoolID);
             return Ok(result);
         }
-
+        [HttpPost("GetStudentLedgers")]
+        public async Task<IActionResult> GetStudentLedgers([FromBody] FinanceLedgerRequestDTO requestDTO)
+        {
+            var result = await _finananceRepository.GetStudentLedgersAsync(requestDTO);
+            return Ok(result);
+        }
         [HttpGet("GetRecentPayments/{SchoolID}")]
         public async Task<IActionResult> GetRecentPayments(Guid SchoolID)
         {

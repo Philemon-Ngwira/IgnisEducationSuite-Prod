@@ -775,6 +775,21 @@
             StateHasChanged();
         }
     }
+    public static string GenerateSchoolPrefix(string schoolName)
+    {
+        if (string.IsNullOrWhiteSpace(schoolName))
+            return "SCH";
+
+        var words = schoolName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => w.Length > 2) // ignore "of", "a", etc
+            .ToList();
+
+        var prefix = string.Concat(words.Select(w => char.ToUpper(w[0])));
+
+        // limit to 4 letters so IDs don't get too long
+        return prefix.Length > 4 ? prefix.Substring(0, 4) : prefix;
+    }
     private async Task ConfirmUploadStudent()
     {
         LoaderService.Show("Creating student accounts, please wait...");
@@ -782,8 +797,15 @@
         await GenerateUsernamesForUploadedStudents();
         foreach (var item in uploadedStudents)
         {
+            if (string.IsNullOrEmpty(item.StudentNumber))
+            {
+                var prefix = GenerateSchoolPrefix(AppState.SchoolName);
+                
+                item.StudentNumber = await StudentNumberGenerator.GenerateStudentIdAsync(prefix,NavigationManager.BaseUri);
+            }
             newUser = new UniversalUser()
             {
+
                 UserName = item.GeneratedUserName,
                 FirstName = item.FirstName,
                 LastName = item.LastName,

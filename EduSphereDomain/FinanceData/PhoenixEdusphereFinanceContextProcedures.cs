@@ -103,6 +103,7 @@ namespace EduSphereDomain.FinanceData
             modelBuilder.Entity<sp_GetFinanceDashboardSummaryResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetMonthlyPaymentTrendResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetRecentPaymentsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetStudentLedgerStatementResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetStudentPaymentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetStudentTimetableResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetTeacherTimetableResult>().HasNoKey().ToView(null);
@@ -2169,6 +2170,50 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<sp_GetRecentPaymentsResult>("EXEC @returnValue = [Finance].[sp_GetRecentPayments] @SchoolId, @Top", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetStudentLedgerStatementResult>> sp_GetStudentLedgerStatementAsync(Guid? SchoolId, Guid? StudentFinanceId, DateTime? StartDate, DateTime? EndDate, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolId",
+                    Value = SchoolId ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "StudentFinanceId",
+                    Value = StudentFinanceId ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "StartDate",
+                    Value = StartDate ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.Date,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "EndDate",
+                    Value = EndDate ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.Date,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetStudentLedgerStatementResult>("EXEC @returnValue = [Finance].[sp_GetStudentLedgerStatement] @SchoolId, @StudentFinanceId, @StartDate, @EndDate", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

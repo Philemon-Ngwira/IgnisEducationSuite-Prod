@@ -242,6 +242,23 @@ namespace EduSphereDomain.Repositories
                 Month = x.Month,
             }).ToList();
         }
+        public async Task<IEnumerable<StudentFinanceLedgerDTO>> GetStudentLedgersAsync(FinanceLedgerRequestDTO requestDTO)
+        {
+            var result = await _procedures.sp_GetStudentLedgerStatementAsync(requestDTO.SchoolID, requestDTO.StudentFinanceID, requestDTO.TermStart, requestDTO.TermEnd);
+            return result.Select(x => new StudentFinanceLedgerDTO
+            {
+                Amount = x.Amount,
+                CreatedAt = x.CreatedAt,
+                Description = x.Description,
+                EntryType = x.EntryType,
+                Id = x.Id,
+                InvoiceNumber = x.InvoiceNumber,
+                ReferenceId = x.ReferenceId,
+                ReferenceType = x.ReferenceType,
+                RunningBalance = x.RunningBalance,
+            }).ToList();
+        }
+
 
         public async Task<IEnumerable<RecentPayments>> GetRecentPaymentsAsync(Guid SchoolID)
         {

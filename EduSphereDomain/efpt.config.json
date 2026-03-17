@@ -319,6 +319,10 @@
          "ObjectType": 1
       },
       {
+         "Name": "[Finance].[sp_GetStudentLedgerStatement]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[Finance].[sp_GetStudentPayments]",
          "ObjectType": 1
       },

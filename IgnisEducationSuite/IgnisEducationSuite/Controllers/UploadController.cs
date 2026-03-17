@@ -194,64 +194,77 @@ namespace IgnisEducationSuite.Controllers
 
             foreach (var row in worksheet.RowsUsed().Skip(1).Select((r, i) => new { Row = r, RowIndex = i + 2 }))
             {
-                DateTime dateValue;
                 try
                 {
-                    string firstName = row.Row.Cell(1).GetValue<string>()?.Trim();
-                    string lastName = row.Row.Cell(2).GetValue<string>()?.Trim();
-                    string gender = row.Row.Cell(3).GetValue<string>()?.Trim();
-                    string address = row.Row.Cell(4).GetValue<string>()?.Trim();
-                    string email = row.Row.Cell(5).GetValue<string>()?.Trim() ?? string.Empty;
-                    string studentNumber = row.Row.Cell(6).GetValue<string>()?.Trim();
-                    var dateCell = row.Row.Cell(7).GetValue<string>()?.Trim();
-                    string country = row.Row.Cell(8).GetValue<string>()?.Trim();
-                    string city = row.Row.Cell(9).GetValue<string>()?.Trim();
-                    string gradeSection = row.Row.Cell(10).GetValue<string>()?.Trim();
-                    string levelName = row.Row.Cell(11).GetValue<string>()?.Trim();
-                    bool paymentStatus = row.Row.Cell(12).GetValue<int>() == 1;
-                    bool isDaySchool = row.Row.Cell(13).GetValue<int>() == 1;
-                    string GroupName = row.Row.Cell(14).GetValue<string>()?.Trim() ?? string.Empty;
-                    // Validate required fields
-                    if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName) ||
-                        string.IsNullOrEmpty(studentNumber) || string.IsNullOrEmpty(levelName))
-                        throw new Exception("Missing required field.");
+                    string firstName = row.Row.Cell(1).GetString()?.Trim();
+                    string lastName = row.Row.Cell(2).GetString()?.Trim();
+                    string gender = row.Row.Cell(3).GetString()?.Trim();
+                    string address = row.Row.Cell(4).GetString()?.Trim();
+                    string email = row.Row.Cell(5).GetString()?.Trim();
+                    string studentNumber = row.Row.Cell(6).GetString()?.Trim();
+                    string dateCell = row.Row.Cell(7).GetString()?.Trim();
+                    string country = row.Row.Cell(8).GetString()?.Trim();
+                    string city = row.Row.Cell(9).GetString()?.Trim();
+                    string gradeSection = row.Row.Cell(10).GetString()?.Trim();
+                    string levelName = row.Row.Cell(11).GetString()?.Trim();
+                    string paymentCell = row.Row.Cell(12).GetString()?.Trim();
+                    string daySchoolCell = row.Row.Cell(13).GetString()?.Trim();
+                    string groupName = row.Row.Cell(14).GetString()?.Trim();
 
-                    // Validate gender
-                    if (string.IsNullOrEmpty(gender))
+                    // Required fields
+                    if (string.IsNullOrWhiteSpace(firstName) ||
+                        string.IsNullOrWhiteSpace(lastName) ||
+                        string.IsNullOrWhiteSpace(levelName))
+                    {
+                        throw new Exception("Missing required field (FirstName, LastName or LevelName).");
+                    }
+
+                    // Gender default
+                    if (string.IsNullOrWhiteSpace(gender))
                         gender = "Male";
-                    if (gender != "Male" && gender != "Female")
+
+                    if (!gender.Equals("Male", StringComparison.OrdinalIgnoreCase) &&
+                        !gender.Equals("Female", StringComparison.OrdinalIgnoreCase))
+                    {
                         throw new Exception("Gender must be 'Male' or 'Female'.");
-                    var dateOnBoarded = (DateTime?)null;
-                    if (!string.IsNullOrEmpty(dateCell) && DateTime.TryParse(dateCell, out dateValue))
-                    {
-                        dateOnBoarded = dateValue;
                     }
-                    else
+
+                    // Date parsing
+                    DateTime dateOnBoarded = DateTime.Today;
+                    if (!string.IsNullOrWhiteSpace(dateCell) && DateTime.TryParse(dateCell, out var parsedDate))
                     {
-                        dateOnBoarded = DateTime.Today;
+                        dateOnBoarded = parsedDate;
                     }
-                    // Add to preview list (no UserID yet)
+
+                    // Boolean parsing
+                    bool paymentStatus = paymentCell == "1" || paymentCell?.ToLower() == "true";
+                    bool isDaySchool = daySchoolCell == "1" || daySchoolCell?.ToLower() == "true";
+
                     students.Add(new Student
                     {
                         FirstName = firstName,
                         LastName = lastName,
                         Gender = gender,
-                        Address = address,
-                        Email = email,
+                        Address = address ?? "",
+                        Email = email ?? "",   // primary school students may not have email
                         StudentNumber = studentNumber,
-                        DateOnBoarded = dateOnBoarded ?? DateTime.Today,
-                        Country = country,
-                        City = city,
-                        GradeSection = gradeSection,
+                        DateOnBoarded = dateOnBoarded,
+                        Country = country ?? "",
+                        City = city ?? "",
+                        GradeSection = gradeSection ?? "",
                         LevelName = levelName,
                         PaymentStatus = paymentStatus,
                         isDaySchool = isDaySchool,
-                        GroupName = GroupName ?? null
+                        GroupName = string.IsNullOrWhiteSpace(groupName) ? null : groupName
                     });
                 }
                 catch (Exception exRow)
                 {
-                    errors.Add(new RowError { RowIndex = row.RowIndex, Message = exRow.Message });
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
                 }
             }
 
