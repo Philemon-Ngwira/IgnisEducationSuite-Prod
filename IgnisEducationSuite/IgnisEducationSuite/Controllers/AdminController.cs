@@ -173,7 +173,17 @@ namespace IgnisEducationSuite.Controllers
             {
                 user.isFirstLogin = true;
             }
-            var result = await _userManager.CreateAsync(user, request.Password);
+
+            var password = "";
+            if (string.IsNullOrEmpty(request.Email) || request.Email == "N/A")
+            {
+                password = "P@ssword1";
+            }
+            else
+            {
+                password = request.Password;
+            }
+            var result = await _userManager.CreateAsync(user, password);
 
             if (!result.Succeeded)
             {
