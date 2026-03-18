@@ -96,6 +96,9 @@
                                 </MudAlert>
                             }
                         </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="Student" />
+                        </PagerContent>
                     </MudDataGrid>
                 </MudPaper>
 
@@ -185,6 +188,9 @@
                         </MudAlert>
                     }
                 </Columns>
+                <PagerContent>
+                    <MudDataGridPager T="Student" />
+                </PagerContent>
             </MudDataGrid>
         </MudPaper>
 
@@ -348,6 +354,7 @@
         var result = _genericService.GetService<Student>();
         var service = await result.GetAllAsync($"api/Dynamic/GetStudentsBySchoolID/{clientAdmin.SchoolID}", true);
         Students = service.Data.ToList();
+        Students.OrderByDescending(x => x.AcademicLevel);
 
     }
     protected async Task GetLoggedInAdmin()

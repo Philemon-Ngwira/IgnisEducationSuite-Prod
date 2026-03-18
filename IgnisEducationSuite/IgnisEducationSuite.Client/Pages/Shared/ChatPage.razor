@@ -512,13 +512,15 @@
     }
     private async Task<IEnumerable<string>> Search(string value, CancellationToken token)
     {
-        // In real life use an asynchronous function for fetching data from an api.
-        await Task.Delay(5, token);
-
-        // if text is null or empty, don't return values (drop-down will not open)
+        await Task.Delay(2); // small async delay, optional
         if (string.IsNullOrEmpty(value))
-            return new string[0];
-        return _users.Where(x => x.UserName.Contains(value, StringComparison.InvariantCultureIgnoreCase)).Select(x => x.UserName);
+            return Array.Empty<string>();
+
+        return _users
+            .Where(x => x.UserName.Contains(value, StringComparison.InvariantCultureIgnoreCase)
+                     || x.FirstName.Contains(value, StringComparison.InvariantCultureIgnoreCase)
+                     || x.LastName.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+                     .Select(x => $"{x.UserID}: {x.FirstName ?? ""} {x.LastName ?? ""}".Trim());
     }
 
 }
