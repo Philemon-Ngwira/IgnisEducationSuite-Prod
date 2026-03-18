@@ -34,6 +34,15 @@
             <MudItem xs="12" md="6">
                 <MudCheckBox @bind-Value="newUser.AccountActive" Label="@checkBoxLabel"></MudCheckBox>
             </MudItem>
+            @if (string.IsNullOrEmpty(newUser.Email) || newUser.Email == "N/A")
+            {
+                <MudItem xs="12">
+                    <MudTooltip Text="Enter Email where one-time password will be sent">
+                        <MudTextField FullWidth="true" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="@AlternateEmail" Label="Alternate Email"></MudTextField>
+
+                    </MudTooltip>
+                </MudItem>
+            }
         </MudGrid>
     </DialogContent>
     <DialogActions>
@@ -52,6 +61,7 @@
     protected bool DisableuserAccount = false;
     protected PasswordGenerator passwordGenerator = new();
     protected string checkBoxLabel = "Disable User Account";
+    protected string AlternateEmail = "";
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] ClientEmailService _emailService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; }
@@ -71,15 +81,31 @@
         {
             //Mail one time password
             //Mail User//
+            var address = "";
+            if (string.IsNullOrEmpty(newUser.Email)
+            || newUser.Email == "N/A"
+            && !string.IsNullOrEmpty(AlternateEmail))
+            {
+                //Get the parent and mail the parent the password
+
+                address = AlternateEmail;
+
+            }
+            else
+            {
+                address = newUser.Email;
+            }
             EmailRequest email = new()
-                {
-                    To = newUser.Email,
-                    Reciepient  = newUser.FirstName +" "+ newUser.LastName,
-                    Password = model.Password,
-                    UserName = newUser.UserName,
-                    StudentID = "N/A",
-                    isFirstMail = false
-                };
+            {
+                To = address,
+                Reciepient = newUser.FirstName + " " + newUser.LastName,
+                Password = model.Password,
+                UserName = newUser.UserName,
+                StudentID = "N/A",
+                isFirstMail = false
+            };
+
+
             var emailsent = await _emailService.SendPasswordResetEmailAsync(email, _navigationManager.BaseUri);
             if (emailsent == "Password reset email sent successfully!")
             {
@@ -96,10 +122,10 @@
                 _mudDialogInstance.Close(DialogResult.Ok(true));
             }
             //Close Dialog
-            
+
         }
     }
-  
+
     protected void Close()
     {
         _mudDialogInstance.Close(DialogResult.Cancel());

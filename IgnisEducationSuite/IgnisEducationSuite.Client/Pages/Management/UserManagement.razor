@@ -5,7 +5,6 @@
 @using EDUSphereSharedProject.UniversalModels
 @using IgnisEducationSuite.Client.Pages.Management.Dialog
 @using System.Text.Json
-
 @using System.Security.Cryptography;
 @using System.Text
 @inject HttpClient Http
@@ -321,11 +320,14 @@
                                 </MudCard>
                             }
 
-                            <MudDataGrid Items="@role.Value">
+                            <MudDataGrid Items="@role.Value" QuickFilter="@_quickFilter">
                                 <ToolBarContent>
                                     <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateUserAsync(role.Key)">
                                         Create New User
                                     </MudButton>
+                                    <MudSpacer />
+                                    <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                                                  AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
                                 </ToolBarContent>
 
                                 <Columns>
@@ -356,7 +358,9 @@
                                         </MudAlert>
                                     }
                                 </Columns>
-
+                                <PagerContent>
+                                    <MudDataGridPager T="ApplicationUser" />
+                                </PagerContent>
                             </MudDataGrid>
                         </MudTabPanel>
                     }
@@ -370,7 +374,6 @@
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; }
-
     [Inject] ClientEmailService _emailService { get; set; } = default!;
     private Dictionary<string, List<ApplicationUser>> userRoles = new();
     private string newUserName = string.Empty;
@@ -387,6 +390,7 @@
     protected ClientAdmin loggedInAdmin = new();
     protected LicenseSlots LicenseUserLimit = new();
     protected bool selectedFileReady = false;
+    protected string _searchString = "";
     protected List<string> rolesToExempt = new()
     {
         "SuperAdmin",
@@ -410,6 +414,23 @@
         await GetGenders();
         LoaderService.Hide();
     }
+    private Func<ApplicationUser, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if (x.FirstName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.LastName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if ($"{x.Email}".Contains(_searchString))
+            return true;
+
+        return false;
+    };
+
     IList<IBrowserFile> _files = new List<IBrowserFile>();
     #region ParentBulkUpload
 
