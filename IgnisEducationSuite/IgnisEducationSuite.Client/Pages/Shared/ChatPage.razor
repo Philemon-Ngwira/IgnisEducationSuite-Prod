@@ -20,7 +20,7 @@
             <div class="chat-sidebar card">
                 <div class="chat-sidebar-single active top-profile">
                     <div class="img">
-                        @if (LoggedInUser.ProfilePic != null)
+                        @if (LoggedInUser.ProfilePic != null  || LoggedInUser.ProfilePic == Array.Empty<byte>())
                         {
                             <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(LoggedInUser.ProfilePic)}")" alt="image">
                         }
@@ -77,7 +77,7 @@
                     {
                         <div class="chat-sidebar-single active" @onclick="() => SelectChat(item)">
                             <div class="img">
-                                @if (item.ProfilePic != null && item.ProfilePic.Length > 0)
+                                @if (item.ProfilePic != null && item.ProfilePic == Array.Empty<byte>() && item.ProfilePic.Length > 0)
                                 {
                                     <!-- Show user/group custom profile picture -->
                                     <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.ProfilePic)}")"
