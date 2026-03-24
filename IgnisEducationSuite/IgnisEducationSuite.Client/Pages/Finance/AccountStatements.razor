@@ -26,7 +26,7 @@
                 <MudAutocomplete T="Student"
                                  Label="Search Student"
                                  SearchFunc="SearchStudents"
-                                 ToStringFunc="@(s => s?.FirstName + " " + s?.LastName)"
+                                 ToStringFunc="@(s => s?.FirstName + " " + s?.LastName+":"+s?.LevelName)"
                                  Value="_selectedStudent"
                                  ValueChanged="OnStudentSelected"
                                  Variant="Variant.Outlined"
@@ -37,11 +37,12 @@
             <MudItem xs="12" md="4">
                 <MudDateRangePicker Label="Statement Period"
                                     @bind-DateRange="_dateRange"
-                                    Variant="Variant.Outlined" />
+                                    Variant="Variant.Outlined"
+                                    Margin="Margin.Dense"/>
             </MudItem>
 
             <!-- Load Button -->
-            <MudItem xs="12" md="2" Class="d-flex align-end">
+            <MudItem xs="12" md="2" >
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            FullWidth="true"

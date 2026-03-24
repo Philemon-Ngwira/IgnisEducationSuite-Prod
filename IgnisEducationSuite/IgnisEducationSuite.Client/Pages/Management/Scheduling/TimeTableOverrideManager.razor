@@ -141,29 +141,67 @@
 
     private async Task SaveOverride()
     {
-        model.AcademicLevel = AcademicLevel;
-        model.GradeSection = GradeSection;
-        model.IsActive = true;
-        model.EffectiveFrom = termSettings.Select(x => x.ActualStartTermDate).First() ?? _dateRange.Start;
-        model.EffectiveTo = termSettings.Select(x => x.ActualEndTermDate).First() ?? _dateRange.End;
-        model.CreatedBy = loggedInAdmin.AdminID;
-        var service = GenericService.GetService<TimetableOverride>();
-        var result = await service.PostAsync(
-            "api/Dynamic/PostEntity",
-            "timetableoverride",
-            model
-        );
+        var selectedClass = SpecialClasses
+    .FirstOrDefault(c => c.ClassID == model.ReplacementClassID);
 
-        if (result.IsSuccess)
+        if (selectedClass == null) return;
+
+        var subjectName = selectedClass.ClassName.Split('(')[0].Trim();
+        var relatedClasses = SpecialClasses
+    .Where(c =>
+        c.ClassName.StartsWith(subjectName) &&
+        c.ClassName.Contains("(") // ensure it's grouped
+    )
+    .ToList();
+        var relatedGroups = relatedClasses
+        .Select(c => ExtractGroupName(c.ClassName))
+        .Distinct()
+        .ToList();
+        bool hasConflict = overridesCreated.Any(o =>
+    o.DayOfTheWeekID == model.DayOfTheWeekID &&
+    o.TimeSlotID == model.TimeSlotID &&
+    relatedGroups.Contains(o.StudentGroup)
+);
+
+        if (hasConflict)
         {
-            Snackbar.Add("Override saved successfully", Severity.Success);
-            overridesCreated.Add(result.Data);
-            model = new TimetableOverride();
+            Snackbar.Add("Conflict: One of the groups already has an override in this slot.", Severity.Warning);
+            return;
         }
-        else
+        foreach (var group in relatedGroups)
         {
-            Snackbar.Add("Failed to save override", Severity.Error);
+            var newOverride = new TimetableOverride
+            {
+                AcademicLevel = AcademicLevel,
+                GradeSection = GradeSection,
+                StudentGroup = group,
+                DayOfTheWeekID = model.DayOfTheWeekID,
+                TimeSlotID = model.TimeSlotID,
+                ReplacementClassID = model.ReplacementClassID,
+                IsActive = true,
+                EffectiveFrom = model.EffectiveFrom,
+                EffectiveTo = model.EffectiveTo,
+                CreatedBy = loggedInAdmin.AdminID
+            };
+
+            var service = GenericService.GetService<TimetableOverride>();
+
+            var result = await service.PostAsync(
+                "api/Dynamic/PostEntity",
+                "timetableoverride",
+                newOverride
+            );
+
+            if (result.IsSuccess)
+            {
+                overridesCreated.Add(result.Data);
+            }
+            else
+            {
+                Snackbar.Add("Failed to save override", Severity.Error);
+            }
         }
+       
     }
 
     private static string ExtractGroupName(string className)
