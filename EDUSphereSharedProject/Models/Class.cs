@@ -21,6 +21,8 @@ public partial class Class
 
     public string LevelName { get; set; }
 
+    public string  GroupName { get; set; } = string.Empty;
+
     public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
 
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();

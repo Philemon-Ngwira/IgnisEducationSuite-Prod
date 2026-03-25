@@ -1,5 +1,6 @@
 ﻿using EduSphereDomain.AchievementData;
 using EduSphereDomain.Data;
+using EduSphereDomain.FinanceData;
 using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
@@ -16,12 +17,14 @@ namespace EduSphereDomain.Repositories
         private readonly PhoenixEdusphereContextProcedures _contextProcedures;
         private readonly AchievementContext _achivementContext;
         private readonly AchievementContextProcedures _achievementContextProcedures;
-        public EduSphereRepository(PhoenixEdusphereContext context, PhoenixEdusphereContextProcedures phoenixEdusphereContextProcedures, AchievementContext achivementContext, AchievementContextProcedures achievementContextProcedures)
+        private readonly PhoenixEdusphereFinanceContextProcedures _financeContextProcedures;
+        public EduSphereRepository(PhoenixEdusphereContext context, PhoenixEdusphereContextProcedures phoenixEdusphereContextProcedures, AchievementContext achivementContext, AchievementContextProcedures achievementContextProcedures, PhoenixEdusphereFinanceContextProcedures contextProcedures)
         {
             _context = context;
             _contextProcedures = phoenixEdusphereContextProcedures;
             _achivementContext = achivementContext;
             _achievementContextProcedures = achievementContextProcedures;
+            _financeContextProcedures = contextProcedures;
         }
 
 
@@ -390,6 +393,26 @@ namespace EduSphereDomain.Repositories
                 stdCls.Add(studentClass);
             }
             return stdCls;
+        }
+        public async Task<IEnumerable<TimetableOverride>> GetTimeTableOverrides(Guid SchoolId)
+        {
+            var result = await _financeContextProcedures.GetTimetableOverridesBySchoolAsync(SchoolId);
+            return result.Select(x => new TimetableOverride
+            {
+                AcademicLevel = x.AcademicLevel,
+                StudentGroup = x.StudentGroup,
+                GradeSection = x.GradeSection,
+                TimeSlotID = x.TimeSlotID,
+                CreatedAt = x.CreatedAt,
+                CreatedBy = x.CreatedBy,
+                DayOfTheWeekID = x.DayOfTheWeekID,
+                ReplacementClassID = x.ReplacementClassID,
+                EffectiveFrom = x.EffectiveFrom,
+                EffectiveTo = x.EffectiveTo,
+                IsActive = x.IsActive,
+                Reason = x.Reason,
+                TimetableOverrideID = x.TimetableOverrideID
+            }).ToList();
         }
         public async Task<List<ClassSchedule>> UpsertClassSchedulesAsync(
     List<ClassSchedule> incomingSchedules)

@@ -90,6 +90,7 @@ namespace EduSphereDomain.FinanceData
             modelBuilder.Entity<GetTeacherAssignmentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetTeacherLessonsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetTeacherSubjectByTeacherIDResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<GetTimetableOverridesBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetTop5TeachersByHighRatedLessonsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetUpcomingExamsOrQuizzesResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetUserBadgesByUserIDResult>().HasNoKey().ToView(null);
@@ -1765,6 +1766,32 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetTeacherSubjectByTeacherIDResult>("EXEC @returnValue = [dbo].[GetTeacherSubjectByTeacherID] @TeacherID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetTimetableOverridesBySchoolResult>> GetTimetableOverridesBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<GetTimetableOverridesBySchoolResult>("EXEC @returnValue = [dbo].[GetTimetableOverridesBySchool] @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

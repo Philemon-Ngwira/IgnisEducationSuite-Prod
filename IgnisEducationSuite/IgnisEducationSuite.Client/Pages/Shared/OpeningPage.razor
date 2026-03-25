@@ -1,19 +1,29 @@
 ﻿@using EDUSphereSharedProject.IdentiyModels
 @inherits AppBaseComponent
+
 <MudDialog Options="@dialogOptions">
     <DialogContent>
+
+        <MudText Align="Align.Center" Typo="Typo.h4" Class="mb-2">
+            <b>Welcome to Ignis Education Suite 🎓✨</b>
+        </MudText>
+
         @if (AppState.UserRole == "Student")
         {
-            <MudText Align="Align.Justify" Typo="Typo.h4">
-                <b>Welcome to Ignis Education Suite! 🎓✨</b>
+            <MudText Typo="Typo.body1" Class="mb-3">
+                <i>
+                    Ignis Education Suite is your all-in-one platform for a dynamic and engaging learning experience.
+                    Track your progress, set personal goals, and earn badges that recognize your hard work and achievements.
+                    Stay motivated as you grow through activities, challenges, and consistent learning.
+                </i>
             </MudText>
-            <MudText Typo="Typo.body1">
-                <i>Ignis Education Suite is your all-in-one platform for a dynamic and engaging learning experience. Here, you can track your progress, set personal goals, and earn badges that recognize your hard work and achievements. The system is designed to motivate and inspire you to reach your full potential through a variety of activities and challenges.</i>
-            </MudText>
+
             <MudDivider Class="mb-3" />
+
             <MudText Align="Align.Center" Typo="Typo.h5">
-                <b>Badge Categories:</b>
+                <b>Badge Categories</b>
             </MudText>
+
             <MudList T="string">
                 <MudListItem>
                     <AvatarContent>
@@ -21,127 +31,163 @@
                             <MudImage Src="/AchievementImages/Assignments/Tier4.png" />
                         </MudAvatar>
                     </AvatarContent>
-                    <ChildContent>
-                        <b>Assignment Badges</b>
-                    </ChildContent>
+                    <ChildContent><b>Assignment Badges</b></ChildContent>
                 </MudListItem>
+
                 <MudListItem>
                     <AvatarContent>
                         <MudAvatar>
                             <MudImage Src="/AchievementImages/Attendance/Tier4.png" />
                         </MudAvatar>
                     </AvatarContent>
-                    <ChildContent>
-                        <b>Attendance Badges</b>
-                    </ChildContent>
+                    <ChildContent><b>Attendance Badges</b></ChildContent>
                 </MudListItem>
+
                 <MudListItem>
                     <AvatarContent>
                         <MudAvatar>
                             <MudImage Src="/AchievementImages/Exams/T4.png" />
                         </MudAvatar>
                     </AvatarContent>
-                    <ChildContent>
-                        <b>Exam Badges</b>
-                    </ChildContent>
+                    <ChildContent><b>Exam Badges</b></ChildContent>
                 </MudListItem>
+
                 <MudListItem>
                     <AvatarContent>
                         <MudAvatar>
                             <MudImage Src="/AchievementImages/LessonBadges/T4.png" />
                         </MudAvatar>
                     </AvatarContent>
-                    <ChildContent>
-
-                        <b>Lesson Badges</b>
-                    </ChildContent>
+                    <ChildContent><b>Lesson Badges</b></ChildContent>
                 </MudListItem>
             </MudList>
-            <MudText Align="Align.Center" Typo="Typo.h5">
-                <b>Special Badges:</b>
+
+            <MudText Align="Align.Center" Typo="Typo.h5" Class="mt-3">
+                <b>Special Badges</b>
             </MudText>
+
             <MudList T="string">
-                <MudListItem SecondaryText="">
+                <MudListItem>
                     <AvatarContent>
                         <MudAvatar>
                             <MudImage Src="/AchievementImages/SpecialAchievements/TierThree/lvl5.png" />
                         </MudAvatar>
                     </AvatarContent>
                     <ChildContent>
-                        <b>Goal Setter :</b> Earned by completing five system-defined goals, including excelling in assignments, tests, and consistent attendance and participation.
+                        <b>Goal Setter:</b> Complete five system-defined goals including assignments, tests, and attendance.
                     </ChildContent>
                 </MudListItem>
-                <MudListItem SecondaryText="">
+
+                <MudListItem>
                     <AvatarContent>
                         <MudAvatar>
                             <MudImage Src="/AchievementImages/SpecialAchievements/TierOne/lvl5.png" />
                         </MudAvatar>
                     </AvatarContent>
                     <ChildContent>
-                        <b>All Rounder :</b> Earned by achieving at least one badge from each category, showcasing your versatility and dedication.
+                        <b>All Rounder:</b> Earn at least one badge from each category.
                     </ChildContent>
                 </MudListItem>
-                <MudListItem SecondaryText="">
+
+                <MudListItem>
                     <AvatarContent>
                         <MudAvatar>
                             <MudImage Src="/AchievementImages/SpecialAchievements/TierTwo/lvl5.png" />
                         </MudAvatar>
                     </AvatarContent>
                     <ChildContent>
-                        <b>Marathon Learner :</b> Awarded for spending 5 consecutive hours actively learning on the LMS, demonstrating your commitment to focused learning.
+                        <b>Marathon Learner:</b> Spend 5 consecutive hours actively learning on the platform.
                     </ChildContent>
                 </MudListItem>
-                <MudListItem SecondaryText="">
+
+                <MudListItem>
                     <AvatarContent>
                         <MudAvatar>
                             <MudImage Src="/AchievementImages/SpecialAchievements/TierFour/lvl5.png" />
                         </MudAvatar>
                     </AvatarContent>
                     <ChildContent>
-                        <b>Overachiever :</b> Earned by achieving the highest-level badge in all categories, showcasing your unparalleled dedication and excellence across multiple areas.
+                        <b>Overachiever:</b> Achieve the highest-level badge across all categories.
                     </ChildContent>
                 </MudListItem>
             </MudList>
+
+            <MudDivider Class="mb-3 mt-2" />
+
+            <MudText Class="mb-3" Align="Align.Center">
+                Start your journey and see how far you can go 🚀
+            </MudText>
+
+            <MudButton Class="form-control"
+                       Variant="Variant.Filled"
+                       FullWidth="true"
+                       EndIcon="@Icons.Material.Filled.Start"
+                       Color="Color.Primary"
+                       OnClick="Start">
+                Get Started
+            </MudButton>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mb-3">
+                <i>
+                    Ignis Education Suite provides a centralized platform for managing, monitoring,
+                    and enhancing the learning experience.
+                </i>
+            </MudText>
+
             <MudDivider Class="mb-3" />
-            <MudText Class="mb-3">Start your journey today and see how many badges you can collect as you grow and excel in your studies!</MudText>
-            <MudButton Class="form-control" Variant="Variant.Outlined" FullWidth="true" EndIcon="@Icons.Material.Filled.Start" Color="Color.Primary">Start</MudButton>
-        }
-        else{
-            <MudText Align="Align.Justify" Typo="Typo.h4">
-                <b>Welcome to Ignis Education Suite! 🎓✨</b>
-            </MudText>
+
             <MudText Typo="Typo.body1">
-                <i>Ignis Education Suite is your all-in-one platform for a dynamic and engaging learning experience. Here, you can track your progress, set personal goals, and earn badges that recognize your hard work and achievements. The system is designed to motivate and inspire you to reach your full potential through a variety of activities and challenges.</i>
+                • Track student performance and progress in real time<br />
+                • Monitor attendance, assignments, and assessments<br />
+                • Encourage engagement through a structured achievement system<br />
+                • Gain insights to support better educational outcomes
             </MudText>
+
+            <MudDivider Class="mt-3 mb-3" />
+
+            <MudText Align="Align.Center">
+                Empower learning. Guide progress. Achieve excellence.
+            </MudText>
+
+            <MudButton Class="form-control mt-3"
+                       Variant="Variant.Filled"
+                       FullWidth="true"
+                       Color="Color.Primary"
+                       OnClick="Start">
+                Continue
+            </MudButton>
         }
+
     </DialogContent>
 </MudDialog>
+
 <style>
     .blurydialog {
         backdrop-filter: blur(10px);
     }
 </style>
+
 @code {
     [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
     [Parameter] public string UserID { get; set; }
     [Inject] HttpClient http { get; set; }
-    DialogOptions dialogOptions = new DialogOptions()
-        {
-            MaxWidth = MaxWidth.ExtraLarge,
-            NoHeader = true,
-            BackgroundClass = "blurydialog",
-            BackdropClick = false,
-            
 
-        };
+    DialogOptions dialogOptions = new DialogOptions()
+    {
+        MaxWidth = MaxWidth.ExtraLarge,
+        NoHeader = true,
+        BackgroundClass = "blurydialog",
+        BackdropClick = false,
+    };
+
     public void Close() => MudDialog.Close();
 
-    public async void Start()
+    public async Task Start()
     {
         var result = await http.PostAsJsonAsync("api/Admin/UpdateLoginStatus", UserID);
-        if (result.IsSuccessStatusCode)
-        {
-            Close();
-        }
+        Close();
+
     }
 }

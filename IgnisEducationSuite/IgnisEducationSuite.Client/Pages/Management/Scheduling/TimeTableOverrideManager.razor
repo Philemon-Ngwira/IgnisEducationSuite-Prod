@@ -1,9 +1,10 @@
 ﻿@inherits AppBaseComponent
 @using EDUSphereSharedProject.Models
+
 <MudPaper Class="pa-4" Elevation="2">
     <MudText Typo="Typo.h6">Timetable Overrides</MudText>
     <MudText Typo="Typo.caption" Color="Color.Secondary">
-        Overrides apply only to students in the selected group.
+        Overrides apply only to students in the selected group unless you choose to merge.
     </MudText>
 
     <MudGrid Spacing="2" Class="mt-3">
@@ -54,22 +55,44 @@
             </MudSelect>
         </MudItem>
 
-        <!-- Replacement -->
+        <!-- Replacement Subject -->
         <MudItem xs="12" md="6">
             <MudSelect T="Guid"
                        Label="Override Subject"
                        @bind-Value="model.ReplacementClassID"
                        Variant="Variant.Outlined"
                        Required
-                       Placeholder="--Select Subject Override--">
-                @foreach (var cls in SpecialClasses)
+                       Placeholder="--Select Subject Override--"
+                       @onchange="UpdateAffectedGroups">
+                @foreach (var cls in UniqueSubjects)
                 {
-                    <MudSelectItem Value="@cls.ClassID">
-                        @cls.ClassName
-                    </MudSelectItem>
+                    <MudSelectItem Value="@cls.ClassID">@cls.ClassName</MudSelectItem>
                 }
             </MudSelect>
+
+            <!-- Info tooltip -->
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                Overrides will automatically apply to all groups sharing this class.
+            </MudText>
         </MudItem>
+
+        <!-- Merge Checkbox -->
+        <MudItem xs="12">
+            <MudCheckBox T="bool" @bind-Checked="applyToAllGroups"
+                         Label="Apply to all groups sharing this class"
+                         CheckedIcon="@Icons.Material.Filled.CheckBox"
+                         UncheckedIcon="@Icons.Material.Filled.CheckBoxOutlineBlank" />
+        </MudItem>
+
+        <!-- Dynamic Visual Cue: affected groups -->
+        @if (AffectedGroups.Any())
+        {
+            <MudItem xs="12">
+                <MudText Typo="Typo.body2" Color="Color.Info">
+                    This override will apply to: @string.Join(", ", AffectedGroups)
+                </MudText>
+            </MudItem>
+        }
 
     </MudGrid>
 
@@ -79,6 +102,7 @@
                OnClick="SaveOverride">
         Save Override
     </MudButton>
+
     <MudButton Class="mt-4"
                Variant="Variant.Filled"
                Color="Color.Primary"
@@ -87,11 +111,10 @@
     </MudButton>
 </MudPaper>
 
-
 @code {
     [Parameter] public int AcademicLevel { get; set; }
     [Parameter] public string GradeSection { get; set; } = string.Empty;
-    [Parameter] public List<Class> SpecialClasses { get; set; } = new(); // Group classes
+    [Parameter] public List<Class> SpecialClasses { get; set; } = new();
     [Parameter] public List<Class> AllClasses { get; set; } = new();
     [Parameter] public List<TimeSlot> TimeSlots { get; set; } = new();
     [Parameter] public List<DayofTheWeek> Days { get; set; } = new();
@@ -101,75 +124,122 @@
     [Parameter] public EventCallback<List<TimetableOverride>> OnComplete { get; set; }
 
     public List<TimetableOverride> overridesCreated = new();
+    public List<TimetableOverride> overridesInDB = new();
     protected List<TermSetting> termSettings = new();
 
-    #region String Functions
-    #endregion
+    private TimetableOverride model = new();
+    private bool applyToAllGroups = true; // ✅ Default to merge
+    private List<string> AffectedGroups = new(); // For visual cue
 
     protected override async Task OnParametersSetAsync()
     {
-        var ts = TimeSlots
-        .Where(x => x.SlotType != "BreakTime" & x.SlotType != "LunchTime")
-        .ToList();
-
-        TimeSlots.Clear();
-        TimeSlots = ts.
-        OrderBy(x => x.StartTime).ToList();
+        TimeSlots = TimeSlots
+            .Where(x => x.SlotType != "BreakTime" && x.SlotType != "LunchTime")
+            .OrderBy(x => x.StartTime)
+            .ToList();
 
         await LoadTermSettings();
+        await GetOverrides();
     }
+
     private async Task Complete()
-      => await OnComplete.InvokeAsync(overridesCreated);
+        => await OnComplete.InvokeAsync(overridesCreated);
 
     private async Task LoadTermSettings()
     {
-        //termSettings = await DbService.GetTermSettingsAsync();
         var service = GenericService.GetService<TermSetting>();
         var result = await service.GetAllAsync($"api/Dynamic/GetTermSettings/{Guid.Parse(AppState.SchoolID)}", true);
         if (result.IsSuccess)
-        {
             termSettings = result.Data.ToList();
-        }
     }
 
-    private TimetableOverride model = new();
+    private async Task GetOverrides()
+    {
+        var service = GenericService.GetService<TimetableOverride>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetTimeTableOverrides/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+            overridesInDB = result.Data.ToList();
+    }
 
+    // ✅ Use GroupName directly
     private IEnumerable<string> GroupNames =>
-     SpecialClasses
-         .Select(c => ExtractGroupName(c.ClassName))
-         .Distinct();
+        SpecialClasses.Select(c => c.GroupName).Distinct();
+
+    // ✅ Unique subjects only
+    private IEnumerable<Class> UniqueSubjects =>
+        SpecialClasses.GroupBy(c => c.ClassName).Select(g => g.First());
+
+    // 🔹 Update visual cue for affected groups dynamically
+    private void UpdateAffectedGroups(ChangeEventArgs e)
+    {
+        if (e?.Value == null) return;
+        var selectedId = Guid.Parse(e.Value.ToString()!);
+        var selectedClass = SpecialClasses.FirstOrDefault(c => c.ClassID == selectedId);
+        if (selectedClass == null) return;
+
+        AffectedGroups = applyToAllGroups
+            ? SpecialClasses
+                .Where(c =>
+                    c.ClassName == selectedClass.ClassName &&
+                    c.AcademicLevel == AcademicLevel &&
+                    c.GradeSection == GradeSection
+                )
+                .Select(c => c.GroupName)
+                .Distinct()
+                .ToList()
+            : new List<string> { model.StudentGroup };
+    }
 
     private async Task SaveOverride()
     {
         var selectedClass = SpecialClasses
-    .FirstOrDefault(c => c.ClassID == model.ReplacementClassID);
-
+            .FirstOrDefault(c => c.ClassID == model.ReplacementClassID);
         if (selectedClass == null) return;
 
-        var subjectName = selectedClass.ClassName.Split('(')[0].Trim();
-        var relatedClasses = SpecialClasses
-    .Where(c =>
-        c.ClassName.StartsWith(subjectName) &&
-        c.ClassName.Contains("(") // ensure it's grouped
-    )
-    .ToList();
-        var relatedGroups = relatedClasses
-        .Select(c => ExtractGroupName(c.ClassName))
-        .Distinct()
-        .ToList();
-        bool hasConflict = overridesCreated.Any(o =>
-    o.DayOfTheWeekID == model.DayOfTheWeekID &&
-    o.TimeSlotID == model.TimeSlotID &&
-    relatedGroups.Contains(o.StudentGroup)
-);
+        var subjectName = selectedClass.ClassName;
+
+        // 🔹 Determine which groups to apply to
+        var relatedGroups = applyToAllGroups
+            ? SpecialClasses
+                .Where(c =>
+                    c.ClassName == subjectName &&
+                    c.AcademicLevel == AcademicLevel &&
+                    c.GradeSection == GradeSection
+                )
+                .Select(c => c.GroupName)
+                .Distinct()
+                .ToList()
+            : new List<string> { model.StudentGroup };
+
+        // 🔹 Resolve effective dates once
+        var newStart = termSettings.Select(x => x.ActualStartTermDate).First() ?? _dateRange.Start;
+        var newEnd = termSettings.Select(x => x.ActualEndTermDate).First() ?? _dateRange.End;
+
+        // 🔹 Conflict check
+        bool hasConflict = overridesInDB.Concat(overridesCreated).Any(o =>
+            o.DayOfTheWeekID == model.DayOfTheWeekID &&
+            o.TimeSlotID == model.TimeSlotID &&
+            relatedGroups.Contains(o.StudentGroup) &&
+            (newStart <= o.EffectiveTo && newEnd >= o.EffectiveFrom)
+        );
 
         if (hasConflict)
         {
-            Snackbar.Add("Conflict: One of the groups already has an override in this slot.", Severity.Warning);
+            Snackbar.Add("Conflict detected for one of the groups within the selected date range.", Severity.Warning);
             return;
         }
+
+        var service = GenericService.GetService<TimetableOverride>();
+
         foreach (var group in relatedGroups)
         {
+            var classForGroup = SpecialClasses.First(c =>
+                c.ClassName == subjectName &&
+                c.GroupName == group &&
+                c.AcademicLevel == AcademicLevel &&
+                c.GradeSection == GradeSection
+            );
+
             var newOverride = new TimetableOverride
             {
                 AcademicLevel = AcademicLevel,
@@ -177,14 +247,12 @@
                 StudentGroup = group,
                 DayOfTheWeekID = model.DayOfTheWeekID,
                 TimeSlotID = model.TimeSlotID,
-                ReplacementClassID = model.ReplacementClassID,
+                ReplacementClassID = classForGroup.ClassID,
                 IsActive = true,
-                EffectiveFrom = model.EffectiveFrom,
-                EffectiveTo = model.EffectiveTo,
+                EffectiveFrom = newStart,
+                EffectiveTo = newEnd,
                 CreatedBy = loggedInAdmin.AdminID
             };
-
-            var service = GenericService.GetService<TimetableOverride>();
 
             var result = await service.PostAsync(
                 "api/Dynamic/PostEntity",
@@ -201,16 +269,9 @@
                 Snackbar.Add("Failed to save override", Severity.Error);
             }
         }
-       
-    }
 
-    private static string ExtractGroupName(string className)
-    {
-        // Example: "Agriculture (Group 1)"
-        var start = className.IndexOf('(');
-        var end = className.IndexOf(')');
-        if (start < 0 || end < 0) return className;
-        return className.Substring(start + 1, end - start - 1);
+        Snackbar.Add("Override(s) saved successfully", Severity.Success);
+        model = new TimetableOverride();
+        AffectedGroups.Clear();
     }
-
 }

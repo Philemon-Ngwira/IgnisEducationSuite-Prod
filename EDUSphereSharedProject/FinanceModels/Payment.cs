@@ -21,5 +21,7 @@ public partial class Payment
 
     public DateTime? UpdatedAt { get; set; }
 
+    public Guid? SchoolID { get; set; }
+
     public virtual Invoice Invoice { get; set; }
 }

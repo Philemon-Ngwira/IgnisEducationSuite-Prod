@@ -31,11 +31,13 @@ public partial class Invoice
 
     public string InvoiceType { get; set; }
 
-    public Guid? InvoiceTypeID { get; set; }
-
     public Guid? SchoolID { get; set; }
 
     public string InvoiceNumber { get; set; }
+
+    public Guid? InvoiceTypeID { get; set; }
+
+    public virtual InvoiceType InvoiceTypeNavigation { get; set; }
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 

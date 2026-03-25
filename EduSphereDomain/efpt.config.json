@@ -247,6 +247,10 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[GetTimetableOverridesBySchool]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[GetTop5TeachersByHighRatedLessons]",
          "ObjectType": 1
       },
@@ -379,7 +383,7 @@
          "ObjectType": 1
       }
    ],
-   "UiHint": "phoenix\\sqlexpress.PhoenixEdusphere.dbo",
+   "UiHint": "phoenix.PhoenixEdusphere.dbo",
    "UncountableWords": null,
    "UseBoolPropertiesWithoutDefaultSql": false,
    "UseDatabaseNames": true,

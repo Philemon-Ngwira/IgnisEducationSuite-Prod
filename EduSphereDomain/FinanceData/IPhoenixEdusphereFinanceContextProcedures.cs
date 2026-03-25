@@ -71,6 +71,7 @@ namespace EduSphereDomain.FinanceData
         Task<List<GetTeacherAssignmentsResult>> GetTeacherAssignmentsAsync(string TeacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTeacherLessonsResult>> GetTeacherLessonsAsync(string TeacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTeacherSubjectByTeacherIDResult>> GetTeacherSubjectByTeacherIDAsync(Guid? TeacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetTimetableOverridesBySchoolResult>> GetTimetableOverridesBySchoolAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTop5TeachersByHighRatedLessonsResult>> GetTop5TeachersByHighRatedLessonsAsync(string SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetUpcomingExamsOrQuizzesResult>> GetUpcomingExamsOrQuizzesAsync(int? StudentGrade, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetUserBadgesByUserIDResult>> GetUserBadgesByUserIDAsync(string UserID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);

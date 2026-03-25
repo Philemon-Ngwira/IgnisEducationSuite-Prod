@@ -31,12 +31,6 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
         {
             entity.ToTable("FinanceLedger", "Finance");
 
-            entity.HasIndex(e => e.ReferenceId, "IX_FinanceLedger_ReferenceId");
-
-            entity.HasIndex(e => e.SchoolId, "IX_FinanceLedger_SchoolId");
-
-            entity.HasIndex(e => e.StudentFinanceId, "IX_FinanceLedger_StudentFinanceId");
-
             entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
@@ -81,6 +75,11 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .HasDefaultValueSql("('Pending')");
             entity.Property(e => e.TermEndDate).HasColumnType("date");
             entity.Property(e => e.TermStartDate).HasColumnType("date");
+
+            entity.HasOne(d => d.InvoiceTypeNavigation).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.InvoiceTypeID)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_Invoice_InvoiceType");
 
             entity.HasOne(d => d.StudentFinance).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.StudentFinanceId)

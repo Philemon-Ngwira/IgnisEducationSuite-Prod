@@ -747,6 +747,14 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Non Generic New Modules
+
+        [HttpGet("GetTimeTableOverrides/{SchoolId}")]
+        public async Task<IActionResult> GetTimeTableOverrides(Guid SchoolId)
+        {
+            var result = await _repository.GetTimeTableOverrides(SchoolId);
+            return Ok(result);
+        }
+
         [HttpPost("UpsertClassSchedules")]
         public async Task<IActionResult> UpsertClassSchedules(
      [FromBody] List<ClassSchedule> schedules)

@@ -43,11 +43,11 @@
 
     <MudDivider Class="my-4" />
 
-    <!-- Step 2: Simple Rules -->
+    @*   <!-- Step 2: Simple Rules -->
     <MudText Typo="Typo.subtitle2" Class="mb-2">Preferences (Optional)</MudText>
     <MudCheckBox T="bool" @bind-Checked="PreferMorning" Label="Prefer morning for core subjects" />
     <MudCheckBox T="bool" @bind-Checked="AllowDoublePeriods" Label="Allow double periods" />
-    <MudCheckBox T="bool" @bind-Checked="SpreadSubjects" Label="Spread subjects across the week" />
+    <MudCheckBox T="bool" @bind-Checked="SpreadSubjects" Label="Spread subjects across the week" /> *@
 
     <MudDivider Class="my-4" />
 
@@ -58,7 +58,7 @@
     </MudText>
 
     <MudGrid Spacing="2">
-        @foreach (var cls in classes.Where(c => !c.ClassName.Contains("Group") && c.AcademicLevel == SmartGrade && c.GradeSection == SmartGradeLevelSection))
+        @foreach (var cls in classes.Where(c => c.GroupName == "All" && c.AcademicLevel == SmartGrade && c.GradeSection == SmartGradeLevelSection))
         {
             <MudItem xs="12" md="6">
                 <MudPaper Class="pa-3" Elevation="1">
@@ -111,7 +111,7 @@
     </MudText>
 
     <MudGrid Spacing="2">
-        @foreach (var cls in classes.Where(c => !c.ClassName.Contains("Group") && c.AcademicLevel == SmartGrade && c.GradeSection == SmartGradeLevelSection))
+        @foreach (var cls in classes.Where(c => c.GroupName == "All" && c.AcademicLevel == SmartGrade && c.GradeSection == SmartGradeLevelSection))
         {
             <MudItem xs="12" md="6">
                 <MudSelect T="Guid"
@@ -121,7 +121,7 @@
                            SelectedValues="@GetAdjacency(cls.ClassID)"
                            SelectedValuesChanged="@(v => SetAdjacency(cls.ClassID, v))"
                            MultiSelectionTextFunc="@(values => FormatAdjacencyText(values))">
-                    @foreach (var other in classes.Where(o => o.ClassID != cls.ClassID && o.AcademicLevel == SmartGrade && o.GradeSection == SmartGradeLevelSection && !o.ClassName.Contains("Group")))
+                    @foreach (var other in classes.Where(o => o.ClassID != cls.ClassID && o.AcademicLevel == SmartGrade && o.GradeSection == SmartGradeLevelSection && o.GroupName == "All"))
                     {
                         <MudSelectItem Value="@other.ClassID">
                             @other.ClassName
@@ -183,7 +183,6 @@
                               SpecialClasses="specialClasses"
                               TimeSlots="timeSlots"
                               loggedInAdmin="loggedInAdmin"
-                              
                               OnComplete="HandleOverrideCompletion" />
 }
 else
@@ -387,7 +386,7 @@ else
         foreach (var cls in classes.Where(c =>
     c.LevelName == SmartGradeLevel
     && c.GradeSection == section.SectionCode
-    && !c.ClassName.Contains("Group")))
+    && c.GroupName == "All"))
         {
             ClassTimePreferences[cls.ClassID] = ClassTimePreference.Flexible;
         }
@@ -604,7 +603,7 @@ else
         finally
         {
             IsGenerating = false;
-            specialClasses = classes.Where(c => c.ClassName.Contains("Group") && c.AcademicLevel == SmartGrade && c.GradeSection == SmartGradeLevelSection).ToList();
+            specialClasses = classes.Where(c => c.GroupName != "All" && c.AcademicLevel == SmartGrade && c.GradeSection == SmartGradeLevelSection).ToList();
             LoaderService.Hide();
             StateHasChanged();
         }
@@ -652,8 +651,8 @@ else
         }).ToList();
 
         // --- Step 1: Separate core and non-core subjects ---
-        var coreSubjects = classes.Where(c => c.AcademicLevel == SmartGrade && c.IsCore && c.GradeSection == SmartGradeLevelSection && !c.ClassName.Contains("Group")).ToList();
-        var nonCoreSubjects = classes.Where(c => c.AcademicLevel == SmartGrade && !c.IsCore && c.GradeSection == SmartGradeLevelSection && !c.ClassName.Contains("Group")).ToList();
+        var coreSubjects = classes.Where(c => c.AcademicLevel == SmartGrade && c.IsCore && c.GradeSection == SmartGradeLevelSection && c.GroupName == "All").ToList();
+        var nonCoreSubjects = classes.Where(c => c.AcademicLevel == SmartGrade && !c.IsCore && c.GradeSection == SmartGradeLevelSection && c.GroupName == "All").ToList();
         int totalSubjects = coreSubjects.Count + nonCoreSubjects.Count;
 
         // --- Step 2: Compute default max periods per subject ---
