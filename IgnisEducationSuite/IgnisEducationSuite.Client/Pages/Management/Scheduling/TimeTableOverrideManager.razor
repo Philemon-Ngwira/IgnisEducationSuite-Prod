@@ -59,11 +59,11 @@
         <MudItem xs="12" md="6">
             <MudSelect T="Guid"
                        Label="Override Subject"
-                       @bind-Value="model.ReplacementClassID"
+                       Value="model.ReplacementClassID"
                        Variant="Variant.Outlined"
                        Required
                        Placeholder="--Select Subject Override--"
-                       @onchange="UpdateAffectedGroups">
+                       ValueChanged="UpdateAffectedGroups">
                 @foreach (var cls in UniqueSubjects)
                 {
                     <MudSelectItem Value="@cls.ClassID">@cls.ClassName</MudSelectItem>
@@ -78,7 +78,7 @@
 
         <!-- Merge Checkbox -->
         <MudItem xs="12">
-            <MudCheckBox T="bool" @bind-Checked="applyToAllGroups"
+            <MudCheckBox T="bool" @bind-Value="applyToAllGroups"
                          Label="Apply to all groups sharing this class"
                          CheckedIcon="@Icons.Material.Filled.CheckBox"
                          UncheckedIcon="@Icons.Material.Filled.CheckBoxOutlineBlank" />
@@ -88,9 +88,12 @@
         @if (AffectedGroups.Any())
         {
             <MudItem xs="12">
-                <MudText Typo="Typo.body2" Color="Color.Info">
-                    This override will apply to: @string.Join(", ", AffectedGroups)
-                </MudText>
+                <MudAlert Severity="Severity.Info">
+                    <MudText Typo="Typo.body2">
+                        <b>This override will apply to: @string.Join(", ", AffectedGroups)</b>
+                    </MudText>
+                </MudAlert>
+
             </MudItem>
         }
 
@@ -170,10 +173,11 @@
         SpecialClasses.GroupBy(c => c.ClassName).Select(g => g.First());
 
     // 🔹 Update visual cue for affected groups dynamically
-    private void UpdateAffectedGroups(ChangeEventArgs e)
+    private void UpdateAffectedGroups(Guid id)
     {
-        if (e?.Value == null) return;
-        var selectedId = Guid.Parse(e.Value.ToString()!);
+        model.ReplacementClassID = id;
+        if (id == Guid.Empty) return;
+        var selectedId = id;
         var selectedClass = SpecialClasses.FirstOrDefault(c => c.ClassID == selectedId);
         if (selectedClass == null) return;
 
