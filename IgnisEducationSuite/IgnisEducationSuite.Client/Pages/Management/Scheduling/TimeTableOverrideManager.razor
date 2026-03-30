@@ -187,6 +187,7 @@
                     c.ClassName == selectedClass.ClassName &&
                     c.AcademicLevel == AcademicLevel &&
                     c.GradeSection == GradeSection
+
                 )
                 .Select(c => c.GroupName)
                 .Distinct()
@@ -242,10 +243,13 @@
                 c.GroupName == group &&
                 c.AcademicLevel == AcademicLevel &&
                 c.GradeSection == GradeSection
+
             );
 
+            var LevelID = academicLevels.Where(x => x.LevelInt == AcademicLevel).Select(x => x.AcademicLevelID).FirstOrDefault();
             var newOverride = new TimetableOverride
             {
+                AcademicLevelID = LevelID,
                 AcademicLevel = AcademicLevel,
                 GradeSection = GradeSection,
                 StudentGroup = group,
@@ -255,7 +259,11 @@
                 IsActive = true,
                 EffectiveFrom = newStart,
                 EffectiveTo = newEnd,
-                CreatedBy = loggedInAdmin.AdminID
+                CreatedBy = loggedInAdmin.AdminID,
+                LevelSectionID = levelSections
+                                .Where(x => x.AcademicLevelID == LevelID && x.SectionCode.ToLower() == classForGroup.GradeSection.ToLower())
+                                .Select(x => x.LevelSectionID)
+                                .FirstOrDefault()
             };
 
             var result = await service.PostAsync(

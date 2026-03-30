@@ -8,6 +8,7 @@ namespace EDUSphereSharedProject.Models;
 public partial class TimetableOverride
 {
     public Guid TimetableOverrideID { get; set; }
+    public Guid? AcademicLevelID { get; set; }
 
     public int AcademicLevel { get; set; }
 
@@ -32,4 +33,6 @@ public partial class TimetableOverride
     public DateTime CreatedAt { get; set; }
 
     public Guid? CreatedBy { get; set; }
+
+    public Guid? LevelSectionID { get; set; }
 }

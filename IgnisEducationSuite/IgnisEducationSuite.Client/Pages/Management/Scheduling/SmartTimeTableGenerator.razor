@@ -827,7 +827,7 @@ else
         var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInGrade/{GradeInt}/{loggedInAdmin.SchoolID.ToString()}", true);
         if (result.IsSuccess)
         {
-            StudentsInGrade = result.Data.ToList();
+            StudentsInGrade = result.Data.Where(x=>x.GradeSection == selectedSection.SectionCode).ToList();
         }
     }
     protected async Task AssignSchedule()
@@ -1024,6 +1024,14 @@ else
                 item.ScheduledActivity = item.ScheduledActivityNavigation.ActivityID;
                 item.ScheduledActivityNavigation = null;
                 item.ClassID = null;
+            }
+            if (item.AcademicLevel == 0)
+            {
+                item.AcademicLevel = SmartGrade;
+            }
+            if (item.AcademicLevelSection == Guid.Empty)
+            {
+                item.AcademicLevelSection = selectedSection.LevelSectionID;
             }
         }
     }
