@@ -10,7 +10,7 @@ namespace IgnisEducationSuite.ServerServices
         public bool LicenseIsActive { get; private set; } = false;
 
         //private const string BaseUrl = "https://licensingapi-a8gjawera8h5cefw.southafricanorth-01.azurewebsites.net/";
-        private const string BaseUrl = "https://localhost:7207/";
+        private const string BaseUrl = "https://ptelicensing-b0e9h6ajaterg9bg.southafricanorth-01.azurewebsites.net/";
 
         public LicenseService(IHttpClientFactory httpClientFactory)
         {
@@ -106,8 +106,7 @@ namespace IgnisEducationSuite.ServerServices
             {
                 var path = $"api/license/GetClientActiveLicensePeriod/{companyID}";
                 var client = _httpClientFactory.CreateClient();
-                // client.BaseAddress = new Uri("https://licensingapi-a8gjawera8h5cefw.southafricanorth-01.azurewebsites.net/"); // Replace with actual API URL
-                client.BaseAddress = new Uri("https://localhost:7207/");
+                client.BaseAddress = new Uri("https://ptelicensing-b0e9h6ajaterg9bg.southafricanorth-01.azurewebsites.net/"); // Replace with actual API URL
                 var response = await client.GetAsync(path);
 
                 if (!response.IsSuccessStatusCode)

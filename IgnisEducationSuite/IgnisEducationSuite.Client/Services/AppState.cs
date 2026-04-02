@@ -52,59 +52,57 @@ public class AppState
     /// <summary>
     /// Fully initializes AppState: essential + non-critical data.
     /// </summary>
-    public async Task<bool> InitializeAsync(string userName, bool isAuthenticated, NavigationManager nav)
+    public async Task<bool> InitializeAsync(string userName, bool isAuthenticated)
     {
         if (!isAuthenticated || string.IsNullOrEmpty(userName))
-        {
-            Console.WriteLine("[AppState] User not authenticated. Initialization aborted.");
             return false;
-        }
 
         if (IsFullyInitialized) return true;
 
         UserID = userName;
-        // Role priority
+
         var rolePriority = new List<string>
-            {
-                "Admin",
-                "Teacher",
-                "Dean",
-                "Principal",
-                "KitchenStaff",
-                "Parent",
-                "Student",
-                "SuperAdmin",
-                "Clinic Staff",
-                "TransportStaff"
-            };
+    {
+        "Admin","Teacher","Dean","Principal","KitchenStaff",
+        "Parent","Student","SuperAdmin","Clinic Staff","TransportStaff"
+    };
 
         try
         {
-            // 1️⃣ Load Initialization Data
+            // --- 1️⃣ Load Initialization Data with retry ---
             var initService = _genericService.GetService<GetInitializationDataResult>();
-            var initResult = await initService.GetAllAsync($"api/Dynamic/GetInitializationData/{UserID}", true);
+            GetInitializationDataResult data = null;
 
-            if (!initResult.IsSuccess || !initResult.Data.Any())
+            int attempts = 0;
+
+            while (attempts < 2)
             {
-                await Task.Delay(1000);
-                nav.NavigateTo("/", true);
-                return false;
+                var res = await initService.GetAllAsync($"api/Dynamic/GetInitializationData/{UserID}", true);
+
+                if (res != null && res.IsSuccess && res.Data.Any())
+                {
+                    data = res.Data.First();
+                    break; // ✅ only break on success
+                }
+
+                attempts++;
+                await Task.Delay(200); // retry delay
             }
-            var data = initResult.Data.First();
+
+            if (data == null)
+                return false;
+
+            // --- 2️⃣ Set Roles ---
             UserRoles = data.RoleName?
                         .Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(r => r.Trim())
                         .ToList() ?? new();
 
-            if (UserRoles.Count == 1 && (UserRoles[0] == "SuperAdmin" || UserRoles[0] == "Parent"))
-            {
-                UserRole = UserRoles[0];
-            }
-            else
-            {
-                UserRole = rolePriority.FirstOrDefault(role => UserRoles.Contains(role)) ?? "Guest";
-            }
+            UserRole = (UserRoles.Count == 1 && (UserRoles[0] == "SuperAdmin" || UserRoles[0] == "Parent"))
+                        ? UserRoles[0]
+                        : rolePriority.FirstOrDefault(role => UserRoles.Contains(role)) ?? "Guest";
 
+            // --- 3️⃣ Set Basic Info ---
             SchoolID = data.SchoolID.ToString();
             SchoolName = data.SchoolName ?? "";
             UserEmail = data.Email ?? "";
@@ -117,34 +115,42 @@ public class AppState
             Currency.CurrencySymbol = data.CurrencySymbol;
             HideStudentDashboard = data.HideStudentDashboard == 1;
 
+            // --- 4️⃣ Load License ---
             if (UserRole != "SuperAdmin")
             {
-                //{
-                //    // 2️⃣ Load License
-                //var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
-                //var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
-                //License = licenseResult.IsSuccess && licenseResult.Data.Any()
-                //    ? licenseResult.Data.First()
-                //    : new usp_GetPharmacyLicenseStatusResult();
-                //LicenseIsActive = License?.IsValid == 1;
-
-                LicenseIsActive = true;
-
-                // 3️⃣ Load Non-Critical Data Immediately
-
-                await LoadBadgesAsync();
-                await LoadAcademicLevelsAsync();
-                await LoadAcademicSections();
-                if (UserRole == "Student")
-                {
-                    await LoadUserActivitiesAsync();
-                    await LoadAssignmentsAsync();
-                }
+                var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
+                var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
+                License = licenseResult.IsSuccess && licenseResult.Data.Any()
+                    ? licenseResult.Data.First()
+                    : new usp_GetPharmacyLicenseStatusResult();
+                LicenseIsActive = License?.IsValid == 1;
             }
             else
             {
                 LicenseIsActive = true;
             }
+
+            // --- 5️⃣ Load Non-Critical Data in parallel ---
+            var tasks = new List<Task>();
+
+            // ✅ Always safe
+            tasks.Add(LoadBadgesAsync());
+
+            // ❗ Only load school data if NOT SuperAdmin AND SchoolID is valid
+            if (UserRole != "SuperAdmin" && !string.IsNullOrEmpty(SchoolID))
+            {
+                tasks.Add(LoadAcademicLevelsAsync());
+                tasks.Add(LoadAcademicSections());
+
+                if (UserRole == "Student")
+                {
+                    tasks.Add(LoadUserActivitiesAsync());
+                    tasks.Add(LoadAssignmentsAsync());
+                }
+            }
+
+            await Task.WhenAll(tasks);
+
             IsFullyInitialized = true;
             NotifyStateChanged();
             return true;
@@ -155,7 +161,6 @@ public class AppState
             return false;
         }
     }
-
     #region Data Loading Helpers
 
     private async Task LoadBadgesAsync()
@@ -189,14 +194,18 @@ public class AppState
     {
         try
         {
+            if (string.IsNullOrEmpty(SchoolID))
+                return; // 🚨 prevent crash
+
             var levelSectService = _genericService.GetService<LevelSection>();
-            var result = await levelSectService.GetAllAsync($"api/Dynamic/GetSchoolAcademicSections/{Guid.Parse(SchoolID)}", true);
+            var result = await levelSectService.GetAllAsync(
+                $"api/Dynamic/GetSchoolAcademicSections/{Guid.Parse(SchoolID)}", true);
+
             AcademicSections = result.IsSuccess ? result.Data.ToList() : new();
         }
-        catch (Exception)
+        catch
         {
-
-            throw;
+            AcademicSections = new();
         }
     }
     private async Task LoadUserActivitiesAsync()

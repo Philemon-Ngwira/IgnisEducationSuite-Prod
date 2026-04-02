@@ -89,7 +89,7 @@ namespace IgnisEducationSuite.Controllers
             var url = await uploader.UploadFileAsync(
                 stream,
                 blobPath,
-                containerName: "IgnisEduSuitelessons"
+                containerName: "ignisedusuitelessons"
             );
 
             // 3️⃣ Return both

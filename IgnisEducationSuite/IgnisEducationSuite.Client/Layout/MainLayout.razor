@@ -91,7 +91,7 @@
 
             if (!string.IsNullOrEmpty(userId))
             {
-                partiallyIntialized = await AppState.InitializeAsync(userId, true, Nav);
+                partiallyIntialized = await AppState.InitializeAsync(userId, true);
                 AppState.OnChange += StateHasChanged;
             }
             else
@@ -104,6 +104,8 @@
             // Not authenticated + not an auth page → still render layout
             partiallyIntialized = true;
         }
+
+        
     }
 
 

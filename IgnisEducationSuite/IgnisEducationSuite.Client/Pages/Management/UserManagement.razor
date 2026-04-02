@@ -1085,11 +1085,11 @@
         if (Role == "Student")
         {
             var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
-            // if (count >= LicenseUserLimit.UserLimit) // Corrected condition
-            // {
-            //     Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
-            //     return;
-            // }
+            if (count >= LicenseUserLimit.UserLimit) // Corrected condition
+            {
+                Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
+                return;
+            }
         }
 
         var parameters = new DialogParameters<CreateUserDialog>

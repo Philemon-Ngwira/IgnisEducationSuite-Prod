@@ -127,7 +127,14 @@
         licenseRequest.EndDate = _dateRange.End.Value;
         licenseRequest.ClientName = school.SchoolName;
         licenseRequest.Application = "IgnisEducationSuite";
-
+        if (licenseRequest.Email is null)
+        {
+            licenseRequest.Email = "Not Provided";
+        }
+        if (licenseRequest.Phone is null)
+        {
+            licenseRequest.Phone = "Not Provided";
+        }
         var result = await HttpClient.PostAsJsonAsync("api/Verification/Generate", licenseRequest);
         if (result.IsSuccessStatusCode)
         {

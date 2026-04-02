@@ -22,5 +22,8 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public string CurrencySymbol { get; set; }
         public string SchoolCurrencyName { get; set; }
         public bool? HasplagerismEnaabled { get; set; }
+
+        [NotMapped]
+        public bool IsSuccess { get; set; } = false;
     }
 }
