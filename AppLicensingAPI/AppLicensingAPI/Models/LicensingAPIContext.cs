@@ -23,11 +23,11 @@ public partial class LicensingAPIContext : DbContext
     {
         modelBuilder.Entity<Clients>(entity =>
         {
-            entity.HasKey(e => e.ClientId).HasName("PK__Clients__E67E1A248C543537");
+            entity.HasKey(e => e.ClientId).HasName("PK__Clients__E67E1A245DE6B645");
 
-            entity.HasIndex(e => e.Email, "UQ__Clients__A9D10534EE0E689F").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__Clients__A9D1053458A23FAC").IsUnique();
 
-            entity.Property(e => e.ClientId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.ClientId).ValueGeneratedNever();
             entity.Property(e => e.CreatedDate)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -36,6 +36,7 @@ public partial class LicensingAPIContext : DbContext
                 .IsRequired()
                 .HasMaxLength(255);
             entity.Property(e => e.PhoneNumber).HasMaxLength(15);
+            entity.Property(e => e.ProjectLicense).IsUnicode(false);
         });
 
         modelBuilder.Entity<LicenseLogs>(entity =>
@@ -59,7 +60,7 @@ public partial class LicensingAPIContext : DbContext
         {
             entity.HasKey(e => e.LicenseId).HasName("PK__Licenses__72D60082AB320464");
 
-            entity.HasIndex(e => e.LicenseKey, "UQ__Licenses__45E1DD6FD84A2225").IsUnique();
+            entity.HasIndex(e => new { e.ClientId, e.Status, e.EndDate }, "IX_Licenses_ClientId_Status_EndDate").IsDescending(false, false, true);
 
             entity.Property(e => e.LicenseId).HasDefaultValueSql("(newid())");
             entity.Property(e => e.EndDate).HasColumnType("date");
@@ -73,12 +74,9 @@ public partial class LicensingAPIContext : DbContext
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(20);
-
-            entity.HasOne(d => d.Client).WithMany(p => p.Licenses)
-                .HasForeignKey(d => d.ClientId)
-                .HasConstraintName("FK_Licenses_Clients");
         });
 
+        OnModelCreatingGeneratedProcedures(modelBuilder);
         OnModelCreatingPartial(modelBuilder);
     }
 

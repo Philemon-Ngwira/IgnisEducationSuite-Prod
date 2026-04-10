@@ -23,7 +23,5 @@ public partial class Licenses
 
     public DateTime EndDate { get; set; }
 
-    public virtual Clients Client { get; set; }
-
     public virtual ICollection<LicenseLogs> LicenseLogs { get; set; } = new List<LicenseLogs>();
 }

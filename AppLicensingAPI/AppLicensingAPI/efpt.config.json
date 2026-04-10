@@ -7,7 +7,7 @@
    "IncludeConnectionString": false,
    "ModelNamespace": null,
    "OutputContextPath": null,
-   "OutputPath": "MessagingModuleModels",
+   "OutputPath": "Models",
    "PreserveCasingWithRegex": true,
    "ProjectRootNamespace": "AppLicensingAPI",
    "Schemas": null,
@@ -15,19 +15,23 @@
    "SelectedToBeGenerated": 0,
    "Tables": [
       {
-         "Name": "[dbo].[ChatGroups]",
+         "Name": "[dbo].[Clients]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[ChatMessages]",
+         "Name": "[dbo].[LicenseLogs]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[GroupMembers]",
+         "Name": "[dbo].[Licenses]",
          "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[usp_GetCompanyLicenseStatus]",
+         "ObjectType": 1
       }
    ],
-   "UiHint": "phoenix\\sqlexpress.PhoenixEdusphere.dbo",
+   "UiHint": "phoenix\\sqlexpress.LicensingDB.dbo",
    "UncountableWords": null,
    "UseBoolPropertiesWithoutDefaultSql": false,
    "UseDatabaseNames": false,

@@ -1,0 +1,160 @@
+﻿@page "/feestructures"
+@using EDUSphereSharedProject.FinanceModels
+@using IgnisEducationSuite.Client.Pages.Finance.Dialogs
+@inherits AppBaseComponent
+@inject IDialogService DialogService
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+
+    <!-- 🔷 HEADER -->
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h5">Fee Structure Management</MudText>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenCreateDialog">
+            + New Fee Structure
+        </MudButton>
+    </MudStack>
+
+    <!-- 🔷 TABLE -->
+    <MudPaper Elevation="1">
+        <MudTable Items="_feeStructures" Hover="true" Dense="true">
+
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Class</MudTh>
+                <MudTh>Term</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>@(context.ClassName ?? "School-wide")</MudTd>
+                <MudTd>
+                    @context.TermStartDate.ToShortDateString()
+                    -
+                    @context.TermEndDate.ToShortDateString()
+                </MudTd>
+                <MudTd>
+                    <MudChip T="string" Color="@(context.IsActive.Value? Color.Success: Color.Default)">
+                        @(context.IsActive.Value ? "Active" : "Inactive")
+                    </MudChip>
+                </MudTd>
+
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => EditStructure(context))" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteStructure(context.Id))" />
+                </MudTd>
+            </RowTemplate>
+
+        </MudTable>
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    protected List<FeeStructure> _feeStructures = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        await GetFeeStructures();
+        LoaderService.Hide();
+    }
+
+    protected async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<CreateEditFeeStructure>()
+        {
+            { x=>x.isEditMode, false}
+        };
+        var options = new DialogOptions()
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            BackdropClick = false,
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateEditFeeStructure>("Create Fee Structure", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Refresh list or show success message
+            var data = (FeeStructure)result.Data!;
+            if (data != null)
+            {
+                _feeStructures.Add(data);
+                StateHasChanged();
+            }
+        }
+    }
+    protected async Task GetFeeStructures()
+    {
+        var service = GenericService.GetService<FeeStructure>();
+        var result = await service.GetAllAsync($"api/Finance/GetFeeStructure/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            _feeStructures = result.Data.ToList();
+        }
+    }
+    protected async Task<IEnumerable<FeeStructureItem>> GetFeeStructureItems(Guid StructureID)
+    {
+        var service = GenericService.GetService<FeeStructureItem>();
+        var result = await service.GetAllAsync($"api/Finance/GetFeeStructureItems/{StructureID}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        return null;
+    }
+    protected async Task EditStructure(FeeStructure feeStructure)
+    {
+        var items = await GetFeeStructureItems(feeStructure.Id);
+        if (items == null)
+        {
+            Snackbar.Add("Error, No Fee Items found");
+            return;
+        }
+        else
+        {
+            feeStructure.FeeStructureItems = items.ToList();
+        }
+        var parameters = new DialogParameters<CreateEditFeeStructure>()
+        {
+            { x=>x.isEditMode, true},
+            { x=>x._model, feeStructure}
+        };
+        var options = new DialogOptions()
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            BackdropClick = false,
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateEditFeeStructure>("Edit Fee Structure", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Refresh list or show success message
+            var data = (FeeStructure)result.Data!;
+            if (data != null)
+            {
+                _feeStructures.Remove(feeStructure);
+                _feeStructures.Add(data);
+                StateHasChanged();
+            }
+        }
+    }
+    protected async Task DeleteStructure(Guid StructureID)
+    {
+
+    }
+}

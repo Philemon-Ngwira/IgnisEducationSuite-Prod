@@ -1,4 +1,5 @@
-﻿using EDUSphereSharedProject.IdentiyModels;
+﻿using EDUSphereSharedProject.FinanceModels;
+using EDUSphereSharedProject.IdentiyModels;
 using EDUSphereSharedProject.Models;
 using IgnisEducationSuite.Client.Pages;
 using IgnisEducationSuite.Client.Services;
@@ -21,6 +22,8 @@ public class AppBaseComponent : ComponentBase, IDisposable
     protected Mascot.BotState CurrentBotState { get; set; } = Mascot.BotState.Idle;
     protected List<AcademicLevel> academicLevels { get; set; } = new List<AcademicLevel>();
     protected List<LevelSection> levelSections { get; set; } = new List<LevelSection>();
+
+    protected Func<InvoiceType, string> Converter = p => p.Name;
     protected override void OnInitialized()
     {
         AppState.OnChange += StateHasChanged;

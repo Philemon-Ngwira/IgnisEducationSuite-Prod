@@ -15,6 +15,10 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
     {
     }
 
+    public virtual DbSet<FeeStructure> FeeStructures { get; set; }
+
+    public virtual DbSet<FeeStructureItem> FeeStructureItems { get; set; }
+
     public virtual DbSet<FinanceLedger> FinanceLedgers { get; set; }
 
     public virtual DbSet<Invoice> Invoices { get; set; }
@@ -27,6 +31,51 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<FeeStructure>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC078330F055");
+
+            entity.ToTable("FeeStructure", "Finance");
+
+            entity.HasIndex(e => new { e.SchoolId, e.ClassId, e.IsActive }, "IX_FeeStructure_School_Class");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AcademicYear).HasMaxLength(20);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(150);
+            entity.Property(e => e.TermEndDate).HasColumnType("date");
+            entity.Property(e => e.TermStartDate).HasColumnType("date");
+        });
+
+        modelBuilder.Entity<FeeStructureItem>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC075EAB823A");
+
+            entity.ToTable("FeeStructureItem", "Finance");
+
+            entity.HasIndex(e => e.FeeStructureId, "IX_FeeStructureItem_Structure");
+
+            entity.HasIndex(e => new { e.FeeStructureId, e.InvoiceTypeId }, "UQ_FeeStructureItem_UniqueType").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasOne(d => d.FeeStructure).WithMany(p => p.FeeStructureItems)
+                .HasForeignKey(d => d.FeeStructureId)
+                .HasConstraintName("FK_FeeStructureItem_FeeStructure");
+
+            entity.HasOne(d => d.InvoiceType).WithMany(p => p.FeeStructureItems)
+                .HasForeignKey(d => d.InvoiceTypeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FeeStructureItem_InvoiceType");
+        });
+
         modelBuilder.Entity<FinanceLedger>(entity =>
         {
             entity.ToTable("FinanceLedger", "Finance");

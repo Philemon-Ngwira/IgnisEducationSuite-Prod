@@ -106,7 +106,6 @@
 
     protected List<InvoiceType> invoiceTypes = new();
     protected InvoiceType selectedType = new();
-    protected Func<InvoiceType, string> Converter = p => p.Name;
     protected override async Task OnInitializedAsync()
     {
         LoaderService.Show("Please wait...");

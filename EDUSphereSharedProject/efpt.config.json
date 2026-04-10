@@ -15,6 +15,14 @@
    "SelectedToBeGenerated": 2,
    "Tables": [
       {
+         "Name": "[Finance].[FeeStructure]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[Finance].[FeeStructureItem]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[Finance].[FinanceLedger]",
          "ObjectType": 0
       },

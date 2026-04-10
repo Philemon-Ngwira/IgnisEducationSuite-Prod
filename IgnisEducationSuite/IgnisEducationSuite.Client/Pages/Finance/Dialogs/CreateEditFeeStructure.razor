@@ -1,0 +1,256 @@
+﻿@using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+
+<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
+
+    <DialogContent>
+
+        <!-- BASIC INFO -->
+        <MudPaper Class="pa-4 mb-4" Elevation="0">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Structure Details</MudText>
+
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_model.Name" Label="Structure Name" Required="true" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Guid?" Label="Class" @bind-Value="_model.ClassId">
+                        <MudSelectItem T="Guid?" Value="@(null)">School-wide</MudSelectItem>
+                        @foreach (var cls in _classes)
+                        {
+                            <MudSelectItem T="Guid?" Value="@cls.AcademicLevelID">@cls.LevelName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudDatePicker Label="Term Start" @bind-Date="StartDate" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudDatePicker Label="Term End" @bind-Date="EndDate" />
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <!-- ADD ITEM -->
+        <MudDialog @bind-Visible="inLineDialogVisible">
+            <DialogContent>
+                <MudGrid>
+                    <MudItem xs="12" md="4">
+                        <MudNumericField T="decimal" Label="Amount" @bind-Value="newItem.Amount" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="InvoiceType" Label="Invoice Type" @bind-Value="selectedType">
+                            @foreach (var type in invoiceTypes)
+                            {
+                                <MudSelectItem Value="@type">@type.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudCheckBox @bind-Value="newItem.IsOptional" Label="Optional" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-3">
+                    <MudButton OnClick="CancelInlineDialog">Cancel</MudButton>
+                    <MudButton Color="Color.Primary" OnClick="SaveItem">Save</MudButton>
+                </MudStack>
+            </DialogContent>
+        </MudDialog>
+
+        <!-- TABLE -->
+        <MudStack Row="true"
+                  Justify="Justify.SpaceBetween"
+                  AlignItems="AlignItems.Center"
+                  Class="mb-2">
+
+            <MudText Typo="Typo.subtitle1">Fee Breakdown</MudText>
+
+            <MudButton Size="Size.Small"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="AddItem">
+                + Add Item
+            </MudButton>
+
+        </MudStack>
+        <MudTable Items="_model.FeeStructureItems" Dense="true">
+            <HeaderContent>
+                <MudTh>Type</MudTh>
+                <MudTh>Amount</MudTh>
+                <MudTh>Optional</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+
+            <RowTemplate>
+                <MudTd>@_invoiceTypes.FirstOrDefault(x => x.Id == context.InvoiceTypeId)?.Name</MudTd>
+                <MudTd>@context.Amount</MudTd>
+                <MudTd><MudCheckBox @bind-Value="context.IsOptional" /></MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => RemoveItem(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudText Align="Align.Right">
+            Total: @_model.FeeStructureItems.Sum(x => x.Amount)
+        </MudText>
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton OnClick="Save" Color="Color.Primary">Save</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    [Parameter] public FeeStructure _model { get; set; } = new();
+    [Parameter] public bool isEditMode { get; set; }
+
+    private List<FeeStructureItem> _originalItems = new();
+
+    protected List<AcademicLevel> _classes = new();
+    protected List<InvoiceType> _invoiceTypes = new();
+    [Parameter] public List<InvoiceType> invoiceTypes { get; set; } = new();
+
+    protected FeeStructureItem newItem = new();
+    protected InvoiceType? selectedType;
+
+    protected DateTime? StartDate;
+    protected DateTime? EndDate;
+
+    protected bool inLineDialogVisible;
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_model == null)
+            _model = new FeeStructure();
+
+        _model.FeeStructureItems ??= new List<FeeStructureItem>();
+
+        // Snapshot
+        _originalItems = _model.FeeStructureItems
+            .Select(x => new FeeStructureItem
+            {
+                Id = x.Id,
+                InvoiceTypeId = x.InvoiceTypeId,
+                Amount = x.Amount,
+                IsOptional = x.IsOptional
+            }).ToList();
+
+        StartDate = _model.TermStartDate;
+        EndDate = _model.TermEndDate;
+
+        _classes = academicLevels.ToList();
+        await GetInvoiceTypes();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    protected async Task GetInvoiceTypes()
+    {
+        var service = GenericService.GetService<InvoiceType>();
+        var result = await service.GetAllAsync("api/Invoice/GetInvoiceTypes", true);
+
+        if (result.IsSuccess)
+        {
+            invoiceTypes = result.Data.ToList();
+            _invoiceTypes = invoiceTypes;
+        }
+    }
+
+    protected void AddItem()
+    {
+        newItem = new FeeStructureItem();
+        selectedType = null;
+        inLineDialogVisible = true;
+    }
+
+    private void CancelInlineDialog() => inLineDialogVisible = false;
+
+    protected void SaveItem()
+    {
+        if (selectedType == null) return;
+        if (_model.FeeStructureItems.Any(x => x.InvoiceTypeId == selectedType.Id))
+        {
+            Snackbar.Add("This invoice type already exists", Severity.Warning);
+            return;
+        }
+        if (newItem.Amount <= 0)
+        {
+            Snackbar.Add("Amount must be greater than 0", Severity.Error);
+            return;
+        }
+        var item = new FeeStructureItem
+        {
+            Id = Guid.NewGuid(),
+            InvoiceTypeId = selectedType.Id,
+            Amount = newItem.Amount,
+            IsOptional = newItem.IsOptional
+        };
+
+        _model.FeeStructureItems.Add(item);
+        newItem = new FeeStructureItem();
+        selectedType = null;
+        inLineDialogVisible = false;
+
+    }
+
+    protected void RemoveItem(FeeStructureItem item)
+    {
+        _model.FeeStructureItems.Remove(item);
+    }
+
+    private async Task Save()
+    {
+        if (!isEditMode)
+        {
+            _model.Id = Guid.NewGuid();
+            _model.TermStartDate = StartDate ?? DateTime.Today;
+            _model.TermEndDate = EndDate ?? DateTime.Today;
+
+            foreach (var item in _model.FeeStructureItems)
+                item.FeeStructureId = _model.Id;
+
+            await HttpClient.PostAsJsonAsync("api/Finance/SaveFeeStructure", _model);
+        }
+        else
+        {
+            var deleted = _originalItems
+                .Where(x => !_model.FeeStructureItems.Any(c => c.Id == x.Id))
+                .Select(x => x.Id)
+                .ToList();
+
+            var added = _model.FeeStructureItems
+                .Where(x => !_originalItems.Any(o => o.Id == x.Id))
+                .ToList();
+
+            var updated = _model.FeeStructureItems
+                .Where(x => _originalItems.Any(o => o.Id == x.Id && (
+                    o.Amount != x.Amount || o.IsOptional != x.IsOptional)))
+                .ToList();
+
+            var payload = new
+            {
+                FeeStructure = _model,
+                Added = added,
+                Updated = updated,
+                Deleted = deleted
+            };
+
+            await HttpClient.PostAsJsonAsync("api/Finance/UpdateFeeStructure", payload);
+        }
+
+        MudDialog.Close(DialogResult.Ok(_model));
+    }
+}

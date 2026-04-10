@@ -1,4 +1,5 @@
 ﻿using EduSphereDomain.Repositories;
+using EDUSphereSharedProject.FinanceModels;
 using EDUSphereSharedProject.FinanceModels.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -34,10 +35,35 @@ namespace IgnisEducationSuite.Controllers
             var result = await _finananceRepository.GetStudentLedgersAsync(requestDTO);
             return Ok(result);
         }
+        [HttpPost("UpdateFeeStructure")]
+        public async Task<IActionResult> UpdateFeeStructure(UpdateFeeStructureDto dto)
+        {
+            var result = await _finananceRepository.UpdateFeeStructureAsync(dto);
+            return Ok(result);
+        }
+        [HttpPost("SaveFeeStructure")]
+        public async Task<IActionResult> SaveFeeStructure(FeeStructure feeStructure)
+        {
+            var result = await _finananceRepository.SaveFeeStructureAsync(feeStructure);
+            return Ok(result);
+        }
         [HttpGet("GetRecentPayments/{SchoolID}")]
         public async Task<IActionResult> GetRecentPayments(Guid SchoolID)
         {
             var result = await _finananceRepository.GetRecentPaymentsAsync(SchoolID);
+            return Ok(result);
+        }
+
+        [HttpGet("GetFeeStructure/{SchoolID}")]
+        public async Task<IActionResult> GetFeeStructure(Guid SchoolID)
+        {
+            var result = await _finananceRepository.GetFeeStructures(SchoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetFeeStructureItems/{StructureID}")]
+        public async Task<IActionResult> GetFeeStructureItems(Guid StructureID)
+        {
+            var result = await _finananceRepository.GetFeeStructureItems(StructureID);
             return Ok(result);
         }
     }

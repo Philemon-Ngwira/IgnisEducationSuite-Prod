@@ -17,5 +17,5 @@ public partial class Clients
 
     public DateTime CreatedDate { get; set; }
 
-    public virtual ICollection<Licenses> Licenses { get; set; } = new List<Licenses>();
+    public string ProjectLicense { get; set; }
 }

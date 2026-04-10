@@ -178,7 +178,66 @@ namespace EduSphereDomain.Repositories
                 return (false, $"Error generating invoices: {ex.Message}", 0);
             }
         }
+        public async Task<FeeStructure> SaveFeeStructureAsync(FeeStructure feeStructure)
+        {
+            if (feeStructure == null)
+                throw new ArgumentNullException(nameof(feeStructure));
 
+            // 🔷 BASIC VALIDATION
+            if (string.IsNullOrWhiteSpace(feeStructure.Name))
+                throw new Exception("Fee structure name is required.");
+
+            if (feeStructure.FeeStructureItems == null || !feeStructure.FeeStructureItems.Any())
+                throw new Exception("At least one fee item is required.");
+
+            // 🔷 PREVENT DUPLICATES (same invoice type)
+            var duplicateTypes = feeStructure.FeeStructureItems
+                .GroupBy(x => x.InvoiceTypeId)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicateTypes.Any())
+                throw new Exception("Duplicate invoice types are not allowed in a fee structure.");
+
+            // 🔷 VALIDATE AMOUNTS
+            if (feeStructure.FeeStructureItems.Any(x => x.Amount <= 0))
+                throw new Exception("All fee items must have an amount greater than zero.");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var now = DateTime.UtcNow;
+
+                // 🔷 SET METADATA (parent)
+                feeStructure.Id = Guid.NewGuid();
+                feeStructure.CreatedAt = now;
+
+                // 🔷 PREP CHILDREN
+                foreach (var item in feeStructure.FeeStructureItems)
+                {
+                    item.Id = Guid.NewGuid();
+                    item.FeeStructureId = feeStructure.Id;
+                    item.CreatedAt = now;
+                }
+
+                // 🔷 SINGLE INSERT GRAPH
+                await _context.FeeStructures.AddAsync(feeStructure);
+
+                // 🔷 SAVE ONCE
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return feeStructure;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
         public async Task<Payment> RecordPayment(Payment paymentData)
         {
             try
@@ -270,6 +329,108 @@ namespace EduSphereDomain.Repositories
                 PaymentDate = x.PaymentDate,
                 StudentName = x.StudentName,
                 PaymentMethod = x.PaymentMethod
+            }).ToList();
+        }
+        public async Task<bool> UpdateFeeStructureAsync(UpdateFeeStructureDto dto)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                // 🔷 1. Update main structure
+                var existingStructure = await _context.FeeStructures
+                    .FirstOrDefaultAsync(x => x.Id == dto.FeeStructure.Id);
+
+                if (existingStructure == null)
+                    throw new Exception("Fee Structure not found");
+
+                existingStructure.Name = dto.FeeStructure.Name;
+                existingStructure.ClassId = dto.FeeStructure.ClassId;
+                existingStructure.TermStartDate = dto.FeeStructure.TermStartDate;
+                existingStructure.TermEndDate = dto.FeeStructure.TermEndDate;
+                existingStructure.AcademicYear = dto.FeeStructure.AcademicYear;
+                existingStructure.UpdatedAt = DateTime.UtcNow;
+
+                // 🔷 2. DELETE removed items
+                if (dto.Deleted.Any())
+                {
+                    var itemsToDelete = await _context.FeeStructureItems
+                        .Where(x => dto.Deleted.Contains(x.Id))
+                        .ToListAsync();
+
+                    _context.FeeStructureItems.RemoveRange(itemsToDelete);
+                }
+
+                // 🔷 3. ADD new items
+                if (dto.Added.Any())
+                {
+                    foreach (var item in dto.Added)
+                    {
+                        item.Id = Guid.NewGuid();
+                        item.FeeStructureId = existingStructure.Id;
+                        item.CreatedAt = DateTime.UtcNow;
+                    }
+
+                    await _context.FeeStructureItems.AddRangeAsync(dto.Added);
+                }
+
+                // 🔷 4. UPDATE existing items
+                if (dto.Updated.Any())
+                {
+                    var existingItems = await _context.FeeStructureItems
+                        .Where(x => dto.Updated.Select(u => u.Id).Contains(x.Id))
+                        .ToListAsync();
+
+                    foreach (var item in existingItems)
+                    {
+                        var updated = dto.Updated.First(x => x.Id == item.Id);
+
+                        item.Amount = updated.Amount;
+                        item.InvoiceTypeId = updated.InvoiceTypeId;
+                        item.IsOptional = updated.IsOptional;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception($"Error updating fee structure: {ex.Message}");
+            }
+        }
+
+        public async Task<IEnumerable<FeeStructure>> GetFeeStructures(Guid SchoolID)
+        {
+            var result = await _procedures.sp_GetFeeStructuresAsync(SchoolID);
+            return result.Select(x => new FeeStructure
+            {
+                AcademicYear = x.AcademicYear,
+                CreatedAt = x.CreatedAt,
+                IsActive = x.IsActive,
+                UpdatedAt = x.UpdatedAt,
+                ClassId = x.ClassId,
+                Id = x.Id,
+                SchoolId = x.SchoolId,
+                TermStartDate = x.TermStartDate,
+                TermEndDate = x.TermEndDate,
+                Name = x.Name,
+            }).ToList();
+        }
+        public async Task<IEnumerable<FeeStructureItem>> GetFeeStructureItems(Guid FeeStructureID)
+        {
+            var result = await _procedures.sp_GetFeeStructureItemsAsync(FeeStructureID);
+            return result.Select(x => new FeeStructureItem
+            {
+                Amount = x.Amount,
+                CreatedAt = x.CreatedAt,
+                FeeStructureId = x.FeeStructureId,
+                Id = x.Id,
+                InvoiceTypeId = x.InvoiceTypeId,
+                IsOptional = x.IsOptional,
             }).ToList();
         }
     }

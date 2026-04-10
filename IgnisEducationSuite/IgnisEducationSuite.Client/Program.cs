@@ -66,7 +66,7 @@ namespace IgnisEducationSuite.Client
             builder.Services.AddScoped<ZoomInteropBridge>();
             builder.Services.AddScoped<CountryCurrencyService>();
             builder.Services.AddScoped<LoaderService>();
-
+            builder.Logging.SetMinimumLevel(LogLevel.Debug);
             await builder.Build().RunAsync();
         }
     }

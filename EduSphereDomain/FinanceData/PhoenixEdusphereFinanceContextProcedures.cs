@@ -101,6 +101,8 @@ namespace EduSphereDomain.FinanceData
             modelBuilder.Entity<sp_GetBusMaintenanceRequestsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetClinicDashboardMetricsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetExpiringSoonMedicationsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetFeeStructureItemsResult>().HasNoKey().ToView(null);
+            modelBuilder.Entity<sp_GetFeeStructuresResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetFinanceDashboardSummaryResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetMonthlyPaymentTrendResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetRecentPaymentsResult>().HasNoKey().ToView(null);
@@ -2069,6 +2071,58 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<sp_GetExpiringSoonMedicationsResult>("EXEC @returnValue = [SchoolOps].[sp_GetExpiringSoonMedications] @DaysAhead, @ClinicID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetFeeStructureItemsResult>> sp_GetFeeStructureItemsAsync(Guid? FeeStructureID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "FeeStructureID",
+                    Value = FeeStructureID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetFeeStructureItemsResult>("EXEC @returnValue = [Finance].[sp_GetFeeStructureItems] @FeeStructureID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<sp_GetFeeStructuresResult>> sp_GetFeeStructuresAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = SchoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryAsync<sp_GetFeeStructuresResult>("EXEC @returnValue = [Finance].[sp_GetFeeStructures] @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

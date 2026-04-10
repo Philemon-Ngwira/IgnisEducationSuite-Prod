@@ -21,5 +21,7 @@ public partial class InvoiceType
 
     public DateTime? UpdatedAt { get; set; }
 
+    public virtual ICollection<FeeStructureItem> FeeStructureItems { get; set; } = new List<FeeStructureItem>();
+
     public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

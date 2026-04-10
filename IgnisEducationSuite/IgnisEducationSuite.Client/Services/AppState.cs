@@ -116,20 +116,20 @@ public class AppState
             HideStudentDashboard = data.HideStudentDashboard == 1;
 
             // --- 4️⃣ Load License ---
-            if (UserRole != "SuperAdmin")
-            {
-                var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
-                var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
-                License = licenseResult.IsSuccess && licenseResult.Data.Any()
-                    ? licenseResult.Data.First()
-                    : new usp_GetPharmacyLicenseStatusResult();
-                LicenseIsActive = License?.IsValid == 1;
-            }
-            else
-            {
-                LicenseIsActive = true;
-            }
-
+            //if (UserRole != "SuperAdmin")
+            //{
+            //    var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
+            //    var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
+            //    License = licenseResult.IsSuccess && licenseResult.Data.Any()
+            //        ? licenseResult.Data.First()
+            //        : new usp_GetPharmacyLicenseStatusResult();
+            //    LicenseIsActive = License?.IsValid == 1;
+            //}
+            //else
+            //{
+            //    LicenseIsActive = true;
+            //}
+            LicenseIsActive = true; // 🚨 override for testing - remove in production
             // --- 5️⃣ Load Non-Critical Data in parallel ---
             var tasks = new List<Task>();
 

@@ -20,9 +20,10 @@ namespace AppLicensingAPI
                 Console.WriteLine($"JWT_SECRET is set: {jwtSecretKey}");
             }
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-           // var MessagingConnectionString = builder.Configuration.GetConnectionString("MessagingConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+            // var MessagingConnectionString = builder.Configuration.GetConnectionString("MessagingConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<LicensingAPIContext>(options =>
               options.UseSqlServer(connectionString));
+            builder.Services.AddScoped<ILicensingAPIContextProcedures, LicensingAPIContextProcedures>();
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();

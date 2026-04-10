@@ -15,6 +15,14 @@
    "SelectedToBeGenerated": 1,
    "Tables": [
       {
+         "Name": "[Finance].[FeeStructure]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[Finance].[FeeStructureItem]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[Finance].[FinanceLedger]",
          "ObjectType": 0
       },
@@ -308,6 +316,14 @@
       },
       {
          "Name": "[Finance].[sp_CreateStudentFinanceForExistingStudents]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[Finance].[sp_GetFeeStructureItems]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[Finance].[sp_GetFeeStructures]",
          "ObjectType": 1
       },
       {
