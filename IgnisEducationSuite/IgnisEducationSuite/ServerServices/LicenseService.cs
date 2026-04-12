@@ -158,7 +158,6 @@ namespace IgnisEducationSuite.ServerServices
             // Final fallback (never throw to caller)
             return empty;
         }
-
         // ---------------------------
         // TERMINATE LICENSE
         // ---------------------------

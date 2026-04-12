@@ -63,7 +63,8 @@
                                      SelectValueOnTab="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search"
                                      AdornmentColor="Color.Primary"
-                                     FullWidth="true" />
+                                     FullWidth="true" 
+                                     Margin="Margin.Dense"/>
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -549,18 +550,35 @@
     #region Filters
     private void ApplyFilters()
     {
-        IEnumerable<StudentWithClassesDTO> query = students;
+        IEnumerable<StudentWithClassesDTO> query = teacherFilteredStudents;
 
+        // Academic Level filter (still within teacher scope)
         if (!string.IsNullOrEmpty(AcademicLvlFilterValue))
-            query = query.Where(s => s.LevelName == AcademicLvlFilterValue);
+        {
+            query = query.Where(s =>
+                string.Equals(s.LevelName?.Trim(),
+                              AcademicLvlFilterValue?.Trim(),
+                              StringComparison.OrdinalIgnoreCase));
+        }
 
+        // Class filter (IMPORTANT: only teacher's classes already included)
         if (!string.IsNullOrEmpty(SelectedClass))
-            query = query.Where(s => s.Classes.Select(x => x.ClassName).Contains(SelectedClass));
+        {
+            query = query.Where(s =>
+                s.Classes.Any(c =>
+                    string.Equals(c.ClassName?.Trim(),
+                                  SelectedClass?.Trim(),
+                                  StringComparison.OrdinalIgnoreCase)));
+        }
 
+        // Search filter
         if (!string.IsNullOrWhiteSpace(searchString))
+        {
             query = query.Where(s =>
                 s.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                s.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
+                s.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                s.StudentNumber.Contains(searchString));
+        }
 
         filteredStudents = query.ToList();
     }
