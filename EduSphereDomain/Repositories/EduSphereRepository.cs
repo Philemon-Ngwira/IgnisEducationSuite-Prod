@@ -1295,6 +1295,7 @@ namespace EduSphereDomain.Repositories
                         StudentNumber = s.StudentNumber,
                         AcademicLevelID = s.AcademicLevelID,
                         LevelSectionID = s.LevelSectionID,
+                        GradeSection = s.GradeSection ?? "",
 
                         Classes = s.StudentClasses
                             .Where(sc => sc.Class != null) // safety
@@ -1315,13 +1316,14 @@ namespace EduSphereDomain.Repositories
             }
         }
 
-        public async Task<List<ReportCard>> GetReportCardHeaderByStudent(Guid StudentID)
+        public async Task<List<ReportCard>> GetReportCardHeaderByStudent(Guid StudentID, string ReportCardType)
         {
             var today = DateTime.Now.Date;
             return await _context.ReportCards
                 .Where(s => s.StudentID == StudentID
                  && s.TermStartDate <= today
                      && s.TermEndDate >= today
+                     && s.ReportCardType == ReportCardType
                 ).ToListAsync();
         }
         #endregion
