@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using EduSphereDomain.Models;
-using EDUSphereSharedProject.FinanceModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace EduSphereDomain.FinanceData;

@@ -47,8 +47,8 @@
                                      SelectValueOnTab="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search"
                                      AdornmentColor="Color.Primary"
-                                     FullWidth="true" 
-                                     Margin="Margin.Dense"/>
+                                     FullWidth="true"
+                                     Margin="Margin.Dense" />
                 </MudItem>
 
                 <MudItem xs="12" md="6">
@@ -63,8 +63,8 @@
                                      SelectValueOnTab="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search"
                                      AdornmentColor="Color.Primary"
-                                     FullWidth="true" 
-                                     Margin="Margin.Dense"/>
+                                     FullWidth="true"
+                                     Margin="Margin.Dense" />
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -398,7 +398,7 @@
             {
                 ReportCardDetailID = x.ReportCardDetailID,
                 ReportCardID = x.ReportCardID,
-                ClassID = classes.FirstOrDefault(c => c.ClassName == x.ClassName)?.ClassID ?? Guid.Empty,
+                ClassID = x.ClassID,
                 Score = x.Score,
                 Grade = x.Grade,
 

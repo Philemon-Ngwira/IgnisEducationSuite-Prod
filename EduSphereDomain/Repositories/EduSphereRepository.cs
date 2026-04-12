@@ -829,6 +829,7 @@ namespace EduSphereDomain.Repositories
                     Score = item.Score,
                     Grade = item.Grade,
                     Final = item.Final,
+                    ClassID = item.ClassID
 
                 };
                 reportCardDetailsResults.Add(detailsResult);

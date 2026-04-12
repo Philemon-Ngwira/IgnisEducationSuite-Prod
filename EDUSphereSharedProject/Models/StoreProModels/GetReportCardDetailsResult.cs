@@ -9,6 +9,8 @@ namespace EDUSphereSharedProject.Models.StoreProModels
     {
         public Guid ReportCardDetailID { get; set; }
         public Guid? ReportCardID { get; set; }
+
+        public Guid? ClassID { get; set; }
         public string ClassName { get; set; }
         public double? Score { get; set; }
         public string Grade { get; set; }
