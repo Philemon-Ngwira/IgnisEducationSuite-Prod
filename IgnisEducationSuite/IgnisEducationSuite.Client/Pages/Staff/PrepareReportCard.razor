@@ -47,8 +47,8 @@
                                      SelectValueOnTab="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search"
                                      AdornmentColor="Color.Primary"
-                                     FullWidth="true"
-                                     Margin="Margin.Dense" />
+                                     FullWidth="true" 
+                                     Margin="Margin.Dense"/>
                 </MudItem>
 
                 <MudItem xs="12" md="6">
@@ -63,8 +63,7 @@
                                      SelectValueOnTab="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search"
                                      AdornmentColor="Color.Primary"
-                                     FullWidth="true"
-                                     Margin="Margin.Dense" />
+                                     FullWidth="true" />
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -114,6 +113,7 @@
     protected List<Class> classes = new();
     protected List<StudentWithClassesDTO> students = new();
     protected List<StudentWithClassesDTO> filteredStudents = new();
+    protected List<StudentWithClassesDTO> teacherFilteredStudents = new();
     protected List<GradingScale> gradingScales = new();
     protected List<string> TeacherGrades = new();
     protected List<string> ClassNames = new();
@@ -229,7 +229,7 @@
             filteredStudents = students
                 .Where(s => s.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
                 .ToList();
-
+            teacherFilteredStudents = filteredStudents.ToList();
             return;
         }
 
