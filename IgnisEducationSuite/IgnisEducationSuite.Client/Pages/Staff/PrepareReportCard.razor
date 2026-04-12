@@ -114,6 +114,7 @@
     protected List<Class> classes = new();
     protected List<StudentWithClassesDTO> students = new();
     protected List<StudentWithClassesDTO> filteredStudents = new();
+    protected List<StudentWithClassesDTO> teacherFilteredStudents = new();
     protected List<GradingScale> gradingScales = new();
     protected List<string> TeacherGrades = new();
     protected List<string> ClassNames = new();
@@ -229,7 +230,7 @@
             filteredStudents = students
                 .Where(s => s.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
                 .ToList();
-
+            teacherFilteredStudents = filteredStudents.ToList();
             return;
         }
 

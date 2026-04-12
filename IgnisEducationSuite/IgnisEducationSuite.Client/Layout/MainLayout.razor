@@ -1,5 +1,4 @@
-﻿@using IgnisEducationSuite.Client.Pages.Shared
-@using IgnisEducationSuite.Client.Services
+﻿@using IgnisEducationSuite.Client.Services
 @using System.Security.Claims
 @inherits LayoutComponentBase
 @inject AppState AppState
@@ -52,7 +51,7 @@
             <IgnisEducationSuite.Client.Pages.Shared.GlobalLoader />
 
 
-            @* @if (!AppState.IsLicenseChecked)
+            @if (!AppState.IsLicenseChecked)
             {
                 <div class="d-flex flex-column align-center justify-center" style="height:100%;">
                     <MudProgressCircular Indeterminate="true" />
@@ -78,8 +77,7 @@
             {
                 <!-- Normal app -->
                 @Body
-            } *@
-            @Body
+            }
         </MudMainContent>
         <Footer Version="1.0.2" Environment="PROD" />
     }
