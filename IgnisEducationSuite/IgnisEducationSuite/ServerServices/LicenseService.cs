@@ -102,35 +102,61 @@ namespace IgnisEducationSuite.ServerServices
         }
         public async Task<List<usp_GetPharmacyLicenseStatusResult>> GetCompanyLicense(Guid companyID)
         {
-            try
-            {
-                var path = $"api/license/GetClientActiveLicensePeriod/{companyID}";
-                var client = _httpClientFactory.CreateClient();
-                client.BaseAddress = new Uri("https://ptelicensing-b0e9h6ajaterg9bg.southafricanorth-01.azurewebsites.net/"); // Replace with actual API URL
-                var response = await client.GetAsync(path);
+            var path = $"api/license/GetClientActiveLicensePeriod/{companyID}";
 
-                if (!response.IsSuccessStatusCode)
+            var client = _httpClientFactory.CreateClient();
+            client.BaseAddress = new Uri("https://ptelicensing-b0e9h6ajaterg9bg.southafricanorth-01.azurewebsites.net/");
+            client.Timeout = TimeSpan.FromSeconds(8);
+
+            List<usp_GetPharmacyLicenseStatusResult> empty = new();
+
+            for (int attempt = 1; attempt <= 3; attempt++)
+            {
+                try
                 {
-                    // You can log this or throw an exception depending on your design
-                    throw new HttpRequestException($"API call failed with status code: {response.StatusCode}");
+                    using var response = await client.GetAsync(path);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsStringAsync();
+
+                        var licenses = JsonSerializer.Deserialize<List<usp_GetPharmacyLicenseStatusResult>>(
+                            content,
+                            new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+
+                        return licenses ?? empty;
+                    }
+
+                    // If unauthorized or not found → don't retry aggressively
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                        response.StatusCode == System.Net.HttpStatusCode.Forbidden ||
+                        response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        return empty;
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    // timeout → retry
+                }
+                catch (HttpRequestException)
+                {
+                    // network failure → retry
+                }
+                catch (Exception)
+                {
+                    // unknown error → break early (don't loop forever)
+                    break;
                 }
 
-                var content = await response.Content.ReadAsStringAsync();
-
-                var licenses = JsonSerializer.Deserialize<List<usp_GetPharmacyLicenseStatusResult>>(
-                    content,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                );
-
-                return licenses ?? new List<usp_GetPharmacyLicenseStatusResult>();
-            }
-            catch (Exception ex)
-            {
-                var _ = ex.Message;
-
-                throw;
+                await Task.Delay(300 * attempt); // exponential backoff
             }
 
+            // Final fallback (never throw to caller)
+            return empty;
         }
 
         // ---------------------------

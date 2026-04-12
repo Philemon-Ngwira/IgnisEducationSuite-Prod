@@ -51,11 +51,12 @@
                                 <CellTemplate>
                                     @if (CanEditScores && context.Item.CanBeEditied)
                                     {
-                                        <MudTextField @bind-Value="context.Item.Score"
-                                                      Immediate="true"
-                                                      Margin="Margin.Dense"
-                                                      Variant="Variant.Outlined"
-                                                      Style="max-width:80px" />
+                                        <MudTextField T="double?" Value="context.Item.Score"
+                                                       ValueChanged="@(v => OnScoreChanged(context.Item, v))"
+                                                       Immediate="true"
+                                                       Margin="Margin.Dense"
+                                                       Variant="Variant.Outlined"
+                                                       Style="max-width:80px" />
                                     }
                                     else
                                     {
@@ -85,31 +86,34 @@
                     </MudItem>
                 </MudGrid>
             </MudItem>
-            @if (AppState.UserRole == "Dean" || AppState.UserRole == "Principal")
+            @if (ReportCardType == "EndTerm")
             {
-                <MudItem xs="12" Class="mt-3">
-                    <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.People">Review & Comments</MudAlert>
-                    <MudGrid>
-                        @if (AppState.UserRole == "Dean")
-                        {
-                            <MudItem xs="12" md="6">
-                                <MudTextField T="string" Label="Dean Name" @bind-Value="newReportCard.DeanName" Variant="Variant.Outlined" />
-                            </MudItem>
-                            <MudItem xs="12" md="6">
-                                <MudTextField T="string" Label="Dean's Comment" @bind-Value="newReportCard.DeansComment" Variant="Variant.Outlined" />
-                            </MudItem>
-                        }
-                        @if (AppState.UserRole == "Principal")
-                        {
-                            <MudItem xs="12" md="6">
-                                <MudTextField T="string" Label="Principal Name" @bind-Value="newReportCard.PrincipleName" Variant="Variant.Outlined" />
-                            </MudItem>
-                            <MudItem xs="12" md="6">
-                                <MudTextField T="string" Label="Principal's Comment" @bind-Value="newReportCard.PrinciplesComment" Variant="Variant.Outlined" />
-                            </MudItem>
-                        }
-                    </MudGrid>
-                </MudItem>
+                @if (AppState.UserRole == "Dean" || AppState.UserRole == "Principal")
+                {
+                    <MudItem xs="12" Class="mt-3">
+                        <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.People">Review & Comments</MudAlert>
+                        <MudGrid>
+                            @if (AppState.UserRole == "Dean")
+                            {
+                                <MudItem xs="12" md="6">
+                                    <MudTextField T="string" Label="Dean Name" @bind-Value="newReportCard.DeanName" Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudTextField T="string" Label="Dean's Comment" @bind-Value="newReportCard.DeansComment" Variant="Variant.Outlined" />
+                                </MudItem>
+                            }
+                            @if (AppState.UserRole == "Principal")
+                            {
+                                <MudItem xs="12" md="6">
+                                    <MudTextField T="string" Label="Principal Name" @bind-Value="newReportCard.PrincipleName" Variant="Variant.Outlined" />
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudTextField T="string" Label="Principal's Comment" @bind-Value="newReportCard.PrinciplesComment" Variant="Variant.Outlined" />
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </MudItem>
+                }
             }
 
         </MudGrid>
@@ -132,7 +136,7 @@
     [Parameter] public ReportCard newReportCard { get; set; } = new();
     [Parameter] public List<ReportCardDetail> reportCardDetails { get; set; } = new();
     [Parameter] public Guid TeacherID { get; set; }
-
+    [Parameter] public string ReportCardType { get; set; }
     private DateRange _dateRangeTerm { get; set; }
     private List<ReportCardDetail> _visibleReportCardDetails = new();
 
@@ -244,7 +248,18 @@
     }
 
     private void CloseDialog() => MudDialog.Cancel();
+    void OnScoreChanged(ReportCardDetail item, double? value)
+    {
+        item.Score = value ?? 0;
 
+        var gradeAndGPA = GetGradeAndCalculateGPA(item, GradingScales);
+
+        item.Grade = gradeAndGPA.Grade;
+        item.GPA = gradeAndGPA.GPA;
+        item.FinalComment = gradeAndGPA.Comment;
+
+        StateHasChanged();
+    }
     private async void SubmitReportCard()
     {
         LoaderService.Show("Please wait while we create the report card...");

@@ -876,10 +876,10 @@ namespace IgnisEducationSuite.Controllers
             return Ok(result);
         }
 
-        [HttpGet("GetStudentReportCardHeader/{StudentID}")]
-        public async Task<IActionResult> GetStudentReportCardHeader(string StudentID)
+        [HttpGet("GetStudentReportCardHeader/{StudentID}/{ReportCardType}")]
+        public async Task<IActionResult> GetStudentReportCardHeader(string StudentID, string ReportCardType)
         {
-            var result = await _repository.GetReportCardHeaderByStudent(Guid.Parse(StudentID));
+            var result = await _repository.GetReportCardHeaderByStudent(Guid.Parse(StudentID), ReportCardType);
             return Ok(result);
         }
 

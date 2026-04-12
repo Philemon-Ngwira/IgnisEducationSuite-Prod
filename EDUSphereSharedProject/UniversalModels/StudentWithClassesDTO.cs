@@ -15,7 +15,7 @@ namespace EDUSphereSharedProject.UniversalModels
         public string LevelName { get; set; } = "";
         public string StudentNumber { get; set; } = "";
         public string Gender { get; set; } = "";
-
+        public string GradeSection { get; set; } = "";
         public Guid? AcademicLevelID { get; set; }
         public Guid? LevelSectionID { get; set; }
 

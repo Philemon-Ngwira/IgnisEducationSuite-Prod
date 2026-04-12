@@ -25,7 +25,8 @@ public class AppState
     public bool HideStudentDashboard { get; private set; }
     public bool LicenseIsActive { get; private set; }
     public SchoolCurrency Currency { get; private set; } = new();
-
+    public bool IsLicenseChecked { get; private set; } = false;
+    public bool IsLicenseLoading { get; private set; } = false;
     public usp_GetPharmacyLicenseStatusResult License { get; private set; } = new();
 
     // --- Global Data ---
@@ -86,7 +87,7 @@ public class AppState
                 }
 
                 attempts++;
-                await Task.Delay(200); // retry delay
+                await Task.Delay(500); // retry delay
             }
 
             if (data == null)

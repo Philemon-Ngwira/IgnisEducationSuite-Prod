@@ -20,7 +20,19 @@
             <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Book">
                 Prepare Report Cards
             </MudAlert>
+            <MudPaper Class="p-4 mb-4" Elevation="2">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12">
+                        <MudSelect T="string" Label="Report Type" @bind-Value="SelectedReportType">
+                            @foreach (var type in ReportTypes)
+                            {
+                                <MudSelectItem Value="@type">@type</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
 
+                </MudGrid>
+            </MudPaper>
             <MudGrid Spacing="3" Class="mt-2">
 
                 <MudItem xs="12" md="6">
@@ -35,7 +47,8 @@
                                      SelectValueOnTab="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search"
                                      AdornmentColor="Color.Primary"
-                                     FullWidth="true" />
+                                     FullWidth="true" 
+                                     Margin="Margin.Dense"/>
                 </MudItem>
 
                 <MudItem xs="12" md="6">
@@ -50,16 +63,24 @@
                                      SelectValueOnTab="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search"
                                      AdornmentColor="Color.Primary"
-                                     FullWidth="true" />
+                                     FullWidth="true" 
+                                     Margin="Margin.Dense"/>
                 </MudItem>
             </MudGrid>
         </MudPaper>
 
         <MudDataGrid Items="filteredStudents" Filterable="false" SortMode="SortMode.None" Groupable="false" Class="mt-4">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Students</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" Immediate="true"
+                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
             <Columns>
                 <PropertyColumn Property="x => x.FirstName" Title="First Name" />
                 <PropertyColumn Property="x => x.LastName" Title="Last Name" />
                 <PropertyColumn Property="x => x.LevelName" Title="Academic Level" />
+                <PropertyColumn Property="x => x.GradeSection" Title="Section" Sortable="true" />
                 <PropertyColumn Property="x => x.StudentNumber" Title="Student ID" />
                 <TemplateColumn CellClass="d-flex justify-end">
                     <CellTemplate>
@@ -73,6 +94,9 @@
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
+            <PagerContent>
+                <MudDataGridPager T="StudentWithClassesDTO" />
+            </PagerContent>
         </MudDataGrid>
     </MudCardContent>
 </MudCard>
@@ -81,6 +105,11 @@
 
 
 @code {
+    protected Guid SelectedAcademicYearID;
+    protected Guid SelectedTermID;
+    protected string SelectedReportType = "Midterm"; // default
+    private string _searchString;
+    protected List<string> ReportTypes = new() { "Midterm", "EndTerm" };
     protected List<Teacher> teachers = new();
     protected List<Class> classes = new();
     protected List<StudentWithClassesDTO> students = new();
@@ -91,6 +120,7 @@
     protected string AcademicLvlFilterValue = string.Empty;
     protected string SelectedClass = string.Empty;
     protected string searchString = string.Empty;
+    private bool _sortNameByLength;
     protected Staff Dean = new();
     protected Teacher loggedInTeacher = new();
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
@@ -124,6 +154,35 @@
         StateHasChanged();
         LoaderService.Hide();
     }
+
+    #region Search
+    // custom sort by name length
+    private Func<StudentWithClassesDTO, object> _sortBy => x =>
+    {
+        if (_sortNameByLength)
+            return x.FirstName.Length;
+        else
+            return x.FirstName;
+    };
+    // quick filter - filter globally across multiple columns with the same input
+    private Func<StudentWithClassesDTO, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if (x.FirstName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.LastName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if ($"{x.StudentNumber}".Contains(_searchString))
+            return true;
+
+        return false;
+    };
+
+    #endregion
     private async Task<List<ClassTeacher>> LoadClassTeachers()
     {
         var service = GenericService.GetService<ClassTeacher>();
@@ -289,8 +348,18 @@
             foreach (var s in students)
             {
                 if (string.IsNullOrEmpty(s.LevelName))
-                    s.LevelName = academicLevels.First(x => x.LevelInt == s.AcademicLevel).LevelName;
+                    s.LevelName = academicLevels
+                        .First(x => x.LevelInt == s.AcademicLevel)
+                        .LevelName;
             }
+
+            // ✅ SORTING (Academic Level → Grade Section → Name)
+            students = students
+                .OrderBy(s => s.AcademicLevel)              // Primary: Level (e.g., Grade 8, 9, etc.)
+                .ThenBy(s => s.LevelSectionID ?? Guid.Empty) // Secondary: Section (A, B, etc.)
+                .ThenBy(s => s.LastName)                    // Optional: nicer grouping
+                .ThenBy(s => s.FirstName)
+                .ToList();
         }
     }
 
@@ -303,18 +372,19 @@
             gradingScales = result.Data.ToList();
     }
 
-    protected async Task<ReportCard> GetReportCardHeader(string StudentID)
+    protected async Task<ReportCard> GetReportCardHeader(string studentID)
     {
         var service = _genericService.GetService<ReportCard>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetStudentReportCardHeader/{StudentID}", true);
-        if (result.IsSuccess)
-        {
+
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetStudentReportCardHeader/{studentID}/{SelectedReportType}",
+            true
+        );
+
+        if (result.IsSuccess && result.Data.Any())
             return result.Data.First();
-        }
-        else
-        {
-            return new ReportCard();
-        }
+
+        return null;
     }
 
     protected async Task<List<ReportCardDetail>> GetReportCardDetails(Guid ReportCardID)
@@ -345,16 +415,22 @@
     #region Dialog
     private async Task OpenDetailsDialogAsync(StudentWithClassesDTO student)
     {
-        // Load report card header first
-        var reportCardHeader = await GetReportCardHeader(student.StudentID.ToString());
-        if (reportCardHeader.ReportCardID == Guid.Empty)
+        if (string.IsNullOrEmpty(SelectedReportType))
         {
-            Snackbar.Configuration.VisibleStateDuration = 5;
-            Snackbar.Add("No Report Card Found For Student. Please contact your system admin.", Severity.Error);
-            student.isInteractable = false;
+            Snackbar.Add("Please select Report Type first.", Severity.Warning);
             return;
         }
+        // Load report card header first
+        var reportCardHeader = await GetReportCardHeader(student.StudentID.ToString());
+        if (reportCardHeader == null)
+        {
+            Snackbar.Add("No report card exists for this selection yet.", Severity.Warning);
 
+            // Optional (better UX):
+            // reportCardHeader = await CreateReportCardHeader(...);
+
+            return;
+        }
         // Extract state ID once
         var state = reportCardHeader.ApprovalStatus;
 
