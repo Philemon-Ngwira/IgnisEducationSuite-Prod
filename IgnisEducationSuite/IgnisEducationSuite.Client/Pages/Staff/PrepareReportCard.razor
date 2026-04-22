@@ -47,8 +47,8 @@
                                      SelectValueOnTab="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search"
                                      AdornmentColor="Color.Primary"
-                                     FullWidth="true" 
-                                     Margin="Margin.Dense"/>
+                                     FullWidth="true"
+                                     Margin="Margin.Dense" />
                 </MudItem>
 
                 <MudItem xs="12" md="6">
@@ -63,8 +63,8 @@
                                      SelectValueOnTab="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search"
                                      AdornmentColor="Color.Primary"
-                                     FullWidth="true" 
-                                     Margin="Margin.Dense"/>
+                                     FullWidth="true"
+                                     Margin="Margin.Dense" />
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -223,7 +223,7 @@
             }
 
             var teacherClassIds = classes
-                .Where(c => c.TeacherID == loggedInTeacher.TeacherID)
+                .Where(c => c.TeacherID == Guid.Parse("075EEB97-A97F-4AC6-80C4-7A190849617F")/* loggedInTeacher.TeacherID */)
                 .Select(c => c.ClassID)
                 .ToHashSet();
 
@@ -480,8 +480,8 @@
             {
                 // Class teacher → send ALL classes for the student's level
                 classesToSend = classes
-                    .Where(c => c.AcademicLevel == student.AcademicLevel)
-                    .ToList();
+               .Where(x => student.Classes.Any(c => c.ClassID == x.ClassID))
+                 .ToList();
             }
             else
             {
@@ -510,7 +510,7 @@
         else
         {
             classesToSend = classes
-                .Where(x => x.AcademicLevel == student.AcademicLevel)
+              .Where(x => student.Classes.Any(c => c.ClassID == x.ClassID))
                 .ToList();
         }
         var reportCardDetails = await GetReportCardDetails(reportCardHeader.ReportCardID);
@@ -550,9 +550,14 @@
     #region Filters
     private void ApplyFilters()
     {
-        IEnumerable<StudentWithClassesDTO> query = teacherFilteredStudents;
+        IEnumerable<StudentWithClassesDTO> query;
 
-        // Academic Level filter (still within teacher scope)
+        if (AppState.UserRole == "Teacher")
+            query = teacherFilteredStudents;
+        else
+            query = students; // Admin / Dean / others
+
+        // Academic Level filter
         if (!string.IsNullOrEmpty(AcademicLvlFilterValue))
         {
             query = query.Where(s =>
@@ -561,7 +566,7 @@
                               StringComparison.OrdinalIgnoreCase));
         }
 
-        // Class filter (IMPORTANT: only teacher's classes already included)
+        // Class filter
         if (!string.IsNullOrEmpty(SelectedClass))
         {
             query = query.Where(s =>
@@ -582,7 +587,6 @@
 
         filteredStudents = query.ToList();
     }
-
     private void FilterResultsByAcademicLevel(string value)
     {
         AcademicLvlFilterValue = value;

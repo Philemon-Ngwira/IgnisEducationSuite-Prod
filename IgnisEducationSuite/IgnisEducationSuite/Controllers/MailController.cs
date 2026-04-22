@@ -46,7 +46,7 @@ namespace IgnisEducationSuite.Controllers
 
             try
             {
-                await _emailService.SendPasswordResetEmailAsync(emailRequest.To, emailRequest.Reciepient,emailRequest.Password, emailRequest.UserName, emailRequest.StudentID);
+                await _emailService.SendPasswordResetEmailAsync(emailRequest.To, emailRequest.Reciepient,emailRequest.Password, emailRequest.UserName, emailRequest.StudentID, emailRequest.Role ?? "", emailRequest.SchoolName ?? "");
                 return Ok("Email sent successfully.");
             }
             catch (Exception ex)

@@ -52,33 +52,10 @@
             <IgnisEducationSuite.Client.Pages.Shared.GlobalLoader />
 
 
-            @if (!AppState.IsLicenseChecked)
-            {
-                <div class="d-flex flex-column align-center justify-center" style="height:100%;">
-                    <MudProgressCircular Indeterminate="true" />
-                    <MudText>Checking license...</MudText>
-
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        Loading: @AppState.IsLicenseLoading
-                    </MudText>
-                </div>
-            }
-
-            else if (!AppState.LicenseIsActive)
-            {
-                <!-- License invalid -->
-                <div class="d-flex flex-column align-center justify-center" style="height:100%;">
-                    <MudText Typo="Typo.h5" Color="Color.Error">
-                        License Expired or Invalid
-                    </MudText>
-                    <MudText>Please contact your administrator.</MudText>
-                </div>
-            }
-            else
-            {
+            
                 <!-- Normal app -->
                 @Body
-            }
+            
         </MudMainContent>
         <Footer Version="1.0.2" Environment="PROD" />
     }
@@ -118,7 +95,7 @@
 
             if (!string.IsNullOrEmpty(userId))
             {
-                partiallyIntialized = await AppState.InitializeAsync(userId, true);
+                partiallyIntialized = await AppState.InitializeAsync(userId, true, Nav);
                 AppState.OnChange += StateHasChanged;
             }
             else

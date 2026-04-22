@@ -18,5 +18,8 @@ namespace EDUSphereSharedProject.UniversalModels
         public string UserName { get; set; } = string.Empty;
         public string StudentID { get; set; } = string.Empty;
         public bool isFirstMail { get; set; } = false;
+
+        public string Role { get; set; } = string.Empty;
+        public string SchoolName { get; set; } = string.Empty;  
     }
 }

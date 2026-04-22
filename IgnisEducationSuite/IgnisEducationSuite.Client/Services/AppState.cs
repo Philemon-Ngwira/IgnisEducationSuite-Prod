@@ -3,6 +3,8 @@ using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.Client.Services;
+using Microsoft.AspNetCore.Components;
+using System.Linq;
 
 public class AppState
 {
@@ -48,10 +50,14 @@ public class AppState
         _genericService = genericService;
     }
 
-    public async Task<bool> InitializeAsync(string userName, bool isAuthenticated)
+    /// <summary>
+    /// Fully initializes AppState: essential + non-critical data.
+    /// </summary>
+    public async Task<bool> InitializeAsync(string userName, bool isAuthenticated, NavigationManager navigation)
     {
         if (!isAuthenticated || string.IsNullOrEmpty(userName))
         {
+            // 👇 IMPORTANT: mark license as irrelevant for anonymous users
             IsLicenseChecked = true;
             LicenseIsActive = true;
             IsFullyInitialized = true;
@@ -63,14 +69,14 @@ public class AppState
         UserID = userName;
 
         var rolePriority = new List<string>
-        {
-            "Admin","Teacher","Dean","Principal","KitchenStaff",
-            "Parent","Student","SuperAdmin","Clinic Staff","TransportStaff"
-        };
+    {
+        "Admin","Teacher","Dean","Principal","KitchenStaff",
+        "Parent","Student","SuperAdmin","Clinic Staff","TransportStaff"
+    };
 
         try
         {
-            // --- 1️⃣ Init Data (SP) ---
+            // --- 1️⃣ Load Initialization Data with retry ---
             var initService = _genericService.GetService<GetInitializationDataResult>();
             GetInitializationDataResult data = null;
 
@@ -78,65 +84,68 @@ public class AppState
 
             while (attempts < 2)
             {
-                var res = await initService.GetAllAsync(
-                    $"api/Dynamic/GetInitializationData/{UserID}", true);
+                var res = await initService.GetAllAsync($"api/Dynamic/GetInitializationData/{UserID}", true);
 
                 if (res != null && res.IsSuccess && res.Data.Any())
                 {
                     data = res.Data.First();
-                    break;
+                    break; // ✅ only break on success
                 }
 
                 attempts++;
-                await Task.Delay(500);
+                await Task.Delay(1000); // ⏱️ brief pause before retry
             }
 
             if (data == null)
+            {
+                navigation.NavigateTo("/", true); // force reload to clear any transient auth issues
                 return false;
+            }
 
-            // --- 2️⃣ Roles ---
+            // --- 2️⃣ Set Roles ---
             UserRoles = data.RoleName?
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(r => r.Trim())
-                .ToList() ?? new();
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(r => r.Trim())
+                        .ToList() ?? new();
 
-            UserRole =
-                (UserRoles.Count == 1 && (UserRoles[0] == "SuperAdmin" || UserRoles[0] == "Parent"))
-                ? UserRoles[0]
-                : rolePriority.FirstOrDefault(role => UserRoles.Contains(role)) ?? "Guest";
+            UserRole = (UserRoles.Count == 1 && (UserRoles[0] == "SuperAdmin" || UserRoles[0] == "Parent"))
+                        ? UserRoles[0]
+                        : rolePriority.FirstOrDefault(role => UserRoles.Contains(role)) ?? "Guest";
 
-            // --- 3️⃣ Core Info ---
+            // --- 3️⃣ Set Basic Info ---
             SchoolID = data.SchoolID.ToString();
             SchoolName = data.SchoolName ?? "";
             UserEmail = data.Email ?? "";
             FirstName = data.FirstName ?? "";
             LastName = data.LastName ?? "";
-            SchoolLogo = data.SchoolLogo?.Length > 0
-                ? Convert.ToBase64String(data.SchoolLogo)
-                : string.Empty;
-
+            SchoolLogo = data.SchoolLogo?.Length > 0 ? Convert.ToBase64String(data.SchoolLogo) : string.Empty;
             Currency.Currency = data.SchoolCurrencyName;
             Currency.CurrencyCode = data.CurrencyCode;
             Currency.CurrencyCountry = data.CurrencyCountry;
             Currency.CurrencySymbol = data.CurrencySymbol;
             HideStudentDashboard = data.HideStudentDashboard == 1;
 
-            // --- 4️⃣ LICENSE (FIXED RACE CONDITION) ---
-            if (UserRole == "SuperAdmin")
-            {
-                LicenseIsActive = true;
-                IsLicenseChecked = true;
-            }
-            else
-            {
-                var _ = LoadLicenseAsync();
-            }
 
-            // --- 5️⃣ Background data (safe) ---
+            // --- 4️⃣ Load License (NON-BLOCKING) ---
+            //if (UserRole == "SuperAdmin")
+            //{
+            //    LicenseIsActive = true;
+            //    IsLicenseChecked = true;
+            //}
+            //else
+            //{
+            //    // fire-and-forget (DO NOT await)
+            //    _ = LoadLicenseAsync();
+            //}
+
+            LicenseIsActive = true;
+            // --- 5️⃣ Load Non-Critical Data in parallel ---
             var tasks = new List<Task>();
 
+            // ✅ Always safe
             tasks.Add(LoadBadgesAsync());
 
+            // ❗ Only load school data if NOT SuperAdmin AND SchoolID is valid
             if (UserRole != "SuperAdmin" && !string.IsNullOrEmpty(SchoolID))
             {
                 tasks.Add(LoadAcademicLevelsAsync());
@@ -161,8 +170,7 @@ public class AppState
             return false;
         }
     }
-
-    #region License
+    #region Data Loading Helpers
     private async Task LoadLicenseAsync()
     {
         if (IsLicenseLoading) return;
@@ -184,6 +192,7 @@ public class AppState
 
                 if (completed != task)
                 {
+                    Console.WriteLine("[License] Timeout hit");
                     attempts++;
                     continue;
                 }
@@ -194,8 +203,8 @@ public class AppState
                 {
                     License = result.Data.First();
                     LicenseIsActive = License?.IsValid == 1;
-                    IsLicenseChecked = true;
 
+                    IsLicenseChecked = true;
                     NotifyStateChanged();
                     return;
                 }
@@ -204,12 +213,15 @@ public class AppState
                 await Task.Delay(500);
             }
 
+            // fallback fail-safe
             LicenseIsActive = false;
             IsLicenseChecked = true;
             NotifyStateChanged();
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"[License ERROR] {ex.Message}");
+
             LicenseIsActive = false;
             IsLicenseChecked = true;
             NotifyStateChanged();
@@ -219,9 +231,6 @@ public class AppState
             IsLicenseLoading = false;
         }
     }
-    #endregion
-
-    #region Data Loaders
     private async Task LoadBadgesAsync()
     {
         try
@@ -230,7 +239,10 @@ public class AppState
             var result = await badgeService.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
             Badges = result.IsSuccess ? result.Data.ToList() : new();
         }
-        catch { Badges = new(); }
+        catch
+        {
+            Badges = new();
+        }
     }
 
     private async Task LoadAcademicLevelsAsync()
@@ -238,68 +250,70 @@ public class AppState
         try
         {
             var academicService = _genericService.GetService<AcademicLevel>();
-            var result = await academicService.GetAllAsync(
-                $"api/Dynamic/GetSchoolAcademicStructure/{SchoolID}", true);
-
+            var result = await academicService.GetAllAsync($"api/Dynamic/GetSchoolAcademicStructure/{SchoolID}", true);
             AcademicLevels = result.IsSuccess ? result.Data.ToList() : new();
         }
-        catch { AcademicLevels = new(); }
+        catch
+        {
+            AcademicLevels = new();
+        }
     }
-
     private async Task LoadAcademicSections()
     {
         try
         {
-            if (string.IsNullOrEmpty(SchoolID)) return;
+            if (string.IsNullOrEmpty(SchoolID))
+                return; // 🚨 prevent crash
 
-            var service = _genericService.GetService<LevelSection>();
-            var result = await service.GetAllAsync(
+            var levelSectService = _genericService.GetService<LevelSection>();
+            var result = await levelSectService.GetAllAsync(
                 $"api/Dynamic/GetSchoolAcademicSections/{Guid.Parse(SchoolID)}", true);
 
             AcademicSections = result.IsSuccess ? result.Data.ToList() : new();
         }
-        catch { AcademicSections = new(); }
+        catch
+        {
+            AcademicSections = new();
+        }
     }
-
     private async Task LoadUserActivitiesAsync()
     {
         try
         {
-            var service = _genericService.GetService<UserActivity>();
-            var result = await service.GetAllAsync(
-                $"api/Dynamic/GetAllUserActivities/{UserID}", true);
-
+            var activityService = _genericService.GetService<UserActivity>();
+            var result = await activityService.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
             UserActivities = result.IsSuccess ? result.Data.ToList() : new();
         }
-        catch { UserActivities = new(); }
+        catch
+        {
+            UserActivities = new();
+        }
     }
 
     private async Task LoadAssignmentsAsync()
     {
         try
         {
-            var service = _genericService.GetService<GetStudentAssignmentsResult>();
-            var result = await service.GetAllAsync(
-                $"api/Dynamic/GetAssignment/{UserID}", true);
-
-            NewAssignmentsCount = result.IsSuccess
-                ? result.Data.Count(c => c.Overdue != 1)
-                : 0;
+            var assignmentService = _genericService.GetService<GetStudentAssignmentsResult>();
+            var result = await assignmentService.GetAllAsync($"api/Dynamic/GetAssignment/{UserID}", true);
+            NewAssignmentsCount = result.IsSuccess ? result.Data.Count(c => c.Overdue != 1) : 0;
         }
         catch
         {
             NewAssignmentsCount = 0;
         }
     }
+
     #endregion
 
     private void NotifyStateChanged() => OnChange?.Invoke();
+
+    #region Helper Getters for Pages
 
     public List<Badge> GetBadges() => Badges;
     public List<UserActivity> GetUserActivities() => UserActivities;
     public List<AcademicLevel> GetAcademicLevels() => AcademicLevels;
     public int GetNewAssignmentsCount() => NewAssignmentsCount;
-
     public void SwitchRole(string role)
     {
         if (UserRoles.Contains(role))
@@ -312,9 +326,12 @@ public class AppState
     public void SetNewAcademicStructure(List<AcademicLevel> levels)
     {
         AcademicLevels = levels.ToList();
-    }
-}
 
+    }
+    #endregion
+
+
+}
 public class SchoolCurrency
 {
     public string Currency { get; set; }

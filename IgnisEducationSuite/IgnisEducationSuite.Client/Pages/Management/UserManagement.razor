@@ -964,7 +964,9 @@
                 Password = Password,
                 UserName = UserName,
                 StudentID = studentID,
-                isFirstMail = true
+                isFirstMail = true,
+                Role = newUser.Role,
+                SchoolName = AppState.SchoolName
             };
 
             var emailResult = await _emailService.SendPasswordResetEmailAsync(emailRequest, NavigationManager.BaseUri);

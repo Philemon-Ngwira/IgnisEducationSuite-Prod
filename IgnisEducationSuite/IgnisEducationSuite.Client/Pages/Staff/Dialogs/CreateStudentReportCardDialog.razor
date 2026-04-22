@@ -237,7 +237,7 @@
 
             return new ReportCardDetail
             {
-                ReportCardDetailID = Guid.NewGuid(),
+                ReportCardDetailID = Guid.Empty, // 🔥 THIS IS THE KEY FIX,
                 ReportCardID = newReportCard.ReportCardID,
                 ClassID = cls.ClassID,
                 Class = cls,
@@ -260,41 +260,67 @@
 
         StateHasChanged();
     }
-    private async void SubmitReportCard()
+  private async void SubmitReportCard()
+{
+    LoaderService.Show("Please wait while we create the report card...");
+
+    var service = _genericService.GetService<ReportCard>();
+
+    var subjectGPAs = _visibleReportCardDetails
+        .Select(x => (double)x.GPA.GetValueOrDefault())
+        .ToList();
+
+    newReportCard.GPA = (decimal?)CalculateFinalGPA(subjectGPAs);
+
+    var savedHeader = await service.UpdateAsync(
+        "api/Dynamic/UpdateEntity",
+        "reportcard",
+        newReportCard);
+
+    if (savedHeader.IsSuccess)
     {
-        LoaderService.Show("Please wait while we create the report card...");
+        foreach (var item in _visibleReportCardDetails)
+            item.Class = null;
 
-        var service = _genericService.GetService<ReportCard>();
+        // 🔥 FIX STARTS HERE
 
-        var subjectGPAs = _visibleReportCardDetails
-            .Select(x => (double)x.GPA.GetValueOrDefault())
+        var existingItems = _visibleReportCardDetails
+            .Where(x => x.ReportCardDetailID != Guid.Empty)
             .ToList();
 
-        newReportCard.GPA = (decimal?)CalculateFinalGPA(subjectGPAs);
+        var newItems = _visibleReportCardDetails
+            .Where(x => x.ReportCardDetailID == Guid.Empty)
+            .ToList();
 
-        var savedHeader = await service.UpdateAsync(
-            "api/Dynamic/UpdateEntity",
-            "reportcard",
-            newReportCard);
+        var updateService = _genericService.GetService<ReportCardDetail>();
+        var createService = _genericService.GetService<List<ReportCardDetail>>();
 
-        if (savedHeader.IsSuccess)
+        // ✅ UPDATE existing
+        foreach (var item in existingItems)
         {
-            foreach (var item in _visibleReportCardDetails)
-                item.Class = null;
-
-            var serviceDetails = _genericService.GetService<List<ReportCardDetail>>();
-
-            var result = await serviceDetails.PostAsync(
-                "api/Dynamic/PostEntities",
+            await updateService.UpdateAsync(
+                "api/Dynamic/UpdateEntity",
                 "reportcarddetail",
-                _visibleReportCardDetails);
-
-            if (result.IsSuccess)
-                MudDialog.Close(DialogResult.Ok(true));
+                item);
         }
 
-        LoaderService.Hide();
+        // ✅ CREATE new
+        if (newItems.Any())
+        {
+            foreach (var item in newItems)
+                item.ReportCardDetailID = Guid.NewGuid();
+
+            await createService.PostAsync(
+                "api/Dynamic/PostEntities",
+                "reportcarddetail",
+                newItems);
+        }
+
+        MudDialog.Close(DialogResult.Ok(true));
     }
+
+    LoaderService.Hide();
+}
 
     public (string Grade, double? GPA, string? Comment)
         GetGradeAndCalculateGPA(ReportCardDetail detail, List<GradingScale> gradingScales)

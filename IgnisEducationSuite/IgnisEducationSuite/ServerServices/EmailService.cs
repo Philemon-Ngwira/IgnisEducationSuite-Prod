@@ -55,7 +55,7 @@ public class EmailService
         }
 
     }
-    public async Task SendPasswordResetEmailAsync(string toEmail, string recipientName, string resetPassword, string Username, string StudentID)
+    public async Task SendPasswordResetEmailAsync(string toEmail, string recipientName, string resetPassword, string Username, string StudentID, string role, string SchoolName)
     {
         var debugMode = false; // Or _env.IsDevelopment()
 
@@ -71,7 +71,7 @@ public class EmailService
         }
         else
         {
-            emailBody = GeneratePasswordFirstResetEmailBody(recipientName, resetPassword, senderName, year, Username, StudentID);
+            emailBody = GeneratePasswordFirstResetEmailBody(recipientName, resetPassword, senderName, year, Username, StudentID, role, SchoolName);
         }
 
         var emailRequest = new EmailRequest
@@ -227,15 +227,62 @@ public class EmailService
         return emailBody;
     }
 
-    public string GeneratePasswordFirstResetEmailBody(string recipientName, string resetPassword, string senderName, string year, string Username, string StudentID)
+    public string GeneratePasswordFirstResetEmailBody(
+       string recipientName,
+       string resetPassword,
+       string senderName,
+       string year,
+       string Username,
+       string StudentID,
+       string role,
+       string schoolName)
     {
-        // Define the email body template with placeholders
+        // Role-specific content
+        string roleSpecificContent = "";
+
+        switch (role?.ToLower())
+        {
+            case "teacher":
+                roleSpecificContent = @"
+                <p>You can access the Ignis Education Suite using the staff portal:</p>
+                <p><a href='https://ignisedusuite.com/'>Open Teacher Portal</a></p>";
+                break;
+
+            case "parent":
+                roleSpecificContent = @"
+                <p>To get started, click the button below to access the parent portal:</p>
+                <p style='text-align:center;'>
+                    <a href='https://ignisedusuite.com/' 
+                       style='background-color:#4CAF50;color:white;padding:12px 20px;
+                              text-decoration:none;border-radius:5px;display:inline-block;'>
+                       Open Parent Portal
+                    </a>
+                </p>";
+                break;
+
+            case "student":
+                roleSpecificContent = @"
+                <p>You can login using the student portal below:</p>
+                <p><a href='https://ignisedusuite.com/'>Open Student Portal</a></p>";
+                break;
+
+            default:
+                roleSpecificContent = "";
+                break;
+        }
+
+        // Conditionally add Student ID
+        string studentIDMessage = !string.IsNullOrEmpty(StudentID) && StudentID != "N/A"
+            ? $"<p>Your Student ID is: <strong>{StudentID}</strong></p>"
+            : "";
+
+        // Email Template
         string emailBody = @"
 <!DOCTYPE html>
-<html lang=""en"">
+<html lang='en'>
 <head>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>Password Reset</title>
     <style>
         body {
@@ -252,7 +299,7 @@ public class EmailService
         }
         .email-header {
             padding: 20px;
-            background-color: #29104A; /* Customize the header background */
+            background-color: #29104A;
             color: white;
             text-align: center;
         }
@@ -260,27 +307,8 @@ public class EmailService
             width: 150px;
             margin-bottom: 20px;
         }
-        .email-header h1 {
-            font-size: 24px;
-            font-weight: bold;
-        }
         .email-body {
             padding: 20px;
-            background-color: #ffffff;
-        }
-        .email-body p {
-            font-size: 16px;
-            line-height: 1.5;
-            color: #333;
-        }
-        .email-body a {
-            color: #4CAF50;
-            font-weight: bold;
-            text-decoration: none;
-        }
-        .email-body ul {
-            list-style-type: disc;
-            margin-left: 20px;
         }
         .email-footer {
             padding: 20px;
@@ -292,56 +320,64 @@ public class EmailService
     </style>
 </head>
 <body>
-    <div class=""email-container"">
-        <div class=""email-header"">
-           <img src=""https://drive.google.com/uc?export=view&id=1gCnSyOyB5VkqRInm54aiXnsJHlIHgEJd"" alt=""Logo"">
+    <div class='email-container'>
+        <div class='email-header'>
+            <img src='https://drive.google.com/uc?export=view&id=1gCnSyOyB5VkqRInm54aiXnsJHlIHgEJd' alt='Logo'>
             <h1>Password Reset Confirmation</h1>
         </div>
-        <div class=""email-body"">
+
+        <div class='email-body'>
             <p>Hi {recipientName},</p>
+
             <p>Welcome to Ignis Education Suite</p>
-            <p>Your UserName is: <strong>{Username}</strong>,</p>
+
+            <div style='background-color:#f4f4f4;padding:10px;border-left:4px solid #29104A;margin-bottom:15px;'>
+                <p style='margin:0;font-size:14px;'>
+                    <strong>School:</strong> {SchoolName}
+                </p>
+            </div>
+
+            <p>Your Username is: <strong>{Username}</strong></p>
             {StudentIDPlaceholder}
-            <p>Your Ignis Education Suite password has been reset successfully. Your One-Time Password (OTP) is: <strong>{resetPassword}</strong></p>
-            <p>You can use this password to login and create a new password. Please note the following guidelines when creating your new password:</p>
+
+            <p>Your One-Time Password (OTP) is: <strong>{resetPassword}</strong></p>
+
+            {RoleSpecificContent}
+
+            <p>You will be prompted to create a new password after logging in. Please ensure your new password:</p>
             <ul>
-                <li>Must be at least 8 characters long</li>
-                <li>Contain at least one uppercase letter</li>
-                <li>Contain at least one number</li>
-                <li>Contain at least one special character (e.g., !@#$%^&*)</li>
+                <li>Is at least 8 characters long</li>
+                <li>Contains at least one uppercase letter</li>
+                <li>Contains at least one number</li>
+                <li>Contains at least one special character (e.g., !@#$%^&*)</li>
             </ul>
-            <p>Once you have logged in with your OTP, you will be prompted to set your new password.</p>
+
             <p>If you did not request this reset, please contact support immediately.</p>
 
-            <p>Welcome to the Ignis Education Suite family! We're excited to have you on board. Our system is designed to make teaching, learning, and managing education simpler and more enjoyable. Dive in, explore the features, and let us help you ignite the spark of learning in your institution. If you need assistance, our team is always here to support you!</p>
+            <p>We’re excited to have you on board. Explore the platform and let us help you simplify your educational experience.</p>
 
-            <p>Best regards,</p>
-            <p>{senderName} Team</p>
+            <p>Best regards,<br>{senderName} Team</p>
         </div>
-        <div class=""email-footer"">
+
+        <div class='email-footer'>
             <p>&copy; {year} {senderName}. All rights reserved.</p>
         </div>
     </div>
 </body>
 </html>";
 
-        // Conditionally add Student ID information
-        string studentIDMessage = !string.IsNullOrEmpty(StudentID) && StudentID != "N/A"
-    ? $"<p>Your Student ID is: <strong>{StudentID}</strong></p>"
-    : "";
-
-
-        // Replace placeholders with actual values
+        // Replace placeholders
         emailBody = emailBody.Replace("{recipientName}", recipientName)
                              .Replace("{resetPassword}", resetPassword)
                              .Replace("{senderName}", senderName)
                              .Replace("{year}", year)
                              .Replace("{Username}", Username)
-                             .Replace("{StudentIDPlaceholder}", studentIDMessage);
+                             .Replace("{StudentIDPlaceholder}", studentIDMessage)
+                             .Replace("{RoleSpecificContent}", roleSpecificContent)
+                             .Replace("{SchoolName}", schoolName);
 
         return emailBody;
     }
-
     #endregion
 }
 

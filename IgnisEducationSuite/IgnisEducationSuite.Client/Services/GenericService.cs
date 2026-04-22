@@ -19,7 +19,6 @@ namespace IgnisEducationSuite.Client.Services
         public async Task<ServiceResult<IEnumerable<T>>> GetAllAsync(string endpoint, bool recall, CancellationToken cancellationToken = default)
         {
             string cacheKey = $"{typeof(T).Name}_all";
-
             if (_cache.TryGetValue(cacheKey, out IEnumerable<T> cachedItems) & !recall)
             {
                 return ServiceResult<IEnumerable<T>>.Success(cachedItems);
@@ -29,6 +28,7 @@ namespace IgnisEducationSuite.Client.Services
             response.EnsureSuccessStatusCode();
 
             var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+            
             try
             {
                 var result = JsonSerializer.Deserialize<IEnumerable<T>>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
