@@ -1,15 +1,8 @@
-﻿using DocumentFormat.OpenXml.Office2010.Excel;
-using EduSphereDomain.FinanceData;
+﻿using EduSphereDomain.FinanceData;
 using EDUSphereSharedProject.FinanceModels;
 using EDUSphereSharedProject.FinanceModels.DTOs;
-using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.UniversalModels;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EduSphereDomain.Repositories
 {
@@ -25,8 +18,17 @@ namespace EduSphereDomain.Repositories
 
         public async Task<IEnumerable<InvoiceType>> GetInvoiceTypes()
         {
-            var result = await _context.InvoiceTypes.ToListAsync();
-            return result;
+            try
+            {
+                var result = await _context.InvoiceTypes.ToListAsync();
+                return result;
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+          
         }
         public async Task<string> GenerateInvoiceNumberAsync(string SchoolName, string invoiceType, Guid SchoolId)
         {
@@ -94,25 +96,32 @@ namespace EduSphereDomain.Repositories
        BulkInvoiceRequest request,
        Guid schoolId)
         {
-            if (request.Amount <= 0)
-                return (false, "Amount must be greater than zero.", 0);
-
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                // 🔒 Duplicate Protection
+                // 🔥 1. Load Fee Structure
+                var structure = await _context.FeeStructures
+                    .Include(x => x.FeeStructureItems)
+                    .FirstOrDefaultAsync(x => x.Id == request.FeeStructureId);
+
+                if (structure == null)
+                    return (false, "Fee structure not found.", 0);
+
+                // 🔒 2. Duplicate Protection (Invoice level)
                 bool alreadyGenerated = await _context.Invoices.AnyAsync(i =>
                     i.SchoolID == schoolId &&
-                    i.InvoiceTypeID == request.InvoiceTypeId &&
                     i.TermStartDate == request.TermStartDate &&
-                    i.TermEndDate == request.TermEndDate);
+                    i.TermEndDate == request.TermEndDate &&
+                    i.FeeStructureId == request.FeeStructureId);
 
                 if (alreadyGenerated)
-                    return (false, "Invoices for this term and type already exist.", 0);
+                    return (false, "Invoices for this structure and term already exist.", 0);
 
+                // 🔥 3. Students
                 var studentFinances = await _context.StudentFinances
                     .Where(sf => sf.SchoolID == schoolId && sf.Status == "Active")
+                    .Include(sf => sf.Student)
                     .ToListAsync();
 
                 if (!studentFinances.Any())
@@ -120,49 +129,101 @@ namespace EduSphereDomain.Repositories
 
                 var now = DateTime.UtcNow;
 
+                // 🔥 4. Preload lookup
+                var invoiceTypeLookup = await _context.InvoiceTypes
+                    .ToDictionaryAsync(x => x.Id, x => x.Name);
+
+                // 🔥 5. PRELOAD existing ledger keys (IMPORTANT FIX)
+                var existingLedgerKeys = await _context.FinanceLedgers
+                    .Where(x => x.SchoolId == schoolId)
+                    .Select(x => x.UniqueKey)
+                    .ToListAsync();
+
                 var invoices = new List<Invoice>();
                 var ledgerEntries = new List<FinanceLedger>();
 
                 foreach (var finance in studentFinances)
                 {
-                    var invoiceId = Guid.NewGuid();
-                    var invoiceNumber = await GenerateInvoiceNumberAsync(request.SchoolName, request.InvoiceType, schoolId);
-                    var invoice = new Invoice
+                    var student = finance.Student;
+
+                    var studentType =
+                        student.isDaySchool == true
+                            ? StudentType.DayScholars
+                            : StudentType.Boarders;
+
+                    foreach (var item in structure.FeeStructureItems)
                     {
-                        Id = invoiceId,
-                        SchoolID = schoolId,
-                        StudentFinanceId = finance.Id,
-                        InvoiceTypeID = request.InvoiceTypeId,
-                        Amount = request.Amount,
-                        PaidAmount = 0,
-                        PaymentStatus = "Pending",
-                        TermStartDate = request.TermStartDate,
-                        TermEndDate = request.TermEndDate,
-                        DueDate = request.DueDate,
-                        IssuedDate = now,
-                        CreatedAt = now,
-                        UpdatedAt = now,
-                        InvoiceNumber = invoiceNumber,
-                        InvoiceType = request.InvoiceType
-                    };
+                        // 🔥 Target type filter
+                        var target = (StudentType)item.TargetType;
 
-                    invoices.Add(invoice);
+                        if (target != StudentType.All && target != studentType)
+                            continue;
 
-                    ledgerEntries.Add(new FinanceLedger
-                    {
-                        Id = Guid.NewGuid(),
-                        SchoolId = schoolId,
-                        StudentFinanceId = finance.Id,
-                        EntryType = "Debit",
-                        Amount = request.Amount,
-                        ReferenceId = invoiceId,
-                        ReferenceType = "Invoice",
-                        CreatedAt = now
-                    });
+                        var invoiceId = Guid.NewGuid();
 
-                    // Maintain running totals (optional but efficient)
-                    finance.TotalFees += request.Amount;
+                        var invoiceNumber = await GenerateInvoiceNumberAsync(
+                            request.SchoolName,
+                            "STRUCT",
+                            schoolId);
+
+                        invoices.Add(new Invoice
+                        {
+                            Id = invoiceId,
+                            SchoolID = schoolId,
+                            StudentFinanceId = finance.Id,
+
+                            InvoiceTypeID = item.InvoiceTypeId,
+                            InvoiceType = invoiceTypeLookup.TryGetValue(item.InvoiceTypeId, out var name)
+                                ? name
+                                : "Unknown",
+
+                            Amount = item.Amount,
+                            PaidAmount = 0,
+                            PaymentStatus = "Pending",
+
+                            TermStartDate = request.TermStartDate,
+                            TermEndDate = request.TermEndDate,
+                            DueDate = request.DueDate,
+
+                            IssuedDate = now,
+                            CreatedAt = now,
+                            UpdatedAt = now,
+
+                            InvoiceNumber = invoiceNumber,
+
+                            IsOptional = item.IsOptional,
+                            FeeStructureId = structure.Id
+                        });
+
+                        // 🔥 UNIQUE LEDGER KEY (CRITICAL FIX)
+                        var uniqueKey = $"{finance.Id}-{item.Id}-{request.TermStartDate:yyyyMMdd}-{request.TermEndDate:yyyyMMdd}-DEBIT";
+                        var lastSeq = await _context.FinanceLedgers.MaxAsync(x => (long?)x.SequenceNumber) ?? 0;
+                        if (!existingLedgerKeys.Contains(uniqueKey))
+                        {
+                            ledgerEntries.Add(new FinanceLedger
+                            {
+
+                                Id = Guid.NewGuid(),
+                                SchoolId = schoolId,
+                                StudentFinanceId = finance.Id,
+                                EntryType = "Debit",
+                                Amount = item.Amount,
+                                ReferenceId = invoiceId,
+                                ReferenceType = "Invoice",
+                                CreatedAt = now,
+
+                                UniqueKey = uniqueKey
+                            });
+
+                            existingLedgerKeys.Add(uniqueKey);
+
+                            finance.TotalFees += item.Amount;
+                        }
+                    }
                 }
+
+                if (!invoices.Any())
+                    return (false, "No invoices generated. Check fee structure rules.", 0);
 
                 await _context.Invoices.AddRangeAsync(invoices);
                 await _context.FinanceLedgers.AddRangeAsync(ledgerEntries);
@@ -315,6 +376,8 @@ namespace EduSphereDomain.Repositories
                 ReferenceId = x.ReferenceId,
                 ReferenceType = x.ReferenceType,
                 RunningBalance = x.RunningBalance,
+                LedgerSequence = x.LedgerSequence,
+                 
             }).ToList();
         }
 

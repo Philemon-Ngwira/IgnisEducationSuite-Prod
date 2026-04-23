@@ -13,6 +13,8 @@ namespace EDUSphereSharedProject.UniversalModels
         public DateTime DueDate { get; set; }
 
         public Guid InvoiceTypeId { get; set; }
+
+        public Guid FeeStructureId { get; set; }
         public string InvoiceType { get; set; } = "";
         public decimal Amount {get; set;  }
         public Guid SchoolID { get; set; }

@@ -27,5 +27,11 @@ public partial class FinanceLedger
 
     public Guid? CreatedBy { get; set; }
 
+    public string UniqueKey { get; set; }
+
+    public long SequenceNumber { get; set; }
+
+    public long LedgerSequence { get; set; }
+
     public virtual StudentFinance StudentFinance { get; set; }
 }

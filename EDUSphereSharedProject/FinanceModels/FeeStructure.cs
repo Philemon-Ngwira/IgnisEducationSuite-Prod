@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace EDUSphereSharedProject.FinanceModels;
 
@@ -27,6 +26,6 @@ public partial class FeeStructure
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
-  
+
     public virtual ICollection<FeeStructureItem> FeeStructureItems { get; set; } = new List<FeeStructureItem>();
 }

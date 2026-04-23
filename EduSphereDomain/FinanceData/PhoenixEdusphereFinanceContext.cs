@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using EduSphereDomain.Models;
+using EDUSphereSharedProject.FinanceModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace EduSphereDomain.FinanceData;
@@ -13,6 +14,16 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
         : base(options)
     {
     }
+
+    public virtual DbSet<BestAssignmentPerformer> BestAssignmentPerformers { get; set; }
+
+    public virtual DbSet<BestAttendancePerformer> BestAttendancePerformers { get; set; }
+
+    public virtual DbSet<BestBadgePerformer> BestBadgePerformers { get; set; }
+
+    public virtual DbSet<BestExamPerformer> BestExamPerformers { get; set; }
+
+    public virtual DbSet<BestLessonPerformer> BestLessonPerformers { get; set; }
 
     public virtual DbSet<FeeStructure> FeeStructures { get; set; }
 
@@ -26,10 +37,93 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
     public virtual DbSet<Payment> Payments { get; set; }
 
+    public virtual DbSet<RoomsWithOccupancy> RoomsWithOccupancies { get; set; }
+
+    public virtual DbSet<Student> Students { get; set; }
+
     public virtual DbSet<StudentFinance> StudentFinances { get; set; }
+
+    public virtual DbSet<vw_AllLesson> vw_AllLessons { get; set; }
+
+    public virtual DbSet<vw_ClassLessonSummary> vw_ClassLessonSummaries { get; set; }
+
+    public virtual DbSet<vw_ClassTeacherDetail> vw_ClassTeacherDetails { get; set; }
+
+    public virtual DbSet<vw_ClassTimetable> vw_ClassTimetables { get; set; }
+
+    public virtual DbSet<vw_ClinicDashboard_ActiveVisit> vw_ClinicDashboard_ActiveVisits { get; set; }
+
+    public virtual DbSet<vw_ClinicDashboard_Metric> vw_ClinicDashboard_Metrics { get; set; }
+
+    public virtual DbSet<vw_CompletedLessonsPerStudent> vw_CompletedLessonsPerStudents { get; set; }
+
+    public virtual DbSet<vw_HighRatedLesson> vw_HighRatedLessons { get; set; }
+
+    public virtual DbSet<vw_LowRatedClassSummary> vw_LowRatedClassSummaries { get; set; }
+
+    public virtual DbSet<vw_PerformantTeacherSubject> vw_PerformantTeacherSubjects { get; set; }
+
+    public virtual DbSet<vw_StudentAttendanceSummary> vw_StudentAttendanceSummaries { get; set; }
+
+    public virtual DbSet<vw_StudentClassSchedule> vw_StudentClassSchedules { get; set; }
+
+    public virtual DbSet<vw_StudentGrowth> vw_StudentGrowths { get; set; }
+
+    public virtual DbSet<vw_StudentLessonCompletion> vw_StudentLessonCompletions { get; set; }
+
+    public virtual DbSet<vw_StudentPerformance> vw_StudentPerformances { get; set; }
+
+    public virtual DbSet<vw_TopPerformingTeacher> vw_TopPerformingTeachers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<BestAssignmentPerformer>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("BestAssignmentPerformers");
+
+            entity.Property(e => e.AvgAssignmentGrade).HasColumnType("decimal(38, 6)");
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<BestAttendancePerformer>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("BestAttendancePerformers");
+
+            entity.Property(e => e.AttendancePercentage).HasColumnType("numeric(26, 12)");
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<BestBadgePerformer>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("BestBadgePerformers");
+        });
+
+        modelBuilder.Entity<BestExamPerformer>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("BestExamPerformers");
+
+            entity.Property(e => e.AvgExamGrade).HasColumnType("decimal(38, 6)");
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<BestLessonPerformer>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("BestLessonPerformers");
+        });
+
         modelBuilder.Entity<FeeStructure>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC078330F055");
@@ -89,10 +183,12 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .IsRequired()
                 .HasMaxLength(10)
                 .IsUnicode(false);
+            entity.Property(e => e.LedgerSequence).ValueGeneratedOnAdd();
             entity.Property(e => e.ReferenceType)
                 .IsRequired()
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.UniqueKey).HasMaxLength(100);
 
             entity.HasOne(d => d.StudentFinance).WithMany(p => p.FinanceLedgers)
                 .HasForeignKey(d => d.StudentFinanceId)
@@ -181,6 +277,50 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .HasConstraintName("FK_Payment_Invoice");
         });
 
+        modelBuilder.Entity<RoomsWithOccupancy>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("RoomsWithOccupancy", "SchoolOps");
+
+            entity.Property(e => e.RoomNumber)
+                .IsRequired()
+                .HasMaxLength(20);
+            entity.Property(e => e.RoomType).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<Student>(entity =>
+        {
+            entity.HasKey(e => e.StudentID).HasName("PK__Students__32C52A7994DE34D7");
+
+            entity.ToTable(tb => tb.HasTrigger("trg_CreateStudentFinanceOnStudentInsert"));
+
+            entity.HasIndex(e => new { e.SchoolID, e.LevelName, e.PaymentStatus, e.isDaySchool }, "IX_Students_LevelName");
+
+            entity.HasIndex(e => new { e.ParentID, e.PaymentStatus }, "IX_Students_ParentID_PaymentStatus");
+
+            entity.HasIndex(e => e.StudentID, "IX_Students_StudentID");
+
+            entity.Property(e => e.StudentID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Address).IsUnicode(false);
+            entity.Property(e => e.City)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Country)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.DateOnBoarded).HasColumnType("datetime");
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.Gender).HasMaxLength(10);
+            entity.Property(e => e.GradeSection).HasMaxLength(50);
+            entity.Property(e => e.GroupName).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
+            entity.Property(e => e.LevelName).HasMaxLength(50);
+            entity.Property(e => e.StudentNumber)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+        });
+
         modelBuilder.Entity<StudentFinance>(entity =>
         {
             entity.ToTable("StudentFinance", "Finance");
@@ -196,6 +336,220 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .HasMaxLength(50)
                 .HasDefaultValueSql("('Active')");
             entity.Property(e => e.TotalFees).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.Student).WithOne(p => p.StudentFinance)
+                .HasForeignKey<StudentFinance>(d => d.StudentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StudentFinance_Students");
+        });
+
+        modelBuilder.Entity<vw_AllLesson>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_AllLessons");
+
+            entity.Property(e => e.DatePosted).HasColumnType("date");
+            entity.Property(e => e.Title).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<vw_ClassLessonSummary>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_ClassLessonSummary");
+
+            entity.Property(e => e.ClassName).HasMaxLength(50);
+            entity.Property(e => e.Gender)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.TeacherName).HasMaxLength(101);
+        });
+
+        modelBuilder.Entity<vw_ClassTeacherDetail>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_ClassTeacherDetails");
+
+            entity.Property(e => e.ClassName).HasMaxLength(50);
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.Gender)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.GradeSection).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<vw_ClassTimetable>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_ClassTimetable");
+
+            entity.Property(e => e.ActivityName).HasMaxLength(100);
+            entity.Property(e => e.ClassName).HasMaxLength(50);
+            entity.Property(e => e.DayName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.EndDate).HasColumnType("datetime");
+            entity.Property(e => e.EntryType)
+                .IsRequired()
+                .HasMaxLength(8)
+                .IsUnicode(false);
+            entity.Property(e => e.SlotType).HasMaxLength(50);
+            entity.Property(e => e.StartDate).HasColumnType("datetime");
+            entity.Property(e => e.TeacherFirstName).HasMaxLength(50);
+            entity.Property(e => e.TeacherLastName).HasMaxLength(50);
+            entity.Property(e => e.TimeSlotDescription)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<vw_ClinicDashboard_ActiveVisit>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_ClinicDashboard_ActiveVisits", "SchoolOps");
+
+            entity.Property(e => e.BatchNumber).HasMaxLength(255);
+            entity.Property(e => e.Diagnosis).HasMaxLength(255);
+            entity.Property(e => e.MedicationExpiryDate).HasColumnType("datetime");
+            entity.Property(e => e.MedicationName).HasMaxLength(100);
+            entity.Property(e => e.MedicationUnit).HasMaxLength(20);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.ReturnToClassDate).HasColumnType("datetime");
+            entity.Property(e => e.Symptoms)
+                .IsRequired()
+                .HasMaxLength(255);
+            entity.Property(e => e.Treatment).HasMaxLength(255);
+            entity.Property(e => e.VisitDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<vw_ClinicDashboard_Metric>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_ClinicDashboard_Metrics", "SchoolOps");
+        });
+
+        modelBuilder.Entity<vw_CompletedLessonsPerStudent>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_CompletedLessonsPerStudent");
+
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
+            entity.Property(e => e.StudentNumber)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<vw_HighRatedLesson>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_HighRatedLessons");
+
+            entity.Property(e => e.DatePosted).HasColumnType("date");
+            entity.Property(e => e.Title).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<vw_LowRatedClassSummary>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_LowRatedClassSummary");
+
+            entity.Property(e => e.ClassName).HasMaxLength(50);
+            entity.Property(e => e.TeacherName).HasMaxLength(101);
+        });
+
+        modelBuilder.Entity<vw_PerformantTeacherSubject>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_PerformantTeacherSubject");
+
+            entity.Property(e => e.SubjectName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.TeacherName).HasMaxLength(101);
+        });
+
+        modelBuilder.Entity<vw_StudentAttendanceSummary>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_StudentAttendanceSummary");
+
+            entity.Property(e => e.DayName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.GPA).HasColumnType("decimal(4, 2)");
+            entity.Property(e => e.IssuedDate).HasColumnType("date");
+            entity.Property(e => e.LastName).HasMaxLength(50);
+            entity.Property(e => e.Term).HasMaxLength(20);
+            entity.Property(e => e.TermEndDate).HasColumnType("datetime");
+            entity.Property(e => e.TermStartDate).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<vw_StudentClassSchedule>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_StudentClassSchedule");
+
+            entity.Property(e => e.ClassName).HasMaxLength(50);
+            entity.Property(e => e.DayName)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Description)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<vw_StudentGrowth>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_StudentGrowth");
+
+            entity.Property(e => e.PercentageIncreaseInStudents).HasColumnType("numeric(26, 12)");
+        });
+
+        modelBuilder.Entity<vw_StudentLessonCompletion>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_StudentLessonCompletion");
+
+            entity.Property(e => e.AvgCompletionPercentageAllTime).HasColumnType("numeric(26, 12)");
+            entity.Property(e => e.AvgCompletionPercentageCurrentMonth).HasColumnType("numeric(26, 12)");
+        });
+
+        modelBuilder.Entity<vw_StudentPerformance>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_StudentPerformance");
+
+            entity.Property(e => e.AverageMonthlyScore).HasColumnType("numeric(38, 6)");
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
+            entity.Property(e => e.PreviousAverage).HasColumnType("numeric(38, 6)");
+        });
+
+        modelBuilder.Entity<vw_TopPerformingTeacher>(entity =>
+        {
+            entity
+                .HasNoKey()
+                .ToView("vw_TopPerformingTeachers");
+
+            entity.Property(e => e.FirstName).HasMaxLength(50);
+            entity.Property(e => e.LastName).HasMaxLength(50);
         });
 
         OnModelCreatingGeneratedProcedures(modelBuilder);

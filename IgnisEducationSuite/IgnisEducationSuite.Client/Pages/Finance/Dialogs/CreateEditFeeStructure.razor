@@ -1,4 +1,5 @@
 ﻿@using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.FinanceModels.DTOs
 @using EDUSphereSharedProject.Models
 @inherits AppBaseComponent
 
@@ -51,7 +52,16 @@
                             }
                         </MudSelect>
                     </MudItem>
-
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="StudentType"
+                                   Label="Applies To"
+                                   @bind-Value="newItem.AppliesTo">
+                            @foreach (var type in Enum.GetValues<StudentType>())
+                            {
+                                <MudSelectItem Value="@type">@type</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
                     <MudItem xs="12" md="4">
                         <MudCheckBox @bind-Value="newItem.IsOptional" Label="Optional" />
                     </MudItem>
@@ -198,7 +208,7 @@
             Amount = newItem.Amount,
             IsOptional = newItem.IsOptional
         };
-
+        item.TargetType = (int)newItem.AppliesTo;
         _model.FeeStructureItems.Add(item);
         newItem = new FeeStructureItem();
         selectedType = null;

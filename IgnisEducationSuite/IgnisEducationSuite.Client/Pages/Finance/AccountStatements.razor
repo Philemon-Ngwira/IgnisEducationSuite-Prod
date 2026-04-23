@@ -1,6 +1,5 @@
 ﻿@using EDUSphereSharedProject.FinanceModels
 @using EDUSphereSharedProject.FinanceModels.DTOs
-@using EDUSphereSharedProject.Models
 @inherits AppBaseComponent
 
 
@@ -244,11 +243,11 @@
             var Data = await ledgerResult.Content.ReadFromJsonAsync<List<StudentFinanceLedgerDTO>>();
             if (Data is not null && Data.Any())
             {
-                // Order descending for UI display (newest first)
-                ledgerEntries = Data.OrderByDescending(e => e.CreatedAt).ToList();
+                ledgerEntries = Data
+    .OrderBy(e => e.LedgerSequence)
+    .ToList();
 
-                // Running balance should come from the **most recent entry**
-                _runningBalance = (decimal)ledgerEntries.First().RunningBalance;
+                _runningBalance = (decimal)ledgerEntries.Last().RunningBalance;
             }
             else
             {

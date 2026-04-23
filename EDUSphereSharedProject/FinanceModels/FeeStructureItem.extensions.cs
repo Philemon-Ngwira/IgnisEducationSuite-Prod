@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EDUSphereSharedProject.FinanceModels.DTOs;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -7,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace EDUSphereSharedProject.FinanceModels
 {
-    public partial class FinanceLedger
+    public partial class FeeStructureItem
     {
         [NotMapped]
-        public decimal RunningBalance { get; set; } = 0;
+        public StudentType AppliesTo { get; set; }
     }
 }

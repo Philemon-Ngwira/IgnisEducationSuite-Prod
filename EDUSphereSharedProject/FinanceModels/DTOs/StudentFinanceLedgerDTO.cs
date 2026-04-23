@@ -18,6 +18,8 @@ namespace EDUSphereSharedProject.FinanceModels.DTOs
         public string ReferenceType { get; set; }
         public Guid? ReferenceId { get; set; }
         public string InvoiceNumber { get; set; }
+        public long LedgerSequence {  get; set; }
+
         [Column(TypeName = "decimal(38,2)")]
         public decimal? RunningBalance { get; set; }
     }

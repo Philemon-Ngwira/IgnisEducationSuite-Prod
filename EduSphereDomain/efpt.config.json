@@ -15,6 +15,10 @@
    "SelectedToBeGenerated": 1,
    "Tables": [
       {
+         "Name": "[dbo].[Students]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[Finance].[FeeStructure]",
          "ObjectType": 0
       },
@@ -41,6 +45,94 @@
       {
          "Name": "[Finance].[StudentFinance]",
          "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[BestAssignmentPerformers]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[BestAttendancePerformers]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[BestBadgePerformers]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[BestExamPerformers]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[BestLessonPerformers]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_AllLessons]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ClassLessonSummary]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ClassTeacherDetails]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_ClassTimetable]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_CompletedLessonsPerStudent]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_HighRatedLessons]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_LowRatedClassSummary]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_PerformantTeacherSubject]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_StudentAttendanceSummary]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_StudentClassSchedule]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_StudentGrowth]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_StudentLessonCompletion]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_StudentPerformance]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[dbo].[vw_TopPerformingTeachers]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[SchoolOps].[RoomsWithOccupancy]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[SchoolOps].[vw_ClinicDashboard_ActiveVisits]",
+         "ObjectType": 3
+      },
+      {
+         "Name": "[SchoolOps].[vw_ClinicDashboard_Metrics]",
+         "ObjectType": 3
       },
       {
          "Name": "[dbo].[CheckStudentNumberExists]",

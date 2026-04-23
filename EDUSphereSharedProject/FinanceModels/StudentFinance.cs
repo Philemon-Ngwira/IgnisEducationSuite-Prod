@@ -28,4 +28,6 @@ public partial class StudentFinance
     public virtual ICollection<FinanceLedger> FinanceLedgers { get; set; } = new List<FinanceLedger>();
 
     public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+
+    public virtual Student Student { get; set; }
 }
