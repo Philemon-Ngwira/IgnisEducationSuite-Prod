@@ -66,5 +66,12 @@ namespace IgnisEducationSuite.Controllers
             var result = await _finananceRepository.GetFeeStructureItems(StructureID);
             return Ok(result);
         }
+
+        [HttpGet("GetStudentsByParent/{ParentID}")]
+        public async Task<IActionResult> GetStudentsByParent(Guid ParentID)
+        {
+            var result = await _finananceRepository.GetStudentsByParent(ParentID);
+            return Ok(result);
+        }
     }
 }

@@ -94,38 +94,43 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         {
             AppState.OnChange -= StateHasChanged;
         }
+        private async Task WaitForAppStateAsync()
+        {
+            int attempts = 0;
 
+            while (!AppState.IsCoreInitialized && attempts < 50)
+            {
+                await Task.Delay(100); // 100ms × 50 = 5 seconds max
+                attempts++;
+            }
+        }
         protected override async Task OnInitializedAsync()
         {
             LoaderService.Show("Initializing Dashboard please wait....");
 
             try
             {
-                // ----------------------------------------------------------
-                // 1. Authenticate User
-                // ----------------------------------------------------------
+
+                // Auth first
                 var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
                 var user = authState.User;
 
                 if (!(user.Identity?.IsAuthenticated ?? false))
                 {
-                    _navigationManager.NavigateTo(
-                        $"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}",
-                        forceLoad: true
-                    );
+                    NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+
                     return;
                 }
 
-                // ----------------------------------------------------------
-                // 2. Extract User ID
-                // ----------------------------------------------------------
-                var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
+                // Wait safely
+                await WaitForAppStateAsync();
+
+                if (!AppState.IsCoreInitialized)
                 {
-                    _navigationManager.NavigateTo("Account/Login");
+                    Console.WriteLine("AppState failed to initialize.");
                     return;
                 }
-
+                
                 // ----------------------------------------------------------
                 // 4. Handle First Login (non-admins only, after initialize)
                 // ----------------------------------------------------------
@@ -191,6 +196,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 // ----------------------------------------------------------
                 AppState.OnChange -= StateHasChanged; // avoid double subscription
                 AppState.OnChange += StateHasChanged;
+
             }
             catch (Exception ex)
             {

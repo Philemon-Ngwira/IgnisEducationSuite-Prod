@@ -28,7 +28,7 @@ namespace EduSphereDomain.Repositories
                 var _ = ex.Message;
                 throw;
             }
-          
+
         }
         public async Task<string> GenerateInvoiceNumberAsync(string SchoolName, string invoiceType, Guid SchoolId)
         {
@@ -377,7 +377,7 @@ namespace EduSphereDomain.Repositories
                 ReferenceType = x.ReferenceType,
                 RunningBalance = x.RunningBalance,
                 LedgerSequence = x.LedgerSequence,
-                 
+
             }).ToList();
         }
 
@@ -495,6 +495,12 @@ namespace EduSphereDomain.Repositories
                 InvoiceTypeId = x.InvoiceTypeId,
                 IsOptional = x.IsOptional,
             }).ToList();
+        }
+
+        public async Task<IEnumerable<Student>> GetStudentsByParent(Guid ParentID)
+        {
+            var result = await _context.Students.Where(x => x.ParentID == ParentID).ToListAsync();
+            return result;
         }
     }
 }

@@ -1,0 +1,23 @@
+﻿<div class="ignis-loader-container">
+    <div class="ignis-loader-card">
+
+        <div class="logo-bounce">
+            <img src="images/logo.png" class="ignis-logo" />
+        </div>
+
+        <MudText Typo="Typo.h6" Class="mt-4">
+            @Message
+        </MudText>
+
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @SubMessage
+        </MudText>
+
+        <MudProgressLinear Indeterminate="true" Class="mt-4" />
+
+    </div>
+</div>
+@code {
+    [Parameter] public string Message { get; set; } = "Preparing your dashboard...";
+    [Parameter] public string SubMessage { get; set; } = "Loading your data securely...";
+}

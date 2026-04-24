@@ -2,8 +2,20 @@
 {
     <div id="loader-overlay">
         <div class="loader-container">
+
+            <div class="loader-logo">
+                @if (!string.IsNullOrEmpty(AppState.SchoolLogo))
+                {
+                    <img src="@($"data:image/jpeg;base64,{AppState.SchoolLogo}")" alt="School Logo" />
+                }
+                else
+                {
+                    <img src="images/ignis-logo.png" alt="Ignis Logo" />
+                }
+            </div>
+
             <div class="spinner"></div>
-            <div class="loader-icon">🔄</div>
+
             <p class="loading-text">@_loadingText</p>
         </div>
     </div>
@@ -11,6 +23,7 @@
 
 @code {
     [Inject] private LoaderService LoaderService { get; set; } = default!;
+    [Inject] private AppState AppState { get; set; } = default!;
 
     private bool _isVisible = false;
     private string _loadingText = "Loading, please wait...";

@@ -3,8 +3,6 @@ using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.Client.Services;
-using Microsoft.AspNetCore.Components;
-using System.Linq;
 
 public class AppState
 {
@@ -13,6 +11,9 @@ public class AppState
     private readonly GenericServiceFactory _genericService;
 
     // --- User & School Info ---
+    public bool IsCoreInitialized { get; set; } = false;
+    public bool IsDeferredLoaded { get; private set; } = false;
+    public bool IsInitializing { get; private set; } = false;
     public string UserID { get; private set; } = string.Empty;
     public string UserRole { get; set; } = "Guest";
     public string SchoolID { get; private set; } = string.Empty;
@@ -37,7 +38,7 @@ public class AppState
     public int NewAssignmentsCount { get; private set; }
 
     // --- Initialization State ---
-    public bool IsFullyInitialized { get; private set; } = false;
+    public bool IsFullyInitialized { get;  set; } = false;
 
     public event Action OnChange;
 
@@ -53,6 +54,36 @@ public class AppState
     /// <summary>
     /// Fully initializes AppState: essential + non-critical data.
     /// </summary>
+    /// 
+
+    public async Task<bool> EnsureInitializedAsync(string userName, bool isAuthenticated)
+    {
+        if (!isAuthenticated || string.IsNullOrEmpty(userName))
+            return false;
+
+        if (IsFullyInitialized)
+            return true;
+
+        if (IsInitializing)
+            return false; // prevent double calls
+
+        IsInitializing = true;
+
+        try
+        {
+            return await InitializeAsync(userName, isAuthenticated);
+        }
+        finally
+        {
+            IsInitializing = false;
+        }
+    }
+    private bool HasValidCoreData()
+    {
+        return !string.IsNullOrEmpty(UserID)
+            && !string.IsNullOrEmpty(SchoolID)
+            && !string.IsNullOrEmpty(UserRole);
+    }
     public async Task<bool> InitializeAsync(string userName, bool isAuthenticated)
     {
         if (!isAuthenticated || string.IsNullOrEmpty(userName))
@@ -131,7 +162,31 @@ public class AppState
             //    LicenseIsActive = true;
             //}
             LicenseIsActive = true; // 🚨 override for testing - remove in production
-            // --- 5️⃣ Load Non-Critical Data in parallel ---
+            if (!HasValidCoreData())
+            {
+                Console.WriteLine("[AppState] Core initialization invalid.");
+                return false;
+            }
+
+            IsCoreInitialized = true;
+            NotifyStateChanged();
+
+            // --- 🚀 Fire-and-forget deferred loading ---
+            _ = LoadDeferredDataAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AppState] Initialization failed: {ex.Message}");
+            return false;
+        }
+    }
+    #region Data Loading Helpers
+    private async Task LoadDeferredDataAsync()
+    {
+        try
+        {
             var tasks = new List<Task>();
 
             // ✅ Always safe
@@ -152,18 +207,16 @@ public class AppState
 
             await Task.WhenAll(tasks);
 
+            IsDeferredLoaded = true;
             IsFullyInitialized = true;
+
             NotifyStateChanged();
-            return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AppState] Initialization failed: {ex.Message}");
-            return false;
+            Console.WriteLine($"[AppState] Deferred load failed: {ex.Message}");
         }
     }
-    #region Data Loading Helpers
-
     private async Task LoadBadgesAsync()
     {
         try

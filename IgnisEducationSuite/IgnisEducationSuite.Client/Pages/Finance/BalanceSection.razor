@@ -77,21 +77,49 @@
     [Parameter] public List<Invoice> outstandingInvoices { get; set; } = new();
     private List<StudentPayments> studentPayments = new();
     [Parameter] public string CurrencySymbol { get; set; } = "$";
+    private List<EDUSphereSharedProject.FinanceModels.Student> students = new();
+    private Parent loggedInParent = new();
     protected override async Task OnInitializedAsync()
     {
         LoaderService.Show("Loading finance data...");
-
-        // await LoadOutstandingFeesAsync();
-        await LoadPaymentHistoryAsync();
-
+        await GetParentInfo();
         LoaderService.Hide();
     }
-
- 
-
-    private async Task LoadPaymentHistoryAsync()
+    private async Task GetStudentsByParent(Guid ParentID)
     {
-        var userId =/*  AppState.UserID */ "187003c3-30bb-4493-84b5-9f7de1d7bb14";
+        var result = await GenericService.GetService<EDUSphereSharedProject.FinanceModels.Student>()
+                    .GetAllAsync($"api/Finance/GetStudentsByParent/{ParentID}", true);
+        if (result.IsSuccess && result.Data.Any())
+        {
+            if (result.Data.Count() == 1)
+            {
+                var studentID = result.Data.Select(x => x.UserID).FirstOrDefault();
+                if (studentID != null)
+                {
+                    await LoadPaymentHistoryAsync(studentID);
+                }
+            }
+            students = result.Data.ToList();
+        }
+    }
+    public async Task GetParentInfo()
+    {
+        var result = await GenericService.GetService<Parent>()
+                    .GetAllAsync($"api/Dynamic/GetParentById/{AppState.UserID}", true);
+        if (result.IsSuccess && result.Data.Any())
+        {
+            loggedInParent = result.Data.FirstOrDefault();
+
+            if (loggedInParent != null)
+            {
+                await GetStudentsByParent(loggedInParent.ParentID);
+            }
+        }
+    }
+
+    private async Task LoadPaymentHistoryAsync(string userID)
+    {
+        var userId = userID;
         var service = GenericService.GetService<StudentPayments>();
         var result = await service.GetAllAsync($"api/Payment/GetStudentPayments/{userId}", true);
 

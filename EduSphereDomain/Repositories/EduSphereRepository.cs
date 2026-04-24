@@ -1994,6 +1994,15 @@ namespace EduSphereDomain.Repositories
             }).ToList();
         }
         #endregion
+
+        #region Parent Info
+        public async Task<IEnumerable<Parent>> GetParentByUserID(string id)
+        {
+            var result = await _context.Parents.Where(x => x.UserId == id).ToListAsync();
+
+            return result;
+        }
+        #endregion
     }
 
 }

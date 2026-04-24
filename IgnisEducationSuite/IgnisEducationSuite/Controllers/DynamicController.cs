@@ -747,7 +747,12 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Non Generic New Modules
-
+        [HttpGet("GetParentById/{userID}")]
+        public async Task<IActionResult> GetParentById(string userID)
+        {
+            var result = await _repository.GetParentByUserID(userID);
+            return Ok(result);
+        }
         [HttpGet("GetTimeTableOverrides/{SchoolId}")]
         public async Task<IActionResult> GetTimeTableOverrides(Guid SchoolId)
         {
