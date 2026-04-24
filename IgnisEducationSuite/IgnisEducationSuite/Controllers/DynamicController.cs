@@ -42,7 +42,30 @@ namespace IgnisEducationSuite.Controllers
             var result = await _repository.GetFullAcademicStructureForSchool(SchoolID);
             return Ok(result);
         }
+        [HttpPost("recalculatepositions/{schoolID}")]
+        public async Task<IActionResult> RecalculatePositionsInClass(Guid schoolID)
+        {
+            try
+            {
+                await _repository.UpdatePositionsInClass(schoolID);
 
+                return Ok(new
+                {
+                    Success = true,
+                    Message = "Positions recalculated successfully."
+                });
+            }
+            catch (Exception ex)
+            {
+                // _logger.LogError(ex, "Failed to recalculate positions for SchoolID: {SchoolID}", schoolID);
+
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Failed to recalculate positions."
+                });
+            }
+        }
         [HttpPost("GetStudentsByStudentNumbers")]
         public async Task<IActionResult> GetStudentsByStudentNumbers(
             [FromBody] StudentNumberLookupRequest request)

@@ -125,7 +125,7 @@
         // Map LevelName from academic levels safely
         foreach (var item in studentResults)
         {
-            item.LevelName = academicLevels.FirstOrDefault(x => x.LevelInt == item.AcademicLevel)?.LevelName ?? string.Empty;
+            item.LevelName = item.ClassName;
         }
     }
 

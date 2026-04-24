@@ -66,6 +66,12 @@
                                      FullWidth="true"
                                      Margin="Margin.Dense" />
                 </MudItem>
+                @if (AppState.UserRole == "Admin")
+                {
+                    <MudItem xs="12">
+                        <MudButton OnClick="UpdatePositionsInClass" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh">Update Positions In Class</MudButton>
+                    </MudItem>
+                }
             </MudGrid>
         </MudPaper>
 
@@ -157,6 +163,26 @@
     }
 
     #region Search
+
+    private async Task UpdatePositionsInClass()
+    {
+        var response = await HttpClient.PostAsync(
+            $"api/Dynamic/recalculatepositions/{Guid.Parse(AppState.SchoolID)}",
+            null
+        );
+
+        if (response.IsSuccessStatusCode)
+        {
+            // optional: show success message
+            Snackbar.Add("Positions in class have been updated successfully.", Severity.Success);
+
+        }
+        else
+        {
+            Snackbar.Add("Failed to update positions in class. Please try again later.", Severity.Error);
+            // optional: handle error
+        }
+    }
     // custom sort by name length
     private Func<StudentWithClassesDTO, object> _sortBy => x =>
     {
@@ -223,7 +249,7 @@
             }
 
             var teacherClassIds = classes
-                .Where(c => c.TeacherID == Guid.Parse("075EEB97-A97F-4AC6-80C4-7A190849617F")/* loggedInTeacher.TeacherID */)
+                .Where(c => c.TeacherID == loggedInTeacher.TeacherID)
                 .Select(c => c.ClassID)
                 .ToHashSet();
 

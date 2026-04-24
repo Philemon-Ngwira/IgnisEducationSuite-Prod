@@ -171,7 +171,7 @@ namespace IgnisEducationSuite.ServerServices
                  col.Item().Row(r =>
                  {
                      r.RelativeItem().Text($"School Year: {reportCard.IssuedDate?.Year}").FontColor(Colors.Grey.Darken2);
-                     r.RelativeItem().Text($"GPA: {reportCard.GPA?.ToString("F2") ?? "-"}").FontColor(Colors.Grey.Darken2);
+                    // r.RelativeItem().Text($"Position In Calss: {reportCard.PositionInClass?.ToString("F2") ?? "-"}").FontColor(Colors.Grey.Darken2);
                  });
              });
         }

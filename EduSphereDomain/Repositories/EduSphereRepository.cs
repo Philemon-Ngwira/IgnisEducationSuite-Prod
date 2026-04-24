@@ -865,6 +865,7 @@ namespace EduSphereDomain.Repositories
                     PrincipleName = item.PrincipleName,
                     PrinciplesComment = item.PrinciplesComment,
                     ReportCardType = item.ReportCardType,
+                    ClassName = $"{item.LevelName}({item.GradeSection})"
                 };
                 stds.Add(reportCard);
             }
@@ -888,7 +889,20 @@ namespace EduSphereDomain.Repositories
                     GPA = item.GPA,
                     IssuedDate = item.IssuedDate,
                     TermStartDate = item.TermStartDate,
-                    TermEndDate = item.TermEndDate
+                    TermEndDate = item.TermEndDate,
+                    SchoolEmail = item.SchoolEmail,
+                    SchoolName = item.SchoolName,
+                    SchoolWebsite = item.SchoolWebsite,
+                    MarksInBestSix = item.MarksInBestSix,
+                    PointsInBestSix = item.PointsInBestSix,
+                    DeanName = item.DeanName,
+                    DeansComment = item.DeansComment,
+                    PositionInClass = item.PositionInClass,
+                    PrincipleName = item.PrincipleName,
+                    PrinciplesComment = item.PrinciplesComment,
+                    ReportCardType = item.ReportCardType,
+                    ClassName = $"{item.LevelName}({item.GradeSection})"
+
                 };
                 stds.Add(reportCard);
             }
@@ -1111,6 +1125,11 @@ namespace EduSphereDomain.Repositories
         #region New Modules
 
         #region  Improvements
+
+        public async Task UpdatePositionsInClass(Guid schoolID)
+        {
+            await _financeContextProcedures.RecalculateSchoolPositionsAsync(schoolID);
+        }
         public async Task<IEnumerable<LevelSection>> GetLevelSectionsAsync(Guid AcademicLevelID)
         {
             var result = await _context.LevelSections

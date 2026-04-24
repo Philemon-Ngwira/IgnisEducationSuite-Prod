@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace EDUSphereSharedProject.FinanceModels;
 
@@ -19,7 +18,9 @@ public partial class FeeStructureItem
     public bool IsOptional { get; set; }
 
     public DateTime CreatedAt { get; set; }
-    [JsonIgnore]
+
+    public int? TargetType { get; set; }
+
     public virtual FeeStructure FeeStructure { get; set; }
 
     public virtual InvoiceType InvoiceType { get; set; }
