@@ -65,7 +65,7 @@
 
     private async Task LoadFinancialDataAsync()
     {
-        var userId = "187003c3-30bb-4493-84b5-9f7de1d7bb14"/* AppState.UserID */;
+        var userId = AppState.UserID/* AppState.UserID */;
         var service = GenericService.GetService<Invoice>();
         var result = await service.GetAllAsync($"api/Invoice/GetStudentInvoices/{userId}", true);
         Invoices = result.Data.ToList() ?? new List<Invoice>();
