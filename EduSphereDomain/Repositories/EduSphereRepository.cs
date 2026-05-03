@@ -112,6 +112,7 @@ namespace EduSphereDomain.Repositories
             catch (Exception ex)
             {
                 var _ = ex.Message;
+                Console.Write(_);
                 throw;
             }
 
