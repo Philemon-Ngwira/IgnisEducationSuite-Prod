@@ -2,7 +2,11 @@
 // Fenyra Optimized Service Worker
 // ======================
 
+<<<<<<< HEAD
 const CACHE_VERSION = 'v1.0.3'; // increment this with every deployment
+=======
+const CACHE_VERSION = 'v1.0.4'; // increment this with every deployment
+>>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
 const CACHE_NAME = `Ignis-Edu-cache-${CACHE_VERSION}`;
 
 // During install, cache all assets from the manifest
