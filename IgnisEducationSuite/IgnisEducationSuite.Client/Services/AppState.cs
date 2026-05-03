@@ -38,7 +38,7 @@ public class AppState
     public int NewAssignmentsCount { get; private set; }
 
     // --- Initialization State ---
-    public bool IsFullyInitialized { get;  set; } = false;
+    public bool IsFullyInitialized { get; set; } = false;
 
     public event Action OnChange;
 
@@ -85,16 +85,9 @@ public class AppState
             && !string.IsNullOrEmpty(UserRole);
     }
     public async Task<bool> InitializeAsync(string userName, bool isAuthenticated)
-
     {
         if (!isAuthenticated || string.IsNullOrEmpty(userName))
-        {
-            // 👇 IMPORTANT: mark license as irrelevant for anonymous users
-            IsLicenseChecked = true;
-            LicenseIsActive = true;
-            IsFullyInitialized = true;
-            return true;
-        }
+            return false;
 
         if (IsFullyInitialized) return true;
 
@@ -125,14 +118,11 @@ public class AppState
                 }
 
                 attempts++;
-                await Task.Delay(1000); // ⏱️ brief pause before retry
+                await Task.Delay(500); // retry delay
             }
 
             if (data == null)
-            {
-                
                 return false;
-            }
 
             // --- 2️⃣ Set Roles ---
             UserRoles = data.RoleName?
@@ -157,17 +147,19 @@ public class AppState
             Currency.CurrencySymbol = data.CurrencySymbol;
             HideStudentDashboard = data.HideStudentDashboard == 1;
 
-
-            // --- 4️⃣ Load License (NON-BLOCKING) ---
-            //if (UserRole == "SuperAdmin")
+            // --- 4️⃣ Load License ---
+            //if (UserRole != "SuperAdmin")
             //{
-            //    LicenseIsActive = true;
-            //    IsLicenseChecked = true;
+            //    var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
+            //    var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
+            //    License = licenseResult.IsSuccess && licenseResult.Data.Any()
+            //        ? licenseResult.Data.First()
+            //        : new usp_GetPharmacyLicenseStatusResult();
+            //    LicenseIsActive = License?.IsValid == 1;
             //}
             //else
             //{
-            //    // fire-and-forget (DO NOT await)
-            //    _ = LoadLicenseAsync();
+            //    LicenseIsActive = true;
             //}
             LicenseIsActive = true; // 🚨 override for testing - remove in production
             if (!HasValidCoreData())
@@ -195,9 +187,6 @@ public class AppState
     {
         try
         {
-       LicenseIsActive = true;
-            // --- 5️⃣ Load Non-Critical Data in parallel ---
-
             var tasks = new List<Task>();
 
             // ✅ Always safe
@@ -228,7 +217,6 @@ public class AppState
             Console.WriteLine($"[AppState] Deferred load failed: {ex.Message}");
         }
     }
-
     private async Task LoadBadgesAsync()
     {
         try
