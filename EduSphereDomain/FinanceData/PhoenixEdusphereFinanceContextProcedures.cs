@@ -1665,6 +1665,45 @@ namespace EduSphereDomain.FinanceData
             return _;
         }
 
+        public virtual async Task<List<GetTeacherStudentCompletionStatusResult>> GetTeacherStudentCompletionStatusAsync(Guid? schoolID, Guid? teacherID, string reportCardType, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = schoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "TeacherID",
+                    Value = teacherID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "ReportCardType",
+                    Size = 20,
+                    Value = reportCardType ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.VarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryToListAsync<GetTeacherStudentCompletionStatusResult>("EXEC @returnValue = [dbo].[GetTeacherStudentCompletionStatus] @SchoolID = @SchoolID, @TeacherID = @TeacherID, @ReportCardType = @ReportCardType", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
         public virtual async Task<List<GetTeacherSubjectByTeacherIDResult>> GetTeacherSubjectByTeacherIDAsync(Guid? teacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
@@ -1844,16 +1883,16 @@ namespace EduSphereDomain.FinanceData
                 new SqlParameter
                 {
                     ParameterName = "GradeSection",
-                    Size = 10,
+                    Size = 100,
                     Value = gradeSection ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.VarChar,
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
                 },
                 new SqlParameter
                 {
                     ParameterName = "Term",
-                    Size = 50,
+                    Size = 40,
                     Value = term ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.VarChar,
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
                 },
                 parameterreturnValue,
             };
@@ -1864,7 +1903,7 @@ namespace EduSphereDomain.FinanceData
             return _;
         }
 
-        public virtual async Task<int> RecalculateSchoolPositionsAsync(Guid? schoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        public virtual async Task<List<RecalculateSchoolPositionsResult>> RecalculateSchoolPositionsAsync(Guid? schoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
             {
@@ -1883,7 +1922,7 @@ namespace EduSphereDomain.FinanceData
                 },
                 parameterreturnValue,
             };
-            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[RecalculateSchoolPositions] @SchoolID = @SchoolID", sqlParameters, cancellationToken);
+            var _ = await _context.SqlQueryToListAsync<RecalculateSchoolPositionsResult>("EXEC @returnValue = [dbo].[RecalculateSchoolPositions] @SchoolID = @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

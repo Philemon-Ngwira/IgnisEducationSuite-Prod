@@ -51,7 +51,20 @@ namespace EduSphereDomain.Repositories
 
             }).ToList();
         }
+        public async Task<List<StudentCompletionStatusDTO>> GetStudentCompletionStatus(
+       Guid schoolID,
+       Guid teacherID,
+       string reportCardType)
+        {
+            var result = await _financeContextProcedures
+                .GetTeacherStudentCompletionStatusAsync(schoolID, teacherID, reportCardType);
 
+            return result.Select(x => new StudentCompletionStatusDTO
+            {
+                StudentID = x.StudentID ?? Guid.Empty,
+                IsCompleted = x.IsCompleted == 1,
+            }).ToList();
+        }
         public async Task<IEnumerable<AcademicLevel>> GetAcademicLevelsAsync(string SchoolID)
         {
             var result = await _context.AcademicLevels.Where(x => x.SchoolID == Guid.Parse(SchoolID) && x.isActive == true).ToListAsync();
@@ -865,7 +878,9 @@ namespace EduSphereDomain.Repositories
                     PrincipleName = item.PrincipleName,
                     PrinciplesComment = item.PrinciplesComment,
                     ReportCardType = item.ReportCardType,
-                    ClassName = $"{item.LevelName}({item.GradeSection})"
+                    ClassName = $"{item.LevelName}({item.GradeSection})",
+                    isGCE = item.isGCE,
+
                 };
                 stds.Add(reportCard);
             }
@@ -901,7 +916,8 @@ namespace EduSphereDomain.Repositories
                     PrincipleName = item.PrincipleName,
                     PrinciplesComment = item.PrinciplesComment,
                     ReportCardType = item.ReportCardType,
-                    ClassName = $"{item.LevelName}({item.GradeSection})"
+                    ClassName = $"{item.LevelName}({item.GradeSection})",
+                    isGCE = item.isGCE,
 
                 };
                 stds.Add(reportCard);

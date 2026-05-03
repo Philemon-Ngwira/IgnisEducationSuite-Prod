@@ -29,6 +29,6 @@ namespace EDUSphereSharedProject.UniversalModels
             public string ClassName { get; set; } = "";
             public Guid? TeacherID { get; set; }
         }
-
+        public bool IsCompleted { get; set; }
     }
 }

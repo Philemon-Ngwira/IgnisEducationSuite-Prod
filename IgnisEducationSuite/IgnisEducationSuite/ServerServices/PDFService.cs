@@ -171,7 +171,7 @@ namespace IgnisEducationSuite.ServerServices
                  col.Item().Row(r =>
                  {
                      r.RelativeItem().Text($"School Year: {reportCard.IssuedDate?.Year}").FontColor(Colors.Grey.Darken2);
-                    // r.RelativeItem().Text($"Position In Calss: {reportCard.PositionInClass?.ToString("F2") ?? "-"}").FontColor(Colors.Grey.Darken2);
+                     // r.RelativeItem().Text($"Position In Calss: {reportCard.PositionInClass?.ToString("F2") ?? "-"}").FontColor(Colors.Grey.Darken2);
                  });
              });
         }
@@ -188,14 +188,26 @@ namespace IgnisEducationSuite.ServerServices
              .Padding(12)
              .Row(row =>
              {
-                 row.RelativeItem().Text($"Points in Best Six: {reportCard.PointsInBestSix ?? 0}")
+                 if (reportCard.isGCE)
+                 {
+                     row.RelativeItem().Text($"Points in Best Six: GCE")
+                         .Bold().FontColor(Colors.Blue.Darken2);
+                     row.RelativeItem().Text($"Marks in Best Six: {reportCard.MarksInBestSix ?? 0}")
+                         .Bold().FontColor(Colors.Blue.Darken2);
+                     row.RelativeItem().Text($"Position in Class: GCE")
+                    .Bold().FontColor(Colors.Blue.Darken2);
+                 }
+                 else
+                 {
+                     row.RelativeItem().Text($"Points in Best Six: {reportCard.PointsInBestSix ?? 0}")
                      .Bold().FontColor(Colors.Blue.Darken2);
 
-                 row.RelativeItem().Text($"Marks in Best Six: {reportCard.MarksInBestSix ?? 0}")
-                     .Bold().FontColor(Colors.Blue.Darken2);
+                     row.RelativeItem().Text($"Marks in Best Six: {reportCard.MarksInBestSix ?? 0}")
+                         .Bold().FontColor(Colors.Blue.Darken2);
 
-                 row.RelativeItem().Text($"Position in Class: {reportCard.PositionInClass ?? 0}")
-                     .Bold().FontColor(Colors.Blue.Darken2);
+                     row.RelativeItem().Text($"Position in Class: {reportCard.PositionInClass ?? 0}")
+                         .Bold().FontColor(Colors.Blue.Darken2);
+                 }
              });
         }
 

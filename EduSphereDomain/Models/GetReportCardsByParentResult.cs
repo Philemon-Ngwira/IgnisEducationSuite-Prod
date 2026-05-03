@@ -39,6 +39,7 @@ namespace EduSphereDomain.Models
         public string DeansComment { get; set; }
         [StringLength(50)]
         public string ReportCardType { get; set; }
+        public bool isGCE { get; set; }
         [StringLength(2147483647)]
         public string SchoolName { get; set; }
         [StringLength(255)]

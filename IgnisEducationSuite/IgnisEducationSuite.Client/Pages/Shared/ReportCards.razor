@@ -108,7 +108,6 @@
     protected async Task GetStudentReportCards()
     {
         var service = _genericService.GetService<GetReportCardsByStudentResult>();
-
         if (string.IsNullOrEmpty(StudentID))
         {
             var result = await service.GetAllAsync($"api/Dynamic/GetstudentReportCardsParent/{ParentID}", true);
@@ -161,7 +160,8 @@
         {
             { x => x.attendances, attendances ?? new List<GetAttendanceSummaryResult>() },
             { r => r.Results, details },
-            { rp => rp.student, student }
+            { rp => rp.student, student },
+            {gc=>gc.isGCE, student.isGCE}
         };
 
         var options = new DialogOptions

@@ -15,6 +15,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared.Dialogs
         [Parameter] public List<GetReportCardDetailsResult> Results { get; set; } = new();
         [Parameter] public List<GetAttendanceSummaryResult> attendances { get; set; } = new();
         [Parameter] public GetReportCardsByStudentResult student { get; set; } = new();
+        [Parameter] public bool isGCE { get; set; } =false;
         [Inject] AuthenticationStateProvider authenticationStateProvider { get; set; }
         [Inject] NavigationManager _navigationManager { get; set; } = default!;
         [Inject] ClientEmailService _emailService { get; set; } = default!;
@@ -65,7 +66,8 @@ namespace IgnisEducationSuite.Client.Pages.Shared.Dialogs
                     PrincipleName = student.PrincipleName ?? string.Empty,
                     PrinciplesComment = student.PrinciplesComment ?? string.Empty,
                     Term = student.Term ?? string.Empty,
-                    ReportCardType = student.ReportCardType ?? string.Empty
+                    ReportCardType = student.ReportCardType ?? string.Empty,
+                    isGCE = student.isGCE,
                 };
 
 

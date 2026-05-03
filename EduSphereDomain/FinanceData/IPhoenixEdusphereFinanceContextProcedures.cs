@@ -71,6 +71,7 @@ namespace EduSphereDomain.FinanceData
         Task<List<GetStudentUnCompletedLessonsResult>> GetStudentUnCompletedLessonsAsync(string studentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTeacherAssignmentsResult>> GetTeacherAssignmentsAsync(string teacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTeacherLessonsResult>> GetTeacherLessonsAsync(string teacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<GetTeacherStudentCompletionStatusResult>> GetTeacherStudentCompletionStatusAsync(Guid? schoolID, Guid? teacherID, string reportCardType, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTeacherSubjectByTeacherIDResult>> GetTeacherSubjectByTeacherIDAsync(Guid? teacherID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTimetableOverridesBySchoolResult>> GetTimetableOverridesBySchoolAsync(Guid? schoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetTop5TeachersByHighRatedLessonsResult>> GetTop5TeachersByHighRatedLessonsAsync(string schoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
@@ -78,7 +79,7 @@ namespace EduSphereDomain.FinanceData
         Task<List<GetUserBadgesByUserIDResult>> GetUserBadgesByUserIDAsync(string userID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<GetUserTripsTodayResult>> GetUserTripsTodayAsync(string userID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> RecalculateClassPositionsAsync(Guid? academicLevel, string gradeSection, string term, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
-        Task<int> RecalculateSchoolPositionsAsync(Guid? schoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
+        Task<List<RecalculateSchoolPositionsResult>> RecalculateSchoolPositionsAsync(Guid? schoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<RunDailyJobsResult>> RunDailyJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<int> sp_AssignMissingStudentSchedulesAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);
         Task<List<sp_CreateStudentFinanceForExistingStudentsResult>> sp_CreateStudentFinanceForExistingStudentsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default);

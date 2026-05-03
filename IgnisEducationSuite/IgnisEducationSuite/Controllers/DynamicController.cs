@@ -35,7 +35,23 @@ namespace IgnisEducationSuite.Controllers
             public Guid SchoolID { get; set; }
             public List<string> StudentNumbers { get; set; } = new();
         }
+        [HttpGet("GetTeacherStudentCompletionStatus/{schoolId}/{teacherId}/{reportCardType}")]
+        public async Task<IActionResult> GetTeacherStudentCompletionStatus(
+    Guid schoolId,
+    Guid teacherId,
+    string reportCardType)
+        {
+            var result = await _repository.GetStudentCompletionStatus(
+                schoolId,
+                teacherId,
+                reportCardType
+            );
 
+            if (result == null || !result.Any())
+                return Ok(new List<StudentCompletionStatusDTO>());
+
+            return Ok(result);
+        }
         [HttpGet("GetFullSchoolAcademicStructure/{SchoolID}")]
         public async Task<IActionResult> GetSchoolStructure(Guid SchoolID)
         {
