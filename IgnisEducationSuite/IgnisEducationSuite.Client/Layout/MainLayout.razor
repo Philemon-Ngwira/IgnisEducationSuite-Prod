@@ -40,7 +40,7 @@
 
         @if (IsAuthPage)
         {
-<<<<<<< HEAD
+
             @Body
         }
         else if (!_authChecked)
@@ -61,28 +61,7 @@
 
     <Footer Version="1.0.2" Environment="PROD" />
 
-=======
-            <MudDrawer Elevation="0"
-                       @bind-Open="_drawerOpen"
-                       Class="ignis-drawer" ClipMode="DrawerClipMode.Docked">
-                <NavMenu />
-            </MudDrawer>
 
-        }
-
-
-        <MudMainContent Class="ignis-main-content">
-            <IgnisEducationSuite.Client.Pages.Shared.GlobalLoader />
-
-
-            
-                <!-- Normal app -->
-                @Body
-            
-        </MudMainContent>
-        <Footer Version="1.0.2" Environment="PROD" />
-    }
->>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
 </MudLayout>
 
 <Radzen.Blazor.RadzenComponents @rendermode="InteractiveAuto" />
@@ -112,20 +91,13 @@
 
             if (!string.IsNullOrEmpty(userId))
             {
-<<<<<<< HEAD
+
                 _ = Task.Run(async () =>
                 {
                     await AppState.EnsureInitializedAsync(userId, true);
                     await InvokeAsync(StateHasChanged);
                 });
-=======
-                partiallyIntialized = await AppState.InitializeAsync(userId, true, Nav);
-                AppState.OnChange += StateHasChanged;
-            }
-            else
-            {
-                partiallyIntialized = true;
->>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
+
             }
         }
         else

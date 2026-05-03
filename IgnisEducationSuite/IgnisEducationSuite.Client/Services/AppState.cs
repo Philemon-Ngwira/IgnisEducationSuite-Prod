@@ -54,7 +54,6 @@ public class AppState
     /// <summary>
     /// Fully initializes AppState: essential + non-critical data.
     /// </summary>
-<<<<<<< HEAD
     /// 
 
     public async Task<bool> EnsureInitializedAsync(string userName, bool isAuthenticated)
@@ -86,9 +85,7 @@ public class AppState
             && !string.IsNullOrEmpty(UserRole);
     }
     public async Task<bool> InitializeAsync(string userName, bool isAuthenticated)
-=======
-    public async Task<bool> InitializeAsync(string userName, bool isAuthenticated, NavigationManager navigation)
->>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
+
     {
         if (!isAuthenticated || string.IsNullOrEmpty(userName))
         {
@@ -133,7 +130,7 @@ public class AppState
 
             if (data == null)
             {
-                navigation.NavigateTo("/", true); // force reload to clear any transient auth issues
+                
                 return false;
             }
 
@@ -172,7 +169,6 @@ public class AppState
             //    // fire-and-forget (DO NOT await)
             //    _ = LoadLicenseAsync();
             //}
-<<<<<<< HEAD
             LicenseIsActive = true; // 🚨 override for testing - remove in production
             if (!HasValidCoreData())
             {
@@ -199,11 +195,9 @@ public class AppState
     {
         try
         {
-=======
-
-            LicenseIsActive = true;
+       LicenseIsActive = true;
             // --- 5️⃣ Load Non-Critical Data in parallel ---
->>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
+
             var tasks = new List<Task>();
 
             // ✅ Always safe
@@ -234,70 +228,7 @@ public class AppState
             Console.WriteLine($"[AppState] Deferred load failed: {ex.Message}");
         }
     }
-<<<<<<< HEAD
-=======
-    #region Data Loading Helpers
-    private async Task LoadLicenseAsync()
-    {
-        if (IsLicenseLoading) return;
 
-        IsLicenseLoading = true;
-
-        try
-        {
-            var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
-
-            int attempts = 0;
-
-            while (attempts < 3)
-            {
-                var task = licenseService.GetAllAsync(
-                    $"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
-
-                var completed = await Task.WhenAny(task, Task.Delay(8000));
-
-                if (completed != task)
-                {
-                    Console.WriteLine("[License] Timeout hit");
-                    attempts++;
-                    continue;
-                }
-
-                var result = await task;
-
-                if (result?.IsSuccess == true && result.Data.Any())
-                {
-                    License = result.Data.First();
-                    LicenseIsActive = License?.IsValid == 1;
-
-                    IsLicenseChecked = true;
-                    NotifyStateChanged();
-                    return;
-                }
-
-                attempts++;
-                await Task.Delay(500);
-            }
-
-            // fallback fail-safe
-            LicenseIsActive = false;
-            IsLicenseChecked = true;
-            NotifyStateChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[License ERROR] {ex.Message}");
-
-            LicenseIsActive = false;
-            IsLicenseChecked = true;
-            NotifyStateChanged();
-        }
-        finally
-        {
-            IsLicenseLoading = false;
-        }
-    }
->>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
     private async Task LoadBadgesAsync()
     {
         try

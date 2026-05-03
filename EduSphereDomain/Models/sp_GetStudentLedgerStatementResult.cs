@@ -9,11 +9,9 @@ namespace EduSphereDomain.Models
     public partial class sp_GetStudentLedgerStatementResult
     {
         public Guid Id { get; set; }
-<<<<<<< HEAD
+
         public long LedgerSequence { get; set; }
-=======
-        public long? LedgerSequence { get; set; }
->>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
+
         public DateTime CreatedAt { get; set; }
         [StringLength(10)]
         public string EntryType { get; set; }
@@ -26,14 +24,10 @@ namespace EduSphereDomain.Models
         public Guid? ReferenceId { get; set; }
         [StringLength(50)]
         public string InvoiceNumber { get; set; }
-<<<<<<< HEAD
-        public string InvoiceType { get; set; }
-        [Column(TypeName = "decimal(38,2)")]
-=======
+
         [StringLength(50)]
         public string InvoiceType { get; set; }
         [Column("RunningBalance", TypeName = "decimal(38,2)")]
->>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
         public decimal? RunningBalance { get; set; }
     }
 }

@@ -29,15 +29,9 @@ public partial class FinanceLedger
 
     public string UniqueKey { get; set; }
 
-<<<<<<< HEAD
     public long SequenceNumber { get; set; }
 
     public long LedgerSequence { get; set; }
-=======
-    public long? SequenceNumber { get; set; }
-
-    public long? LedgerSequence { get; set; }
->>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
 
     public virtual StudentFinance StudentFinance { get; set; }
 }

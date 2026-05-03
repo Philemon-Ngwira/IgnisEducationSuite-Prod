@@ -37,19 +37,14 @@ public partial class Invoice
 
     public Guid? InvoiceTypeID { get; set; }
 
-<<<<<<< HEAD
+
     public bool? IsOptional { get; set; }
 
     public Guid? FeeStructureId { get; set; }
 
-=======
-    public bool? isOptional { get; set; }
 
-    public Guid? FeeStructureId { get; set; }
 
     public virtual FeeStructure FeeStructure { get; set; }
-
->>>>>>> dc9665329ab527f497b3db2ffeae5ccb49613c4d
     public virtual InvoiceType InvoiceTypeNavigation { get; set; }
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
