@@ -1,10 +1,10 @@
 ﻿{
-   "CodeGenerationMode": 3,
+   "CodeGenerationMode": 4,
    "ContextClassName": "PhoenixEdusphereContext",
    "ContextNamespace": null,
-   "DefaultDacpacSchema": null,
    "FilterSchemas": false,
    "IncludeConnectionString": false,
+   "MinimumProductVersion": "2.6.1093",
    "ModelNamespace": null,
    "OutputContextPath": null,
    "OutputPath": "FinanceModels",
@@ -13,6 +13,7 @@
    "Schemas": null,
    "SelectedHandlebarsLanguage": 0,
    "SelectedToBeGenerated": 2,
+   "T4TemplatePath": null,
    "Tables": [
       {
          "Name": "[dbo].[Students]",
@@ -343,6 +344,10 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[GetTeacherStudentCompletionStatus]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[GetTeacherSubjectByTeacherID]",
          "ObjectType": 1
       },
@@ -360,6 +365,14 @@
       },
       {
          "Name": "[dbo].[GetUserBadgesByUserID]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RecalculateClassPositions]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RecalculateSchoolPositions]",
          "ObjectType": 1
       },
       {
@@ -491,23 +504,31 @@
          "ObjectType": 1
       }
    ],
-   "UiHint": "phoenix.PhoenixEdusphere.dbo",
+   "UiHint": null,
    "UncountableWords": null,
+   "UseAsyncStoredProcedureCalls": true,
    "UseBoolPropertiesWithoutDefaultSql": false,
    "UseDatabaseNames": true,
+   "UseDatabaseNamesForRoutines": true,
    "UseDateOnlyTimeOnly": false,
    "UseDbContextSplitting": false,
+   "UseDecimalDataAnnotationForSprocResult": true,
    "UseFluentApiOnly": true,
    "UseHandleBars": false,
    "UseHierarchyId": false,
    "UseInflector": true,
+   "UseInternalAccessModifiersForSprocsAndFunctions": false,
    "UseLegacyPluralizer": false,
    "UseManyToManyEntity": false,
    "UseNoDefaultConstructor": false,
+   "UseNoNavigations": false,
    "UseNoObjectFilter": false,
    "UseNodaTime": false,
    "UseNullableReferences": false,
+   "UsePrefixNavigationNaming": false,
    "UseSchemaFolders": false,
+   "UseSchemaNamespaces": false,
    "UseSpatial": false,
-   "UseT4": false
+   "UseT4": false,
+   "UseT4Split": false
 }

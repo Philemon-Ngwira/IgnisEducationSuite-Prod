@@ -10,13 +10,13 @@ namespace EDUSphereSharedProject.Models
     public partial class TripAttendance
     {
         [NotMapped]
-        public string StudentName { get; set; }
+        public string StudentName { get; set; } = "";
         [NotMapped]
-        public string AcademicLevel { get; set; }
+        public string AcademicLevel { get; set; } = "";
         [NotMapped]
-        public byte[] ProfilePic { get; set; }
+        public byte[] ProfilePic { get; set; } = Array.Empty<byte>();
         [NotMapped]
-        public string TripName { get; set; }
+        public string TripName { get; set; } = "";
         [NotMapped]
         public TimeSpan? DepartureTime { get; set; }
         [NotMapped]

@@ -10,10 +10,10 @@ namespace EDUSphereSharedProject.Models.StoreProModels
     {
         public Guid MenuId { get; set; }
         public Guid MealId { get; set; }
-        public string DayOfWeek { get; set; }
-        public string MainDish { get; set; }
-        public string SideDish { get; set; }
-        public string Drink { get; set; }
-        public string MealName { get; set; }
+        public string DayOfWeek { get; set; }   = string.Empty;
+        public string MainDish { get; set; } = string.Empty;
+        public string SideDish { get; set; } = string.Empty;
+        public string Drink { get; set; } = string.Empty;
+        public string MealName { get; set; } = string.Empty;
     }
 }

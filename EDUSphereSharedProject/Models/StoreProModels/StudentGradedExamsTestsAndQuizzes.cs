@@ -9,9 +9,9 @@ namespace EDUSphereSharedProject.Models.StoreProModels
 {
     public class StudentGradedExamsTestsAndQuizzes
     {
-        public string TeacherFirstName { get; set; }
-        public string TeacherLastName { get; set; }
-        public string Title { get; set; }
+        public string TeacherFirstName { get; set; } = string.Empty;
+        public string TeacherLastName { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
         public int TotalMarks { get; set; }
         public Guid StudentExamID { get; set; }
         public Guid? StudentID { get; set; }
@@ -19,6 +19,6 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public decimal? Grade { get; set; }
         public Guid? ExamID { get; set; }
         public DateTime? SubmissionDate { get; set; }
-        public string Status { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

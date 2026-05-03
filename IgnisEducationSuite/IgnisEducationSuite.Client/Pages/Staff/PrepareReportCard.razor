@@ -66,10 +66,16 @@
                                      FullWidth="true"
                                      Margin="Margin.Dense" />
                 </MudItem>
+                @if (AppState.UserRole == "Admin")
+                {
+                    <MudItem xs="12">
+                        <MudButton OnClick="UpdatePositionsInClass" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh">Update Positions In Class</MudButton>
+                    </MudItem>
+                }
             </MudGrid>
         </MudPaper>
 
-        <MudDataGrid Items="filteredStudents" Filterable="false" SortMode="SortMode.None" Groupable="false" Class="mt-4">
+        <MudDataGrid Items="filteredStudents" Filterable="false" SortMode="SortMode.None" Groupable="false" Class="mt-4" RowClassFunc="GetRowClass">
             <ToolBarContent>
                 <MudText Typo="Typo.h6">Students</MudText>
                 <MudSpacer />
@@ -114,6 +120,7 @@
     protected List<Class> classes = new();
     protected List<StudentWithClassesDTO> students = new();
     protected List<StudentWithClassesDTO> filteredStudents = new();
+    protected List<StudentWithClassesDTO> teacherFilteredStudents = new();
     protected List<GradingScale> gradingScales = new();
     protected List<string> TeacherGrades = new();
     protected List<string> ClassNames = new();
@@ -148,14 +155,62 @@
         };
 
         await Task.WhenAll(initTasks);
-
+        // 👇 ONLY for teacher
+        if (AppState.UserRole == "Teacher" && loggedInTeacher != null)
+        {
+            await LoadCompletionStatus();
+        }
         ApplyTeacherFiltering();
         PrepareFilterLists();
         StateHasChanged();
         LoaderService.Hide();
     }
+    private async Task LoadCompletionStatus()
+    {
+        var response = await HttpClient.GetFromJsonAsync<List<StudentCompletionStatusDTO>>(
+            $"api/Dynamic/GetTeacherStudentCompletionStatus/{Guid.Parse(AppState.SchoolID)}/{loggedInTeacher.TeacherID}/{SelectedReportType}"
+        );
 
+        if (response == null) return;
+
+        var statusDict = response.ToDictionary(x => x.StudentID, x => x.IsCompleted);
+
+        foreach (var student in students)
+        {
+            student.IsCompleted =
+                statusDict.TryGetValue(student.StudentID, out var completed) && completed;
+        }
+    }
+    private string GetRowClass(StudentWithClassesDTO student, int rowNumber)
+    {
+        if (AppState.UserRole != "Teacher")
+            return string.Empty;
+
+        return student.IsCompleted
+            ? "bg-success text-white"
+            : string.Empty;
+    }
     #region Search
+
+    private async Task UpdatePositionsInClass()
+    {
+        var response = await HttpClient.PostAsync(
+            $"api/Dynamic/recalculatepositions/{Guid.Parse(AppState.SchoolID)}",
+            null
+        );
+
+        if (response.IsSuccessStatusCode)
+        {
+            // optional: show success message
+            Snackbar.Add("Positions in class have been updated successfully.", Severity.Success);
+
+        }
+        else
+        {
+            Snackbar.Add("Failed to update positions in class. Please try again later.", Severity.Error);
+            // optional: handle error
+        }
+    }
     // custom sort by name length
     private Func<StudentWithClassesDTO, object> _sortBy => x =>
     {
@@ -229,7 +284,7 @@
             filteredStudents = students
                 .Where(s => s.Classes.Any(c => teacherClassIds.Contains(c.ClassID)))
                 .ToList();
-
+            teacherFilteredStudents = filteredStudents.ToList();
             return;
         }
 
@@ -334,7 +389,33 @@
         }
 
     }
+    private void SetCompletionStatusPerTeacher(
+    List<StudentWithClassesDTO> students,
+    List<ReportCardDetail> allDetails)
+    {
+        if (AppState.UserRole != "Teacher" || loggedInTeacher == null)
+            return;
 
+        var teacherClassIds = classes
+            .Where(c => c.TeacherID == loggedInTeacher.TeacherID)
+            .Select(c => c.ClassID)
+            .ToHashSet();
+
+        foreach (var student in students)
+        {
+            var studentDetails = allDetails
+                .Where(d =>
+                    d.ReportCardID != Guid.Empty && // safety
+                    teacherClassIds.Contains(d.ClassID.Value))
+                .ToList();
+
+            // Completed ONLY if ALL subjects for this teacher are filled
+            student.IsCompleted = studentDetails.Any() &&
+                                  studentDetails.All(d =>
+                                      d.Score != null &&
+                                      !string.IsNullOrEmpty(d.Grade));
+        }
+    }
     protected async Task GetStudents()
     {
         var service = _genericService.GetService<StudentWithClassesDTO>();
@@ -479,8 +560,8 @@
             {
                 // Class teacher → send ALL classes for the student's level
                 classesToSend = classes
-                    .Where(c => c.AcademicLevel == student.AcademicLevel)
-                    .ToList();
+               .Where(x => student.Classes.Any(c => c.ClassID == x.ClassID))
+                 .ToList();
             }
             else
             {
@@ -509,7 +590,7 @@
         else
         {
             classesToSend = classes
-                .Where(x => x.AcademicLevel == student.AcademicLevel)
+              .Where(x => student.Classes.Any(c => c.ClassID == x.ClassID))
                 .ToList();
         }
         var reportCardDetails = await GetReportCardDetails(reportCardHeader.ReportCardID);
@@ -540,31 +621,57 @@
         var result = await dialog.Result;
 
         if (!result.Canceled && result.Data is bool returned && returned)
-            Snackbar.Add($"Report Card for {student.FirstName} {student.LastName} has been generated successfully", Severity.Success);
-    }
+        {
 
+            await LoadCompletionStatus(); // 🔥 refresh colors
+            ApplyFilters();               // reapply UI filters
+            Snackbar.Add($"Report Card for {student.FirstName} {student.LastName} has been generated successfully", Severity.Success);
+
+        }
+    }
 
     #endregion
 
     #region Filters
     private void ApplyFilters()
     {
-        IEnumerable<StudentWithClassesDTO> query = students;
+        IEnumerable<StudentWithClassesDTO> query;
 
+        if (AppState.UserRole == "Teacher")
+            query = teacherFilteredStudents;
+        else
+            query = students; // Admin / Dean / others
+
+        // Academic Level filter
         if (!string.IsNullOrEmpty(AcademicLvlFilterValue))
-            query = query.Where(s => s.LevelName == AcademicLvlFilterValue);
+        {
+            query = query.Where(s =>
+                string.Equals(s.LevelName?.Trim(),
+                              AcademicLvlFilterValue?.Trim(),
+                              StringComparison.OrdinalIgnoreCase));
+        }
 
+        // Class filter
         if (!string.IsNullOrEmpty(SelectedClass))
-            query = query.Where(s => s.Classes.Select(x => x.ClassName).Contains(SelectedClass));
+        {
+            query = query.Where(s =>
+                s.Classes.Any(c =>
+                    string.Equals(c.ClassName?.Trim(),
+                                  SelectedClass?.Trim(),
+                                  StringComparison.OrdinalIgnoreCase)));
+        }
 
+        // Search filter
         if (!string.IsNullOrWhiteSpace(searchString))
+        {
             query = query.Where(s =>
                 s.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
-                s.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
+                s.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                s.StudentNumber.Contains(searchString));
+        }
 
         filteredStudents = query.ToList();
     }
-
     private void FilterResultsByAcademicLevel(string value)
     {
         AcademicLvlFilterValue = value;

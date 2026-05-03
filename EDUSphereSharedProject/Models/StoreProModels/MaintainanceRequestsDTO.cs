@@ -11,12 +11,12 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public Guid RequestID { get; set; }
         public Guid HostelID { get; set; }
         public Guid? RoomID { get; set; }
-        public string ProblemDescription { get; set; }
-        public string ReportedBy { get; set; }
+        public string ProblemDescription { get; set; } = string.Empty;
+        public string ReportedBy { get; set; } = string.Empty;
         public DateTime? DateReported { get; set; }
         public DateTime? DateResolved { get; set; }
-        public string Status { get; set; }
-        public string HostelName { get; set; }
-        public string RoomNumber { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string HostelName { get; set; } = string.Empty;
+        public string RoomNumber { get; set; } = string.Empty;
     }
 }

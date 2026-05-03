@@ -191,7 +191,7 @@ namespace EduSphereDomain.Repositories
 
                             InvoiceNumber = invoiceNumber,
 
-                            IsOptional = item.IsOptional,
+                            isOptional = item.IsOptional,
                             FeeStructureId = structure.Id
                         });
 
@@ -376,7 +376,7 @@ namespace EduSphereDomain.Repositories
                 ReferenceId = x.ReferenceId,
                 ReferenceType = x.ReferenceType,
                 RunningBalance = x.RunningBalance,
-                LedgerSequence = x.LedgerSequence,
+                LedgerSequence = x.LedgerSequence ?? 0,
 
             }).ToList();
         }

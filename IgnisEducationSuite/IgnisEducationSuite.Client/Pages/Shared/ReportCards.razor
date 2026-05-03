@@ -101,14 +101,13 @@
             if (!string.IsNullOrEmpty(ParentID))
                 await GetStudentReportCards();
         }
-       
+
         LoaderService.Hide();
     }
 
     protected async Task GetStudentReportCards()
     {
         var service = _genericService.GetService<GetReportCardsByStudentResult>();
-
         if (string.IsNullOrEmpty(StudentID))
         {
             var result = await service.GetAllAsync($"api/Dynamic/GetstudentReportCardsParent/{ParentID}", true);
@@ -125,7 +124,7 @@
         // Map LevelName from academic levels safely
         foreach (var item in studentResults)
         {
-            item.LevelName = academicLevels.FirstOrDefault(x => x.LevelInt == item.AcademicLevel)?.LevelName ?? string.Empty;
+            item.LevelName = item.ClassName;
         }
     }
 
@@ -161,7 +160,8 @@
         {
             { x => x.attendances, attendances ?? new List<GetAttendanceSummaryResult>() },
             { r => r.Results, details },
-            { rp => rp.student, student }
+            { rp => rp.student, student },
+            {gc=>gc.isGCE, student.isGCE}
         };
 
         var options = new DialogOptions

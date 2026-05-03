@@ -10,7 +10,7 @@ namespace EDUSphereSharedProject.Models
     public partial class Teacher
     {
         [NotMapped]
-        public string GeneratedUserName { get; set; }
+        public string GeneratedUserName { get; set; } = "";
 
         [NotMapped]
         public string FullName { get { return $"{FirstName} {LastName}"; } }

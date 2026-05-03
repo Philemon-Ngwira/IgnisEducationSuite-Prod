@@ -10,6 +10,6 @@ namespace EDUSphereSharedProject.Models
     public partial class Course
     {
         [NotMapped]
-        public string ImgUrl { get; set; }
+        public string ImgUrl { get; set; } = "";
     }
 }

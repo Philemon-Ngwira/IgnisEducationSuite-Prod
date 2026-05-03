@@ -10,6 +10,6 @@ namespace EDUSphereSharedProject.Models
     public partial class ClinicMedication
     {
         [NotMapped]
-        public string ClinicName { get; set; }
+        public string ClinicName { get; set; } = "";
     }
 }

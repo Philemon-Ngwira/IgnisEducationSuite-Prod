@@ -126,18 +126,14 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
         modelBuilder.Entity<FeeStructure>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC078330F055");
+            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC070E20A9FB");
 
             entity.ToTable("FeeStructure", "Finance");
-
-            entity.HasIndex(e => new { e.SchoolId, e.ClassId, e.IsActive }, "IX_FeeStructure_School_Class");
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.AcademicYear).HasMaxLength(20);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
-            entity.Property(e => e.IsActive)
-                .IsRequired()
-                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(150);
@@ -147,11 +143,9 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
         modelBuilder.Entity<FeeStructureItem>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC075EAB823A");
+            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC0709D7E191");
 
             entity.ToTable("FeeStructureItem", "Finance");
-
-            entity.HasIndex(e => e.FeeStructureId, "IX_FeeStructureItem_Structure");
 
             entity.HasIndex(e => new { e.FeeStructureId, e.InvoiceTypeId }, "UQ_FeeStructureItem_UniqueType").IsUnique();
 
@@ -183,7 +177,6 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .IsRequired()
                 .HasMaxLength(10)
                 .IsUnicode(false);
-            entity.Property(e => e.LedgerSequence).ValueGeneratedOnAdd();
             entity.Property(e => e.ReferenceType)
                 .IsRequired()
                 .HasMaxLength(50)
@@ -210,15 +203,19 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
             entity.Property(e => e.InvoiceType)
                 .IsRequired()
                 .HasMaxLength(50)
-                .HasDefaultValueSql("('Tuition')");
+                .HasDefaultValue("Tuition");
             entity.Property(e => e.IssuedDate).HasDefaultValueSql("(getdate())");
             entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.PaymentStatus)
                 .IsRequired()
                 .HasMaxLength(50)
-                .HasDefaultValueSql("('Pending')");
+                .HasDefaultValue("Pending");
             entity.Property(e => e.TermEndDate).HasColumnType("date");
             entity.Property(e => e.TermStartDate).HasColumnType("date");
+
+            entity.HasOne(d => d.FeeStructure).WithMany(p => p.Invoices)
+                .HasForeignKey(d => d.FeeStructureId)
+                .HasConstraintName("FK_Invoice_FeeStructure");
 
             entity.HasOne(d => d.InvoiceTypeNavigation).WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.InvoiceTypeID)
@@ -245,9 +242,7 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .HasMaxLength(50);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
             entity.Property(e => e.Description).HasMaxLength(255);
-            entity.Property(e => e.IsActive)
-                .IsRequired()
-                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(100);
@@ -269,7 +264,7 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
             entity.Property(e => e.PaymentMethod)
                 .IsRequired()
                 .HasMaxLength(50)
-                .HasDefaultValueSql("('Cash')");
+                .HasDefaultValue("Cash");
 
             entity.HasOne(d => d.Invoice).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.InvoiceId)
@@ -334,7 +329,7 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
             entity.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50)
-                .HasDefaultValueSql("('Active')");
+                .HasDefaultValue("Active");
             entity.Property(e => e.TotalFees).HasColumnType("decimal(18, 2)");
 
             entity.HasOne(d => d.Student).WithOne(p => p.StudentFinance)
@@ -552,7 +547,6 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
             entity.Property(e => e.LastName).HasMaxLength(50);
         });
 
-        OnModelCreatingGeneratedProcedures(modelBuilder);
         OnModelCreatingPartial(modelBuilder);
     }
 

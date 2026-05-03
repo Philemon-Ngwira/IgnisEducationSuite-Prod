@@ -21,11 +21,13 @@ public partial class FeeStructure
 
     public string AcademicYear { get; set; }
 
-    public bool? IsActive { get; set; }
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
 
     public virtual ICollection<FeeStructureItem> FeeStructureItems { get; set; } = new List<FeeStructureItem>();
+
+    public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

@@ -15,11 +15,11 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public DateTime? SubmissionDate { get; set; }
         [Column(TypeName = "decimal(5,2)")]
         public decimal? Grade { get; set; }
-        public string Status { get; set; }
+        public string Status { get; set; } = string.Empty;
         public Guid? QuestionID { get; set; }
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
         public int? AssignmentTotalMarks { get; set; }
-        public string TeacherFirstName { get; set; }
-        public string TeacherLastName { get; set; }
+        public string TeacherFirstName { get; set; } = string.Empty;
+        public string TeacherLastName { get; set; } = string.Empty;
     }
 }

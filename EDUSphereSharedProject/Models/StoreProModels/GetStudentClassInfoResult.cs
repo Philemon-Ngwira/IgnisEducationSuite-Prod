@@ -11,7 +11,7 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public Guid StudentClassID { get; set; }
         public Guid? StudentID { get; set; }
         public Guid? ClassID { get; set; }
-        public string ClassName { get; set; }
-        public string Teacher { get; set; }
+        public string ClassName { get; set; } = string.Empty;
+        public string Teacher { get; set; } = string.Empty;
     }
 }

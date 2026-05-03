@@ -5,12 +5,12 @@ namespace EDUSphereSharedProject.Models
     public partial class BusMaintenanceRequest
     {
         [NotMapped]
-        public string RegistrationNumber { get; set; }
+        public string RegistrationNumber { get; set; } = "";
         [NotMapped]
-        public string ReportingStaffFirstName { get; set; }
+        public string ReportingStaffFirstName { get; set; } = "";
         [NotMapped]
-        public string ReportingStaffLastName { get; set; }
+        public string ReportingStaffLastName { get; set; } = "";
         [NotMapped]
-        public string EmployeeID { get; set; }
+        public string EmployeeID { get; set; } = "";
     }
 }

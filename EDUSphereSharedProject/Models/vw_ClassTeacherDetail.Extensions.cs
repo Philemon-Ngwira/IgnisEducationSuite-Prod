@@ -10,8 +10,8 @@ namespace EDUSphereSharedProject.Models
     public partial class vw_ClassTeacherDetail
     {
         [NotMapped]
-        public string LevelName { get; set; }
+        public string LevelName { get; set; } = "";
         [NotMapped]
-        public string sectionName { get; set; } 
+        public string sectionName { get; set; } = "";
     }
 }

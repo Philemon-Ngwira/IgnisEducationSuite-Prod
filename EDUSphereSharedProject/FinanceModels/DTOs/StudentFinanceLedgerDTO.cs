@@ -11,13 +11,13 @@ namespace EDUSphereSharedProject.FinanceModels.DTOs
     {
         public Guid Id { get; set; }
         public DateTime CreatedAt { get; set; }
-        public string EntryType { get; set; }
+        public string EntryType { get; set; } = "";
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }
-        public string Description { get; set; }
-        public string ReferenceType { get; set; }
+        public string Description { get; set; } = "";
+        public string ReferenceType { get; set; } = "";
         public Guid? ReferenceId { get; set; }
-        public string InvoiceNumber { get; set; }
+        public string InvoiceNumber { get; set; } = "";
         public long LedgerSequence {  get; set; }
 
         [Column(TypeName = "decimal(38,2)")]

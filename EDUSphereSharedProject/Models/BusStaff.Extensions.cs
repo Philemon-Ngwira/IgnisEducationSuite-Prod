@@ -10,6 +10,6 @@ namespace EDUSphereSharedProject.Models
     public partial class BusStaff
     {
         [NotMapped]
-        public List<string> Certifications { get; set; }
+        public List<string> Certifications { get; set; } = new List<string>();
     }
 }

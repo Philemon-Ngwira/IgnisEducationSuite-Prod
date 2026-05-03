@@ -12,7 +12,7 @@ namespace EDUSphereSharedProject.Models
         [NotMapped]
         public int LessonCompleted { get; set; }
         [NotMapped]
-        public string imageUrl { get; set; }
+        public string imageUrl { get; set; } = "";
         [NotMapped]
         public Guid StudentID { get; set; }
         [NotMapped]

@@ -9,11 +9,11 @@ namespace EDUSphereSharedProject.UniversalModels
 {
     public class Book
     {
-        public string Id { get; set; }
-        public VolumeInfo VolumeInfo { get; set; }
-        public AccessInfo AccessInfo { get; set; }
+        public string Id { get; set; } = "";
+        public VolumeInfo VolumeInfo { get; set; } = new VolumeInfo();
+        public AccessInfo AccessInfo { get; set; } = new AccessInfo();
 
         [NotMapped]
-        public string DefaultImg { get; set; }
+        public string DefaultImg { get; set; } = "";
     }
 }

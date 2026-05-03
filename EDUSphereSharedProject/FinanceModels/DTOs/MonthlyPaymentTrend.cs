@@ -9,7 +9,7 @@ namespace EDUSphereSharedProject.FinanceModels.DTOs
 {
     public class MonthlyPaymentTrend
     {
-        public string Month { get; set; }
+        public string Month { get; set; } = "";
         [Column(TypeName = "decimal(38,2)")]
         public decimal Amount { get; set; }
     }

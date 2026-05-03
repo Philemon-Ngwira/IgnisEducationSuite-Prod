@@ -10,8 +10,8 @@ namespace EDUSphereSharedProject.Models
     public partial class Parent
     {
         [NotMapped]
-        public string GeneratedUserName { get; set; }
+        public string GeneratedUserName { get; set; } = "";
         [NotMapped]
-        public string StudentNumbersRaw { get; set; }
+        public string StudentNumbersRaw { get; set; } = "";
     }
 }

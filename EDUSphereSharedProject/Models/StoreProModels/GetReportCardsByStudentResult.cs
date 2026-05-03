@@ -30,5 +30,9 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public string SchoolName { get; set; }
         public string SchoolEmail { get; set; }
         public string SchoolWebsite { get; set; }
+
+        public string ClassName { get; set; }
+
+        public bool isGCE { get; set; }
     }
 }

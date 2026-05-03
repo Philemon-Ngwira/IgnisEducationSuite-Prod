@@ -866,6 +866,9 @@ namespace EduSphereDomain.Repositories
                     PrincipleName = item.PrincipleName,
                     PrinciplesComment = item.PrinciplesComment,
                     ReportCardType = item.ReportCardType,
+                    ClassName = $"{item.LevelName}({item.GradeSection})",
+                    isGCE = item.isGCE,
+
                 };
                 stds.Add(reportCard);
             }
@@ -889,7 +892,21 @@ namespace EduSphereDomain.Repositories
                     GPA = item.GPA,
                     IssuedDate = item.IssuedDate,
                     TermStartDate = item.TermStartDate,
-                    TermEndDate = item.TermEndDate
+                    TermEndDate = item.TermEndDate,
+                    SchoolEmail = item.SchoolEmail,
+                    SchoolName = item.SchoolName,
+                    SchoolWebsite = item.SchoolWebsite,
+                    MarksInBestSix = item.MarksInBestSix,
+                    PointsInBestSix = item.PointsInBestSix,
+                    DeanName = item.DeanName,
+                    DeansComment = item.DeansComment,
+                    PositionInClass = item.PositionInClass,
+                    PrincipleName = item.PrincipleName,
+                    PrinciplesComment = item.PrinciplesComment,
+                    ReportCardType = item.ReportCardType,
+                    ClassName = $"{item.LevelName}({item.GradeSection})",
+                    isGCE = item.isGCE,
+
                 };
                 stds.Add(reportCard);
             }
@@ -1284,32 +1301,32 @@ namespace EduSphereDomain.Repositories
             try
             {
                 return await _context.Students
-                    .AsNoTracking()
-                    .Where(s => s.SchoolID == schoolId)
-                    .Select(s => new StudentWithClassesDTO
-                    {
-                        StudentID = s.StudentID,
-                        FirstName = s.FirstName,
-                        LastName = s.LastName,
-                        AcademicLevel = s.AcademicLevel ?? 0,
-                        LevelName = s.LevelName ?? "",
-                        Gender = s.Gender,
-                        StudentNumber = s.StudentNumber,
-                        AcademicLevelID = s.AcademicLevelID,
-                        LevelSectionID = s.LevelSectionID,
-                        GradeSection = s.GradeSection ?? "",
+                     .AsNoTracking()
+                     .Where(s => s.SchoolID == schoolId)
+                     .Select(s => new StudentWithClassesDTO
+                     {
+                         StudentID = s.StudentID,
+                         FirstName = s.FirstName,
+                         LastName = s.LastName,
+                         AcademicLevel = s.AcademicLevel ?? 0,
+                         LevelName = s.LevelName ?? "",
+                         Gender = s.Gender,
+                         StudentNumber = s.StudentNumber,
+                         AcademicLevelID = s.AcademicLevelID,
+                         LevelSectionID = s.LevelSectionID,
+                         GradeSection = s.GradeSection ?? "",
 
-                        Classes = s.StudentClasses
-                            .Where(sc => sc.Class != null) // safety
-                            .Select(sc => new StudentClassDTO
-                            {
-                                ClassID = sc.Class.ClassID,
-                                ClassName = sc.Class.ClassName,
-                                TeacherID = sc.Class.TeacherID
-                            })
-                            .ToList()
-                    })
-                    .ToListAsync();
+                         Classes = s.StudentClasses
+                             .Where(sc => sc.Class != null) // safety
+                             .Select(sc => new StudentClassDTO
+                             {
+                                 ClassID = sc.Class.ClassID,
+                                 ClassName = sc.Class.ClassName,
+                                 TeacherID = sc.Class.TeacherID
+                             })
+                             .ToList()
+                     })
+                     .ToListAsync();
             }
             catch (Exception ex)
             {

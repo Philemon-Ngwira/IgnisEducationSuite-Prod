@@ -10,12 +10,12 @@ namespace EDUSphereSharedProject.Models
     public partial class Student
     {
         [NotMapped]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
         [NotMapped]
-        public string GeneratedUserName { get; set; }
+        public string GeneratedUserName { get; set; } = string.Empty;
 
         [NotMapped]
-        public List<ClinicVisit> clinicVisits { get; set; }
+        public List<ClinicVisit> clinicVisits { get; set; } = new List<ClinicVisit>();
         [NotMapped]
         public bool isCurrentlyInHospital { get; set; }
     }

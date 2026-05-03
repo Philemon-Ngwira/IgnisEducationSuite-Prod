@@ -42,13 +42,30 @@
                         </tr>
                         <tr>
                             <th>Points in Best Six:</th>
-                            <td>@student.PointsInBestSix</td>
+                            @if (isGCE)
+                            {
+                                <td>@("GCE")</td>
+
+                            }
+                            else
+                            {
+                                <td>@student.PointsInBestSix</td>
+
+                            }
                             <th>Marks in Best Six:</th>
                             <td>@student.MarksInBestSix</td>
                         </tr>
                         <tr>
                             <th>Position in Class:</th>
-                            <td>@student.PositionInClass</td>
+                            @if (isGCE)
+                            {
+                                <td>@("GCE")</td>
+
+                            }
+                            else
+                            {
+                                <td>@student.PositionInClass</td>
+                            }
                             <th>Term:</th>
                             <td>@student.Term</td>
                         </tr>

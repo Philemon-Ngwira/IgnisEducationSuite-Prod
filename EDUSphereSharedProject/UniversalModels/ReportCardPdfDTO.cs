@@ -45,5 +45,7 @@ namespace EDUSphereSharedProject.UniversalModels
         public string Term { get; set; } = string.Empty;
         public string ReportCardType { get; set; } = string.Empty;
 
+        public bool isGCE { get; set; } = false;
+
     }
 }
