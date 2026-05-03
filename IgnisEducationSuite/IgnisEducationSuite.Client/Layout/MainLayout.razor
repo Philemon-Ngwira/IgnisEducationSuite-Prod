@@ -71,6 +71,8 @@
     private bool _subscribed;
     private bool _authChecked = false;
     private bool _isAuthenticated = false;
+
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _initialized)
