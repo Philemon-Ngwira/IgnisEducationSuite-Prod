@@ -1,8 +1,5 @@
 ﻿using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.UniversalModels.TimeTabling;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
 {
@@ -10,16 +7,17 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
     {
         private readonly Random _rand = new();
         private readonly Dictionary<(DayOfWeek, Guid), int> dailyCount = new();
-        private readonly bool debug = true;
-
         private TimeSpan EarlyMorningCutOFF = TimeSpan.Zero;
 
-        public List<TimeSlot> Generate(
+
+        public async Task<List<TimeSlot>> Generate(
             List<TimeSlot> slots,
             List<SubjectScheduleConfig> subjects,
             List<SubjectAdjacencyConstraints> adjacencyConstraints,
-            TimeTableActivity? prepActivity = null)
+            TimeTableActivity? prepActivity = null,
+            TeacherConflictChecker? teacherChecker = null)
         {
+            await Task.Yield(); // Ensure async context for potential future DB calls in teacherChecker
             dailyCount.Clear();
             var prepareslots = BuildEmptyWeek(slots);
             EarlyMorningCutOFF = subjects.First().EarlyMorningEnd;
@@ -44,19 +42,18 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
                 .ToDictionary(g => g.Key, g => g.OrderBy(s => s.StartTime).ToList());
 
             // 2️⃣ EARLY MORNING DOUBLES
-            PlaceDoubles(slotsByDay, earlySubjects, remainingPeriods, remainingDoubles, adjacencyDict, morningOnly: true);
+            PlaceDoubles(slotsByDay, earlySubjects, remainingPeriods, remainingDoubles, adjacencyDict, morningOnly: true, teacherChecker);
 
             // 3️⃣ EARLY MORNING SINGLES
-            PlaceSingles(slotsByDay, earlySubjects, remainingPeriods, adjacencyDict, morningOnly: true);
+            PlaceSingles(slotsByDay, earlySubjects, remainingPeriods, adjacencyDict, morningOnly: true, teacherChecker);
 
             // 4️⃣ NORMAL DOUBLES
-            PlaceDoubles(slotsByDay, normalSubjects, remainingPeriods, remainingDoubles, adjacencyDict, morningOnly: false);
+            PlaceDoubles(slotsByDay, normalSubjects, remainingPeriods, remainingDoubles, adjacencyDict, morningOnly: false, teacherChecker);
 
             // 5️⃣ NORMAL SINGLES
-            PlaceSingles(slotsByDay, normalSubjects, remainingPeriods, adjacencyDict, morningOnly: false);
+            PlaceSingles(slotsByDay, normalSubjects, remainingPeriods, adjacencyDict, morningOnly: false, teacherChecker);
 
 #if DEBUG
-            // HARD ASSERT
             foreach (var subject in subjects)
             {
                 var placed = prepareslots.Count(s => s.SubjectId == subject.SubjectId);
@@ -78,7 +75,8 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
             Dictionary<Guid, int> remainingPeriods,
             Dictionary<Guid, int> remainingDoubles,
             Dictionary<Guid, SubjectAdjacencyConstraints> adjacencyDict,
-            bool morningOnly)
+            bool morningOnly,
+            TeacherConflictChecker teacherChecker)
         {
             foreach (var subject in subjects)
             {
@@ -103,10 +101,14 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
                             if (a.EndTime != b.StartTime) continue;
                             if (morningOnly && a.StartTime >= EarlyMorningCutOFF) continue;
 
+                            // ✅ Teacher conflict check for both slots of the double
+                            if (teacherChecker.IsTeacherBusy(subject.TeacherId, day, a.StartTime.Value)) continue;
+                            if (teacherChecker.IsTeacherBusy(subject.TeacherId, day, b.StartTime.Value)) continue;
+
                             if (remainingPeriods[subject.SubjectId] < 2) break;
 
-                            Place(a, subject, remainingPeriods, day);
-                            Place(b, subject, remainingPeriods, day);
+                            Place(a, subject, remainingPeriods, day, teacherChecker);
+                            Place(b, subject, remainingPeriods, day, teacherChecker);
                             remainingDoubles[subject.SubjectId]--;
 
                             placed = true;
@@ -129,7 +131,8 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
             List<SubjectScheduleConfig> subjects,
             Dictionary<Guid, int> remainingPeriods,
             Dictionary<Guid, SubjectAdjacencyConstraints> adjacencyDict,
-            bool morningOnly)
+            bool morningOnly,
+            TeacherConflictChecker teacherChecker)
         {
             foreach (var subject in subjects)
             {
@@ -144,7 +147,10 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
                         if (!IsFree(slot)) continue;
                         if (morningOnly && slot.StartTime >= EarlyMorningCutOFF) continue;
 
-                        Place(slot, subject, remainingPeriods, day);
+                        // ✅ Teacher conflict check
+                        if (teacherChecker.IsTeacherBusy(subject.TeacherId, day, slot.StartTime.Value)) continue;
+
+                        Place(slot, subject, remainingPeriods, day, teacherChecker);
                         break;
                     }
                 }
@@ -161,14 +167,22 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
             TimeSlot slot,
             SubjectScheduleConfig subject,
             Dictionary<Guid, int> remainingPeriods,
-            DayOfWeek day)
+            DayOfWeek day,
+            TeacherConflictChecker teacherChecker)
         {
             if (remainingPeriods[subject.SubjectId] <= 0) return;
+
+            // ✅ Final teacher conflict guard before committing
+            if (teacherChecker.IsTeacherBusy(subject.TeacherId, day, slot.StartTime.Value))
+                return;
 
             slot.SubjectId = subject.SubjectId;
             slot.SubjectName = subject.SubjectName;
             remainingPeriods[subject.SubjectId]--;
             IncrementDailyCount(day, subject.SubjectId);
+
+            // ✅ Mark teacher as busy so no other subject/grade can clash
+            teacherChecker.MarkBusy(subject.TeacherId, day, slot.StartTime.Value);
         }
 
         private List<TimeSlot> BuildEmptyWeek(List<TimeSlot> slots)

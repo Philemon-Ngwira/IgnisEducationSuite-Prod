@@ -335,6 +335,34 @@ namespace IgnisEducationSuite.Controllers
             var result = await _repository.GetReportCardsByStudents(userID);
             return Ok(result);
         }
+        [HttpGet("GetReportCardTerms/{schoolID}")]
+        public async Task<IActionResult> GetReportCardTerms(Guid schoolID)
+        {
+            var result = await _repository.GetReportCardTerms(schoolID);
+            return Ok(result);
+        }
+        [HttpGet("GetConsolidatedReportCard/{SchoolID}/{Term}")]
+        public async Task<IActionResult> GetConsolidatedReportCard(Guid SchoolID, string Term)
+        {
+            var result = await _repository.GetConsolidatedReport(SchoolID, Term);
+            return Ok(result);
+        }
+        [HttpGet("reportcards")]
+        public async Task<IActionResult> GetAllReportCardsBySchool(
+     [FromQuery] Guid schoolId,
+     [FromQuery] Guid? academicLevelId,
+     [FromQuery] string? gradeSection,
+     [FromQuery] string? term)
+        {
+            var result = await _repository.GetAllReportCardsBySchool(
+                schoolId,
+                academicLevelId,
+                gradeSection,
+                term
+            );
+
+            return Ok(result);
+        }
         [HttpGet("GetstudentReportCardsParent/{userID}")]
         public async Task<IActionResult> GetstudentReportCardsParent(string userID)
         {
@@ -747,6 +775,13 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Non Generic New Modules
+
+        [HttpGet("GetTeacherStudentCompletionStatus/{SchoolID}/{TeacherID}/{ReportType}")]
+        public async Task<IActionResult> GetTeacherCompletionStatus(Guid SchoolID, Guid TeacherID, string ReportType)
+        {
+            var result = await _repository.GetStudentCompletionStatuses(SchoolID, TeacherID, ReportType);
+            return Ok(result);
+        }
         [HttpGet("GetParentById/{userID}")]
         public async Task<IActionResult> GetParentById(string userID)
         {

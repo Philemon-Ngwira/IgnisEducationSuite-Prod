@@ -425,7 +425,89 @@ namespace IgnisEducationSuite.ServerServices
         }
 
 
+        public byte[] GenerateConsolidatedReport(List<ConsolidatedReport> data)
+        {
+            using var workbook = new XLWorkbook();
 
+            var groupedData = data
+                .GroupBy(x => new { x.Grade, x.GradeSection })
+                .OrderBy(g => g.Key.Grade)
+                .ThenBy(g => g.Key.GradeSection);
+
+            foreach (var group in groupedData)
+            {
+                var sheetName = $"{group.Key.Grade}_{group.Key.GradeSection}";
+                var ws = workbook.Worksheets.Add(sheetName);
+
+                // 🎨 TAB COLOR (IMPORTANT FIX)
+                ws.TabColor = GetTabColor(sheetName);
+
+                string[] headers =
+                {
+            "Student Name",
+            "Term",
+            "Points",
+            "Position",
+            "Subjects"
+        };
+
+                for (int i = 0; i < headers.Length; i++)
+                    ws.Cell(1, i + 1).Value = headers[i];
+
+                int row = 2;
+                foreach (var student in group.OrderBy(x => x.PositionInClass))
+                {
+                    bool isGce = student.IsGCE;
+                    int.TryParse(student.PositionInClass?.ToString(), out int position);
+
+                    var rowRange = ws.Range(row, 1, row, headers.Length);
+
+                    // 🥇🥈🥉 TOP 3 HIGHLIGHT
+                    if (!isGce)
+                    {
+                        if (position == 1)
+                            rowRange.Style.Fill.BackgroundColor = XLColor.Gold;
+                        else if (position == 2)
+                            rowRange.Style.Fill.BackgroundColor = XLColor.Silver;
+                        else if (position == 3)
+                            rowRange.Style.Fill.BackgroundColor = XLColor.BurlyWood;
+                    }
+
+                    ws.Cell(row, 1).Value = student.StudentName;
+                    ws.Cell(row, 2).Value = student.Term;
+                    ws.Cell(row, 3).Value = isGce ? "GCE" : student.Points;
+                    ws.Cell(row, 4).Value = isGce ? "GCE" : student.PositionInClass;
+                    ws.Cell(row, 5).Value = student.SubjectList;
+
+                    row++;
+                }
+
+                var headerRange = ws.Range(1, 1, 1, headers.Length);
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+                headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                ws.SheetView.FreezeRows(1);
+                ws.Columns().AdjustToContents();
+            }
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            return ms.ToArray();
+        }
+
+        private XLColor GetTabColor(string key)
+        {
+            // Simple deterministic hash
+            int hash = key.GetHashCode();
+
+            // Keep RGB in a pleasant range (avoid too dark/light)
+            byte r = (byte)(100 + (hash & 0x7F));
+            byte g = (byte)(100 + ((hash >> 8) & 0x7F));
+            byte b = (byte)(100 + ((hash >> 16) & 0x7F));
+
+            return XLColor.FromArgb(r, g, b);
+        }
 
     }
 }

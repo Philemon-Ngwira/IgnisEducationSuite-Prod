@@ -1,9 +1,10 @@
+using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.Client.Services;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.JSInterop;
 using MudBlazor;
-using EDUSphereSharedProject.Models.StoreProModels;
 using System.Net.Http.Json;
 
 namespace IgnisEducationSuite.Client.Pages.Shared.Dialogs
@@ -21,6 +22,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared.Dialogs
         [Inject] ClientEmailService _emailService { get; set; } = default!;
         [Inject] AppState AppState { get; set; } = default!;
         [Inject] ISnackbar Snackbar { get; set; } = default!;
+        [Inject] IJSRuntime JS { get; set; }
         protected bool isLoading = false;
         protected async Task PrepareAndMailDocument()
         {
@@ -29,7 +31,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared.Dialogs
                 isLoading = true;
 
                 // Only allow Students/Parents to generate PDF
-                if (AppState.UserRole != "Student" && AppState.UserRole != "Parent")
+                if (AppState.UserRole != "Student" && AppState.UserRole != "Parent" && AppState.UserRole != "Admin")
                 {
                     Snackbar.Add("Only students or parents can download their report card.", Severity.Warning);
                     return;
@@ -85,6 +87,20 @@ namespace IgnisEducationSuite.Client.Pages.Shared.Dialogs
 
                 // Get PDF bytes
                 var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+
+                if (AppState.UserRole == "Admin")
+                {
+                    var fileName = $"ReportCard_{dto.FirstName}_{dto.LastName}.pdf";
+
+                    await JS.InvokeVoidAsync(
+                        "downloadFileFromBytes",
+                        fileName,
+                        pdfBytes
+                    );
+
+                    Snackbar.Add("Report card downloaded successfully.", Severity.Success);
+                    return;
+                }
 
                 // Send email
                 var auth = await authenticationStateProvider.GetAuthenticationStateAsync();

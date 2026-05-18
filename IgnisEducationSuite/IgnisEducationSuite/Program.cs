@@ -19,6 +19,7 @@ using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
 using IgnisEducationSuite.Settings;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using QuestPDF.Infrastructure;
@@ -132,6 +133,7 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<CountryCurrencyService>();
             builder.Services.AddScoped<StudentPaymentUploadTemplate>();
             builder.Services.AddScoped<ITimetableGenerator, TimetableGenerator>();
+            builder.Services.AddScoped<ITeacherAvailabilityProvider, TeacherAvailabilityProvider>();
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory
 
             builder.Services.AddSingleton<IConverter>(new SynchronizedConverter(new PdfTools()));

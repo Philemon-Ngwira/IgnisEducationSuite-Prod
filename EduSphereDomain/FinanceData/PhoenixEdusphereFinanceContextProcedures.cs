@@ -518,6 +518,39 @@ namespace EduSphereDomain.FinanceData
             return _;
         }
 
+        public virtual async Task<List<GetConsolidatedEndTermReportResult>> GetConsolidatedEndTermReportAsync(Guid? schoolID, string term, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = schoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "Term",
+                    Size = 40,
+                    Value = term ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryToListAsync<GetConsolidatedEndTermReportResult>("EXEC @returnValue = [dbo].[GetConsolidatedEndTermReport] @SchoolID = @SchoolID, @Term = @Term", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
         public virtual async Task<List<GetGradedStudentAssignmentsResult>> GetGradedStudentAssignmentsAsync(Guid? studentID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
@@ -909,6 +942,32 @@ namespace EduSphereDomain.FinanceData
             return _;
         }
 
+        public virtual async Task<List<GetReportCardTermsResult>> GetReportCardTermsAsync(Guid? schoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = schoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryToListAsync<GetReportCardTermsResult>("EXEC @returnValue = [dbo].[GetReportCardTerms] @SchoolID = @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
         public virtual async Task<List<GetRoomsBySchoolResult>> GetRoomsBySchoolAsync(Guid? schoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
@@ -981,6 +1040,52 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryToListAsync<GetSchoolMealSessionsResult>("EXEC @returnValue = [dbo].[GetSchoolMealSessions] @SchoolID = @SchoolID", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<GetSchoolReportCardsResult>> GetSchoolReportCardsAsync(Guid? schoolID, Guid? academicLevelID, string gradeSection, string term, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = schoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "AcademicLevelID",
+                    Value = academicLevelID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "GradeSection",
+                    Size = 100,
+                    Value = gradeSection ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "Term",
+                    Size = 40,
+                    Value = term ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryToListAsync<GetSchoolReportCardsResult>("EXEC @returnValue = [dbo].[GetSchoolReportCards] @SchoolID = @SchoolID, @AcademicLevelID = @AcademicLevelID, @GradeSection = @GradeSection, @Term = @Term", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 
@@ -2583,6 +2688,38 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryToListAsync<usp_GetStaffBySchoolAndRoleResult>("EXEC @returnValue = [dbo].[usp_GetStaffBySchoolAndRole] @SchoolID = @SchoolID, @RoleName = @RoleName", sqlParameters, cancellationToken);
+
+            returnValue?.SetValue(parameterreturnValue.Value);
+
+            return _;
+        }
+
+        public virtual async Task<List<usp_GetTeacherBusySlotsResult>> usp_GetTeacherBusySlotsAsync(Guid? teacherID, Guid? schoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
+        {
+            var parameterreturnValue = new SqlParameter
+            {
+                ParameterName = "returnValue",
+                Direction = System.Data.ParameterDirection.Output,
+                SqlDbType = System.Data.SqlDbType.Int,
+            };
+
+            var sqlParameters = new []
+            {
+                new SqlParameter
+                {
+                    ParameterName = "TeacherID",
+                    Value = teacherID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                new SqlParameter
+                {
+                    ParameterName = "SchoolID",
+                    Value = schoolID ?? Convert.DBNull,
+                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
+                },
+                parameterreturnValue,
+            };
+            var _ = await _context.SqlQueryToListAsync<usp_GetTeacherBusySlotsResult>("EXEC @returnValue = [dbo].[usp_GetTeacherBusySlots] @TeacherID = @TeacherID, @SchoolID = @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

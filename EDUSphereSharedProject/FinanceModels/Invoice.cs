@@ -43,7 +43,11 @@ public partial class Invoice
 
     public virtual FeeStructure FeeStructure { get; set; }
 
+    public virtual ICollection<InvoiceBucketAllocation> InvoiceBucketAllocations { get; set; } = new List<InvoiceBucketAllocation>();
+
     public virtual InvoiceType InvoiceTypeNavigation { get; set; }
+
+    public virtual ICollection<PaymentAllocation> PaymentAllocations { get; set; } = new List<PaymentAllocation>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 

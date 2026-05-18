@@ -395,6 +395,17 @@ namespace EduSphereDomain.Repositories
             }
             return stdCls;
         }
+
+        public async Task<IEnumerable<StudentCompletionStatusDTO>> GetStudentCompletionStatuses(Guid SchoolID, Guid TeacherID, string ReportCardType)
+        {
+            var result = await _financeContextProcedures.GetTeacherStudentCompletionStatusAsync(SchoolID, TeacherID, ReportCardType);
+            return result.Select(x => new StudentCompletionStatusDTO
+            {
+                IsCompleted = x.IsCompleted == 1,
+                StudentID = x.StudentID.GetValueOrDefault()
+
+            }).ToList();
+        }
         public async Task<IEnumerable<TimetableOverride>> GetTimeTableOverrides(Guid SchoolId)
         {
             var result = await _financeContextProcedures.GetTimetableOverridesBySchoolAsync(SchoolId);
@@ -868,6 +879,95 @@ namespace EduSphereDomain.Repositories
                     ReportCardType = item.ReportCardType,
                     ClassName = $"{item.LevelName}({item.GradeSection})",
                     isGCE = item.isGCE,
+                    LevelName = item.LevelName,
+                };
+                stds.Add(reportCard);
+            }
+            return stds;
+        }
+        public async Task<IEnumerable<ReportCardTerm>> GetReportCardTerms(Guid SchoolID)
+        {
+            List<ReportCardTerm> terms = new();
+            var result = await _financeContextProcedures.GetReportCardTermsAsync(SchoolID);
+            foreach (var item in result)
+            {
+                ReportCardTerm term = new()
+                {
+                    Term = item.Term
+                };
+                terms.Add(term);
+            }
+            return terms;
+        }
+        public async Task<IEnumerable<ConsolidatedReport>> GetConsolidatedReport(Guid SchoolID, string Term)
+        {
+            try
+            {
+                List<ConsolidatedReport> reports = new();
+                var result = await _financeContextProcedures.GetConsolidatedEndTermReportAsync(SchoolID, Term);
+                foreach (var item in result)
+                {
+                    ConsolidatedReport report = new()
+                    {
+                        StudentID = item.StudentID,
+                        StudentName = item.StudentName,
+                        SubjectList = item.SubjectList,
+                        GradeSection = item.GradeSection,
+                        Grade = item.Grade,
+                        IssuedDate = item.IssuedDate,
+                        Points = item.Points,
+                        PointsInBestSix = item.PointsInBestSix,
+                        IsGCE = item.IsGCE,
+                        PointsDisplay = item.PointsDisplay,
+                        PositionDisplay = item.PositionDisplay,
+                        PositionInClass = item.PositionInClass,
+                        Term = item.Term
+                    };
+                    reports.Add(report);
+                }
+                return reports;
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+
+        }
+        public async Task<IEnumerable<GetReportCardsByStudentResult>> GetAllReportCardsBySchool(Guid SchoolID, Guid? AcademicLevel, string GradeSection, string Term)
+        {
+            List<GetReportCardsByStudentResult> stds = new();
+            var result = await _financeContextProcedures.GetSchoolReportCardsAsync(SchoolID, AcademicLevel, GradeSection ?? null, Term ?? null);
+            foreach (var item in result)
+            {
+                GetReportCardsByStudentResult reportCard = new()
+                {
+                    ReportCardID = item.ReportCardID,
+                    StudentID = item.StudentID,
+                    StudentName = item.StudentName,
+                    Term = item.Term,
+                    GPA = item.GPA,
+                    FirstName = item.FirstName,
+                    LastName = item.LastName,
+                    AcademicLevel = item.AcademicLevel,
+                    IssuedDate = item.IssuedDate,
+                    TermStartDate = item.TermStartDate,
+                    TermEndDate = item.TermEndDate,
+                    SchoolEmail = item.SchoolEmail,
+                    SchoolName = item.SchoolName,
+                    SchoolWebsite = item.SchoolWebsite,
+                    MarksInBestSix = item.MarksInBestSix,
+                    PointsInBestSix = item.PointsInBestSix,
+                    DeanName = item.DeanName,
+                    DeansComment = item.DeansComment,
+                    PositionInClass = item.PositionInClass,
+                    PrincipleName = item.PrincipleName,
+                    PrinciplesComment = item.PrinciplesComment,
+                    ReportCardType = item.ReportCardType,
+                    ClassName = $"{item.LevelName}({item.GradeSection})",
+                    isGCE = item.IsGCE,
+                    LevelName = item.LevelName,
+
 
                 };
                 stds.Add(reportCard);
@@ -906,7 +1006,7 @@ namespace EduSphereDomain.Repositories
                     ReportCardType = item.ReportCardType,
                     ClassName = $"{item.LevelName}({item.GradeSection})",
                     isGCE = item.isGCE,
-
+                    LevelName = item.LevelName,
                 };
                 stds.Add(reportCard);
             }

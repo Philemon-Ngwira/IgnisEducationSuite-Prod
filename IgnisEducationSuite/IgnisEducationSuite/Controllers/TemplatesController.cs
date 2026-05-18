@@ -1,5 +1,6 @@
 ﻿using EduSphereDomain.Repositories;
 using EDUSphereSharedProject.Models;
+using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.ServerServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -114,6 +115,25 @@ namespace IgnisEducationSuite.Controllers
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
               "clinicInventoryTemplate.xlsx"
                 );
+        }
+
+        [HttpGet("generateconsolidatedreport/{schoolId}/{term}")]
+        public async Task<IActionResult> GenerateConsolidatedReport(Guid schoolId, string term)
+        {
+            var data = await _repository.GetConsolidatedReport(schoolId, term);
+
+            if (data == null || !data.Any())
+                return BadRequest("No data found");
+
+            var fileBytes = _template.GenerateConsolidatedReport(data.ToList());
+
+            var fileName = $"Consolidated_Report_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+
+            return File(
+                fileBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                fileName
+            );
         }
     }
 }

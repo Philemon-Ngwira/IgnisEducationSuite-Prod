@@ -23,7 +23,7 @@
             <MudPaper Class="p-4 mb-4" Elevation="2">
                 <MudGrid Spacing="3">
                     <MudItem xs="12">
-                        <MudSelect T="string" Label="Report Type" @bind-Value="SelectedReportType">
+                        <MudSelect T="string" Label="Report Type" Value="SelectedReportType" ValueChanged="UpdateCompletionState">
                             @foreach (var type in ReportTypes)
                             {
                                 <MudSelectItem Value="@type">@type</MudSelectItem>
@@ -165,6 +165,12 @@
         StateHasChanged();
         LoaderService.Hide();
     }
+    private async Task UpdateCompletionState(string cardType)
+    {
+        SelectedReportType = cardType;
+        await LoadCompletionStatus();
+    }
+
     private async Task LoadCompletionStatus()
     {
         var response = await HttpClient.GetFromJsonAsync<List<StudentCompletionStatusDTO>>(
@@ -389,6 +395,7 @@
         }
 
     }
+
     private void SetCompletionStatusPerTeacher(
     List<StudentWithClassesDTO> students,
     List<ReportCardDetail> allDetails)

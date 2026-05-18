@@ -9,6 +9,12 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
     public class TimeTableRepair
     {
         private const int MaxRepairPasses = 2;
+        private readonly TeacherConflictChecker _teacherChecker;
+
+        public TimeTableRepair(TeacherConflictChecker teacherChecker)
+        {
+            _teacherChecker = teacherChecker;
+        }
 
         public void Repair(TimetableState state, TimeTableActivity? prepActivity = null)
         {
@@ -89,15 +95,11 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                             var a = daySlots[i];
                             var b = daySlots[i + 1];
 
-                            if (!IsSlotValidForDouble(a, subject) ||
-                                !IsSlotValidForDouble(b, subject))
-                                continue;
+                            if (!IsSlotValidForDouble(a, subject, day)) continue;
+                            if (!IsSlotValidForDouble(b, subject, day)) continue;
+                            if (a.EndTime != b.StartTime) continue;
 
-                            if (a.EndTime != b.StartTime)
-                                continue;
-
-                            if (state.WeeklyRemaining(subject.SubjectId) < 2)
-                                break;
+                            if (state.WeeklyRemaining(subject.SubjectId) < 2) break;
 
                             PlaceSubject(a, subject.SubjectId, state);
                             PlaceSubject(b, subject.SubjectId, state);
@@ -109,13 +111,12 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                         if (placed) break;
                     }
 
-                    if (!placed)
-                        break; // No legal double possible
+                    if (!placed) break;
                 }
             }
         }
 
-        private bool IsSlotValidForDouble(TimeSlot slot, SubjectScheduleConfig subject)
+        private bool IsSlotValidForDouble(TimeSlot slot, SubjectScheduleConfig subject, DayOfWeek day)
         {
             if (slot.IsLocked ||
                 slot.SubjectId != Guid.Empty ||
@@ -126,11 +127,15 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                 slot.StartTime >= TimeSpan.FromHours(10.5))
                 return false;
 
+            // ✅ Teacher conflict check
+            if (_teacherChecker.IsTeacherBusy(subject.TeacherId, day, slot.StartTime.Value))
+                return false;
+
             return true;
         }
 
         // ------------------------------------------------
-        // 3️⃣ Fill Remaining Singles (QUOTA SAFE)
+        // 3️⃣ Fill Remaining Singles
         // ------------------------------------------------
         private void FillRemainingSingles(TimetableState state)
         {
@@ -161,6 +166,10 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
                             slot.StartTime >= TimeSpan.FromHours(10.5))
                             continue;
 
+                        // ✅ Teacher conflict check
+                        if (_teacherChecker.IsTeacherBusy(subject.TeacherId, day, slot.StartTime.Value))
+                            continue;
+
                         var prev = state.SlotsForDay(day)
                             .FirstOrDefault(s => s.EndTime == slot.StartTime);
 
@@ -178,11 +187,19 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator.Helpers
         // ------------------------------------------------
         private void PlaceSubject(TimeSlot slot, Guid subjectId, TimetableState state)
         {
-            if (state.WeeklyRemaining(subjectId) <= 0)
-                return; // 🚨 Absolute guard
+            if (state.WeeklyRemaining(subjectId) <= 0) return;
+
+            var subject = state.Subjects[subjectId];
+
+            // ✅ Final teacher conflict guard before committing
+            if (_teacherChecker.IsTeacherBusy(subject.TeacherId, slot.Day, slot.StartTime.Value))
+                return;
 
             slot.SubjectId = subjectId;
-            slot.SubjectName = state.Subjects[subjectId].SubjectName;
+            slot.SubjectName = subject.SubjectName;
+
+            // ✅ Mark teacher busy after placement
+            _teacherChecker.MarkBusy(subject.TeacherId, slot.Day, slot.StartTime.Value);
 
             state.RebuildIndexes();
         }

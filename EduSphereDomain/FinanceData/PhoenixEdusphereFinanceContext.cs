@@ -25,6 +25,8 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
     public virtual DbSet<BestLessonPerformer> BestLessonPerformers { get; set; }
 
+    public virtual DbSet<FeeBucket> FeeBuckets { get; set; }
+
     public virtual DbSet<FeeStructure> FeeStructures { get; set; }
 
     public virtual DbSet<FeeStructureItem> FeeStructureItems { get; set; }
@@ -33,9 +35,13 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
     public virtual DbSet<Invoice> Invoices { get; set; }
 
+    public virtual DbSet<InvoiceBucketAllocation> InvoiceBucketAllocations { get; set; }
+
     public virtual DbSet<InvoiceType> InvoiceTypes { get; set; }
 
     public virtual DbSet<Payment> Payments { get; set; }
+
+    public virtual DbSet<PaymentAllocation> PaymentAllocations { get; set; }
 
     public virtual DbSet<RoomsWithOccupancy> RoomsWithOccupancies { get; set; }
 
@@ -122,6 +128,27 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
             entity
                 .HasNoKey()
                 .ToView("BestLessonPerformers");
+        });
+
+        modelBuilder.Entity<FeeBucket>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__FeeBucke__3214EC0759EBBAE3");
+
+            entity.ToTable("FeeBucket", "Finance");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.AccountName)
+                .IsRequired()
+                .HasMaxLength(150);
+            entity.Property(e => e.AccountNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.BankName).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.IsMandatory).HasDefaultValue(true);
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
         });
 
         modelBuilder.Entity<FeeStructure>(entity =>
@@ -228,6 +255,28 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .HasConstraintName("FK_Invoice_StudentFinance");
         });
 
+        modelBuilder.Entity<InvoiceBucketAllocation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__InvoiceB__3214EC07A591D89F");
+
+            entity.ToTable("InvoiceBucketAllocation", "Finance");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+            entity.Property(e => e.Percentage).HasColumnType("decimal(5, 2)");
+
+            entity.HasOne(d => d.Bucket).WithMany(p => p.InvoiceBucketAllocations)
+                .HasForeignKey(d => d.BucketId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InvoiceBucketAllocation_Bucket");
+
+            entity.HasOne(d => d.Invoice).WithMany(p => p.InvoiceBucketAllocations)
+                .HasForeignKey(d => d.InvoiceId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InvoiceBucketAllocation_Invoice");
+        });
+
         modelBuilder.Entity<InvoiceType>(entity =>
         {
             entity.ToTable("InvoiceType", "Finance");
@@ -270,6 +319,32 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .HasForeignKey(d => d.InvoiceId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Payment_Invoice");
+        });
+
+        modelBuilder.Entity<PaymentAllocation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__PaymentA__3214EC07814C584A");
+
+            entity.ToTable("PaymentAllocation", "Finance");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
+
+            entity.HasOne(d => d.Bucket).WithMany(p => p.PaymentAllocations)
+                .HasForeignKey(d => d.BucketId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PaymentAllocation_Bucket");
+
+            entity.HasOne(d => d.Invoice).WithMany(p => p.PaymentAllocations)
+                .HasForeignKey(d => d.InvoiceId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PaymentAllocation_Invoice");
+
+            entity.HasOne(d => d.Payment).WithMany(p => p.PaymentAllocations)
+                .HasForeignKey(d => d.PaymentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PaymentAllocation_Payment");
         });
 
         modelBuilder.Entity<RoomsWithOccupancy>(entity =>

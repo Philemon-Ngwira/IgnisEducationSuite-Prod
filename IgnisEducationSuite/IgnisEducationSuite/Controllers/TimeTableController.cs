@@ -14,30 +14,51 @@ namespace IgnisEducationSuite.Controllers
         private readonly ITimetableGenerator _generator;
         private readonly ILogger<TimeTableController> _logger;
         private readonly EduSphereRepository _repository;
+        private readonly ITeacherAvailabilityProvider _teacherAvailabilityProvider;
         public TimeTableController(
             ITimetableGenerator generator,
             ILogger<TimeTableController> logger,
-            EduSphereRepository repository
+            EduSphereRepository repository,
+            ITeacherAvailabilityProvider provider
             )
         {
             _generator = generator;
             _logger = logger;
             _repository = repository;
+            _teacherAvailabilityProvider = provider;
         }
         [HttpPost("generate")]
         public async Task<ActionResult<GenerateTimetableResponse>> Generate(
-     [FromBody] GenerateTimetableRequest request)
+    [FromBody] GenerateTimetableRequest request)
         {
             try
             {
                 // -----------------------------
+                // 0. Build teacher conflict checker
+                // -----------------------------
+                var schoolId = request.TimeSlots.First().SchoolID.Value;
+
+
+                var teacherChecker = new TeacherConflictChecker(_teacherAvailabilityProvider, schoolId);
+
+                // Preload all teacher busy slots in one go before any placement
+                await teacherChecker.PreloadAsync(
+                    request.Schedules
+                        .Where(s => s.TeacherId != Guid.Empty)
+                        .Select(s => s.TeacherId)
+                );
+
+                // -----------------------------
                 // 1. Generate initial timetable
                 // -----------------------------
-                var generatedSlots = _generator.Generate(
+                var generatedSlots = await _generator.Generate(
+
                     request.TimeSlots,
                     request.Schedules,
                     request.AdjacencyRules,
-                    request.Activities.FirstOrDefault()
+                    request.Activities.FirstOrDefault(),
+                    teacherChecker  // ✅ pass in checker
+
                 );
 
                 // -----------------------------
@@ -50,7 +71,7 @@ namespace IgnisEducationSuite.Controllers
                 );
 
                 // -----------------------------
-                // 3. Validate raw generator output (optional but useful)
+                // 3. Validate raw generator output
                 // -----------------------------
                 var initialReport = new TimetableValidator().Analyze(
                     state,
@@ -74,8 +95,7 @@ namespace IgnisEducationSuite.Controllers
                     .Select(s => s.SubjectId)
                     .ToHashSet();
 
-                var builder = new TimetableBuilder(coreSubjects);
-
+                var builder = new TimetableBuilder(coreSubjects, teacherChecker); // ✅ pass in checker
                 builder.Build(
                     state,
                     request.Activities.FirstOrDefault()
@@ -96,17 +116,14 @@ namespace IgnisEducationSuite.Controllers
                         "Final timetable violations after repair: {Violations}",
                         string.Join(", ", finalReport.InvariantViolations)
                     );
-
-
                 }
 
                 // -----------------------------
-                // 6. Return FINAL slots (not generator output)
+                // 6. Return FINAL slots
                 // -----------------------------
                 var data = MapToGeneratedSlotPreview(
                     state.Slots,
                     request.classes
-                   
                 );
 
                 return Ok(new GenerateTimetableResponse
@@ -118,7 +135,6 @@ namespace IgnisEducationSuite.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Timetable generation failed");
-
                 return StatusCode(500, new GenerateTimetableResponse
                 {
                     Success = false,

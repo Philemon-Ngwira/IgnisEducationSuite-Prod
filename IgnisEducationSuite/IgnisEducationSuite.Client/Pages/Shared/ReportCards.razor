@@ -2,12 +2,13 @@
 
 @using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.Models.StoreProModels
+@using EDUSphereSharedProject.UniversalModels
 @using IgnisEducationSuite.Client.Pages.Shared.Dialogs
+@using System.Text.Json
 @inherits AppBaseComponent
 @inject IDialogService DialogService
 @inject GenericServiceFactory _genericService
 @inject AppState _appState
-@inject ISnackbar Snackbar
 @inject NavigationManager _navigationManager
 
 <MudCard>
@@ -19,54 +20,332 @@
 
     <MudCardContent>
 
-
-        <!-- Empty state -->
-        @if (!studentResults.Any())
+        @if (_appState.UserRole == "Admin")
         {
-            <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Assignment">
-                No report cards available at the moment.
-            </MudAlert>
-        }
+            <MudTabs>
+                <MudTabPanel Text="Report Card">
+                    <MudAlert Severity="Severity.Warning"
+                              Variant="Variant.Filled"
+                              Icon="@Icons.Material.Filled.Warning"
+                              Class="mb-4">
+                        As an administrator, you are viewing all report cards.
+                        Use the filters below to narrow down results.
+                    </MudAlert>
 
-        <!-- Search and Grid -->
-        @if (studentResults.Any())
-        {
-            <MudTextField @bind-Value="searchString"
-                          Placeholder="Search by student or grade"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search"
-                          Class="mb-3" />
+                    <!-- FILTER CARD -->
+                    <MudPaper Class="pa-4 mb-4" Elevation="2">
+                        <MudGrid Spacing="3">
 
-            <MudDataGrid Items="@FilteredResults"
-                         Hover="true"
-                         SortMode="@SortMode.None"
-                         Groupable="false"
-                         Breakpoint="Breakpoint.Sm">
+                            <!-- Academic Level -->
+                            <MudItem xs="12" sm="6" md="4">
+                                <MudSelect T="AcademicLevel"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           Label="Academic Level (Grade)"
+                                           Value="Level"
+                                           ValueChanged="OnLevelChanged"
+                                           Clearable="true"
+                                           ToStringFunc="@(x => x?.LevelName ?? string.Empty)">
+                                    @foreach (var item in AppState.AcademicLevels.OrderBy(x => x.LevelInt))
+                                    {
+                                        <MudSelectItem Value="@item">@item.LevelName</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
 
-                <Columns>
-                    <PropertyColumn Property="x => x.FirstName" Title="First Name" />
-                    <PropertyColumn Property="x => x.LastName" Title="Last Name" />
-                    <PropertyColumn Property="x => x.LevelName" Title="Grade" />
-                    <PropertyColumn Property="x => x.IssuedDate.HasValue ? x.IssuedDate.Value.ToShortDateString() : string.Empty" Title="Issued Date" CellClass="text-center" />
-                    <PropertyColumn Property="x => x.TermStartDate.HasValue ? x.TermStartDate.Value.ToShortDateString() : string.Empty" Title="Term Start" CellClass="text-center" />
-                    <PropertyColumn Property="x => x.TermEndDate.HasValue ? x.TermEndDate.Value.ToShortDateString() : string.Empty" Title="Term End" CellClass="text-center" />
+                            <!-- Section -->
+                            <MudItem xs="12" sm="6" md="4">
+                                <MudSelect Disabled="!levelSections.Any()" T="LevelSection"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           Label="Grade Section"
+                                           @bind-Value="Section"
+                                           Clearable="true"
+                                           ToStringFunc="@(x => x?.SectionCode ?? string.Empty)">
+                                    @foreach (var item in levelSections)
+                                    {
+                                        <MudSelectItem Value="@item">@item.SectionCode</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
 
-                    <TemplateColumn CellClass="d-flex justify-center">
-                        <CellTemplate>
-                            <MudTooltip Text="View detailed report card">
-                                <MudButton Size="Size.Small"
+                            <!-- Placeholder for future Term filter -->
+                            <MudItem xs="12" sm="6" md="4">
+                                <MudSelect Disabled="!levelSections.Any()" T="ReportCardTerm"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           Label="Term"
+                                           @bind-Value="Term"
+                                           Clearable="true"
+                                           ToStringFunc="@(x => x?.Term ?? string.Empty)">
+                                    @foreach (var item in terms)
+                                    {
+                                        <MudSelectItem Value="@item">@item.Term</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           OnClick="GetStudentReportCards">
+                                    Apply Filters
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- EMPTY STATE -->
+                    @if (!studentResults.Any())
+                    {
+                        <MudAlert Severity="Severity.Info"
+                                  Variant="Variant.Outlined"
+                                  Icon="@Icons.Material.Filled.Assignment"
+                                  Class="mt-4">
+                            No report cards available for the selected filters.
+                        </MudAlert>
+                    }
+                    @if (studentResults.Any())
+                    {
+                        <MudTabs Outlined="true">
+                            <MudTabPanel Text="End Term" Icon="@MaterialDesignIcons.Normal.CalendarEnd">
+                                <MudDataGrid Items="@FilteredResults.Where(x => x.ReportCardType == "EndTerm").OrderBy(y => y.PositionInClass)"
+                                             Hover="true"
+                                             SortMode="@SortMode.None"
+                                             Groupable="false"
+                                             Breakpoint="Breakpoint.Sm">
+
+                                    <Columns>
+                                        <PropertyColumn Property="x => x.StudentName" Title="Student Name" />
+                                        <PropertyColumn Property="x => x.PositionInClass" Title="Position" />
+                                        <PropertyColumn Property="x => x.IssuedDate.HasValue ? x.IssuedDate.Value.ToShortDateString() : string.Empty" Title="Issued Date" CellClass="text-center" />
+                                        <PropertyColumn Property="x => x.TermStartDate.HasValue ? x.TermStartDate.Value.ToShortDateString() : string.Empty" Title="Term Start" CellClass="text-center" />
+                                        <PropertyColumn Property="x => x.TermEndDate.HasValue ? x.TermEndDate.Value.ToShortDateString() : string.Empty" Title="Term End" CellClass="text-center" />
+
+                                        <TemplateColumn CellClass="d-flex justify-center">
+                                            <CellTemplate>
+                                                <MudTooltip Text="View detailed report card">
+                                                    <MudButton Size="Size.Small"
+                                                               Variant="Variant.Filled"
+                                                               Color="Color.Primary"
+                                                               OnClick="() => OpenDetailsDialogAsync(context.Item)">
+                                                        View Report Card
+                                                    </MudButton>
+                                                </MudTooltip>
+                                            </CellTemplate>
+                                        </TemplateColumn>
+                                    </Columns>
+                                    <PagerContent>
+                                        <MudDataGridPager T="GetReportCardsByStudentResult" />
+                                    </PagerContent>
+                                </MudDataGrid>
+                            </MudTabPanel>
+                            <MudTabPanel Text="Mid Term" Icon="@Icons.Material.Filled.Build">
+                                <MudDataGrid Items="@FilteredResults.Where(x => x.ReportCardType == "MidTerm").OrderBy(y => y.PositionInClass)"
+                                             Hover="true"
+                                             SortMode="@SortMode.None"
+                                             Groupable="false"
+                                             Breakpoint="Breakpoint.Sm">
+
+                                    <Columns>
+                                        <PropertyColumn Property="x => x.StudentName" Title="Student Name" />
+                                        <PropertyColumn Property="x => x.LevelName" Title="Grade" />
+                                        <PropertyColumn Property="x => x.IssuedDate.HasValue ? x.IssuedDate.Value.ToShortDateString() : string.Empty" Title="Issued Date" CellClass="text-center" />
+                                        <PropertyColumn Property="x => x.TermStartDate.HasValue ? x.TermStartDate.Value.ToShortDateString() : string.Empty" Title="Term Start" CellClass="text-center" />
+                                        <PropertyColumn Property="x => x.TermEndDate.HasValue ? x.TermEndDate.Value.ToShortDateString() : string.Empty" Title="Term End" CellClass="text-center" />
+
+                                        <TemplateColumn CellClass="d-flex justify-center">
+                                            <CellTemplate>
+                                                <MudTooltip Text="View detailed report card">
+                                                    <MudButton Size="Size.Small"
+                                                               Variant="Variant.Filled"
+                                                               Color="Color.Primary"
+                                                               OnClick="() => OpenDetailsDialogAsync(context.Item)">
+                                                        View Report Card
+                                                    </MudButton>
+                                                </MudTooltip>
+                                            </CellTemplate>
+                                        </TemplateColumn>
+                                    </Columns>
+                                    <PagerContent>
+                                        <MudDataGridPager T="GetReportCardsByStudentResult" />
+                                    </PagerContent>
+                                </MudDataGrid>
+                            </MudTabPanel>
+
+                        </MudTabs>
+
+
+                    }
+                </MudTabPanel>
+                <MudTabPanel Text="Consolidated Report">
+                    <MudGrid Spacing="3">
+
+                        <!-- FILTER SECTION -->
+                        <MudItem xs="12" md="6">
+                            <MudSelect T="ReportCardTerm"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Label="Term"
+                                       @bind-Value="consolidatedterm"
+                                       Clearable="true"
+                                       ToStringFunc="@(x => x?.Term ?? string.Empty)">
+                                @foreach (var item in terms)
+                                {
+                                    <MudSelectItem Value="@item">@item.Term</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <!-- ACTION BUTTONS -->
+                        <MudItem xs="12" md="6">
+                            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+
+                                <MudButton Disabled="consolidatedterm.HasNullProperties()"
                                            Variant="Variant.Filled"
                                            Color="Color.Primary"
-                                           OnClick="() => OpenDetailsDialogAsync(context.Item)">
-                                    View Report Card
+                                           OnClick="GetConsolidatedReport">
+                                    Get Report
                                 </MudButton>
-                            </MudTooltip>
-                        </CellTemplate>
-                    </TemplateColumn>
-                </Columns>
-            </MudDataGrid>
-        }
 
+                                <MudButton Disabled="!report.Any()"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Secondary"
+                                           OnClick="DownloadReport">
+                                    Download
+                                </MudButton>
+
+                            </MudStack>
+                        </MudItem>
+
+                        <!-- DATA SECTION -->
+                        <MudItem xs="12">
+
+                            @if (report.Any())
+                            {
+                                <MudDataGrid Items="@report">
+                                    <Columns>
+                                        <PropertyColumn Property="x => x.StudentName" Title="Student Name" />
+                                        <PropertyColumn Property="x => x.Grade" />
+                                        <PropertyColumn Property="x => x.GradeSection" />
+                                        <PropertyColumn Property="x => x.Term" />
+                                        <PropertyColumn Property="x => x.PositionInClass" SortBy="x => x.PositionInClass" />
+                                        <PropertyColumn Property="x => x.Points" SortBy="x => x.Points" Title="Points in Best Six" />
+                                        <PropertyColumn Property="x => x.SubjectList" Title="Subjects" />
+                                    </Columns>
+
+                                    <PagerContent>
+                                        <MudDataGridPager T="ConsolidatedReport" />
+                                    </PagerContent>
+                                </MudDataGrid>
+                            }
+                            else if (report != null)
+                            {
+                                <MudAlert Severity="Severity.Info"
+                                          Variant="Variant.Outlined"
+                                          Icon="@Icons.Material.Filled.Assignment"
+                                          Class="mt-4">
+                                    No consolidated report available for the selected term.
+                                </MudAlert>
+                            }
+
+                        </MudItem>
+
+                    </MudGrid>
+                </MudTabPanel>
+            </MudTabs>
+
+        }
+        else
+        {
+            <!-- Empty state -->
+            @if (!studentResults.Any())
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Assignment">
+                    No report cards available at the moment.
+                </MudAlert>
+            }
+
+            <!-- Search and Grid -->
+            @if (studentResults.Any())
+            {
+                <MudTextField @bind-Value="searchString"
+                              Placeholder="Search by student or grade"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Class="mb-3" />
+
+                <MudTabs Outlined="true">
+                    <MudTabPanel Text="End Term" Icon="@MaterialDesignIcons.Normal.CalendarEnd">
+                        <MudDataGrid Items="@FilteredResults.Where(x => x.ReportCardType == "EndTerm")"
+                                     Hover="true"
+                                     SortMode="@SortMode.None"
+                                     Groupable="false"
+                                     Breakpoint="Breakpoint.Sm">
+
+                            <Columns>
+                                <PropertyColumn Property="x => x.FirstName" Title="First Name" />
+                                <PropertyColumn Property="x => x.LastName" Title="Last Name" />
+                                <PropertyColumn Property="x => x.LevelName" Title="Grade" />
+                                <PropertyColumn Property="x => x.IssuedDate.HasValue ? x.IssuedDate.Value.ToShortDateString() : string.Empty" Title="Issued Date" CellClass="text-center" />
+                                <PropertyColumn Property="x => x.TermStartDate.HasValue ? x.TermStartDate.Value.ToShortDateString() : string.Empty" Title="Term Start" CellClass="text-center" />
+                                <PropertyColumn Property="x => x.TermEndDate.HasValue ? x.TermEndDate.Value.ToShortDateString() : string.Empty" Title="Term End" CellClass="text-center" />
+
+                                <TemplateColumn CellClass="d-flex justify-center">
+                                    <CellTemplate>
+                                        <MudTooltip Text="View detailed report card">
+                                            <MudButton Size="Size.Small"
+                                                       Variant="Variant.Filled"
+                                                       Color="Color.Primary"
+                                                       OnClick="() => OpenDetailsDialogAsync(context.Item)">
+                                                View Report Card
+                                            </MudButton>
+                                        </MudTooltip>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="GetReportCardsByStudentResult" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </MudTabPanel>
+                    <MudTabPanel Text="Mid Term" Icon="@Icons.Material.Filled.Build">
+                        <MudDataGrid Items="@FilteredResults.Where(x => x.ReportCardType == "MidTerm")"
+                                     Hover="true"
+                                     SortMode="@SortMode.None"
+                                     Groupable="false"
+                                     Breakpoint="Breakpoint.Sm">
+
+                            <Columns>
+                                <PropertyColumn Property="x => x.FirstName" Title="First Name" />
+                                <PropertyColumn Property="x => x.LastName" Title="Last Name" />
+                                <PropertyColumn Property="x => x.LevelName" Title="Grade" />
+                                <PropertyColumn Property="x => x.IssuedDate.HasValue ? x.IssuedDate.Value.ToShortDateString() : string.Empty" Title="Issued Date" CellClass="text-center" />
+                                <PropertyColumn Property="x => x.TermStartDate.HasValue ? x.TermStartDate.Value.ToShortDateString() : string.Empty" Title="Term Start" CellClass="text-center" />
+                                <PropertyColumn Property="x => x.TermEndDate.HasValue ? x.TermEndDate.Value.ToShortDateString() : string.Empty" Title="Term End" CellClass="text-center" />
+
+                                <TemplateColumn CellClass="d-flex justify-center">
+                                    <CellTemplate>
+                                        <MudTooltip Text="View detailed report card">
+                                            <MudButton Size="Size.Small"
+                                                       Variant="Variant.Filled"
+                                                       Color="Color.Primary"
+                                                       OnClick="() => OpenDetailsDialogAsync(context.Item)">
+                                                View Report Card
+                                            </MudButton>
+                                        </MudTooltip>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="GetReportCardsByStudentResult" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </MudTabPanel>
+
+                </MudTabs>
+
+            }
+        }
     </MudCardContent>
 </MudCard>
 
@@ -76,6 +355,13 @@
     protected string ParentID = string.Empty;
     protected string searchString = string.Empty;
     protected Staff Dean = new();
+    protected AcademicLevel Level = new();
+    protected LevelSection Section = new();
+    protected ReportCardTerm Term = new();
+    protected ReportCardTerm consolidatedterm = new();
+    protected List<LevelSection> levelSections = new();
+    protected List<ConsolidatedReport> report = new();
+    protected List<ReportCardTerm> terms = new();
     protected IEnumerable<GetReportCardsByStudentResult> FilteredResults =>
         string.IsNullOrWhiteSpace(searchString)
         ? studentResults
@@ -101,26 +387,122 @@
             if (!string.IsNullOrEmpty(ParentID))
                 await GetStudentReportCards();
         }
+        else if (_appState.UserRole == "Admin")
+        {
+            await GetReportCardTerms();
+        }
+
+        #region Debug
+        // var id = "5f8953e4-2376-4f2c-a895-52febd0373f6";
+        // var service = _genericService.GetService<GetReportCardsByStudentResult>();
+        // var result = await service.GetAllAsync($"api/Dynamic/GetstudentReportCardsParent/{id}", true);
+        // if (result.IsSuccess)
+        //     studentResults = result.Data.ToList();
+        #endregion
 
         LoaderService.Hide();
     }
-
-    protected async Task GetStudentReportCards()
+    protected async Task GetReportCardTerms()
     {
-        var service = _genericService.GetService<GetReportCardsByStudentResult>();
-        if (string.IsNullOrEmpty(StudentID))
+        var service = _genericService.GetService<ReportCardTerm>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetReportCardTerms/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+            terms = result.Data.ToList();
+    }
+    private async Task DownloadReport()
+    {
+        try
         {
-            var result = await service.GetAllAsync($"api/Dynamic/GetstudentReportCardsParent/{ParentID}", true);
-            if (result.IsSuccess)
-                studentResults = result.Data.ToList();
+            LoaderService.Show("Preparing download...");
+
+            var url = $"api/Templates/generateconsolidatedreport/{Guid.Parse(AppState.SchoolID)}/{consolidatedterm.Term}";
+            var fileName = $"Consolidated_Report_{DateTime.Now:yyyyMMdd}.xlsx";
+
+            // Call server (NO DATA SENT)
+            var response = await HttpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to generate report.", Severity.Error);
+                return;
+            }
+
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+
+            // Try get filename from server (optional)
+            var contentDisposition = response.Content.Headers.ContentDisposition;
+            if (contentDisposition != null &&
+                !string.IsNullOrWhiteSpace(contentDisposition.FileName))
+            {
+                fileName = contentDisposition.FileName.Trim('"');
+            }
+
+            var base64 = Convert.ToBase64String(fileBytes);
+
+            await JS.InvokeVoidAsync(
+                "BlazorDownloadConsolidatedReportFile",
+                fileName,
+                base64
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            Snackbar.Add("Something went wrong while downloading.", Severity.Error);
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+    }
+    protected async Task GetConsolidatedReport()
+    {
+        var service = _genericService.GetService<ConsolidatedReport>();
+        LoaderService.Show("Please wait while we collect the report");
+        var result = await service.GetAllAsync($"api/Dynamic/GetConsolidatedReportCard/{Guid.Parse(AppState.SchoolID)}/{consolidatedterm.Term}", true);
+        if (result.IsSuccess)
+        {
+            var reportData = result.Data.ToList();
+            report = reportData
+                    .OrderBy(x => x.Grade)
+                    .ThenBy(x => x.GradeSection)
+                    .ThenBy(x => x.PositionInClass)
+                    .ToList();
         }
         else
         {
-            var result = await service.GetAllAsync($"api/Dynamic/GetstudentReportCards/{StudentID}", true);
+            Snackbar.Add("Failed to retrieve consolidated report. Please try again.", Severity.Error);
+        }
+        LoaderService.Hide();
+    }
+    protected async Task GetStudentReportCards()
+    {
+
+        var service = _genericService.GetService<GetReportCardsByStudentResult>();
+        if (_appState.UserRole == "Admin")
+        {
+            LoaderService.Show("Please wait while we collect the cards");
+            var result = await service.GetAllAsync($"api/Dynamic/reportcards?schoolId={Guid.Parse(AppState.SchoolID)}&academicLevelId={Level.AcademicLevelID}&gradeSection={Section.SectionCode}&term={Term.Term}", true);
             if (result.IsSuccess)
                 studentResults = result.Data.ToList();
+            LoaderService.Hide();
+            return;
         }
-
+        else
+        {
+            if (string.IsNullOrEmpty(StudentID))
+            {
+                var result = await service.GetAllAsync($"api/Dynamic/GetstudentReportCardsParent/{ParentID}", true);
+                if (result.IsSuccess)
+                    studentResults = result.Data.ToList();
+            }
+            else
+            {
+                var result = await service.GetAllAsync($"api/Dynamic/GetstudentReportCards/{StudentID}", true);
+                if (result.IsSuccess)
+                    studentResults = result.Data.ToList();
+            }
+        }
         // Map LevelName from academic levels safely
         foreach (var item in studentResults)
         {
@@ -146,6 +528,19 @@
         return result.IsSuccess ? result.Data.ToList() : new List<GetReportCardDetailsResult>();
     }
 
+
+    #region Filter
+    protected async Task OnLevelChanged(AcademicLevel level)
+    {
+        Level = level;
+        if (Level != null)
+        {
+            LoaderService.Show("Getting Sections");
+            levelSections = AppState.AcademicSections.Where(x => x.AcademicLevelID == Level.AcademicLevelID).ToList();
+            LoaderService.Hide();
+        }
+    }
+    #endregion
     #region Dialog
     private async Task OpenDetailsDialogAsync(GetReportCardsByStudentResult student)
     {

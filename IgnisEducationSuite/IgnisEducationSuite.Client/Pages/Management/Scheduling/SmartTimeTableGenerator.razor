@@ -647,7 +647,9 @@ else
             SchoolMorningEnd = morningEnd,
             SchoolAfternoonStart = afternoonStart,
             SchoolEarlyMorningEnd = ealyMorningEnd,
-            TimeslotID = s.TimeslotID
+            TimeslotID = s.TimeslotID,
+            SchoolID = s.SchoolID
+
         }).ToList();
 
         // --- Step 1: Separate core and non-core subjects ---
@@ -827,7 +829,7 @@ else
         var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInGrade/{GradeInt}/{loggedInAdmin.SchoolID.ToString()}", true);
         if (result.IsSuccess)
         {
-            StudentsInGrade = result.Data.Where(x=>x.GradeSection == selectedSection.SectionCode).ToList();
+            StudentsInGrade = result.Data.Where(x => x.GradeSection == selectedSection.SectionCode).ToList();
         }
     }
     protected async Task AssignSchedule()
