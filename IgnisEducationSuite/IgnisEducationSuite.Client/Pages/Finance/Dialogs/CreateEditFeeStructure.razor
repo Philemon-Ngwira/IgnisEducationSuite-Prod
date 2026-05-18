@@ -3,7 +3,7 @@
 @using EDUSphereSharedProject.Models
 @inherits AppBaseComponent
 
-<MudDialog MaxWidth="MaxWidth.Large" FullWidth="true">
+<MudDialog>
 
     <DialogContent>
 
@@ -65,6 +65,21 @@
                     <MudItem xs="12" md="4">
                         <MudCheckBox @bind-Value="newItem.IsOptional" Label="Optional" />
                     </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="Guid?"
+                                   Label="Bucket (Optional)"
+                                   @bind-Value="newItem.BucketId"
+                                   Clearable="true">
+
+                            @foreach (var bucket in buckets)
+                            {
+                                <MudSelectItem Value="@bucket.Id">
+                                    @bucket.Name
+                                </MudSelectItem>
+                            }
+
+                        </MudSelect>
+                    </MudItem>
                 </MudGrid>
 
                 <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-3">
@@ -124,7 +139,8 @@
 @code {
     [Parameter] public FeeStructure _model { get; set; } = new();
     [Parameter] public bool isEditMode { get; set; }
-
+    [Parameter] public Guid defaultBucketId { get; set; } = Guid.Empty;
+    [Parameter] public List<FeeBucket> buckets { get; set; } = new();
     private List<FeeStructureItem> _originalItems = new();
 
     protected List<AcademicLevel> _classes = new();
@@ -209,6 +225,8 @@
             IsOptional = newItem.IsOptional
         };
         item.TargetType = (int)newItem.AppliesTo;
+        var bucketId = item.BucketId ?? defaultBucketId;
+        item.BucketId = bucketId;
         _model.FeeStructureItems.Add(item);
         newItem = new FeeStructureItem();
         selectedType = null;

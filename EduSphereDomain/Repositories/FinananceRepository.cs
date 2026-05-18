@@ -191,7 +191,7 @@ namespace EduSphereDomain.Repositories
 
                             InvoiceNumber = invoiceNumber,
 
-                            isOptional = item.IsOptional,
+                            IsOptional = item.IsOptional,
                             FeeStructureId = structure.Id
                         });
 
@@ -238,6 +238,21 @@ namespace EduSphereDomain.Repositories
                 await transaction.RollbackAsync();
                 return (false, $"Error generating invoices: {ex.Message}", 0);
             }
+        }
+        public async Task<FeeBucket> SaveFeeBucket(FeeBucket feeBucket)
+        {
+            try
+            {
+                await _context.AddAsync(feeBucket);
+                await _context.SaveChangesAsync();
+                return feeBucket;
+            }
+            catch (Exception ex)
+            {
+                var _ = ex.Message;
+                throw;
+            }
+
         }
         public async Task<FeeStructure> SaveFeeStructureAsync(FeeStructure feeStructure)
         {
@@ -376,7 +391,7 @@ namespace EduSphereDomain.Repositories
                 ReferenceId = x.ReferenceId,
                 ReferenceType = x.ReferenceType,
                 RunningBalance = x.RunningBalance,
-                LedgerSequence = x.LedgerSequence ?? 0,
+                LedgerSequence = x.LedgerSequence,
 
             }).ToList();
         }

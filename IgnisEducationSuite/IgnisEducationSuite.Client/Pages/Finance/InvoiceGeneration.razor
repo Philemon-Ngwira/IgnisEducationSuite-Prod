@@ -49,6 +49,36 @@
 
             @if (selectedStructure != null)
             {
+               @*  <MudItem xs="12">
+                    <MudPaper Class="pa-3 mt-2" Elevation="0">
+
+                        <MudText Typo="Typo.subtitle2">Bucket Allocation</MudText>
+
+                        @if (BucketBreakdown.Any())
+                        {
+                            @foreach (var bucket in BucketBreakdown)
+                            {
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudText>@bucket.Name</MudText>
+                                    <MudText>@bucket.Amount</MudText>
+                                </MudStack>
+                            }
+
+                            <MudDivider Class="my-2" />
+
+                            <MudText Typo="Typo.subtitle1">
+                                Total: @BucketBreakdown.Sum(x => x.Amount)
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Color="Color.Secondary">
+                                No bucket allocation configured
+                            </MudText>
+                        }
+
+                    </MudPaper>
+                </MudItem> *@
                 <MudItem xs="12">
                     <MudPaper Class="pa-3 mt-2" Elevation="0">
 

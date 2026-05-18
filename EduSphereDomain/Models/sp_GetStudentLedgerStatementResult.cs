@@ -9,7 +9,7 @@ namespace EduSphereDomain.Models
     public partial class sp_GetStudentLedgerStatementResult
     {
         public Guid Id { get; set; }
-        public long? LedgerSequence { get; set; }
+        public long LedgerSequence { get; set; }
         public DateTime CreatedAt { get; set; }
         [StringLength(10)]
         public string EntryType { get; set; }

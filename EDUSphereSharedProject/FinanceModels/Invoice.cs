@@ -37,7 +37,7 @@ public partial class Invoice
 
     public Guid? InvoiceTypeID { get; set; }
 
-    public bool? isOptional { get; set; }
+    public bool? IsOptional { get; set; }
 
     public Guid? FeeStructureId { get; set; }
 

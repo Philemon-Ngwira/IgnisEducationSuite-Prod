@@ -35,8 +35,8 @@
                     @context.TermEndDate.ToShortDateString()
                 </MudTd>
                 <MudTd>
-                    <MudChip T="string" Color="@(context.IsActive? Color.Success: Color.Default)">
-                        @(context.IsActive ? "Active" : "Inactive")
+                    <MudChip T="string" Color="@(context.IsActive! ? Color.Success : Color.Default)">
+                        @(context.IsActive! ? "Active" : "Inactive")
                     </MudChip>
                 </MudTd>
 

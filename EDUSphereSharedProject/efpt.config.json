@@ -260,6 +260,10 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[GetReportCardTerms]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[GetRoomsBySchool]",
          "ObjectType": 1
       },
@@ -429,6 +433,10 @@
       },
       {
          "Name": "[dbo].[usp_GetStaffBySchoolAndRole]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[usp_GetTeacherBusySlots]",
          "ObjectType": 1
       },
       {

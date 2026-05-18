@@ -47,6 +47,12 @@ namespace IgnisEducationSuite.Controllers
             var result = await _finananceRepository.SaveFeeStructureAsync(feeStructure);
             return Ok(result);
         }
+        [HttpPost("SaveNewBucket")]
+        public async Task<IActionResult> SaveNewFeeBucket(FeeBucket bucket)
+        {
+            var result = await _finananceRepository.SaveFeeBucket(bucket);
+            return Ok(result);
+        }
         [HttpGet("GetRecentPayments/{SchoolID}")]
         public async Task<IActionResult> GetRecentPayments(Guid SchoolID)
         {

@@ -21,6 +21,8 @@ public partial class FeeStructureItem
 
     public int? TargetType { get; set; }
 
+    public Guid? BucketId { get; set; }
+
     public virtual FeeStructure FeeStructure { get; set; }
 
     public virtual InvoiceType InvoiceType { get; set; }

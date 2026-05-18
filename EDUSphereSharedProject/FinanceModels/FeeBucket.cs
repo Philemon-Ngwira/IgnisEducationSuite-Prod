@@ -27,6 +27,8 @@ public partial class FeeBucket
 
     public bool IsDefault { get; set; }
 
+    public string Color { get; set; }
+
     public virtual ICollection<InvoiceBucketAllocation> InvoiceBucketAllocations { get; set; } = new List<InvoiceBucketAllocation>();
 
     public virtual ICollection<PaymentAllocation> PaymentAllocations { get; set; } = new List<PaymentAllocation>();

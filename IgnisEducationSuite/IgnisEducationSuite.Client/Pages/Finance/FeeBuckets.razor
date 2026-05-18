@@ -1,0 +1,248 @@
+﻿@page "/finance/buckets"
+@using EDUSphereSharedProject.FinanceModels
+@using MudBlazor
+@inherits AppBaseComponent
+<MudGrid Class="pa-4">
+
+    <!-- LEFT PANEL -->
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-3">
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudText Typo="Typo.h6">Buckets</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateNew">
+                    + Add
+                </MudButton>
+            </MudStack>
+
+            @if (!Buckets.Any())
+            {
+                <MudText Color="Color.Secondary">No buckets configured</MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true">
+                    @foreach (var bucket in Buckets)
+                    {
+                        <MudListItem OnClick="() => SelectBucket(bucket)" Style="cursor:pointer">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.subtitle1">@bucket.Name</MudText>
+
+                                <MudText Typo="Typo.caption">
+                                    @bucket.BankName • ****@bucket.AccountNumber[^4..]
+                                </MudText>
+
+                                <MudStack Row="true" Spacing="1">
+                                    @if (bucket.IsDefault)
+                                    {
+                                        <MudChip Size="Size.Small" Color="Color.Success">
+                                            Main Account
+                                        </MudChip>
+                                    }
+
+                                    <MudChip Size="Size.Small" Color="@(bucket.IsMandatory? Color.Primary: Color.Default)">
+                                        @(bucket.IsMandatory ? "Mandatory" : "Optional")
+                                    </MudChip>
+                                </MudStack>
+                            </MudStack>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+
+        </MudPaper>
+    </MudItem>
+
+
+    <!-- RIGHT PANEL -->
+    <MudItem xs="12" md="8">
+        <MudPaper Class="pa-4">
+
+            @if (SelectedBucket == null)
+            {
+                <MudText Color="Color.Secondary">Select or create a bucket</MudText>
+            }
+            else
+            {
+                <MudForm @ref="form">
+
+                    <MudText Typo="Typo.h6" Class="mb-3">Bucket Details</MudText>
+
+                    <MudTextField Label="Bucket Name" @bind-Value="SelectedBucket.Name" Required="true" />
+
+                    <MudTextField Label="Account Name" @bind-Value="SelectedBucket.AccountName" Required="true" />
+
+                    <MudTextField Label="Account Number" @bind-Value="SelectedBucket.AccountNumber" Required="true" />
+
+                    <MudTextField Label="Bank Name" @bind-Value="SelectedBucket.BankName" />
+
+                    <MudSwitch T="bool"
+                               Label="Mandatory Bucket"
+                               @bind-Checked="SelectedBucket.IsMandatory" />
+
+                    <MudSwitch T="bool"
+                               Label="Set as Main (Default Account)"
+                               @bind-Checked="SelectedBucket.IsDefault" />
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Main bucket is used when no specific bucket is assigned to a fee item
+                    </MudText>
+
+                    <MudColorPicker @bind-Text="SelectedBucket.Color" Label="Bucket Color" />
+
+                    <MudDivider Class="my-4" />
+
+                    <!-- Preview -->
+                    <MudPaper Class="pa-3" Style="background-color:#f5f5f5">
+                        <MudText Typo="Typo.subtitle2">Preview</MudText>
+                        <MudText>@SelectedBucket.Name</MudText>
+                        <MudText Typo="Typo.caption">
+                            @SelectedBucket.BankName • @SelectedBucket.AccountNumber
+                        </MudText>
+                    </MudPaper>
+
+                    <MudStack Row="true" Spacing="2" Class="mt-4">
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">
+                            Save
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" OnClick="Cancel">
+                            Cancel
+                        </MudButton>
+                        <MudSpacer />
+                        @if (!IsNew)
+                        {
+                            <MudButton Color="Color.Error" Variant="Variant.Text" OnClick="Delete">
+                                Delete
+                            </MudButton>
+                        }
+                    </MudStack>
+
+                </MudForm>
+            }
+
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+@code {
+    private MudForm form;
+
+    private List<FeeBucket> Buckets = new();
+
+    private FeeBucket? SelectedBucket;
+
+    private bool IsNew = false;
+
+    protected override void OnInitialized()
+    {
+        Buckets = new List<FeeBucket>();
+    }
+
+    void CreateNew()
+    {
+        SelectedBucket = new FeeBucket();
+        SelectedBucket.IsMandatory = true;
+        SelectedBucket.IsDefault = false;
+        SelectedBucket.Color = "#2196F3";
+        IsNew = true;
+    }
+
+    void SelectBucket(FeeBucket bucket)
+    {
+        SelectedBucket = new FeeBucket
+        {
+            Id = bucket.Id,
+            Name = bucket.Name,
+            AccountName = bucket.AccountName,
+            AccountNumber = bucket.AccountNumber,
+            BankName = bucket.BankName,
+            IsMandatory = bucket.IsMandatory,
+            IsDefault = bucket.IsDefault,
+            Color = bucket.Color
+        };
+
+        IsNew = false;
+    }
+
+    async Task Save()
+    {
+        LoaderService.Show("Please wait, Validating");
+        await form.Validate();
+
+        if (!form.IsValid)
+            return;
+
+        // enforce single default bucket
+        LoaderService.Show("Please wait, Saving...");
+        try
+        {
+            if (SelectedBucket!.IsDefault)
+            {
+                foreach (var b in Buckets)
+                {
+                    b.IsDefault = false;
+                }
+            }
+            var service = GenericService.GetService<FeeBucket>();
+            if (IsNew)
+            {
+                SelectedBucket.Id = Guid.NewGuid();
+                SelectedBucket.SchoolId = Guid.Parse(AppState.SchoolID);
+                var result = await service.PostAsync("api/Finance/SaveNewBucket", "feebucket", SelectedBucket);
+                if (result.IsSuccess)
+                {
+                    Buckets.Add(SelectedBucket);
+                }
+            }
+            else
+            {
+                var existing = Buckets.First(x => x.Id == SelectedBucket.Id);
+
+                existing.Name = SelectedBucket.Name;
+                existing.AccountName = SelectedBucket.AccountName;
+                existing.AccountNumber = SelectedBucket.AccountNumber;
+                existing.BankName = SelectedBucket.BankName;
+                existing.IsMandatory = SelectedBucket.IsMandatory;
+                existing.IsDefault = SelectedBucket.IsDefault;
+                existing.Color = SelectedBucket.Color;
+                existing.SchoolId = SelectedBucket.SchoolId;
+
+                var result = await service.UpdateAsync("api/Finance/UpdateFeeBucket", "feebucket", existing);
+            }
+
+            SelectedBucket = null;
+        }
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+
+            throw;
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+
+    }
+
+    void Cancel()
+    {
+        SelectedBucket = null;
+    }
+
+    void Delete()
+    {
+        if (SelectedBucket == null) return;
+
+        if (SelectedBucket.IsDefault)
+        {
+            return;
+        }
+
+        Buckets.RemoveAll(x => x.Id == SelectedBucket.Id);
+        SelectedBucket = null;
+    }
+
+
+}
