@@ -389,8 +389,10 @@
 
         foreach (var c in classes)
         {
-            c.Teacher = teachers.Where(x => x.TeacherID == c.TeacherID).First();
-
+            if (c.TeacherID != null)
+            {
+                c.Teacher = teachers.Where(x => x.TeacherID == c.TeacherID).First();
+            }
 
         }
 

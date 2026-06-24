@@ -246,9 +246,12 @@ public partial class PhoenixEdusphereContext : DbContext
     public virtual DbSet<vw_StudentPerformance> vw_StudentPerformances { get; set; }
 
     public virtual DbSet<vw_TopPerformingTeacher> vw_TopPerformingTeachers { get; set; }
-
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Class>()
+            .ToTable(tb => tb.HasTrigger("trg_Classes_UpdateSync"));
+
         modelBuilder.Entity<AIAdviceLog>(entity =>
         {
             entity.HasKey(e => e.AdviceID).HasName("PK__AIAdvice__4C842CE9C206F0D6");

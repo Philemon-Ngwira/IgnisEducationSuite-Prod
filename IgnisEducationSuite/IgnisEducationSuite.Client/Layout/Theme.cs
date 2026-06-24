@@ -22,6 +22,42 @@ namespace IgnisEducationSuite.Client.Layout
                 Error = "#E53935",
                 Info = " #5C6BC0",
             };
+            PaletteDark = new PaletteDark()
+            {
+                Primary = "#9D7BFF",
+                PrimaryLighten = "#C5A8FF",
+
+                Background = "#0F0A17",
+                Surface = "#181122",
+
+                AppbarBackground = "#191226",
+                DrawerBackground = "#100B18",
+
+                TextPrimary = "#F5F0FF",
+                TextSecondary = "#C5B6DB",
+
+                Success = "#66BB6A",
+                Warning = "#FFCA6B",
+                Error = "#FF6B6B",
+                Info = "#7C8CFF",
+
+                Divider = "#3A2C52",
+                LinesDefault = "#3A2C52",
+
+                ActionDefault = "#C5B6DB",
+                ActionDisabled = "#6B5A86",
+
+                TableLines = "#2A203A",
+                TableStriped = "#1C1428",
+
+                GrayDefault = "#9E8CB8",
+                GrayLight = "#C5B6DB",
+                GrayLighter = "#E6DFFF",
+                GrayDark = "#5A4A73",
+                GrayDarker = "#2B213A",
+
+                OverlayDark = "rgba(0,0,0,0.7)"
+            };
             Typography = new Typography()
             {
                 Default = new DefaultTypography()
