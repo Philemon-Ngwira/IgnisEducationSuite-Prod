@@ -58,7 +58,16 @@ public class AppBaseComponent : ComponentBase, IDisposable
             _ => Color.Default
         };
     }
-  
+    protected async Task<List<FeeBucket>> GetSchoolAccountBuckets(Guid SchoolID)
+    {
+        var service = GenericService.GetService<FeeBucket>();
+        var result = await service.GetAllAsync($"api/Finance/GetSchoolFeeBuckets/{SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        return new List<FeeBucket>();
+    }
     protected async Task<ApplicationUser> GetUserInformation(string UserID)
     {
         var service = GenericService.GetService<ApplicationUser>();

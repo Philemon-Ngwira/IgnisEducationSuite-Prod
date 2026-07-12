@@ -7,6 +7,9 @@ using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
 using EDUSphereSharedProject.UniversalModels.TimeTabling;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 using static EDUSphereSharedProject.UniversalModels.StudentWithClassesDTO;
 
 namespace EduSphereDomain.Repositories
@@ -1741,7 +1744,23 @@ namespace EduSphereDomain.Repositories
                     continue;
                 }
 
-                string baseUsername = (firstName[0] + lastName).ToLower();
+                // Normalize accented/special letters to their ASCII equivalents
+                // e.g. é → e, ñ → n, ü → u
+                string normalizedFirst = NormalizeToAscii(firstName);
+                string normalizedLast = NormalizeToAscii(lastName);
+
+                string baseUsername = (normalizedFirst[0] + normalizedLast).ToLower();
+
+                // Remove anything that is NOT a letter or digit
+                // e.g. Sang'andu → Sangandu, O'Brien → OBrien
+                baseUsername = Regex.Replace(baseUsername, @"[^a-z0-9]", "");
+
+                // Fallback in case the name is entirely non-ASCII/symbols
+                if (string.IsNullOrWhiteSpace(baseUsername))
+                {
+                    baseUsername = "user";
+                }
+
                 string candidate = baseUsername;
                 int suffix = 1;
 
@@ -1758,6 +1777,29 @@ namespace EduSphereDomain.Repositories
             return result;
         }
 
+        /// <summary>
+        /// Decomposes accented characters into base + diacritic, 
+        /// then strips the diacritic — so é becomes e, ñ becomes n, etc.
+        /// Falls back to keeping the char if it has no ASCII equivalent.
+        /// </summary>
+        private static string NormalizeToAscii(string input)
+        {
+            // Normalize to FormD splits accented chars into base + combining mark
+            string normalized = input.Normalize(NormalizationForm.FormD);
+
+            var sb = new StringBuilder();
+            foreach (char c in normalized)
+            {
+                // Only keep base letters, drop combining diacritical marks
+                if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                {
+                    sb.Append(c);
+                }
+            }
+
+            // FormC recomposes — then Regex below will strip any remaining symbols
+            return sb.ToString().Normalize(NormalizationForm.FormC);
+        }
 
         public async Task<List<Student>> GetStudentsByStudentNumbers(
      List<string> studentNumbers,

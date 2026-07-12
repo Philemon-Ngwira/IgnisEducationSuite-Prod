@@ -63,7 +63,7 @@ namespace IgnisEducationSuite
 
             #endregion
             builder.Services.AddHttpClient<GoogleBooksService>();
-
+            builder.Services.AddMemoryCache();
 
             // somewhere at app startup, e.g., Program.cs
             QuestPDF.Settings.License = LicenseType.Community;

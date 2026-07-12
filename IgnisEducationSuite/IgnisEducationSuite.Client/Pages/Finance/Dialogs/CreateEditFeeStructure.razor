@@ -66,14 +66,15 @@
                         <MudCheckBox @bind-Value="newItem.IsOptional" Label="Optional" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudSelect T="Guid?"
+                        <MudSelect T="FeeBucket"
                                    Label="Bucket (Optional)"
-                                   @bind-Value="newItem.BucketId"
-                                   Clearable="true">
+                                   @bind-Value="selectedBucket"
+                                   Clearable="true"
+                                   ToStringFunc="@(x=>x.Name)">
 
                             @foreach (var bucket in buckets)
                             {
-                                <MudSelectItem Value="@bucket.Id">
+                                <MudSelectItem Value="@bucket">
                                     @bucket.Name
                                 </MudSelectItem>
                             }
@@ -84,7 +85,7 @@
 
                 <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-3">
                     <MudButton OnClick="CancelInlineDialog">Cancel</MudButton>
-                    <MudButton Color="Color.Primary" OnClick="SaveItem">Save</MudButton>
+                    <MudButton Color="Color.Primary" OnClick="SaveItem">@SaveButtonLabel</MudButton>
                 </MudStack>
             </DialogContent>
         </MudDialog>
@@ -119,6 +120,7 @@
                 <MudTd><MudCheckBox @bind-Value="context.IsOptional" /></MudTd>
                 <MudTd>
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => RemoveItem(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => EditItem(context))" />
                 </MudTd>
             </RowTemplate>
         </MudTable>
@@ -142,14 +144,14 @@
     [Parameter] public Guid defaultBucketId { get; set; } = Guid.Empty;
     [Parameter] public List<FeeBucket> buckets { get; set; } = new();
     private List<FeeStructureItem> _originalItems = new();
-
+    private FeeBucket selectedBucket = new();
     protected List<AcademicLevel> _classes = new();
     protected List<InvoiceType> _invoiceTypes = new();
     [Parameter] public List<InvoiceType> invoiceTypes { get; set; } = new();
 
     protected FeeStructureItem newItem = new();
     protected InvoiceType? selectedType;
-
+    protected string SaveButtonLabel = "Save";
     protected DateTime? StartDate;
     protected DateTime? EndDate;
 
@@ -171,13 +173,16 @@
                 Id = x.Id,
                 InvoiceTypeId = x.InvoiceTypeId,
                 Amount = x.Amount,
-                IsOptional = x.IsOptional
+                IsOptional = x.IsOptional,
+                BucketId = x.BucketId
+                
             }).ToList();
 
         StartDate = _model.TermStartDate;
         EndDate = _model.TermEndDate;
 
         _classes = academicLevels.ToList();
+        buckets = await GetSchoolAccountBuckets(Guid.Parse(AppState.SchoolID));
         await GetInvoiceTypes();
     }
 
@@ -197,41 +202,72 @@
 
     protected void AddItem()
     {
+        SaveButtonLabel = "Save";
         newItem = new FeeStructureItem();
+        newItem.isNew = true;
         selectedType = null;
+        StateHasChanged();
         inLineDialogVisible = true;
     }
-
+    protected void EditItem(FeeStructureItem item)
+    {
+        newItem = item.Clone();
+        newItem.isNew = false;
+        selectedType = invoiceTypes.FirstOrDefault(x => x.Id == item.InvoiceTypeId);
+        selectedBucket = buckets.FirstOrDefault(x => x.Id == item.BucketId) ?? new(); 
+        SaveButtonLabel = "Update";
+        StateHasChanged();
+        inLineDialogVisible = true;
+    }
     private void CancelInlineDialog() => inLineDialogVisible = false;
 
     protected void SaveItem()
     {
         if (selectedType == null) return;
-        if (_model.FeeStructureItems.Any(x => x.InvoiceTypeId == selectedType.Id))
+
+        // Exclude the item being edited from the duplicate check
+        if (_model.FeeStructureItems.Any(x => x.InvoiceTypeId == selectedType.Id && x.Id != newItem.Id))
         {
             Snackbar.Add("This invoice type already exists", Severity.Warning);
             return;
         }
+
         if (newItem.Amount <= 0)
         {
             Snackbar.Add("Amount must be greater than 0", Severity.Error);
             return;
         }
-        var item = new FeeStructureItem
+
+        if (newItem.isNew)
         {
-            Id = Guid.NewGuid(),
-            InvoiceTypeId = selectedType.Id,
-            Amount = newItem.Amount,
-            IsOptional = newItem.IsOptional
-        };
-        item.TargetType = (int)newItem.AppliesTo;
-        var bucketId = item.BucketId ?? defaultBucketId;
-        item.BucketId = bucketId;
-        _model.FeeStructureItems.Add(item);
+            var item = new FeeStructureItem
+            {
+                Id = Guid.NewGuid(),
+                InvoiceTypeId = selectedType.Id,
+                Amount = newItem.Amount,
+                IsOptional = newItem.IsOptional,
+                TargetType = (int)newItem.AppliesTo,
+                BucketId = selectedBucket?.Id ?? defaultBucketId
+            };
+
+            _model.FeeStructureItems.Add(item);
+        }
+        else
+        {
+            var existing = _model.FeeStructureItems.FirstOrDefault(x => x.Id == newItem.Id);
+            if (existing == null) return;
+
+            existing.InvoiceTypeId = selectedType.Id;
+            existing.Amount = newItem.Amount;
+            existing.IsOptional = newItem.IsOptional;
+            existing.TargetType = (int)newItem.AppliesTo;
+            existing.BucketId = selectedBucket?.Id ?? existing.BucketId ?? defaultBucketId;
+        }
+
         newItem = new FeeStructureItem();
+        selectedBucket = new();
         selectedType = null;
         inLineDialogVisible = false;
-
     }
 
     protected void RemoveItem(FeeStructureItem item)
@@ -250,7 +286,12 @@
             foreach (var item in _model.FeeStructureItems)
                 item.FeeStructureId = _model.Id;
 
-            await HttpClient.PostAsJsonAsync("api/Finance/SaveFeeStructure", _model);
+            var response = await HttpClient.PostAsJsonAsync("api/Finance/SaveFeeStructure", _model);
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to save fee structure", Severity.Error);
+                return;
+            }
         }
         else
         {
@@ -265,7 +306,11 @@
 
             var updated = _model.FeeStructureItems
                 .Where(x => _originalItems.Any(o => o.Id == x.Id && (
-                    o.Amount != x.Amount || o.IsOptional != x.IsOptional)))
+                    o.Amount != x.Amount ||
+                    o.IsOptional != x.IsOptional ||
+                    o.InvoiceTypeId != x.InvoiceTypeId ||
+                    o.TargetType != x.TargetType ||
+                    o.BucketId != x.BucketId)))
                 .ToList();
 
             var payload = new
@@ -276,7 +321,12 @@
                 Deleted = deleted
             };
 
-            await HttpClient.PostAsJsonAsync("api/Finance/UpdateFeeStructure", payload);
+            var response = await HttpClient.PostAsJsonAsync("api/Finance/UpdateFeeStructure", payload);
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Failed to update fee structure", Severity.Error);
+                return;
+            }
         }
 
         MudDialog.Close(DialogResult.Ok(_model));

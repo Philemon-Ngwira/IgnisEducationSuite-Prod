@@ -35,6 +35,12 @@ namespace IgnisEducationSuite.Controllers
             var result = await _finananceRepository.GetStudentLedgersAsync(requestDTO);
             return Ok(result);
         }
+        [HttpPut("UpdateFeeBucket")]
+        public async Task<IActionResult> UpdateFeeBucket(FeeBucket feeBucket)
+        {
+            var result = await _finananceRepository.UpdateFeeBucket(feeBucket);
+            return Ok(result);
+        }
         [HttpPost("UpdateFeeStructure")]
         public async Task<IActionResult> UpdateFeeStructure(UpdateFeeStructureDto dto)
         {
@@ -77,6 +83,13 @@ namespace IgnisEducationSuite.Controllers
         public async Task<IActionResult> GetStudentsByParent(Guid ParentID)
         {
             var result = await _finananceRepository.GetStudentsByParent(ParentID);
+            return Ok(result);
+        }
+
+        [HttpGet("GetSchoolFeeBuckets/{SchoolID}")]
+        public async Task<IActionResult> GetSchoolAccountBuckets(Guid SchoolID)
+        {
+            var result = await _finananceRepository.GetAccountBuckets(SchoolID);
             return Ok(result);
         }
     }

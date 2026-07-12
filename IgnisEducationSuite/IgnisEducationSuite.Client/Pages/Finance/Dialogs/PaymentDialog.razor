@@ -1,0 +1,133 @@
+﻿@using EDUSphereSharedProject.FinanceModels.DummyData
+
+@inherits AppBaseComponent
+
+<MudDialog>
+
+    <DialogContent>
+
+        <MudText Typo="Typo.h6">@Bucket.Name</MudText>
+
+        <MudDivider Class="my-2" />
+
+        <!-- SUMMARY -->
+        <MudPaper Class="pa-3 mb-3">
+            <MudText Typo="Typo.caption">Outstanding</MudText>
+            <MudText Typo="Typo.h4">K @Bucket.OutstandingAmount.ToString("N2")</MudText>
+        </MudPaper>
+
+        <!-- INVOICES -->
+        <MudPaper Class="pa-3 mb-3">
+
+            <MudText Typo="Typo.subtitle2">Invoices</MudText>
+
+            @foreach (var i in Bucket.Invoices)
+            {
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudText>@i.Name</MudText>
+                    <MudText>K @i.Amount</MudText>
+                </MudStack>
+            }
+
+        </MudPaper>
+
+        <!-- PAYMENT INSTRUCTIONS -->
+        <MudPaper Class="pa-3 mb-3">
+
+            <MudText Typo="Typo.subtitle2">Payment Instructions</MudText>
+
+            <MudText>Bank: Zanaco</MudText>
+            <MudText>Account: 123456789</MudText>
+
+            <MudText Class="mt-2">
+                Reference: STU-2026-001
+            </MudText>
+
+            <MudButton Size="Size.Small" Variant="Variant.Outlined">
+                Copy Reference
+            </MudButton>
+
+        </MudPaper>
+
+        <!-- UPLOAD -->
+        <MudPaper Class="pa-3 mb-3">
+
+            <MudText Typo="Typo.subtitle2">Upload Receipt</MudText>
+
+            @if (!Uploaded)
+            {
+                <MudFileUpload T="IBrowserFile"
+                               Accept=".jpg,.png,.pdf"
+                               FilesChanged="OnFileChanged" />
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Success">
+                    Receipt uploaded successfully
+                </MudAlert>
+            }
+
+        </MudPaper>
+
+        <!-- TIMELINE -->
+        <MudPaper Class="pa-3">
+
+            <MudText Typo="Typo.subtitle2">Timeline</MudText>
+
+            <MudStack>
+
+                <MudText>✔ Invoice Generated</MudText>
+                <MudText>✔ Instructions Viewed</MudText>
+
+                @if (Uploaded)
+                {
+                    <MudText>✔ Receipt Uploaded</MudText>
+                    <MudText>● Awaiting Verification</MudText>
+                }
+                else
+                {
+                    <MudText>○ Receipt Pending</MudText>
+                }
+
+            </MudStack>
+
+        </MudPaper>
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Close</MudButton>
+
+        <MudButton Color="Color.Primary"
+                   Disabled="@(!Uploaded)"
+                   OnClick="Submit">
+            Submit Payment
+        </MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+
+    [Parameter] public PaymentBucketVM Bucket { get; set; }
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    private bool Uploaded = false;
+
+    private void OnFileChanged(IBrowserFile file)
+    {
+        Uploaded = true; // mock upload
+        StateHasChanged();
+    }
+
+    private void Submit()
+    {
+        Bucket.IsSubmitted = true;
+        Bucket.Status = "Submitted";
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

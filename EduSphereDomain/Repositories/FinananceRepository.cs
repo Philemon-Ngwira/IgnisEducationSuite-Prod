@@ -3,6 +3,7 @@ using EDUSphereSharedProject.FinanceModels;
 using EDUSphereSharedProject.FinanceModels.DTOs;
 using EDUSphereSharedProject.UniversalModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace EduSphereDomain.Repositories
 {
@@ -10,10 +11,13 @@ namespace EduSphereDomain.Repositories
     {
         private readonly PhoenixEdusphereFinanceContext _context;
         private readonly PhoenixEdusphereFinanceContextProcedures _procedures;
-        public FinananceRepository(PhoenixEdusphereFinanceContext context, PhoenixEdusphereFinanceContextProcedures procedures)
+        private readonly IMemoryCache _cache;
+
+        public FinananceRepository(PhoenixEdusphereFinanceContext context, PhoenixEdusphereFinanceContextProcedures procedures, IMemoryCache cache)
         {
             _context = context;
             _procedures = procedures;
+            _cache = cache;
         }
 
         public async Task<IEnumerable<InvoiceType>> GetInvoiceTypes()
@@ -245,6 +249,7 @@ namespace EduSphereDomain.Repositories
             {
                 await _context.AddAsync(feeBucket);
                 await _context.SaveChangesAsync();
+                InvalidateBucketCache(feeBucket.SchoolId);
                 return feeBucket;
             }
             catch (Exception ex)
@@ -253,6 +258,10 @@ namespace EduSphereDomain.Repositories
                 throw;
             }
 
+        }
+        public void InvalidateBucketCache(Guid schoolId)
+        {
+            _cache.Remove($"fee_buckets_{schoolId}");
         }
         public async Task<FeeStructure> SaveFeeStructureAsync(FeeStructure feeStructure)
         {
@@ -391,7 +400,7 @@ namespace EduSphereDomain.Repositories
                 ReferenceId = x.ReferenceId,
                 ReferenceType = x.ReferenceType,
                 RunningBalance = x.RunningBalance,
-                LedgerSequence = x.LedgerSequence,
+                LedgerSequence = x.LedgerSequence.Value,
 
             }).ToList();
         }
@@ -462,10 +471,11 @@ namespace EduSphereDomain.Repositories
                     foreach (var item in existingItems)
                     {
                         var updated = dto.Updated.First(x => x.Id == item.Id);
-
                         item.Amount = updated.Amount;
                         item.InvoiceTypeId = updated.InvoiceTypeId;
                         item.IsOptional = updated.IsOptional;
+                        item.TargetType = updated.TargetType;   // ← add
+                        item.BucketId = updated.BucketId;       // ← add
                     }
                 }
 
@@ -480,7 +490,13 @@ namespace EduSphereDomain.Repositories
                 throw new Exception($"Error updating fee structure: {ex.Message}");
             }
         }
-
+        public async Task<FeeBucket> UpdateFeeBucket(FeeBucket feeBucket)
+        {
+            var res = _context.Update(feeBucket);
+            await _context.SaveChangesAsync();
+            InvalidateBucketCache(feeBucket.SchoolId);
+            return res.Entity;
+        }
         public async Task<IEnumerable<FeeStructure>> GetFeeStructures(Guid SchoolID)
         {
             var result = await _procedures.sp_GetFeeStructuresAsync(SchoolID);
@@ -509,12 +525,31 @@ namespace EduSphereDomain.Repositories
                 Id = x.Id,
                 InvoiceTypeId = x.InvoiceTypeId,
                 IsOptional = x.IsOptional,
+                BucketId = x.BucketId
             }).ToList();
         }
 
         public async Task<IEnumerable<Student>> GetStudentsByParent(Guid ParentID)
         {
             var result = await _context.Students.Where(x => x.ParentID == ParentID).ToListAsync();
+            return result;
+        }
+
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
+        public async Task<IEnumerable<FeeBucket>> GetAccountBuckets(Guid schoolId)
+        {
+            var cacheKey = $"fee_buckets_{schoolId}";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<FeeBucket> cached))
+                return cached;
+
+            var result = await _context.FeeBuckets
+                .Where(x => x.SchoolId == schoolId)
+                .AsNoTracking()
+                .ToListAsync();
+
+            _cache.Set(cacheKey, result, CacheDuration);
+
             return result;
         }
     }

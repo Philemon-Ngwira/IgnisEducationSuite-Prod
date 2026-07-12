@@ -1,45 +1,53 @@
 ﻿@using EDUSphereSharedProject.FinanceModels
 @inherits AppBaseComponent
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+    <MudTabPanel Text="Invoices">
+        <MudCard Class="pa-4 mb-4">
+            <MudCardHeader>
+                <MudText Typo="Typo.h6">Invoices</MudText>
+            </MudCardHeader>
 
-<MudCard Class="pa-4 mb-4">
-    <MudCardHeader>
-        <MudText Typo="Typo.h6">Invoices</MudText>
-    </MudCardHeader>
+            <MudCardContent>
+                <MudTable Items="Invoices" Hover="true" Dense="true" Bordered="true">
+                    <HeaderContent>
 
-    <MudCardContent>
-        <MudTable Items="Invoices" Hover="true" Dense="true" Bordered="true">
-            <HeaderContent>
+                        <MudTh>Term</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Amount</MudTh>
+                        <MudTh>Paid</MudTh>
+                        <MudTh>Outstanding</MudTh>
+                        <MudTh>Due Date</MudTh>
+                        <MudTh>Status</MudTh>
+                    </HeaderContent>
 
-                <MudTh>Term</MudTh>
-                <MudTh>Type</MudTh>
-                <MudTh>Amount</MudTh>
-                <MudTh>Paid</MudTh>
-                <MudTh>Outstanding</MudTh>
-                <MudTh>Due Date</MudTh>
-                <MudTh>Status</MudTh>
-            </HeaderContent>
+                    <RowTemplate>
 
-            <RowTemplate>
+                        <MudTd>@context.TermStartDate.ToShortDateString() - @context.TermEndDate.ToShortDateString()</MudTd>
+                        <MudTd>@context.InvoiceType</MudTd>
+                        <MudTd>@($"{CurrencySymbol}{context.Amount:N2}")</MudTd>
+                        <MudTd>@($"{CurrencySymbol}{context.PaidAmount:N2}")</MudTd>
+                        <MudTd>@($"{CurrencySymbol}{context.GetOutstandingAmount():N2}")</MudTd>
+                        <MudTd>@context.DueDate.ToShortDateString()</MudTd>
+                        <MudTd>
+                            <MudChip T="string" Color="@GetStatusColor(context.PaymentStatus)" Variant="Variant.Filled">
+                                @context.PaymentStatus
+                            </MudChip>
+                        </MudTd>
+                    </RowTemplate>
 
-                <MudTd>@context.TermStartDate.ToShortDateString() - @context.TermEndDate.ToShortDateString()</MudTd>
-                <MudTd>@context.InvoiceType</MudTd>
-                <MudTd>@($"{CurrencySymbol}{context.Amount:N2}")</MudTd>
-                <MudTd>@($"{CurrencySymbol}{context.PaidAmount:N2}")</MudTd>
-                <MudTd>@($"{CurrencySymbol}{context.GetOutstandingAmount():N2}")</MudTd>
-                <MudTd>@context.DueDate.ToShortDateString()</MudTd>
-                <MudTd>
-                    <MudChip T="string" Color="@GetStatusColor(context.PaymentStatus)" Variant="Variant.Filled">
-                        @context.PaymentStatus
-                    </MudChip>
-                </MudTd>
-            </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
+            </MudCardContent>
+        </MudCard>
+    </MudTabPanel>
+    <MudTabPanel Text="Payments">
+        <PaymentsPortal />
+    </MudTabPanel>
 
-            <PagerContent>
-                <MudTablePager />
-            </PagerContent>
-        </MudTable>
-    </MudCardContent>
-</MudCard>
+</MudTabs>
+
 
 @code {
     [Parameter] public List<Invoice> Invoices { get; set; } = new();

@@ -78,11 +78,11 @@
 
                     <MudSwitch T="bool"
                                Label="Mandatory Bucket"
-                               @bind-Checked="SelectedBucket.IsMandatory" />
+                               @bind-Value="SelectedBucket.IsMandatory" />
 
                     <MudSwitch T="bool"
                                Label="Set as Main (Default Account)"
-                               @bind-Checked="SelectedBucket.IsDefault" />
+                               @bind-Value="SelectedBucket.IsDefault" />
 
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         Main bucket is used when no specific bucket is assigned to a fee item
@@ -134,9 +134,11 @@
 
     private bool IsNew = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Buckets = new List<FeeBucket>();
+        LoaderService.Show("Please wait...");
+        Buckets = await GetSchoolAccountBuckets(Guid.Parse(AppState.SchoolID));
+        LoaderService.Hide();
     }
 
     void CreateNew()
@@ -150,17 +152,7 @@
 
     void SelectBucket(FeeBucket bucket)
     {
-        SelectedBucket = new FeeBucket
-        {
-            Id = bucket.Id,
-            Name = bucket.Name,
-            AccountName = bucket.AccountName,
-            AccountNumber = bucket.AccountNumber,
-            BankName = bucket.BankName,
-            IsMandatory = bucket.IsMandatory,
-            IsDefault = bucket.IsDefault,
-            Color = bucket.Color
-        };
+        SelectedBucket = bucket.Clone();
 
         IsNew = false;
     }
@@ -207,8 +199,18 @@
                 existing.IsDefault = SelectedBucket.IsDefault;
                 existing.Color = SelectedBucket.Color;
                 existing.SchoolId = SelectedBucket.SchoolId;
+                existing.UpdatedAt = DateTime.UtcNow;
 
                 var result = await service.UpdateAsync("api/Finance/UpdateFeeBucket", "feebucket", existing);
+                if (result.IsSuccess)
+                {
+                    Snackbar.Add("Details Updated Successfully", Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add("Details Failed to Update Contact System Admin", Severity.Error);
+
+                }
             }
 
             SelectedBucket = null;

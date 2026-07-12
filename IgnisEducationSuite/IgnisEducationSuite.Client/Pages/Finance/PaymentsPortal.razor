@@ -1,0 +1,195 @@
+﻿@using EDUSphereSharedProject.FinanceModels.DummyData
+@using IgnisEducationSuite.Client.Pages.Finance.Dialogs
+
+@inherits AppBaseComponent
+@inject IDialogService DialogService
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+
+    <!-- Header -->
+    <MudStack Row="true"
+              Justify="Justify.SpaceBetween"
+              AlignItems="AlignItems.Center"
+              Class="mb-4">
+
+        <MudText Typo="Typo.h5">
+            Payments
+        </MudText>
+
+        <MudChip T="string"
+                 Color="Color.Primary"
+                 Variant="Variant.Filled">
+            Total Outstanding:
+            @CurrencySymbol@Buckets.Sum(x => x.OutstandingAmount).ToString("N2")
+        </MudChip>
+
+    </MudStack>
+
+    <!-- Summary -->
+    <MudGrid Class="mb-4">
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.caption">Outstanding</MudText>
+                <MudText Typo="Typo.h4">
+                    @CurrencySymbol@Buckets.Sum(x => x.OutstandingAmount).ToString("N2")
+                </MudText>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.caption">Buckets</MudText>
+                <MudText Typo="Typo.h4">
+                    @Buckets.Count
+                </MudText>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.caption">Pending Verification</MudText>
+                <MudText Typo="Typo.h4">
+                    @Buckets.Count(x => x.Status == "Pending")
+                </MudText>
+            </MudPaper>
+        </MudItem>
+
+    </MudGrid>
+
+    <!-- Bucket Cards -->
+
+    <MudGrid>
+
+        @foreach (var bucket in Buckets)
+        {
+            <MudItem xs="12" md="6" lg="4">
+
+                <MudPaper Elevation="2"
+                          Class="pa-4"
+                          Style="cursor:pointer"
+                          @onclick="@(() => OpenPayment(bucket))">
+
+                    <MudStack>
+
+                        <MudStack Row="true"
+                                  Justify="Justify.SpaceBetween">
+
+                            <MudChip T="string" Color="Color.Primary"
+                                     Variant="Variant.Filled">
+                                @bucket.Name
+                            </MudChip>
+
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
+                        </MudStack>
+
+                        <MudDivider Class="my-2" />
+
+                        <MudText Typo="Typo.caption">
+                            Outstanding
+                        </MudText>
+
+                        <MudText Typo="Typo.h4">
+                            @CurrencySymbol@bucket.OutstandingAmount.ToString("N2")
+                        </MudText>
+
+                        <MudText Typo="Typo.caption">
+                            @bucket.InvoiceCount invoice(s)
+                        </MudText>
+
+                        <MudSpacer />
+
+                        <MudChip T="string" Color="@GetStatusColor(bucket.Status)">
+                            @bucket.Status
+                        </MudChip>
+
+                    </MudStack>
+
+                </MudPaper>
+
+            </MudItem>
+        }
+
+    </MudGrid>
+
+</MudContainer>
+
+@code {
+    
+    string CurrencySymbol = "K";
+    private List<PaymentBucketVM> Buckets = new();
+
+    protected override void OnInitialized()
+    {
+        Buckets = new List<PaymentBucketVM>
+        {
+            new PaymentBucketVM
+            {
+                BucketId = Guid.NewGuid(),
+                Name = "Revenue Account",
+                OutstandingAmount = 12000,
+                Status = "Payment Required",
+                Invoices = new()
+                {
+                    new("Tuition", 7000),
+                    new("Accommodation", 3000),
+                    new("Transport", 2000)
+                }
+            },
+            new PaymentBucketVM
+            {
+                BucketId = Guid.NewGuid(),
+                Name = "PCT Account",
+                OutstandingAmount = 2000,
+                Status = "Payment Required",
+                Invoices = new()
+                {
+                    new("PCT Levy", 2000)
+                }
+            }
+        };
+    }
+
+    private async Task OpenPayment(PaymentBucketVM bucket)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Bucket"] = bucket
+        };
+
+        var options = new DialogOptions
+        {
+            FullWidth = true,
+            MaxWidth = MaxWidth.Medium,
+            CloseButton = true
+        };
+
+        await DialogService.ShowAsync<PaymentDialog>(
+            $"Pay {bucket.Name}",
+            parameters,
+            options);
+    }
+
+    private Color GetColor(string status)
+    {
+        return status switch
+        {
+            "Payment Required" => Color.Warning,
+            "Submitted" => Color.Info,
+            "Verified" => Color.Success,
+            _ => Color.Default
+        };
+    }
+
+   
+
+    Color GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Payment Required" => Color.Warning,
+            "Pending" => Color.Info,
+            "Verified" => Color.Success,
+            _ => Color.Default
+        };
+    }
+}

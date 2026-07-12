@@ -12,5 +12,20 @@ namespace EDUSphereSharedProject.FinanceModels
     {
         [NotMapped]
         public StudentType AppliesTo { get; set; }
+        [NotMapped]
+        public bool isNew { get; set; } = true;
+
+        public FeeStructureItem Clone() => new FeeStructureItem
+        {
+            Id = Id,
+            Amount = Amount,
+            AppliesTo = AppliesTo,
+            FeeStructureId = FeeStructureId,
+            CreatedAt = CreatedAt,
+            BucketId = BucketId,
+            InvoiceTypeId = InvoiceTypeId,
+            IsOptional = IsOptional,
+            TargetType = TargetType,
+        };
     }
 }
