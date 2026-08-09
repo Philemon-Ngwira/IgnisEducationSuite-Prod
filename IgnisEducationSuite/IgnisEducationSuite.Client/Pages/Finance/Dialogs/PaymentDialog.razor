@@ -108,10 +108,9 @@
 </MudDialog>
 
 @code {
+    [Parameter] public PaymentBucketVM Bucket { get; set; } = default!;
 
-    [Parameter] public PaymentBucketVM Bucket { get; set; }
-
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     private bool Uploaded = false;
 
