@@ -2,6 +2,7 @@ using System.Data;
 using EduSphereDomain.FinanceData;
 using EDUSphereSharedProject.FinanceModels;
 using EDUSphereSharedProject.PaymentDTos.Lipila;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -45,21 +46,14 @@ public sealed class PaymentService : IPaymentService
         var narration = $"Payment for invoice {invoice.InvoiceNumber ?? invoice.Id.ToString()}";
         var now = DateTime.UtcNow;
 
-        var payment = new Payment
-        {
-            Id = Guid.NewGuid(),
-            InvoiceId = invoice.Id,
-            AmountPaid = amount,
-            PaymentDate = now,
-            PaymentMethod = "Lipila-MobileMoney",
-            CreatedAt = now,
-            SchoolID = invoice.SchoolID
-        };
-
+        // No Payment row yet - it's only created once Lipila confirms success
+        // (see ProcessLipilaCallbackAsync), so the DB's payment triggers never
+        // touch the invoice for a collection that hasn't actually settled.
         var gatewayTransaction = new PaymentGatewayTransaction
         {
             Id = Guid.NewGuid(),
-            PaymentId = payment.Id,
+            PaymentId = null,
+            InvoiceId = invoice.Id,
             PaymentGatewayAccountId = gatewayAccount.Id,
             InternalReference = internalReference,
             Provider = Provider,
@@ -74,7 +68,6 @@ public sealed class PaymentService : IPaymentService
             CreatedAt = now
         };
 
-        await _context.Payments.AddAsync(payment, cancellationToken);
         await _context.PaymentGatewayTransactions.AddAsync(gatewayTransaction, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -132,21 +125,14 @@ public sealed class PaymentService : IPaymentService
         var narration = $"Payment for invoice {invoice.InvoiceNumber ?? invoice.Id.ToString()}";
         var now = DateTime.UtcNow;
 
-        var payment = new Payment
-        {
-            Id = Guid.NewGuid(),
-            InvoiceId = invoice.Id,
-            AmountPaid = amount,
-            PaymentDate = now,
-            PaymentMethod = "Lipila-Card",
-            CreatedAt = now,
-            SchoolID = invoice.SchoolID
-        };
-
+        // No Payment row yet - it's only created once Lipila confirms success
+        // (see ProcessLipilaCallbackAsync), so the DB's payment triggers never
+        // touch the invoice for a collection that hasn't actually settled.
         var gatewayTransaction = new PaymentGatewayTransaction
         {
             Id = Guid.NewGuid(),
-            PaymentId = payment.Id,
+            PaymentId = null,
+            InvoiceId = invoice.Id,
             PaymentGatewayAccountId = gatewayAccount.Id,
             InternalReference = internalReference,
             Provider = Provider,
@@ -161,7 +147,6 @@ public sealed class PaymentService : IPaymentService
             CreatedAt = now
         };
 
-        await _context.Payments.AddAsync(payment, cancellationToken);
         await _context.PaymentGatewayTransactions.AddAsync(gatewayTransaction, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -261,121 +246,172 @@ public sealed class PaymentService : IPaymentService
 
         // Serializable isolation guarantees that two near-simultaneous deliveries
         // of the same callback (a real risk with webhooks) cannot both observe the
-        // transaction as "not yet finalized" and double-process it.
+        // transaction as "not yet finalized" and double-process it. Disposing an
+        // uncommitted transaction automatically rolls it back, so an unhandled
+        // exception anywhere below is safe by default.
         await using var dbTransaction = await _context.Database.BeginTransactionAsync(
             IsolationLevel.Serializable,
             cancellationToken);
 
-        try
+        var gatewayTransaction = await _context.PaymentGatewayTransactions
+            .Include(t => t.Invoice)
+                .ThenInclude(i => i.InvoiceBucketAllocations)
+            .FirstOrDefaultAsync(t => t.InternalReference == callback.ReferenceId, cancellationToken);
+
+        if (gatewayTransaction is null)
         {
-            var gatewayTransaction = await _context.PaymentGatewayTransactions
-                .Include(t => t.Payment)
-                    .ThenInclude(p => p.Invoice)
-                        .ThenInclude(i => i.InvoiceBucketAllocations)
-                .FirstOrDefaultAsync(t => t.InternalReference == callback.ReferenceId, cancellationToken);
+            _logger.LogWarning(
+                "Lipila callback received for unknown reference {ReferenceId}.",
+                callback.ReferenceId);
 
-            if (gatewayTransaction is null)
-            {
-                _logger.LogWarning(
-                    "Lipila callback received for unknown reference {ReferenceId}.",
-                    callback.ReferenceId);
+            await dbTransaction.CommitAsync(cancellationToken);
+            return;
+        }
 
-                await dbTransaction.CommitAsync(cancellationToken);
-                return;
-            }
+        if (IsTerminalStatus(gatewayTransaction.Status))
+        {
+            _logger.LogInformation(
+                "Duplicate Lipila callback ignored for reference {ReferenceId}, already {Status}.",
+                callback.ReferenceId,
+                gatewayTransaction.Status);
 
-            if (IsTerminalStatus(gatewayTransaction.Status))
-            {
-                _logger.LogInformation(
-                    "Duplicate Lipila callback ignored for reference {ReferenceId}, already {Status}.",
-                    callback.ReferenceId,
-                    gatewayTransaction.Status);
+            await dbTransaction.CommitAsync(cancellationToken);
+            return;
+        }
 
-                await dbTransaction.CommitAsync(cancellationToken);
-                return;
-            }
+        var now = DateTime.UtcNow;
 
-            var now = DateTime.UtcNow;
+        gatewayTransaction.ProviderReferenceId = callback.ReferenceId;
+        gatewayTransaction.ProviderIdentifier = callback.Identifier;
+        gatewayTransaction.ProviderExternalId = callback.ExternalId;
+        gatewayTransaction.PaymentType = callback.PaymentType ?? gatewayTransaction.PaymentType;
+        gatewayTransaction.UpdatedAt = now;
 
-            gatewayTransaction.ProviderReferenceId = callback.ReferenceId;
-            gatewayTransaction.ProviderIdentifier = callback.Identifier;
-            gatewayTransaction.ProviderExternalId = callback.ExternalId;
-            gatewayTransaction.PaymentType = callback.PaymentType ?? gatewayTransaction.PaymentType;
-            gatewayTransaction.UpdatedAt = now;
+        var incomingStatus = callback.Status?.Trim();
 
-            var incomingStatus = callback.Status?.Trim();
+        if (string.Equals(incomingStatus, "Successful", StringComparison.OrdinalIgnoreCase))
+        {
+            var amountMatches = callback.Amount == gatewayTransaction.Amount;
+            var currencyMatches = string.Equals(
+                callback.Currency,
+                gatewayTransaction.Currency,
+                StringComparison.OrdinalIgnoreCase);
 
-            if (string.Equals(incomingStatus, "Successful", StringComparison.OrdinalIgnoreCase))
-            {
-                var amountMatches = callback.Amount == gatewayTransaction.Amount;
-                var currencyMatches = string.Equals(
-                    callback.Currency,
-                    gatewayTransaction.Currency,
-                    StringComparison.OrdinalIgnoreCase);
-
-                if (!amountMatches || !currencyMatches)
-                {
-                    gatewayTransaction.Status = "Failed";
-                    gatewayTransaction.Message =
-                        $"Amount/currency mismatch. Expected {gatewayTransaction.Amount} {gatewayTransaction.Currency}, " +
-                        $"received {callback.Amount} {callback.Currency}.";
-                    gatewayTransaction.CompletedAt = now;
-
-                    _logger.LogError(
-                        "Lipila callback for reference {ReferenceId} failed validation: {Message}",
-                        callback.ReferenceId,
-                        gatewayTransaction.Message);
-                }
-                else
-                {
-                    var payment = gatewayTransaction.Payment;
-                    var invoice = payment.Invoice;
-
-                    var allocations = BuildAllocations(invoice, payment, gatewayTransaction.Amount, now);
-                    await _context.PaymentAllocations.AddRangeAsync(allocations, cancellationToken);
-
-                    invoice.PaidAmount += gatewayTransaction.Amount;
-                    invoice.PaymentStatus = invoice.PaidAmount >= invoice.Amount
-                        ? "Paid"
-                        : invoice.PaidAmount > 0
-                            ? "PartiallyPaid"
-                            : "Pending";
-                    invoice.UpdatedAt = now;
-
-                    payment.PaymentDate = now;
-                    payment.UpdatedAt = now;
-
-                    gatewayTransaction.Status = "Successful";
-                    gatewayTransaction.Message = callback.Message;
-                    gatewayTransaction.CompletedAt = now;
-                }
-            }
-            else if (string.Equals(incomingStatus, "Failed", StringComparison.OrdinalIgnoreCase))
+            if (!amountMatches || !currencyMatches)
             {
                 gatewayTransaction.Status = "Failed";
-                gatewayTransaction.Message = callback.Message;
+                gatewayTransaction.Message =
+                    $"Amount/currency mismatch. Expected {gatewayTransaction.Amount} {gatewayTransaction.Currency}, " +
+                    $"received {callback.Amount} {callback.Currency}.";
                 gatewayTransaction.CompletedAt = now;
+
+                _logger.LogError(
+                    "Lipila callback for reference {ReferenceId} failed validation: {Message}",
+                    callback.ReferenceId,
+                    gatewayTransaction.Message);
+
+                await _context.SaveChangesAsync(cancellationToken);
+                await dbTransaction.CommitAsync(cancellationToken);
+                return;
             }
-            else
+
+            var invoice = gatewayTransaction.Invoice
+                ?? throw new InvalidOperationException(
+                    $"Gateway transaction '{gatewayTransaction.Id}' has no associated invoice.");
+
+            // Creating this Payment row is what triggers Finance.TR_Payment_UpdateInvoice,
+            // TR_Payment_PreventOverpayment and trg_Payment_InsertLedger in the database -
+            // this is deliberately the first and only place a Payment is created for a
+            // Lipila collection, so the invoice/ledger only ever move for confirmed money.
+            var payment = new Payment
             {
-                // Not yet a terminal state (e.g. still "Pending") - persist the
-                // provider metadata we have so far but wait for a terminal callback.
-                if (!string.IsNullOrWhiteSpace(incomingStatus))
+                Id = Guid.NewGuid(),
+                InvoiceId = invoice.Id,
+                AmountPaid = gatewayTransaction.Amount,
+                PaymentDate = now,
+                PaymentMethod = BuildPaymentMethodLabel(gatewayTransaction.PaymentType),
+                CreatedAt = now,
+                SchoolID = invoice.SchoolID
+            };
+
+            var allocations = BuildAllocations(invoice, payment, gatewayTransaction.Amount, now);
+
+            await _context.Payments.AddAsync(payment, cancellationToken);
+            await _context.PaymentAllocations.AddRangeAsync(allocations, cancellationToken);
+
+            gatewayTransaction.PaymentId = payment.Id;
+            gatewayTransaction.Status = "Successful";
+            gatewayTransaction.Message = callback.Message;
+            gatewayTransaction.CompletedAt = now;
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                await dbTransaction.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (IsOverpaymentRejection(ex))
+            {
+                // TR_Payment_PreventOverpayment rejected the insert (the invoice was
+                // settled by something else between initiation and this confirmation).
+                // Its RAISERROR + ROLLBACK happens server-side and takes our whole
+                // ambient transaction with it, so dbTransaction is already dead -
+                // detach everything staged here and record the failure in a fresh save.
+                foreach (var entry in _context.ChangeTracker.Entries().ToList())
                 {
-                    gatewayTransaction.Status = incomingStatus;
+                    entry.State = EntityState.Detached;
                 }
 
-                gatewayTransaction.Message = callback.Message;
+                try
+                {
+                    await dbTransaction.RollbackAsync(cancellationToken);
+                }
+                catch (Exception rollbackEx)
+                {
+                    // The trigger's own ROLLBACK likely already tore this down server-side;
+                    // this call is just to sync the client-side wrapper. Swallow and continue -
+                    // the fresh save below is what actually matters.
+                    _logger.LogDebug(rollbackEx, "Rollback after overpayment rejection was a no-op.");
+                }
+
+                _logger.LogWarning(
+                    ex,
+                    "Lipila payment for reference {ReferenceId} rejected: invoice already settled.",
+                    callback.ReferenceId);
+
+                var current = await _context.PaymentGatewayTransactions
+                    .FirstAsync(t => t.Id == gatewayTransaction.Id, cancellationToken);
+
+                current.Status = "Failed";
+                current.Message = "Invoice was already settled before this payment could be confirmed.";
+                current.CompletedAt = DateTime.UtcNow;
+                current.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync(cancellationToken);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
-            await dbTransaction.CommitAsync(cancellationToken);
+            return;
         }
-        catch
+
+        if (string.Equals(incomingStatus, "Failed", StringComparison.OrdinalIgnoreCase))
         {
-            await dbTransaction.RollbackAsync(cancellationToken);
-            throw;
+            gatewayTransaction.Status = "Failed";
+            gatewayTransaction.Message = callback.Message;
+            gatewayTransaction.CompletedAt = now;
         }
+        else
+        {
+            // Not yet a terminal state (e.g. still "Pending") - persist the
+            // provider metadata we have so far but wait for a terminal callback.
+            if (!string.IsNullOrWhiteSpace(incomingStatus))
+            {
+                gatewayTransaction.Status = incomingStatus;
+            }
+
+            gatewayTransaction.Message = callback.Message;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await dbTransaction.CommitAsync(cancellationToken);
     }
 
     public async Task<LipilaWalletBalanceResponse> GetWalletBalanceAsync(
@@ -568,6 +604,15 @@ public sealed class PaymentService : IPaymentService
 
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    private static string BuildPaymentMethodLabel(string? paymentType) =>
+        string.Equals(paymentType, "Card", StringComparison.OrdinalIgnoreCase)
+            ? "Lipila-Card"
+            : "Lipila-MobileMoney";
+
+    private static bool IsOverpaymentRejection(DbUpdateException ex) =>
+        ex.InnerException is SqlException sqlEx &&
+        sqlEx.Message.Contains("exceeds invoice amount", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsTerminalStatus(string? status) =>
         string.Equals(status, "Successful", StringComparison.OrdinalIgnoreCase) ||

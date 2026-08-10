@@ -49,5 +49,7 @@ public partial class Invoice
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
+    public virtual ICollection<PaymentGatewayTransaction> PaymentGatewayTransactions { get; set; } = new List<PaymentGatewayTransaction>();
+
     public virtual StudentFinance StudentFinance { get; set; }
 }
