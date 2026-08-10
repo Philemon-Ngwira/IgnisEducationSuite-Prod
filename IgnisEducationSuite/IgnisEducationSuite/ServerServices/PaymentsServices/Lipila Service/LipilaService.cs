@@ -22,6 +22,11 @@ public sealed class LipilaService : ILipilaService
         PropertyNameCaseInsensitive = true
     };
 
+    private static readonly JsonSerializerOptions RequestJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     public LipilaService(
         HttpClient httpClient,
         PhoenixEdusphereFinanceContext context,
@@ -56,7 +61,9 @@ public sealed class LipilaService : ILipilaService
             apiKey);
 
         httpRequest.Content =
-            JsonContent.Create(request);
+            JsonContent.Create(
+                request,
+                options: RequestJsonOptions);
 
         return await SendAsync<LipilaCollectionResponse>(
             httpRequest,
@@ -85,7 +92,9 @@ public sealed class LipilaService : ILipilaService
             apiKey);
 
         httpRequest.Content =
-            JsonContent.Create(request);
+            JsonContent.Create(
+                request,
+                options: RequestJsonOptions);
 
         return await SendAsync<LipilaCollectionResponse>(
             httpRequest,

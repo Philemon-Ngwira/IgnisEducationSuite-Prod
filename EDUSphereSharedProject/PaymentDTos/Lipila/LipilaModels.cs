@@ -64,6 +64,30 @@ namespace EDUSphereSharedProject.PaymentDTos.Lipila
         public string BackUrl { get; set; } = default!;
 
         public string ReferenceData { get; set; } = default!;
-        public string Email = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// App-facing customer info accepted by <c>IPaymentService.InitiateLipilaCardAsync</c>.
+    /// Mapped internally to <see cref="LipilaCustomerInfo"/> for the outbound Lipila request.
+    /// </summary>
+    public class LipilaCardCustomerInfo
+    {
+        public string FirstName { get; set; } = default!;
+
+        public string LastName { get; set; } = default!;
+
+        public string PhoneNumber { get; set; } = default!;
+
+        public string Email { get; set; } = default!;
+
+        public string City { get; set; } = default!;
+
+        public string Country { get; set; } = default!;
+
+        public string Address { get; set; } = default!;
+
+        public string Zip { get; set; } = default!;
     }
 }

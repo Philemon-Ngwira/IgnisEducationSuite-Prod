@@ -17,5 +17,12 @@ namespace EDUSphereSharedProject.PaymentDTos.Lipila
             = "https://blz.lipila.io";
 
         public string CallbackUrl { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Page the customer's browser is redirected back to after completing
+        /// (or abandoning) a hosted card payment. Distinct from CallbackUrl,
+        /// which is the server-to-server webhook Lipila posts results to.
+        /// </summary>
+        public string CardReturnUrl { get; set; } = string.Empty;
     }
 }

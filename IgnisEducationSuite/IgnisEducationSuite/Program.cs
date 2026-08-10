@@ -16,6 +16,7 @@ using IgnisEducationSuite.Components.Account;
 using IgnisEducationSuite.Data;
 using IgnisEducationSuite.Hubs;
 using IgnisEducationSuite.ServerServices;
+using IgnisEducationSuite.ServerServices.PaymentsServices;
 using IgnisEducationSuite.ServerServices.PaymentsServices.Lipila_Service;
 using IgnisEducationSuite.ServerServices.Security;
 using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
@@ -85,6 +86,7 @@ namespace IgnisEducationSuite
     builder.Configuration.GetSection("Lipila"));
 
             builder.Services.AddHttpClient<ILipilaService, LipilaService>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
             builder.Services.Configure<EncryptionConfiguration>(
     builder.Configuration.GetSection("Encryption"));
 
