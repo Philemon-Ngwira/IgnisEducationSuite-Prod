@@ -1,0 +1,149 @@
+@using EDUSphereSharedProject.PaymentDTos.Lipila
+@using System.Net.Http.Json
+@inherits AppBaseComponent
+
+<MudDialog>
+
+    <DialogContent>
+
+        <MudText Typo="Typo.h6" Class="mb-3">
+            @(Existing is null ? "Add" : "Edit") @Environment Wallet - @BucketName
+        </MudText>
+
+        <MudForm @ref="form">
+
+            <MudTextField Label="Lipila Wallet ID"
+                          @bind-Value="WalletId"
+                          Required="true"
+                          HelperText="The merchant/wallet identifier Lipila assigned this account." />
+
+            @if (Existing is not null)
+            {
+                <MudSwitch T="bool" Label="Active" @bind-Value="IsActive" Class="mt-3" />
+            }
+            else
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                    Environment: @Environment
+                </MudText>
+            }
+
+        </MudForm>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@ErrorMessage</MudAlert>
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="Saving">
+            Save
+        </MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public Guid SchoolId { get; set; }
+    [Parameter] public Guid BucketId { get; set; } = default!;
+    [Parameter] public string BucketName { get; set; } = default!;
+    [Parameter] public string Environment { get; set; } = "Sandbox";
+    [Parameter] public PaymentGatewayAccountDto? Existing { get; set; }
+
+    private MudForm form = default!;
+    private string WalletId = string.Empty;
+    private bool IsActive = true;
+    private bool Saving;
+    private string? ErrorMessage;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        if (Existing is not null)
+        {
+            WalletId = Existing.WalletId;
+            IsActive = Existing.IsActive;
+            Environment = Existing.Environment;
+        }
+    }
+
+    private async Task Save()
+    {
+        await form.Validate();
+        if (!form.IsValid)
+        {
+            return;
+        }
+
+        Saving = true;
+        ErrorMessage = null;
+
+        try
+        {
+            HttpResponseMessage response;
+
+            if (Existing is null)
+            {
+                var request = new CreatePaymentGatewayAccountRequest
+                {
+                    SchoolId = SchoolId,
+                    BucketId = BucketId,
+                    WalletId = WalletId,
+                    Environment = Environment
+                };
+
+                response = await HttpClient.PostAsJsonAsync("api/payments/lipila/accounts", request);
+            }
+            else
+            {
+                var request = new UpdatePaymentGatewayAccountRequest
+                {
+                    WalletId = WalletId,
+                    Environment = Environment,
+                    IsActive = IsActive
+                };
+
+                response = await HttpClient.PutAsJsonAsync($"api/payments/lipila/accounts/{Existing.Id}", request);
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ErrorMessage = await ReadErrorMessageAsync(response);
+                return;
+            }
+
+            var dto = await response.Content.ReadFromJsonAsync<PaymentGatewayAccountDto>();
+            MudDialog.Close(DialogResult.Ok(dto));
+        }
+        finally
+        {
+            Saving = false;
+        }
+    }
+
+    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+            if (problem is not null && problem.TryGetValue("message", out var message))
+            {
+                return message;
+            }
+        }
+        catch
+        {
+            // fall through to generic message
+        }
+
+        return "Something went wrong. Please try again.";
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

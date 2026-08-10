@@ -1,0 +1,141 @@
+@using EDUSphereSharedProject.PaymentDTos.Lipila
+@using IgnisEducationSuite.Client.Pages.Finance.Dialogs
+@using System.Net.Http.Json
+@inherits AppBaseComponent
+
+<MudPaper Class="pa-3" Style="background-color:#f5f5f5">
+
+    <MudText Typo="Typo.subtitle2" Class="mb-2">@Environment</MudText>
+
+    @if (Account is null)
+    {
+        <MudText Color="Color.Secondary" Class="mb-2">Not configured</MudText>
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="AddWallet">
+            + Add Wallet
+        </MudButton>
+    }
+    else
+    {
+        <MudText Class="mb-1">Wallet: @Account.WalletId</MudText>
+
+        <MudStack Row="true" Spacing="1" Class="mb-2">
+            <MudChip T="string" Size="Size.Small" Color="@(Account.IsActive ? Color.Success : Color.Default)">
+                @(Account.IsActive ? "Active" : "Inactive")
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Color="@(Account.HasCredential ? Color.Success : Color.Warning)">
+                @(Account.HasCredential ? "API key set" : "No API key")
+            </MudChip>
+        </MudStack>
+
+        <MudStack Row="true" Spacing="1">
+            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="EditWallet">Edit</MudButton>
+            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="SetCredential">Set API Key</MudButton>
+            <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="!Account.HasCredential" OnClick="TestConnection">Test</MudButton>
+        </MudStack>
+    }
+
+</MudPaper>
+
+@code {
+    [Parameter] public Guid SchoolId { get; set; }
+    [Parameter] public Guid BucketId { get; set; }
+    [Parameter] public string BucketName { get; set; } = default!;
+    [Parameter] public string Environment { get; set; } = default!;
+    [Parameter] public PaymentGatewayAccountDto? Account { get; set; }
+
+    /// <summary>Raised after add/edit/credential changes so the parent can refresh its list.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private async Task AddWallet()
+    {
+        var parameters = new DialogParameters<EditGatewayAccountDialog>
+        {
+            { x => x.SchoolId, SchoolId },
+            { x => x.BucketId, BucketId },
+            { x => x.BucketName, BucketName },
+            { x => x.Environment, Environment },
+            { x => x.Existing, null }
+        };
+
+        var dialog = await DialogService.ShowAsync<EditGatewayAccountDialog>("Add Wallet", parameters);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            Snackbar.Add("Wallet added.", Severity.Success);
+            await OnChanged.InvokeAsync();
+        }
+    }
+
+    private async Task EditWallet()
+    {
+        var parameters = new DialogParameters<EditGatewayAccountDialog>
+        {
+            { x => x.SchoolId, SchoolId },
+            { x => x.BucketId, BucketId },
+            { x => x.BucketName, BucketName },
+            { x => x.Environment, Environment },
+            { x => x.Existing, Account }
+        };
+
+        var dialog = await DialogService.ShowAsync<EditGatewayAccountDialog>("Edit Wallet", parameters);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            Snackbar.Add("Wallet updated.", Severity.Success);
+            await OnChanged.InvokeAsync();
+        }
+    }
+
+    private async Task SetCredential()
+    {
+        if (Account is null)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<SetGatewayCredentialDialog>
+        {
+            { x => x.AccountId, Account.Id },
+            { x => x.WalletLabel, $"{BucketName} - {Environment}" }
+        };
+
+        var dialog = await DialogService.ShowAsync<SetGatewayCredentialDialog>("Set API Key", parameters);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            Snackbar.Add("API key saved.", Severity.Success);
+            await OnChanged.InvokeAsync();
+        }
+    }
+
+    private async Task TestConnection()
+    {
+        if (Account is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await HttpClient.PostAsync($"api/payments/lipila/accounts/{Account.Id}/test", null);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Connection test failed. Check the wallet ID and API key.", Severity.Error);
+                return;
+            }
+
+            var balance = await response.Content.ReadFromJsonAsync<LipilaWalletBalanceResponse>();
+            var amount = balance?.Data?.Balance ?? 0;
+
+            Snackbar.Add($"Connected. Wallet balance: {amount:N2}", Severity.Success);
+        }
+        catch
+        {
+            Snackbar.Add("Connection test failed. Check the wallet ID and API key.", Severity.Error);
+        }
+    }
+}

@@ -87,6 +87,7 @@ namespace IgnisEducationSuite
 
             builder.Services.AddHttpClient<ILipilaService, LipilaService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IPaymentGatewayAccountService, PaymentGatewayAccountService>();
             builder.Services.Configure<EncryptionConfiguration>(
     builder.Configuration.GetSection("Encryption"));
 
