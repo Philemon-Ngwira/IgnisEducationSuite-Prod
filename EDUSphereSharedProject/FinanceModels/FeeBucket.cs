@@ -19,7 +19,7 @@ public partial class FeeBucket
 
     public string BankName { get; set; }
 
-    public bool IsMandatory { get; set; }
+    public bool? IsMandatory { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
@@ -32,4 +32,6 @@ public partial class FeeBucket
     public virtual ICollection<InvoiceBucketAllocation> InvoiceBucketAllocations { get; set; } = new List<InvoiceBucketAllocation>();
 
     public virtual ICollection<PaymentAllocation> PaymentAllocations { get; set; } = new List<PaymentAllocation>();
+
+    public virtual ICollection<PaymentGatewayAccount> PaymentGatewayAccounts { get; set; } = new List<PaymentGatewayAccount>();
 }

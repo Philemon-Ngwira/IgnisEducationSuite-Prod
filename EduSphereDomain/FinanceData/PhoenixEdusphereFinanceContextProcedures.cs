@@ -48,7 +48,6 @@ namespace EduSphereDomain.FinanceData
             modelBuilder.Entity<GetClinicMedicationsBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetClinicStaffBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetClinicVisitsWithMedicationLogsResult>().HasNoKey().ToView(null);
-            modelBuilder.Entity<GetConsolidatedEndTermReportResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetGradedStudentAssignmentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetGradedStudentExamsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetHostelMaintainanceRequestsBySchoolResult>().HasNoKey().ToView(null);
@@ -63,7 +62,6 @@ namespace EduSphereDomain.FinanceData
             modelBuilder.Entity<GetReportCardsByParentResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetReportCardsByStudentResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetReportCardsByTermAndStudentResult>().HasNoKey().ToView(null);
-            modelBuilder.Entity<GetReportCardTermsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetRoomsBySchoolResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetSchoolDiningMenusResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetSchoolMealSessionsResult>().HasNoKey().ToView(null);
@@ -99,12 +97,7 @@ namespace EduSphereDomain.FinanceData
             modelBuilder.Entity<GetUpcomingExamsOrQuizzesResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetUserBadgesByUserIDResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<GetUserTripsTodayResult>().HasNoKey().ToView(null);
-            modelBuilder.Entity<RecalculateClassPositionsResult>().HasNoKey().ToView(null);
-            modelBuilder.Entity<RecalculateSchoolPositionsResult>().HasNoKey().ToView(null);
-            modelBuilder.Entity<RunAttendanceAndSyncJobsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<RunDailyJobsResult>().HasNoKey().ToView(null);
-            modelBuilder.Entity<RunDailyJobsWithLoggingResult>().HasNoKey().ToView(null);
-            modelBuilder.Entity<RunRankingJobsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_CreateStudentFinanceForExistingStudentsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetActiveClinicVisitsResult>().HasNoKey().ToView(null);
             modelBuilder.Entity<sp_GetBusMaintenanceRequestsResult>().HasNoKey().ToView(null);
@@ -255,26 +248,6 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<DeactivateAndCleanSchedulesResult>("EXEC @returnValue = [dbo].[DeactivateAndCleanSchedules]", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<int> FixStudentAcademicMappingsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                parameterreturnValue,
-            };
-            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[FixStudentAcademicMappings]", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 
@@ -625,39 +598,6 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetClinicVisitsWithMedicationLogsResult>("EXEC @returnValue = [SchoolOps].[GetClinicVisitsWithMedicationLogs] @ClinicId", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<List<GetConsolidatedEndTermReportResult>> GetConsolidatedEndTermReportAsync(Guid? SchoolID, string Term, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                new SqlParameter
-                {
-                    ParameterName = "SchoolID",
-                    Value = SchoolID ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
-                },
-                new SqlParameter
-                {
-                    ParameterName = "Term",
-                    Size = 40,
-                    Value = Term ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.NVarChar,
-                },
-                parameterreturnValue,
-            };
-            var _ = await _context.SqlQueryAsync<GetConsolidatedEndTermReportResult>("EXEC @returnValue = [dbo].[GetConsolidatedEndTermReport] @SchoolID, @Term", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 
@@ -1049,32 +989,6 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<GetReportCardsByTermAndStudentResult>("EXEC @returnValue = [dbo].[GetReportCardsByTermAndStudent] @TermStartDate, @TermEndDate, @StudentID", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<List<GetReportCardTermsResult>> GetReportCardTermsAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                new SqlParameter
-                {
-                    ParameterName = "SchoolID",
-                    Value = SchoolID ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
-                },
-                parameterreturnValue,
-            };
-            var _ = await _context.SqlQueryAsync<GetReportCardTermsResult>("EXEC @returnValue = [dbo].[GetReportCardTerms] @SchoolID", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 
@@ -2081,201 +1995,6 @@ namespace EduSphereDomain.FinanceData
             return _;
         }
 
-        public virtual async Task<int> LogJobFailureAsync(Guid? JobLogID, string ErrorMessage, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                new SqlParameter
-                {
-                    ParameterName = "JobLogID",
-                    Value = JobLogID ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
-                },
-                new SqlParameter
-                {
-                    ParameterName = "ErrorMessage",
-                    Size = -1,
-                    Value = ErrorMessage ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.NVarChar,
-                },
-                parameterreturnValue,
-            };
-            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[LogJobFailure] @JobLogID, @ErrorMessage", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<int> LogJobStartAsync(string JobName, string SubJobName, OutputParameter<Guid?> JobLogID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterJobLogID = new SqlParameter
-            {
-                ParameterName = "JobLogID",
-                Direction = System.Data.ParameterDirection.InputOutput,
-                Value = JobLogID?._value ?? Convert.DBNull,
-                SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
-            };
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                new SqlParameter
-                {
-                    ParameterName = "JobName",
-                    Size = 400,
-                    Value = JobName ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.NVarChar,
-                },
-                new SqlParameter
-                {
-                    ParameterName = "SubJobName",
-                    Size = 400,
-                    Value = SubJobName ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.NVarChar,
-                },
-                parameterJobLogID,
-                parameterreturnValue,
-            };
-            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[LogJobStart] @JobName, @SubJobName, @JobLogID OUTPUT", sqlParameters, cancellationToken);
-
-            JobLogID.SetValue(parameterJobLogID.Value);
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<int> LogJobSuccessAsync(Guid? JobLogID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                new SqlParameter
-                {
-                    ParameterName = "JobLogID",
-                    Value = JobLogID ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
-                },
-                parameterreturnValue,
-            };
-            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[LogJobSuccess] @JobLogID", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<List<RecalculateClassPositionsResult>> RecalculateClassPositionsAsync(Guid? AcademicLevel, string GradeSection, string Term, string ReportCardType, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                new SqlParameter
-                {
-                    ParameterName = "AcademicLevel",
-                    Value = AcademicLevel ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
-                },
-                new SqlParameter
-                {
-                    ParameterName = "GradeSection",
-                    Size = 100,
-                    Value = GradeSection ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.NVarChar,
-                },
-                new SqlParameter
-                {
-                    ParameterName = "Term",
-                    Size = 40,
-                    Value = Term ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.NVarChar,
-                },
-                new SqlParameter
-                {
-                    ParameterName = "ReportCardType",
-                    Size = 40,
-                    Value = ReportCardType ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.NVarChar,
-                },
-                parameterreturnValue,
-            };
-            var _ = await _context.SqlQueryAsync<RecalculateClassPositionsResult>("EXEC @returnValue = [dbo].[RecalculateClassPositions] @AcademicLevel, @GradeSection, @Term, @ReportCardType", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<List<RecalculateSchoolPositionsResult>> RecalculateSchoolPositionsAsync(Guid? SchoolID, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                new SqlParameter
-                {
-                    ParameterName = "SchoolID",
-                    Value = SchoolID ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.UniqueIdentifier,
-                },
-                parameterreturnValue,
-            };
-            var _ = await _context.SqlQueryAsync<RecalculateSchoolPositionsResult>("EXEC @returnValue = [dbo].[RecalculateSchoolPositions] @SchoolID", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<List<RunAttendanceAndSyncJobsResult>> RunAttendanceAndSyncJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                parameterreturnValue,
-            };
-            var _ = await _context.SqlQueryAsync<RunAttendanceAndSyncJobsResult>("EXEC @returnValue = [dbo].[RunAttendanceAndSyncJobs]", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
         public virtual async Task<List<RunDailyJobsResult>> RunDailyJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
         {
             var parameterreturnValue = new SqlParameter
@@ -2290,126 +2009,6 @@ namespace EduSphereDomain.FinanceData
                 parameterreturnValue,
             };
             var _ = await _context.SqlQueryAsync<RunDailyJobsResult>("EXEC @returnValue = [dbo].[RunDailyJobs]", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<List<RunDailyJobsWithLoggingResult>> RunDailyJobsWithLoggingAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                parameterreturnValue,
-            };
-            var _ = await _context.SqlQueryAsync<RunDailyJobsWithLoggingResult>("EXEC @returnValue = [dbo].[RunDailyJobsWithLogging]", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<int> RunFinanceJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                parameterreturnValue,
-            };
-            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[RunFinanceJobs]", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<List<RunRankingJobsResult>> RunRankingJobsAsync(OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                parameterreturnValue,
-            };
-            var _ = await _context.SqlQueryAsync<RunRankingJobsResult>("EXEC @returnValue = [dbo].[RunRankingJobs]", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<int> RunReportCardJobsAsync(DateTime? Today, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                new SqlParameter
-                {
-                    ParameterName = "Today",
-                    Value = Today ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.Date,
-                },
-                parameterreturnValue,
-            };
-            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[RunReportCardJobs] @Today", sqlParameters, cancellationToken);
-
-            returnValue?.SetValue(parameterreturnValue.Value);
-
-            return _;
-        }
-
-        public virtual async Task<int> SendJobFailureEmailAsync(string JobName, string ErrorMessage, OutputParameter<int> returnValue = null, CancellationToken cancellationToken = default)
-        {
-            var parameterreturnValue = new SqlParameter
-            {
-                ParameterName = "returnValue",
-                Direction = System.Data.ParameterDirection.Output,
-                SqlDbType = System.Data.SqlDbType.Int,
-            };
-
-            var sqlParameters = new []
-            {
-                new SqlParameter
-                {
-                    ParameterName = "JobName",
-                    Size = 400,
-                    Value = JobName ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.NVarChar,
-                },
-                new SqlParameter
-                {
-                    ParameterName = "ErrorMessage",
-                    Size = -1,
-                    Value = ErrorMessage ?? Convert.DBNull,
-                    SqlDbType = System.Data.SqlDbType.NVarChar,
-                },
-                parameterreturnValue,
-            };
-            var _ = await _context.Database.ExecuteSqlRawAsync("EXEC @returnValue = [dbo].[SendJobFailureEmail] @JobName, @ErrorMessage", sqlParameters, cancellationToken);
 
             returnValue?.SetValue(parameterreturnValue.Value);
 

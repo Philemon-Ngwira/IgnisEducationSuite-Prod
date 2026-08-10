@@ -8,7 +8,7 @@ namespace EduSphereDomain.Models
     public partial class sp_GetStudentLedgerStatementResult
     {
         public Guid Id { get; set; }
-        public long? LedgerSequence { get; set; }
+        public long LedgerSequence { get; set; }
         public DateTime CreatedAt { get; set; }
         public string EntryType { get; set; }
         [Column(TypeName = "decimal(18,2)")]

@@ -41,8 +41,6 @@ public partial class Invoice
 
     public Guid? FeeStructureId { get; set; }
 
-    public virtual FeeStructure FeeStructure { get; set; }
-
     public virtual ICollection<InvoiceBucketAllocation> InvoiceBucketAllocations { get; set; } = new List<InvoiceBucketAllocation>();
 
     public virtual InvoiceType InvoiceTypeNavigation { get; set; }

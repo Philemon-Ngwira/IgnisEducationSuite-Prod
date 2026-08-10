@@ -5,27 +5,29 @@ using System.Collections.Generic;
 
 namespace EDUSphereSharedProject.FinanceModels;
 
-public partial class Payment
+public partial class PaymentGatewayAccount
 {
     public Guid Id { get; set; }
 
-    public Guid InvoiceId { get; set; }
+    public Guid SchoolId { get; set; }
 
-    public decimal AmountPaid { get; set; }
+    public Guid BucketId { get; set; }
 
-    public DateTime PaymentDate { get; set; }
+    public string Provider { get; set; }
 
-    public string PaymentMethod { get; set; }
+    public string WalletId { get; set; }
+
+    public bool? IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
 
-    public Guid? SchoolID { get; set; }
+    public string Environment { get; set; }
 
-    public virtual Invoice Invoice { get; set; }
+    public virtual FeeBucket Bucket { get; set; }
 
-    public virtual ICollection<PaymentAllocation> PaymentAllocations { get; set; } = new List<PaymentAllocation>();
+    public virtual ICollection<PaymentGatewayCredential> PaymentGatewayCredentials { get; set; } = new List<PaymentGatewayCredential>();
 
     public virtual ICollection<PaymentGatewayTransaction> PaymentGatewayTransactions { get; set; } = new List<PaymentGatewayTransaction>();
 }

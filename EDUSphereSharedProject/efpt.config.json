@@ -1,10 +1,10 @@
 ﻿{
-   "CodeGenerationMode": 4,
+   "CodeGenerationMode": 3,
    "ContextClassName": "PhoenixEdusphereContext",
    "ContextNamespace": null,
+   "DefaultDacpacSchema": null,
    "FilterSchemas": false,
    "IncludeConnectionString": false,
-   "MinimumProductVersion": "2.6.1093",
    "ModelNamespace": null,
    "OutputContextPath": null,
    "OutputPath": "FinanceModels",
@@ -13,7 +13,6 @@
    "Schemas": null,
    "SelectedHandlebarsLanguage": 0,
    "SelectedToBeGenerated": 2,
-   "T4TemplatePath": null,
    "Tables": [
       {
          "Name": "[dbo].[Students]",
@@ -53,6 +52,18 @@
       },
       {
          "Name": "[Finance].[PaymentAllocation]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[Finance].[PaymentGatewayAccount]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[Finance].[PaymentGatewayCredential]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[Finance].[PaymentGatewayTransaction]",
          "ObjectType": 0
       },
       {
@@ -204,10 +215,6 @@
          "ObjectType": 1
       },
       {
-         "Name": "[dbo].[GetConsolidatedEndTermReport]",
-         "ObjectType": 1
-      },
-      {
          "Name": "[dbo].[GetGradedStudentAssignments]",
          "ObjectType": 1
       },
@@ -257,10 +264,6 @@
       },
       {
          "Name": "[dbo].[GetReportCardsByTermAndStudent]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[GetReportCardTerms]",
          "ObjectType": 1
       },
       {
@@ -389,14 +392,6 @@
       },
       {
          "Name": "[dbo].[GetUserBadgesByUserID]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[RecalculateClassPositions]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[RecalculateSchoolPositions]",
          "ObjectType": 1
       },
       {
@@ -532,31 +527,23 @@
          "ObjectType": 1
       }
    ],
-   "UiHint": null,
+   "UiHint": "phoenix.PhoenixEdusphere.dbo",
    "UncountableWords": null,
-   "UseAsyncStoredProcedureCalls": true,
    "UseBoolPropertiesWithoutDefaultSql": false,
    "UseDatabaseNames": true,
-   "UseDatabaseNamesForRoutines": true,
    "UseDateOnlyTimeOnly": false,
    "UseDbContextSplitting": false,
-   "UseDecimalDataAnnotationForSprocResult": true,
    "UseFluentApiOnly": true,
    "UseHandleBars": false,
    "UseHierarchyId": false,
    "UseInflector": true,
-   "UseInternalAccessModifiersForSprocsAndFunctions": false,
    "UseLegacyPluralizer": false,
    "UseManyToManyEntity": false,
    "UseNoDefaultConstructor": false,
-   "UseNoNavigations": false,
    "UseNoObjectFilter": false,
    "UseNodaTime": false,
    "UseNullableReferences": false,
-   "UsePrefixNavigationNaming": false,
    "UseSchemaFolders": false,
-   "UseSchemaNamespaces": false,
    "UseSpatial": false,
-   "UseT4": false,
-   "UseT4Split": false
+   "UseT4": false
 }

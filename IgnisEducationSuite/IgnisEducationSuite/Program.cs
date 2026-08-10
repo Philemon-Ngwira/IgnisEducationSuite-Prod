@@ -6,6 +6,7 @@ using EduSphereDomain.Data;
 using EduSphereDomain.FinanceData;
 using EduSphereDomain.MessagingData;
 using EduSphereDomain.Repositories;
+using EDUSphereSharedProject.PaymentDTos.Lipila;
 using IgnisEducationSuite.Client.Pages.Achievements;
 using IgnisEducationSuite.Client.Pages.Achievements.Interfaces;
 using IgnisEducationSuite.Client.Pages.Achievements.Services;
@@ -15,6 +16,8 @@ using IgnisEducationSuite.Components.Account;
 using IgnisEducationSuite.Data;
 using IgnisEducationSuite.Hubs;
 using IgnisEducationSuite.ServerServices;
+using IgnisEducationSuite.ServerServices.PaymentsServices.Lipila_Service;
+using IgnisEducationSuite.ServerServices.Security;
 using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
 using IgnisEducationSuite.Settings;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -78,7 +81,14 @@ namespace IgnisEducationSuite
             builder.Services.AddDbContext<MessagingContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<AchievementContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+            builder.Services.Configure<LipilaConfiguration>(
+    builder.Configuration.GetSection("Lipila"));
 
+            builder.Services.AddHttpClient<ILipilaService, LipilaService>();
+            builder.Services.Configure<EncryptionConfiguration>(
+    builder.Configuration.GetSection("Encryption"));
+
+            builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
             builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()

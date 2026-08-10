@@ -55,6 +55,18 @@
          "ObjectType": 0
       },
       {
+         "Name": "[Finance].[PaymentGatewayAccount]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[Finance].[PaymentGatewayCredential]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[Finance].[PaymentGatewayTransaction]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[Finance].[StudentFinance]",
          "ObjectType": 0
       },
@@ -167,10 +179,6 @@
          "ObjectType": 1
       },
       {
-         "Name": "[dbo].[FixStudentAcademicMappings]",
-         "ObjectType": 1
-      },
-      {
          "Name": "[dbo].[GenerateStudentAttendance]",
          "ObjectType": 1
       },
@@ -204,10 +212,6 @@
       },
       {
          "Name": "[dbo].[GetClassLessonSummaryBySchool]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[GetConsolidatedEndTermReport]",
          "ObjectType": 1
       },
       {
@@ -260,10 +264,6 @@
       },
       {
          "Name": "[dbo].[GetReportCardsByTermAndStudent]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[GetReportCardTerms]",
          "ObjectType": 1
       },
       {
@@ -395,51 +395,7 @@
          "ObjectType": 1
       },
       {
-         "Name": "[dbo].[LogJobFailure]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[LogJobStart]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[LogJobSuccess]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[RecalculateClassPositions]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[RecalculateSchoolPositions]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[RunAttendanceAndSyncJobs]",
-         "ObjectType": 1
-      },
-      {
          "Name": "[dbo].[RunDailyJobs]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[RunDailyJobsWithLogging]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[RunFinanceJobs]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[RunRankingJobs]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[RunReportCardJobs]",
-         "ObjectType": 1
-      },
-      {
-         "Name": "[dbo].[SendJobFailureEmail]",
          "ObjectType": 1
       },
       {
@@ -571,7 +527,7 @@
          "ObjectType": 1
       }
    ],
-   "UiHint": "ptesystemsdatabaseserver.PhoenixEdusphere.dbo",
+   "UiHint": "phoenix.PhoenixEdusphere.dbo",
    "UncountableWords": null,
    "UseBoolPropertiesWithoutDefaultSql": false,
    "UseDatabaseNames": true,

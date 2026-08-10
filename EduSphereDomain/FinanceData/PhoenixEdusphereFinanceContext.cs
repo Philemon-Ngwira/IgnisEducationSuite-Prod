@@ -43,6 +43,12 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
     public virtual DbSet<PaymentAllocation> PaymentAllocations { get; set; }
 
+    public virtual DbSet<PaymentGatewayAccount> PaymentGatewayAccounts { get; set; }
+
+    public virtual DbSet<PaymentGatewayCredential> PaymentGatewayCredentials { get; set; }
+
+    public virtual DbSet<PaymentGatewayTransaction> PaymentGatewayTransactions { get; set; }
+
     public virtual DbSet<RoomsWithOccupancy> RoomsWithOccupancies { get; set; }
 
     public virtual DbSet<Student> Students { get; set; }
@@ -132,7 +138,7 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
         modelBuilder.Entity<FeeBucket>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__FeeBucke__3214EC07A0037D52");
+            entity.HasKey(e => e.Id).HasName("PK__FeeBucke__3214EC0780D78868");
 
             entity.ToTable("FeeBucket", "Finance");
 
@@ -158,9 +164,11 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
         modelBuilder.Entity<FeeStructure>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC07BB7BC67D");
+            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC078330F055");
 
             entity.ToTable("FeeStructure", "Finance");
+
+            entity.HasIndex(e => new { e.SchoolId, e.ClassId, e.IsActive }, "IX_FeeStructure_School_Class");
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.AcademicYear).HasMaxLength(20);
@@ -177,9 +185,11 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
         modelBuilder.Entity<FeeStructureItem>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC07D9951DE5");
+            entity.HasKey(e => e.Id).HasName("PK__FeeStruc__3214EC075EAB823A");
 
             entity.ToTable("FeeStructureItem", "Finance");
+
+            entity.HasIndex(e => e.FeeStructureId, "IX_FeeStructureItem_Structure");
 
             entity.HasIndex(e => new { e.FeeStructureId, e.InvoiceTypeId }, "UQ_FeeStructureItem_UniqueType").IsUnique();
 
@@ -211,10 +221,12 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .IsRequired()
                 .HasMaxLength(10)
                 .IsUnicode(false);
+            entity.Property(e => e.LedgerSequence).ValueGeneratedOnAdd();
             entity.Property(e => e.ReferenceType)
                 .IsRequired()
                 .HasMaxLength(50)
                 .IsUnicode(false);
+            entity.Property(e => e.UniqueKey).HasMaxLength(100);
 
             entity.HasOne(d => d.StudentFinance).WithMany(p => p.FinanceLedgers)
                 .HasForeignKey(d => d.StudentFinanceId)
@@ -259,7 +271,7 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
         modelBuilder.Entity<InvoiceBucketAllocation>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__InvoiceB__3214EC07ED5CD0D8");
+            entity.HasKey(e => e.Id).HasName("PK__InvoiceB__3214EC071D520D89");
 
             entity.ToTable("InvoiceBucketAllocation", "Finance");
 
@@ -327,7 +339,7 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
         modelBuilder.Entity<PaymentAllocation>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__PaymentA__3214EC074E8CC35B");
+            entity.HasKey(e => e.Id).HasName("PK__PaymentA__3214EC07825797A7");
 
             entity.ToTable("PaymentAllocation", "Finance");
 
@@ -351,6 +363,100 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .HasConstraintName("FK_PaymentAllocation_Payment");
         });
 
+        modelBuilder.Entity<PaymentGatewayAccount>(entity =>
+        {
+            entity.ToTable("PaymentGatewayAccount", "Finance");
+
+            entity.HasIndex(e => new { e.SchoolId, e.BucketId }, "IX_PaymentGatewayAccount_SchoolId_BucketId");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.Environment)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasDefaultValueSql("('Sandbox')");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.Provider)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.WalletId).HasMaxLength(200);
+
+            entity.HasOne(d => d.Bucket).WithMany(p => p.PaymentGatewayAccounts)
+                .HasForeignKey(d => d.BucketId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PaymentGatewayAccount_FeeBucket");
+        });
+
+        modelBuilder.Entity<PaymentGatewayCredential>(entity =>
+        {
+            entity.ToTable("PaymentGatewayCredential", "Finance");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.EncryptedSecret).IsRequired();
+            entity.Property(e => e.KeyVersion).HasMaxLength(50);
+
+            entity.HasOne(d => d.PaymentGatewayAccount).WithMany(p => p.PaymentGatewayCredentials)
+                .HasForeignKey(d => d.PaymentGatewayAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PaymentGatewayCredential_PaymentGatewayAccount");
+        });
+
+        modelBuilder.Entity<PaymentGatewayTransaction>(entity =>
+        {
+            entity.ToTable("PaymentGatewayTransaction", "Finance");
+
+            entity.HasIndex(e => e.PaymentGatewayAccountId, "IX_PaymentGatewayTransaction_PaymentGatewayAccountId");
+
+            entity.HasIndex(e => e.PaymentId, "IX_PaymentGatewayTransaction_PaymentId");
+
+            entity.HasIndex(e => e.ProviderIdentifier, "IX_PaymentGatewayTransaction_ProviderIdentifier");
+
+            entity.HasIndex(e => e.ProviderReferenceId, "IX_PaymentGatewayTransaction_ProviderReferenceId");
+
+            entity.HasIndex(e => e.InternalReference, "UX_PaymentGatewayTransaction_InternalReference").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newsequentialid())");
+            entity.Property(e => e.AccountNumber).HasMaxLength(100);
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CheckoutUrl).HasMaxLength(2000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.Currency)
+                .IsRequired()
+                .HasMaxLength(10);
+            entity.Property(e => e.InternalReference)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(e => e.Message).HasMaxLength(1000);
+            entity.Property(e => e.Narration).HasMaxLength(1000);
+            entity.Property(e => e.PaymentType).HasMaxLength(50);
+            entity.Property(e => e.Provider)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.ProviderExternalId).HasMaxLength(150);
+            entity.Property(e => e.ProviderIdentifier).HasMaxLength(150);
+            entity.Property(e => e.ProviderReferenceId).HasMaxLength(100);
+            entity.Property(e => e.ReferenceData).HasMaxLength(1000);
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasMaxLength(50);
+            entity.Property(e => e.TransactionType)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasOne(d => d.PaymentGatewayAccount).WithMany(p => p.PaymentGatewayTransactions)
+                .HasForeignKey(d => d.PaymentGatewayAccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PaymentGatewayTransaction_PaymentGatewayAccount");
+
+            entity.HasOne(d => d.Payment).WithMany(p => p.PaymentGatewayTransactions)
+                .HasForeignKey(d => d.PaymentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PaymentGatewayTransaction_Payment");
+        });
+
         modelBuilder.Entity<RoomsWithOccupancy>(entity =>
         {
             entity
@@ -372,10 +478,6 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
             entity.HasIndex(e => new { e.SchoolID, e.LevelName, e.PaymentStatus, e.isDaySchool }, "IX_Students_LevelName");
 
             entity.HasIndex(e => new { e.ParentID, e.PaymentStatus }, "IX_Students_ParentID_PaymentStatus");
-
-            entity.HasIndex(e => new { e.SchoolID, e.AcademicLevelID, e.GradeSection }, "IX_Students_School_Academic");
-
-            entity.HasIndex(e => new { e.SchoolID, e.AcademicLevelID, e.GradeSection }, "IX_Students_School_Academic_Section");
 
             entity.HasIndex(e => e.StudentID, "IX_Students_StudentID");
 
