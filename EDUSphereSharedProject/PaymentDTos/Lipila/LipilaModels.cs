@@ -64,8 +64,6 @@ namespace EDUSphereSharedProject.PaymentDTos.Lipila
         public string BackUrl { get; set; } = default!;
 
         public string ReferenceData { get; set; } = default!;
-
-        public string Email { get; set; } = string.Empty;
     }
 
     /// <summary>

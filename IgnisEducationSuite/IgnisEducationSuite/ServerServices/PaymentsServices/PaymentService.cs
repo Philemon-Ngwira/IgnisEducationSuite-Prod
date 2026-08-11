@@ -171,8 +171,7 @@ public sealed class PaymentService : IPaymentService
                 AccountNumber = customer.PhoneNumber,
                 Currency = DefaultCurrency,
                 BackUrl = _lipilaOptions.CardReturnUrl,
-                ReferenceData = invoice.InvoiceNumber,
-                Email = customer.Email
+                ReferenceData = invoice.InvoiceNumber
             }
         };
 
