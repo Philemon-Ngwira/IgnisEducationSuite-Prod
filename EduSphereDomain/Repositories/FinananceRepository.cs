@@ -107,7 +107,7 @@ namespace EduSphereDomain.Repositories
                 // 🔥 1. Load Fee Structure
                 var structure = await _context.FeeStructures
                     .Include(x => x.FeeStructureItems)
-                    .FirstOrDefaultAsync(x => x.Id == request.FeeStructureId);
+                    .FirstOrDefaultAsync(x => x.Id == request.FeeStructureId && x.SchoolId == schoolId);
 
                 if (structure == null)
                     return (false, "Fee structure not found.", 0);
@@ -145,6 +145,7 @@ namespace EduSphereDomain.Repositories
 
                 var invoices = new List<Invoice>();
                 var ledgerEntries = new List<FinanceLedger>();
+                var bucketAllocations = new List<InvoiceBucketAllocation>();
 
                 foreach (var finance in studentFinances)
                 {
@@ -199,6 +200,21 @@ namespace EduSphereDomain.Repositories
                             FeeStructureId = structure.Id
                         });
 
+                        // 🔥 Bucket allocation - routes this line item's money to the
+                        // wallet configured on the fee structure item, so Lipila
+                        // collections and bucket payment totals can find it later.
+                        if (item.BucketId.HasValue && item.BucketId.Value != Guid.Empty)
+                        {
+                            bucketAllocations.Add(new InvoiceBucketAllocation
+                            {
+                                Id = Guid.NewGuid(),
+                                InvoiceId = invoiceId,
+                                BucketId = item.BucketId.Value,
+                                Amount = item.Amount,
+                                CreatedAt = now
+                            });
+                        }
+
                         // 🔥 UNIQUE LEDGER KEY (CRITICAL FIX)
                         var uniqueKey = $"{finance.Id}-{item.Id}-{request.TermStartDate:yyyyMMdd}-{request.TermEndDate:yyyyMMdd}-DEBIT";
                         var lastSeq = await _context.FinanceLedgers.MaxAsync(x => (long?)x.SequenceNumber) ?? 0;
@@ -231,6 +247,7 @@ namespace EduSphereDomain.Repositories
 
                 await _context.Invoices.AddRangeAsync(invoices);
                 await _context.FinanceLedgers.AddRangeAsync(ledgerEntries);
+                await _context.InvoiceBucketAllocations.AddRangeAsync(bucketAllocations);
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
