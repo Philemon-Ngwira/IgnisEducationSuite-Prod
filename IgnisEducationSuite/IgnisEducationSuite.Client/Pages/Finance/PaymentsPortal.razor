@@ -1,4 +1,4 @@
-﻿@using EDUSphereSharedProject.FinanceModels.DummyData
+@using EDUSphereSharedProject.FinanceModels
 @using IgnisEducationSuite.Client.Pages.Finance.Dialogs
 
 @inherits AppBaseComponent
@@ -18,142 +18,96 @@
         <MudChip T="string"
                  Color="Color.Primary"
                  Variant="Variant.Filled">
-            Total Outstanding:
-            @CurrencySymbol@Buckets.Sum(x => x.OutstandingAmount).ToString("N2")
+            Total Outstanding: @CurrencySymbol@OutstandingInvoices.Sum(x => x.GetOutstandingAmount()).ToString("N2")
         </MudChip>
 
     </MudStack>
 
-    <!-- Summary -->
-    <MudGrid Class="mb-4">
+    @if (!OutstandingInvoices.Any())
+    {
+        <MudAlert Severity="Severity.Success">
+            Nothing outstanding right now.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid>
 
-        <MudItem xs="12" md="4">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.caption">Outstanding</MudText>
-                <MudText Typo="Typo.h4">
-                    @CurrencySymbol@Buckets.Sum(x => x.OutstandingAmount).ToString("N2")
-                </MudText>
-            </MudPaper>
-        </MudItem>
+            @foreach (var invoice in OutstandingInvoices)
+            {
+                var currentInvoice = invoice;
 
-        <MudItem xs="12" md="4">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.caption">Buckets</MudText>
-                <MudText Typo="Typo.h4">
-                    @Buckets.Count
-                </MudText>
-            </MudPaper>
-        </MudItem>
+                <MudItem xs="12" md="6" lg="4">
 
-        <MudItem xs="12" md="4">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.caption">Pending Verification</MudText>
-                <MudText Typo="Typo.h4">
-                    @Buckets.Count(x => x.Status == "Pending")
-                </MudText>
-            </MudPaper>
-        </MudItem>
+                    <MudPaper Elevation="2" Class="pa-4">
 
-    </MudGrid>
+                        <MudStack>
 
-    <!-- Bucket Cards -->
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">
+                                    @(currentInvoice.InvoiceType ?? "Fees")
+                                </MudChip>
 
-    <MudGrid>
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(currentInvoice.PaymentStatus)">
+                                    @currentInvoice.PaymentStatus
+                                </MudChip>
+                            </MudStack>
 
-        @foreach (var bucket in Buckets)
-        {
-            <MudItem xs="12" md="6" lg="4">
+                            @if (StudentNamesByInvoiceId.TryGetValue(currentInvoice.Id, out var studentName))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@studentName</MudText>
+                            }
 
-                <MudPaper Elevation="2"
-                          Class="pa-4"
-                          Style="cursor:pointer"
-                          @onclick="@(() => OpenPayment(bucket))">
+                            <MudDivider Class="my-2" />
 
-                    <MudStack>
+                            <MudText Typo="Typo.caption">Outstanding</MudText>
 
-                        <MudStack Row="true"
-                                  Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.h4">
+                                @CurrencySymbol@currentInvoice.GetOutstandingAmount().ToString("N2")
+                            </MudText>
 
-                            <MudChip T="string" Color="Color.Primary"
-                                     Variant="Variant.Filled">
-                                @bucket.Name
-                            </MudChip>
+                            <MudText Typo="Typo.caption">
+                                Due @currentInvoice.DueDate.ToShortDateString()
+                                @(currentInvoice.IsOverdue() ? " (overdue)" : "")
+                            </MudText>
 
-                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
+                            <MudSpacer />
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       FullWidth="true"
+                                       OnClick="@(() => OpenPayment(currentInvoice))">
+                                Pay
+                            </MudButton>
+
                         </MudStack>
 
-                        <MudDivider Class="my-2" />
+                    </MudPaper>
 
-                        <MudText Typo="Typo.caption">
-                            Outstanding
-                        </MudText>
+                </MudItem>
+            }
 
-                        <MudText Typo="Typo.h4">
-                            @CurrencySymbol@bucket.OutstandingAmount.ToString("N2")
-                        </MudText>
-
-                        <MudText Typo="Typo.caption">
-                            @bucket.InvoiceCount invoice(s)
-                        </MudText>
-
-                        <MudSpacer />
-
-                        <MudChip T="string" Color="@GetStatusColor(bucket.Status)">
-                            @bucket.Status
-                        </MudChip>
-
-                    </MudStack>
-
-                </MudPaper>
-
-            </MudItem>
-        }
-
-    </MudGrid>
+        </MudGrid>
+    }
 
 </MudContainer>
 
 @code {
-    
-    string CurrencySymbol = "K";
-    private List<PaymentBucketVM> Buckets = new();
+    [Parameter] public List<Invoice> Invoices { get; set; } = new();
+    [Parameter] public Dictionary<Guid, string> StudentNamesByInvoiceId { get; set; } = new();
+    [Parameter] public string CurrencySymbol { get; set; } = "$";
 
-    protected override void OnInitialized()
-    {
-        Buckets = new List<PaymentBucketVM>
-        {
-            new PaymentBucketVM
-            {
-                BucketId = Guid.NewGuid(),
-                Name = "Revenue Account",
-                OutstandingAmount = 12000,
-                Status = "Payment Required",
-                Invoices = new()
-                {
-                    new("Tuition", 7000),
-                    new("Accommodation", 3000),
-                    new("Transport", 2000)
-                }
-            },
-            new PaymentBucketVM
-            {
-                BucketId = Guid.NewGuid(),
-                Name = "PCT Account",
-                OutstandingAmount = 2000,
-                Status = "Payment Required",
-                Invoices = new()
-                {
-                    new("PCT Levy", 2000)
-                }
-            }
-        };
-    }
+    private List<Invoice> OutstandingInvoices => Invoices
+        .Where(x => x.GetOutstandingAmount() > 0)
+        .OrderBy(x => x.DueDate)
+        .ToList();
 
-    private async Task OpenPayment(PaymentBucketVM bucket)
+    private async Task OpenPayment(Invoice invoice)
     {
-        var parameters = new DialogParameters
+        var parameters = new DialogParameters<PaymentDialog>
         {
-            ["Bucket"] = bucket
+            { x => x.Invoice, invoice },
+            { x => x.CurrencySymbol, CurrencySymbol }
         };
 
         var options = new DialogOptions
@@ -164,32 +118,16 @@
         };
 
         await DialogService.ShowAsync<PaymentDialog>(
-            $"Pay {bucket.Name}",
+            $"Pay {invoice.InvoiceType ?? "Invoice"}",
             parameters,
             options);
     }
 
-    private Color GetColor(string status)
+    private Color GetStatusColor(string? status) => status switch
     {
-        return status switch
-        {
-            "Payment Required" => Color.Warning,
-            "Submitted" => Color.Info,
-            "Verified" => Color.Success,
-            _ => Color.Default
-        };
-    }
-
-   
-
-    Color GetStatusColor(string status)
-    {
-        return status switch
-        {
-            "Payment Required" => Color.Warning,
-            "Pending" => Color.Info,
-            "Verified" => Color.Success,
-            _ => Color.Default
-        };
-    }
+        "Paid" => Color.Success,
+        "Partial" => Color.Info,
+        "Pending" => Color.Warning,
+        _ => Color.Default
+    };
 }

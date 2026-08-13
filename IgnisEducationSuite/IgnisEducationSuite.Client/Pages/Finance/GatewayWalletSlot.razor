@@ -128,7 +128,7 @@
                 return;
             }
 
-            var balance = await response.Content.ReadFromJsonAsync<LipilaWalletBalanceResponse>();
+            var balance = await response.Content.ReadFromJsonAsync<LipilaWalletBalanceResponse>(JsonDefaults.Web);
             var amount = balance?.Data?.Balance ?? 0;
 
             Snackbar.Add($"Connected. Wallet balance: {amount:N2}", Severity.Success);

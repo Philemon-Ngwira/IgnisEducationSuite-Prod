@@ -1,6 +1,7 @@
 ﻿@page "/FinancePortal"
 @inherits AppBaseComponent
 @using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.Models
 @using IgnisEducationSuite.Client.Pages.Finance
 
 <MudCard>
@@ -27,7 +28,7 @@
             <MudItem xs="12" md="9">
                 @if (ShowSection == "Invoices")
                 {
-                    <InvoiceSection Invoices="Invoices" CurrencySymbol="@CurrencySymbol" />
+                    <InvoiceSection Invoices="Invoices" StudentNamesByInvoiceId="StudentNamesByInvoiceId" CurrencySymbol="@CurrencySymbol" />
                 }
                 else if (ShowSection == "Balance")
                 {
@@ -51,6 +52,7 @@
     // These lists / properties will be populated via API
     private List<Invoice> Invoices = new();
     private List<Payment> Payments = new();
+    private Dictionary<Guid, string> StudentNamesByInvoiceId = new();
     private decimal AccountBalance;
     private string CurrencySymbol = "$";
 
@@ -63,9 +65,68 @@
 
     private async Task LoadFinancialDataAsync()
     {
-        var userId = AppState.UserID/* AppState.UserID */;
+        // A student logs in as themselves - AppState.UserID already is the student.
+        // A parent logs in as themselves - their UserID resolves to a Parent record,
+        // whose Students each have their own UserID to fetch invoices for.
+        if (string.Equals(AppState.UserRole, "Parent", StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadInvoicesForParentAsync();
+        }
+        else
+        {
+            Invoices = await GetInvoicesForStudentUserIdAsync(AppState.UserID);
+        }
+    }
+
+    private async Task LoadInvoicesForParentAsync()
+    {
+        var parentResult = await GenericService.GetService<Parent>()
+            .GetAllAsync($"api/Dynamic/GetParentById/{AppState.UserID}", true);
+
+        var parent = parentResult.IsSuccess ? parentResult.Data.FirstOrDefault() : null;
+
+        if (parent is null)
+        {
+            return;
+        }
+
+        var studentsResult = await GenericService.GetService<EDUSphereSharedProject.FinanceModels.Student>()
+            .GetAllAsync($"api/Finance/GetStudentsByParent/{parent.ParentID}", true);
+
+        if (!studentsResult.IsSuccess)
+        {
+            return;
+        }
+
+        var combined = new List<Invoice>();
+        var studentNames = new Dictionary<Guid, string>();
+
+        foreach (var student in studentsResult.Data)
+        {
+            if (string.IsNullOrWhiteSpace(student.UserID))
+            {
+                continue;
+            }
+
+            var studentInvoices = await GetInvoicesForStudentUserIdAsync(student.UserID);
+            var displayName = $"{student.FirstName} {student.LastName}".Trim();
+
+            foreach (var invoice in studentInvoices)
+            {
+                studentNames[invoice.Id] = displayName;
+            }
+
+            combined.AddRange(studentInvoices);
+        }
+
+        Invoices = combined;
+        StudentNamesByInvoiceId = studentNames;
+    }
+
+    private async Task<List<Invoice>> GetInvoicesForStudentUserIdAsync(string studentUserId)
+    {
         var service = GenericService.GetService<Invoice>();
-        var result = await service.GetAllAsync($"api/Invoice/GetStudentInvoices/{userId}", true);
-        Invoices = result.Data.ToList() ?? new List<Invoice>();
+        var result = await service.GetAllAsync($"api/Invoice/GetStudentInvoices/{studentUserId}", true);
+        return result.IsSuccess ? result.Data.ToList() : new List<Invoice>();
     }
 }

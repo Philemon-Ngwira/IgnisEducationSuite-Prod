@@ -142,6 +142,23 @@ public class LipilaPaymentController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin, Finance, Parent, Student")]
+    [HttpGet("eligibility/{invoiceId:guid}")]
+    public async Task<ActionResult<object>> GetGatewayEligibility(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var eligible = await _paymentService.IsInvoiceGatewayEligibleAsync(invoiceId, cancellationToken);
+            return Ok(new { eligible });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     [Authorize(Roles = "Admin, Finance")]
     [HttpGet("accounts/school/{schoolId:guid}")]
     public async Task<ActionResult<List<FeeBucketGatewayDto>>> GetGatewayAccounts(

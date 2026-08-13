@@ -52,5 +52,13 @@ namespace IgnisEducationSuite.ServerServices.PaymentsServices
         Task<LipilaWalletBalanceResponse> GetWalletBalanceAsync(
             Guid bucketId,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// True if this invoice can be paid through Lipila right now. Lets the
+        /// frontend decide gateway-vs-manual UI without attempting a real collection.
+        /// </summary>
+        Task<bool> IsInvoiceGatewayEligibleAsync(
+            Guid invoiceId,
+            CancellationToken cancellationToken = default);
     }
 }

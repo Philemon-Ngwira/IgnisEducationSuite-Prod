@@ -43,7 +43,7 @@
         </MudCard>
     </MudTabPanel>
     <MudTabPanel Text="Payments">
-        <PaymentsPortal />
+        <PaymentsPortal Invoices="Invoices" StudentNamesByInvoiceId="StudentNamesByInvoiceId" CurrencySymbol="@CurrencySymbol" />
     </MudTabPanel>
 
 </MudTabs>
@@ -51,6 +51,7 @@
 
 @code {
     [Parameter] public List<Invoice> Invoices { get; set; } = new();
+    [Parameter] public Dictionary<Guid, string> StudentNamesByInvoiceId { get; set; } = new();
     [Parameter] public string CurrencySymbol { get; set; } = "$";
 
 

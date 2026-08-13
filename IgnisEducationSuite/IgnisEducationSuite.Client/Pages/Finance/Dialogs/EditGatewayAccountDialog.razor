@@ -98,7 +98,7 @@
                     Environment = Environment
                 };
 
-                response = await HttpClient.PostAsJsonAsync("api/payments/lipila/accounts", request);
+                response = await HttpClient.PostAsJsonAsync("api/payments/lipila/accounts", request, JsonDefaults.Web);
             }
             else
             {
@@ -109,7 +109,7 @@
                     IsActive = IsActive
                 };
 
-                response = await HttpClient.PutAsJsonAsync($"api/payments/lipila/accounts/{Existing.Id}", request);
+                response = await HttpClient.PutAsJsonAsync($"api/payments/lipila/accounts/{Existing.Id}", request, JsonDefaults.Web);
             }
 
             if (!response.IsSuccessStatusCode)
@@ -118,7 +118,7 @@
                 return;
             }
 
-            var dto = await response.Content.ReadFromJsonAsync<PaymentGatewayAccountDto>();
+            var dto = await response.Content.ReadFromJsonAsync<PaymentGatewayAccountDto>(JsonDefaults.Web);
             MudDialog.Close(DialogResult.Ok(dto));
         }
         finally
@@ -131,7 +131,7 @@
     {
         try
         {
-            var problem = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+            var problem = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(JsonDefaults.Web);
             if (problem is not null && problem.TryGetValue("message", out var message))
             {
                 return message;

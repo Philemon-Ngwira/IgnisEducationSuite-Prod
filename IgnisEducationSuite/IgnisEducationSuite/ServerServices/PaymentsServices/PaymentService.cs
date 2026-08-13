@@ -438,6 +438,26 @@ public sealed class PaymentService : IPaymentService
         return await _lipilaService.GetWalletBalanceAsync(gatewayAccount.Id, cancellationToken);
     }
 
+    /// <summary>
+    /// True if this invoice can be paid through Lipila right now (its fee buckets
+    /// all resolve to a single active wallet with a credential configured). Lets
+    /// the frontend decide gateway-vs-manual UI without attempting a real collection.
+    /// </summary>
+    public async Task<bool> IsInvoiceGatewayEligibleAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await ResolveInvoiceBucketGatewayAsync(invoiceId, cancellationToken);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
     private async Task<(Invoice Invoice, PaymentGatewayAccount GatewayAccount)> ResolveInvoiceAndGatewayAccountAsync(
         Guid invoiceId,
         decimal amount,
@@ -450,14 +470,7 @@ public sealed class PaymentService : IPaymentService
                 "Payment amount must be greater than zero.");
         }
 
-        var invoice = await _context.Invoices
-            .Include(i => i.InvoiceBucketAllocations)
-            .FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
-
-        if (invoice is null)
-        {
-            throw new KeyNotFoundException($"Invoice '{invoiceId}' was not found.");
-        }
+        var (invoice, gatewayAccount) = await ResolveInvoiceBucketGatewayAsync(invoiceId, cancellationToken);
 
         var outstanding = invoice.Amount - invoice.PaidAmount;
 
@@ -466,6 +479,29 @@ public sealed class PaymentService : IPaymentService
             throw new InvalidOperationException(
                 $"Payment amount {amount:F2} exceeds the outstanding balance of {outstanding:F2} " +
                 $"on invoice {invoice.InvoiceNumber ?? invoice.Id.ToString()}.");
+        }
+
+        return (invoice, gatewayAccount);
+    }
+
+    /// <summary>
+    /// Resolves the single Lipila wallet that covers all of an invoice's fee
+    /// buckets, independent of any particular payment amount. Throws
+    /// KeyNotFoundException if the invoice itself doesn't exist, or
+    /// InvalidOperationException for any reason the invoice can't be paid via
+    /// Lipila right now (no buckets, no active wallet, no credential, split wallets).
+    /// </summary>
+    private async Task<(Invoice Invoice, PaymentGatewayAccount GatewayAccount)> ResolveInvoiceBucketGatewayAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await _context.Invoices
+            .Include(i => i.InvoiceBucketAllocations)
+            .FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
+
+        if (invoice is null)
+        {
+            throw new KeyNotFoundException($"Invoice '{invoiceId}' was not found.");
         }
 
         if (invoice.InvoiceBucketAllocations.Count == 0)
@@ -488,6 +524,7 @@ public sealed class PaymentService : IPaymentService
                 g.Provider == Provider &&
                 g.IsActive == true &&
                 g.Environment == environment)
+            .Include(g => g.PaymentGatewayCredentials)
             .ToListAsync(cancellationToken);
 
         var missingBuckets = bucketIds.Except(gatewayAccounts.Select(g => g.BucketId)).Any();
@@ -508,7 +545,16 @@ public sealed class PaymentService : IPaymentService
                 "Split-wallet online payments are not supported yet.");
         }
 
-        return (invoice, gatewayAccounts[0]);
+        var gatewayAccount = gatewayAccounts[0];
+
+        if (!gatewayAccount.PaymentGatewayCredentials.Any())
+        {
+            throw new InvalidOperationException(
+                $"The Lipila wallet for invoice {invoice.InvoiceNumber ?? invoice.Id.ToString()} " +
+                "has no API key configured yet.");
+        }
+
+        return (invoice, gatewayAccount);
     }
 
     private static List<PaymentAllocation> BuildAllocations(
