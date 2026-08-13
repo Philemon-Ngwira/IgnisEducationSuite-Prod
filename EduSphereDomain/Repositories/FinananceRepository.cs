@@ -286,6 +286,9 @@ namespace EduSphereDomain.Repositories
                 throw new ArgumentNullException(nameof(feeStructure));
 
             // 🔷 BASIC VALIDATION
+            if (feeStructure.SchoolId == Guid.Empty)
+                throw new Exception("SchoolId is required.");
+
             if (string.IsNullOrWhiteSpace(feeStructure.Name))
                 throw new Exception("Fee structure name is required.");
 

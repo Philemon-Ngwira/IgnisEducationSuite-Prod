@@ -280,6 +280,7 @@
         if (!isEditMode)
         {
             _model.Id = Guid.NewGuid();
+            _model.SchoolId = Guid.Parse(AppState.SchoolID);
             _model.TermStartDate = StartDate ?? DateTime.Today;
             _model.TermEndDate = EndDate ?? DateTime.Today;
 
