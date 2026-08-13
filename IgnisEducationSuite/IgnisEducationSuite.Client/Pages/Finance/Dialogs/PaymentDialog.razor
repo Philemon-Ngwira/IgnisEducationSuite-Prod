@@ -292,7 +292,8 @@
                 StudentFinanceId = StudentFinanceId,
                 BucketId = BucketId,
                 Amount = Summary.TotalOutstanding,
-                PhoneNumber = PhoneNumber
+                PhoneNumber = PhoneNumber,
+                Email = AppState.UserEmail
             };
 
             var response = await HttpClient.PostAsJsonAsync(
