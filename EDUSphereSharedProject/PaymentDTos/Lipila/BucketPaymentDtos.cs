@@ -61,4 +61,20 @@ namespace EDUSphereSharedProject.PaymentDTos.Lipila
 
         public string? Email { get; set; }
     }
+
+    /// <summary>
+    /// Request body to pay an entire bucket by card. Same bucket-resolution rules
+    /// as <see cref="InitiateLipilaBucketMobileMoneyRequest"/> - the split across
+    /// invoices is only decided and applied once Lipila confirms the card charge.
+    /// </summary>
+    public class InitiateLipilaBucketCardRequest
+    {
+        public Guid StudentFinanceId { get; set; }
+
+        public Guid BucketId { get; set; }
+
+        public decimal Amount { get; set; }
+
+        public LipilaCardCustomerInfo Customer { get; set; } = default!;
+    }
 }

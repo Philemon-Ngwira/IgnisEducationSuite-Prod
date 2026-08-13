@@ -227,6 +227,42 @@ public class LipilaPaymentController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin, Finance, Parent, Student")]
+    [HttpPost("bucket/card")]
+    public async Task<ActionResult<LipilaPaymentInitiationResult>> InitiateBucketCard(
+        [FromBody] InitiateLipilaBucketCardRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _paymentService.InitiateLipilaBucketCardAsync(
+                request.StudentFinanceId,
+                request.BucketId,
+                request.Amount,
+                request.Customer,
+                cancellationToken);
+
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Lipila bucket card collection failed for bucket {BucketId}.", request.BucketId);
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = "Lipila is currently unavailable. Please try again shortly." });
+        }
+    }
+
     [Authorize(Roles = "Admin, Finance")]
     [HttpGet("accounts/school/{schoolId:guid}")]
     public async Task<ActionResult<List<FeeBucketGatewayDto>>> GetGatewayAccounts(

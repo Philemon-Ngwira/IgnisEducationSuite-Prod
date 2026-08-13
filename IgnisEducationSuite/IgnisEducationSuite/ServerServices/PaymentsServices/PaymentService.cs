@@ -302,14 +302,143 @@ public sealed class PaymentService : IPaymentService
         string? email = null,
         CancellationToken cancellationToken = default)
     {
+        var normalizedPhone = NormalizeZambianPhoneNumber(phoneNumber);
+
+        var ctx = await PrepareBucketCollectionAsync(
+            studentFinanceId,
+            bucketId,
+            amount,
+            "MobileMoney",
+            normalizedPhone,
+            cancellationToken);
+
+        var lipilaRequest = new LipilaMobileMoneyCollectionRequest
+        {
+            ReferenceId = ctx.InternalReference,
+            Amount = amount,
+            Narration = ctx.Narration,
+            AccountNumber = normalizedPhone,
+            Currency = DefaultCurrency,
+            Email = email,
+            ReferenceData = bucketId.ToString()
+        };
+
+        try
+        {
+            var response = await _lipilaService.CreateMobileMoneyCollectionAsync(
+                ctx.GatewayAccount.Id,
+                lipilaRequest,
+                cancellationToken);
+
+            return await ApplyProviderResponseAsync(ctx.Transaction, response, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to initiate Lipila bucket collection for reference {InternalReference}.",
+                ctx.InternalReference);
+
+            await MarkTransactionFailedAsync(
+                ctx.Transaction,
+                "Failed to initiate collection with Lipila.",
+                cancellationToken);
+
+            throw;
+        }
+    }
+
+    public async Task<LipilaPaymentInitiationResult> InitiateLipilaBucketCardAsync(
+        Guid studentFinanceId,
+        Guid bucketId,
+        decimal amount,
+        LipilaCardCustomerInfo customer,
+        CancellationToken cancellationToken = default)
+    {
+        if (customer is null)
+        {
+            throw new ArgumentNullException(nameof(customer));
+        }
+
+        var ctx = await PrepareBucketCollectionAsync(
+            studentFinanceId,
+            bucketId,
+            amount,
+            "Card",
+            customer.PhoneNumber,
+            cancellationToken);
+
+        var lipilaRequest = new LipilaCardCollectionRequest
+        {
+            CustomerInfo = new LipilaCustomerInfo
+            {
+                FirstName = customer.FirstName,
+                LastName = customer.LastName,
+                PhoneNumber = customer.PhoneNumber,
+                City = customer.City,
+                Country = customer.Country,
+                Address = customer.Address,
+                Email = customer.Email,
+                Zip = customer.Zip
+            },
+            CollectionRequest = new LipilaCardCollectionDetails
+            {
+                ReferenceId = ctx.InternalReference,
+                Amount = amount,
+                Narration = ctx.Narration,
+                AccountNumber = customer.PhoneNumber,
+                Currency = DefaultCurrency,
+                BackUrl = BuildCardReturnUrl(ctx.InternalReference),
+                ReferenceData = bucketId.ToString()
+            }
+        };
+
+        try
+        {
+            var response = await _lipilaService.CreateCardCollectionAsync(
+                ctx.GatewayAccount.Id,
+                lipilaRequest,
+                cancellationToken);
+
+            return await ApplyProviderResponseAsync(ctx.Transaction, response, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to initiate Lipila bucket card collection for reference {InternalReference}.",
+                ctx.InternalReference);
+
+            await MarkTransactionFailedAsync(
+                ctx.Transaction,
+                "Failed to initiate collection with Lipila.",
+                cancellationToken);
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Shared setup for a bucket-level Lipila collection, regardless of payment
+    /// type: resolves the bucket's wallet, loads what's still owed across the
+    /// student's invoices in that bucket, validates the amount, decides the
+    /// pro-rata invoice split, and persists the Pending PaymentGatewayTransaction
+    /// row that ProcessLipilaCallbackAsync will later stage Payments from.
+    /// </summary>
+    private async Task<BucketCollectionContext> PrepareBucketCollectionAsync(
+        Guid studentFinanceId,
+        Guid bucketId,
+        decimal amount,
+        string paymentType,
+        string accountNumber,
+        CancellationToken cancellationToken)
+    {
         if (amount <= 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(amount),
                 "Payment amount must be greater than zero.");
         }
-
-        var normalizedPhone = NormalizeZambianPhoneNumber(phoneNumber);
 
         var gatewayAccount = await ResolveBucketGatewayAccountAsync(bucketId, cancellationToken);
         var invoices = await LoadBucketInvoicesAsync(studentFinanceId, bucketId, cancellationToken);
@@ -348,11 +477,11 @@ public sealed class PaymentService : IPaymentService
             InternalReference = internalReference,
             Provider = Provider,
             TransactionType = "Collection",
-            PaymentType = "MobileMoney",
+            PaymentType = paymentType,
             Status = "Pending",
             Amount = amount,
             Currency = DefaultCurrency,
-            AccountNumber = normalizedPhone,
+            AccountNumber = accountNumber,
             ReferenceData = bucketId.ToString(),
             Narration = narration,
             InvoiceBreakdownJson = JsonSerializer.Serialize(breakdown),
@@ -362,41 +491,33 @@ public sealed class PaymentService : IPaymentService
         await _context.PaymentGatewayTransactions.AddAsync(gatewayTransaction, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var lipilaRequest = new LipilaMobileMoneyCollectionRequest
-        {
-            ReferenceId = internalReference,
-            Amount = amount,
-            Narration = narration,
-            AccountNumber = normalizedPhone,
-            Currency = DefaultCurrency,
-            Email = email,
-            ReferenceData = bucketId.ToString()
-        };
-
-        try
-        {
-            var response = await _lipilaService.CreateMobileMoneyCollectionAsync(
-                gatewayAccount.Id,
-                lipilaRequest,
-                cancellationToken);
-
-            return await ApplyProviderResponseAsync(gatewayTransaction, response, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Failed to initiate Lipila bucket collection for reference {InternalReference}.",
-                internalReference);
-
-            await MarkTransactionFailedAsync(
-                gatewayTransaction,
-                "Failed to initiate collection with Lipila.",
-                cancellationToken);
-
-            throw;
-        }
+        return new BucketCollectionContext(gatewayAccount, internalReference, narration, gatewayTransaction);
     }
+
+    /// <summary>
+    /// Embeds our own internal reference into the configured card return URL, so
+    /// the return page can look up and display the outcome of the transaction the
+    /// browser just came back from - independent of whatever query parameters
+    /// Lipila itself may or may not append.
+    /// </summary>
+    private string BuildCardReturnUrl(string internalReference)
+    {
+        var baseUrl = _lipilaOptions.CardReturnUrl;
+
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            return baseUrl;
+        }
+
+        var separator = baseUrl.Contains('?') ? "&" : "?";
+        return $"{baseUrl}{separator}ref={Uri.EscapeDataString(internalReference)}";
+    }
+
+    private sealed record BucketCollectionContext(
+        PaymentGatewayAccount GatewayAccount,
+        string InternalReference,
+        string Narration,
+        PaymentGatewayTransaction Transaction);
 
     public async Task<LipilaCollectionResponse> CheckLipilaPaymentStatusAsync(
         string referenceId,

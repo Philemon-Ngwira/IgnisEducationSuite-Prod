@@ -102,5 +102,17 @@ namespace IgnisEducationSuite.ServerServices.PaymentsServices
             string phoneNumber,
             string? email = null,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Same as <see cref="InitiateLipilaBucketMobileMoneyAsync"/>, but via a
+        /// hosted card checkout - the caller must redirect the customer to the
+        /// returned CardRedirectionUrl to complete payment.
+        /// </summary>
+        Task<LipilaPaymentInitiationResult> InitiateLipilaBucketCardAsync(
+            Guid studentFinanceId,
+            Guid bucketId,
+            decimal amount,
+            LipilaCardCustomerInfo customer,
+            CancellationToken cancellationToken = default);
     }
 }

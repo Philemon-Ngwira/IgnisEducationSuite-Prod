@@ -2,6 +2,7 @@
 @using System.Net.Http.Json
 
 @inherits AppBaseComponent
+@inject NavigationManager Navigation
 
 <MudDialog>
 
@@ -51,24 +52,84 @@
                 <!-- ONLINE PAYMENT -->
                 <MudPaper Class="pa-3 mb-3">
 
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">Pay with Mobile Money</MudText>
-
                     @if (InitiationResult is null)
                     {
-                        <MudForm @ref="form">
-                            <MudTextField Label="Mobile Money Number"
-                                          @bind-Value="PhoneNumber"
-                                          Required="true"
-                                          HelperText="e.g. 0977123456" />
-                        </MudForm>
+                        <MudToggleGroup T="string" @bind-Value="SelectedMethod" Class="mb-3" Color="Color.Primary" Delimiters="true">
+                            <MudToggleItem Value="@("MobileMoney")" Text="Mobile Money" />
+                            <MudToggleItem Value="@("Card")" Text="Visa / Card" />
+                        </MudToggleGroup>
+
+                        @if (SelectedMethod == "MobileMoney")
+                        {
+                            <MudForm @ref="mobileMoneyForm">
+                                <MudTextField Label="Mobile Money Number"
+                                              @bind-Value="PhoneNumber"
+                                              Required="true"
+                                              HelperText="e.g. 0977123456" />
+                            </MudForm>
+
+                            <MudButton Color="Color.Primary"
+                                       Variant="Variant.Filled"
+                                       FullWidth="true"
+                                       Class="mt-3"
+                                       Disabled="Submitting"
+                                       OnClick="InitiateMobileMoneyPayment">
+                                Pay @CurrencySymbol@Summary.TotalOutstanding.ToString("N2") for all @Summary.Invoices.Count invoice(s)
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudForm @ref="cardForm">
+                                <MudGrid>
+                                    <MudItem xs="6">
+                                        <MudTextField Label="First Name" @bind-Value="CardCustomer.FirstName" Required="true" />
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudTextField Label="Last Name" @bind-Value="CardCustomer.LastName" Required="true" />
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudTextField Label="Email" @bind-Value="CardCustomer.Email" Required="true" InputType="InputType.Email" />
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudTextField Label="Phone Number" @bind-Value="CardCustomer.PhoneNumber" Required="true" HelperText="e.g. 0977123456" />
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudTextField Label="Address" @bind-Value="CardCustomer.Address" Required="true" />
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudTextField Label="City" @bind-Value="CardCustomer.City" Required="true" />
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudTextField Label="Country" @bind-Value="CardCustomer.Country" Required="true" />
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudTextField Label="Zip / Postal Code" @bind-Value="CardCustomer.Zip" Required="true" />
+                                    </MudItem>
+                                </MudGrid>
+                            </MudForm>
+
+                            <MudButton Color="Color.Primary"
+                                       Variant="Variant.Filled"
+                                       FullWidth="true"
+                                       Class="mt-3"
+                                       Disabled="Submitting"
+                                       OnClick="InitiateCardPayment">
+                                Pay @CurrencySymbol@Summary.TotalOutstanding.ToString("N2") for all @Summary.Invoices.Count invoice(s)
+                            </MudButton>
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(InitiationResult.CardRedirectionUrl))
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            You'll be taken to a secure page to enter your card details.
+                        </MudAlert>
 
                         <MudButton Color="Color.Primary"
                                    Variant="Variant.Filled"
                                    FullWidth="true"
                                    Class="mt-3"
-                                   Disabled="Submitting"
-                                   OnClick="InitiatePayment">
-                            Pay @CurrencySymbol@Summary.TotalOutstanding.ToString("N2") for all @Summary.Invoices.Count invoice(s)
+                                   OnClick="GoToCardCheckout">
+                            Continue to Secure Payment
                         </MudButton>
                     }
                     else
@@ -157,8 +218,14 @@
     private bool CheckingEligibility = true;
     private bool GatewayEligible;
 
-    private MudForm form = default!;
+    private string SelectedMethod = "MobileMoney";
+
+    private MudForm mobileMoneyForm = default!;
     private string PhoneNumber = string.Empty;
+
+    private MudForm cardForm = default!;
+    private LipilaCardCustomerInfo CardCustomer = new();
+
     private bool Submitting;
     private LipilaPaymentInitiationResult? InitiationResult;
     private string StatusMessage = string.Empty;
@@ -206,11 +273,11 @@
         }
     }
 
-    private async Task InitiatePayment()
+    private async Task InitiateMobileMoneyPayment()
     {
-        await form.Validate();
+        await mobileMoneyForm.Validate();
 
-        if (!form.IsValid)
+        if (!mobileMoneyForm.IsValid)
         {
             return;
         }
@@ -245,6 +312,55 @@
         finally
         {
             Submitting = false;
+        }
+    }
+
+    private async Task InitiateCardPayment()
+    {
+        await cardForm.Validate();
+
+        if (!cardForm.IsValid)
+        {
+            return;
+        }
+
+        Submitting = true;
+        ErrorMessage = null;
+
+        try
+        {
+            var request = new InitiateLipilaBucketCardRequest
+            {
+                StudentFinanceId = StudentFinanceId,
+                BucketId = BucketId,
+                Amount = Summary.TotalOutstanding,
+                Customer = CardCustomer
+            };
+
+            var response = await HttpClient.PostAsJsonAsync(
+                "api/payments/lipila/bucket/card",
+                request,
+                JsonDefaults.Web);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ErrorMessage = await ReadErrorMessageAsync(response);
+                return;
+            }
+
+            InitiationResult = await response.Content.ReadFromJsonAsync<LipilaPaymentInitiationResult>(JsonDefaults.Web);
+        }
+        finally
+        {
+            Submitting = false;
+        }
+    }
+
+    private void GoToCardCheckout()
+    {
+        if (!string.IsNullOrEmpty(InitiationResult?.CardRedirectionUrl))
+        {
+            Navigation.NavigateTo(InitiationResult.CardRedirectionUrl, forceLoad: true);
         }
     }
 
