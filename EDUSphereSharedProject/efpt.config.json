@@ -215,6 +215,10 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[GetConsolidatedEndTermReport]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[GetGradedStudentAssignments]",
          "ObjectType": 1
       },
@@ -264,6 +268,10 @@
       },
       {
          "Name": "[dbo].[GetReportCardsByTermAndStudent]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[GetReportCardTerms]",
          "ObjectType": 1
       },
       {

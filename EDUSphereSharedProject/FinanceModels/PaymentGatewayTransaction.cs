@@ -11,8 +11,6 @@ public partial class PaymentGatewayTransaction
 
     public Guid? PaymentId { get; set; }
 
-    public Guid? InvoiceId { get; set; }
-
     public Guid PaymentGatewayAccountId { get; set; }
 
     public string InternalReference { get; set; }
@@ -50,6 +48,8 @@ public partial class PaymentGatewayTransaction
     public DateTime? UpdatedAt { get; set; }
 
     public DateTime? CompletedAt { get; set; }
+
+    public Guid? InvoiceId { get; set; }
 
     public virtual Invoice Invoice { get; set; }
 

@@ -40,8 +40,8 @@
                                         </MudChip>
                                     }
 
-                                    <MudChip Size="Size.Small" Color="@(bucket.IsMandatory? Color.Primary: Color.Default)">
-                                        @(bucket.IsMandatory ? "Mandatory" : "Optional")
+                                    <MudChip Size="Size.Small" Color="@(bucket.IsMandatory==true? Color.Primary: Color.Default)">
+                                        @(bucket.IsMandatory == true ? "Mandatory" : "Optional")
                                     </MudChip>
                                 </MudStack>
                             </MudStack>
@@ -76,7 +76,7 @@
 
                     <MudTextField Label="Bank Name" @bind-Value="SelectedBucket.BankName" />
 
-                    <MudSwitch T="bool"
+                    <MudSwitch T="bool?"
                                Label="Mandatory Bucket"
                                @bind-Value="SelectedBucket.IsMandatory" />
 

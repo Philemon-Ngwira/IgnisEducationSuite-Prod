@@ -400,7 +400,7 @@ namespace EduSphereDomain.Repositories
                 ReferenceId = x.ReferenceId,
                 ReferenceType = x.ReferenceType,
                 RunningBalance = x.RunningBalance,
-                LedgerSequence = x.LedgerSequence.Value,
+                LedgerSequence = x.LedgerSequence,
 
             }).ToList();
         }

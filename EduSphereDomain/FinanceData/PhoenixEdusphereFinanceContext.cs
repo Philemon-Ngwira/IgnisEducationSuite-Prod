@@ -446,6 +446,10 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
                 .IsRequired()
                 .HasMaxLength(50);
 
+            entity.HasOne(d => d.Invoice).WithMany(p => p.PaymentGatewayTransactions)
+                .HasForeignKey(d => d.InvoiceId)
+                .HasConstraintName("FK_PaymentGatewayTransaction_Invoice");
+
             entity.HasOne(d => d.PaymentGatewayAccount).WithMany(p => p.PaymentGatewayTransactions)
                 .HasForeignKey(d => d.PaymentGatewayAccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -453,15 +457,7 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
 
             entity.HasOne(d => d.Payment).WithMany(p => p.PaymentGatewayTransactions)
                 .HasForeignKey(d => d.PaymentId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PaymentGatewayTransaction_Payment");
-
-            entity.HasOne(d => d.Invoice).WithMany(p => p.PaymentGatewayTransactions)
-                .HasForeignKey(d => d.InvoiceId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PaymentGatewayTransaction_Invoice");
         });
 
         modelBuilder.Entity<RoomsWithOccupancy>(entity =>
