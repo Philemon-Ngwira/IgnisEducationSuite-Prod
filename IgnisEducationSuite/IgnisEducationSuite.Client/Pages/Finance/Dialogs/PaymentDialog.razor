@@ -56,7 +56,7 @@
                     {
                         <MudToggleGroup T="string" @bind-Value="SelectedMethod" Class="mb-3" Color="Color.Primary" Delimiters="true">
                             <MudToggleItem Value="@("MobileMoney")" Text="Mobile Money" />
-                            <MudToggleItem Value="@("Card")" Text="Visa / Card" />
+                            <MudToggleItem Value="@("Card")" Text="Card (Visa/Mastercard/Amex)" />
                         </MudToggleGroup>
 
                         @if (SelectedMethod == "MobileMoney")
@@ -100,7 +100,10 @@
                                         <MudTextField Label="City" @bind-Value="CardCustomer.City" Required="true" />
                                     </MudItem>
                                     <MudItem xs="6">
-                                        <MudTextField Label="Country" @bind-Value="CardCustomer.Country" Required="true" />
+                                        <MudTextField Label="Country Code"
+                                                      @bind-Value="CardCustomer.Country"
+                                                      Required="true"
+                                                      HelperText="2-letter code, e.g. ZM" />
                                     </MudItem>
                                     <MudItem xs="6">
                                         <MudTextField Label="Zip / Postal Code" @bind-Value="CardCustomer.Zip" Required="true" />
@@ -224,7 +227,7 @@
     private string PhoneNumber = string.Empty;
 
     private MudForm cardForm = default!;
-    private LipilaCardCustomerInfo CardCustomer = new();
+    private LipilaCardCustomerInfo CardCustomer = new() { Country = "ZM" };
 
     private bool Submitting;
     private LipilaPaymentInitiationResult? InitiationResult;
