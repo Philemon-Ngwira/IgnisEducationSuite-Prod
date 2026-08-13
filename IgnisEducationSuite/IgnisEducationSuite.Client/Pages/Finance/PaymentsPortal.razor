@@ -1,5 +1,6 @@
-@using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.PaymentDTos.Lipila
 @using IgnisEducationSuite.Client.Pages.Finance.Dialogs
+@using System.Net.Http.Json
 
 @inherits AppBaseComponent
 @inject IDialogService DialogService
@@ -18,12 +19,16 @@
         <MudChip T="string"
                  Color="Color.Primary"
                  Variant="Variant.Filled">
-            Total Outstanding: @CurrencySymbol@OutstandingInvoices.Sum(x => x.GetOutstandingAmount()).ToString("N2")
+            Total Outstanding: @CurrencySymbol@Buckets.Sum(x => x.TotalOutstanding).ToString("N2")
         </MudChip>
 
     </MudStack>
 
-    @if (!OutstandingInvoices.Any())
+    @if (Loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+    }
+    else if (!Buckets.Any())
     {
         <MudAlert Severity="Severity.Success">
             Nothing outstanding right now.
@@ -33,9 +38,9 @@
     {
         <MudGrid>
 
-            @foreach (var invoice in OutstandingInvoices)
+            @foreach (var bucket in Buckets)
             {
-                var currentInvoice = invoice;
+                var currentBucket = bucket;
 
                 <MudItem xs="12" md="6" lg="4">
 
@@ -43,19 +48,13 @@
 
                         <MudStack>
 
-                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">
-                                    @(currentInvoice.InvoiceType ?? "Fees")
-                                </MudChip>
+                            <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">
+                                @currentBucket.BucketName
+                            </MudChip>
 
-                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(currentInvoice.PaymentStatus)">
-                                    @currentInvoice.PaymentStatus
-                                </MudChip>
-                            </MudStack>
-
-                            @if (StudentNamesByInvoiceId.TryGetValue(currentInvoice.Id, out var studentName))
+                            @if (!string.IsNullOrEmpty(currentBucket.StudentName))
                             {
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@studentName</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@currentBucket.StudentName</MudText>
                             }
 
                             <MudDivider Class="my-2" />
@@ -63,12 +62,7 @@
                             <MudText Typo="Typo.caption">Outstanding</MudText>
 
                             <MudText Typo="Typo.h4">
-                                @CurrencySymbol@currentInvoice.GetOutstandingAmount().ToString("N2")
-                            </MudText>
-
-                            <MudText Typo="Typo.caption">
-                                Due @currentInvoice.DueDate.ToShortDateString()
-                                @(currentInvoice.IsOverdue() ? " (overdue)" : "")
+                                @CurrencySymbol@currentBucket.TotalOutstanding.ToString("N2")
                             </MudText>
 
                             <MudSpacer />
@@ -76,7 +70,7 @@
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Primary"
                                        FullWidth="true"
-                                       OnClick="@(() => OpenPayment(currentInvoice))">
+                                       OnClick="@(() => OpenPayment(currentBucket))">
                                 Pay
                             </MudButton>
 
@@ -93,20 +87,76 @@
 </MudContainer>
 
 @code {
-    [Parameter] public List<Invoice> Invoices { get; set; } = new();
-    [Parameter] public Dictionary<Guid, string> StudentNamesByInvoiceId { get; set; } = new();
+    [Parameter] public List<StudentPaymentContext> Students { get; set; } = new();
     [Parameter] public string CurrencySymbol { get; set; } = "$";
 
-    private List<Invoice> OutstandingInvoices => Invoices
-        .Where(x => x.GetOutstandingAmount() > 0)
-        .OrderBy(x => x.DueDate)
-        .ToList();
+    private List<BucketCard> Buckets = new();
+    private bool Loading = true;
+    private List<Guid>? _loadedForStudentIds;
 
-    private async Task OpenPayment(Invoice invoice)
+    protected override async Task OnParametersSetAsync()
+    {
+        var currentIds = Students.Select(s => s.StudentFinanceId).OrderBy(x => x).ToList();
+
+        // _loadedForStudentIds starts null so the first pass always loads, even
+        // when Students is (still, or genuinely) empty - otherwise the spinner
+        // would never resolve to "Nothing outstanding" for a student with no fees.
+        if (_loadedForStudentIds is not null && currentIds.SequenceEqual(_loadedForStudentIds))
+        {
+            return;
+        }
+
+        _loadedForStudentIds = currentIds;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        Loading = true;
+        StateHasChanged();
+
+        var combined = new List<BucketCard>();
+
+        foreach (var student in Students)
+        {
+            try
+            {
+                var summaries = await HttpClient.GetFromJsonAsync<List<StudentBucketSummaryDto>>(
+                    $"api/payments/lipila/bucket/outstanding/{student.StudentFinanceId}",
+                    JsonDefaults.Web);
+
+                if (summaries is null)
+                {
+                    continue;
+                }
+
+                combined.AddRange(summaries.Select(s => new BucketCard
+                {
+                    StudentFinanceId = student.StudentFinanceId,
+                    StudentName = student.StudentName,
+                    BucketId = s.BucketId,
+                    BucketName = s.BucketName,
+                    TotalOutstanding = s.TotalOutstanding
+                }));
+            }
+            catch
+            {
+                Snackbar.Add("Failed to load outstanding fees for one of the students.", Severity.Error);
+            }
+        }
+
+        Buckets = combined.OrderBy(b => b.StudentName).ThenBy(b => b.BucketName).ToList();
+        Loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenPayment(BucketCard bucket)
     {
         var parameters = new DialogParameters<PaymentDialog>
         {
-            { x => x.Invoice, invoice },
+            { x => x.StudentFinanceId, bucket.StudentFinanceId },
+            { x => x.BucketId, bucket.BucketId },
+            { x => x.BucketName, bucket.BucketName },
             { x => x.CurrencySymbol, CurrencySymbol }
         };
 
@@ -117,17 +167,25 @@
             CloseButton = true
         };
 
-        await DialogService.ShowAsync<PaymentDialog>(
-            $"Pay {invoice.InvoiceType ?? "Invoice"}",
+        var dialog = await DialogService.ShowAsync<PaymentDialog>(
+            $"Pay {bucket.BucketName}",
             parameters,
             options);
+
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            await LoadAsync();
+        }
     }
 
-    private Color GetStatusColor(string? status) => status switch
+    private sealed class BucketCard
     {
-        "Paid" => Color.Success,
-        "Partial" => Color.Info,
-        "Pending" => Color.Warning,
-        _ => Color.Default
-    };
+        public Guid StudentFinanceId { get; set; }
+        public string StudentName { get; set; } = string.Empty;
+        public Guid BucketId { get; set; }
+        public string BucketName { get; set; } = string.Empty;
+        public decimal TotalOutstanding { get; set; }
+    }
 }

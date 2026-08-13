@@ -159,6 +159,74 @@ public class LipilaPaymentController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin, Finance, Parent, Student")]
+    [HttpGet("bucket/outstanding/{studentFinanceId:guid}")]
+    public async Task<ActionResult<List<StudentBucketSummaryDto>>> GetOutstandingBuckets(
+        Guid studentFinanceId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _paymentService.GetOutstandingBucketsAsync(studentFinanceId, cancellationToken);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin, Finance, Parent, Student")]
+    [HttpGet("bucket/outstanding/{studentFinanceId:guid}/{bucketId:guid}")]
+    public async Task<ActionResult<BucketOutstandingDto>> GetBucketOutstanding(
+        Guid studentFinanceId,
+        Guid bucketId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _paymentService.GetBucketOutstandingAsync(studentFinanceId, bucketId, cancellationToken);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin, Finance, Parent, Student")]
+    [HttpGet("bucket/eligibility/{bucketId:guid}")]
+    public async Task<ActionResult<object>> GetBucketGatewayEligibility(
+        Guid bucketId,
+        CancellationToken cancellationToken)
+    {
+        var eligible = await _paymentService.IsBucketGatewayEligibleAsync(bucketId, cancellationToken);
+        return Ok(new { eligible });
+    }
+
+    [Authorize(Roles = "Admin, Finance, Parent, Student")]
+    [HttpPost("bucket/mobile-money")]
+    public async Task<ActionResult<LipilaPaymentInitiationResult>> InitiateBucketMobileMoney(
+        [FromBody] InitiateLipilaBucketMobileMoneyRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _paymentService.InitiateLipilaBucketMobileMoneyAsync(
+                request.StudentFinanceId,
+                request.BucketId,
+                request.Amount,
+                request.PhoneNumber,
+                request.Email,
+                cancellationToken);
+
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Lipila bucket collection failed for bucket {BucketId}.", request.BucketId);
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = "Lipila is currently unavailable. Please try again shortly." });
+        }
+    }
+
     [Authorize(Roles = "Admin, Finance")]
     [HttpGet("accounts/school/{schoolId:guid}")]
     public async Task<ActionResult<List<FeeBucketGatewayDto>>> GetGatewayAccounts(

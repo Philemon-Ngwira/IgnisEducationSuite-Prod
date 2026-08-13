@@ -43,6 +43,13 @@ public partial class PaymentGatewayTransaction
 
     public string Narration { get; set; }
 
+    /// <summary>
+    /// For a bucket-level payment covering multiple invoices, a JSON-serialized
+    /// list of {InvoiceId, Amount} describing how the collected amount was split
+    /// across invoices. Null for a single-invoice payment (InvoiceId is set instead).
+    /// </summary>
+    public string InvoiceBreakdownJson { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }

@@ -60,5 +60,47 @@ namespace IgnisEducationSuite.ServerServices.PaymentsServices
         Task<bool> IsInvoiceGatewayEligibleAsync(
             Guid invoiceId,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Every fee bucket this student currently owes money in, with the combined
+        /// outstanding total across all of their invoices in each bucket. This is
+        /// the payable unit the parent-facing UI lists - one bucket, one wallet,
+        /// however many invoices happen to feed into it.
+        /// </summary>
+        Task<List<StudentBucketSummaryDto>> GetOutstandingBucketsAsync(
+            Guid studentFinanceId,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// The invoice-level breakdown behind one student's outstanding total in
+        /// one bucket, for display before paying.
+        /// </summary>
+        Task<BucketOutstandingDto> GetBucketOutstandingAsync(
+            Guid studentFinanceId,
+            Guid bucketId,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// True if this bucket has an active Lipila wallet with a credential
+        /// configured right now.
+        /// </summary>
+        Task<bool> IsBucketGatewayEligibleAsync(
+            Guid bucketId,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Initiates one Lipila mobile money collection covering (up to) a
+        /// student's entire outstanding balance in one bucket, regardless of how
+        /// many separate invoices that spans. The split across invoices is decided
+        /// now and only applied - as individual Payment rows, so the existing
+        /// per-invoice DB triggers still fire correctly - once Lipila confirms.
+        /// </summary>
+        Task<LipilaPaymentInitiationResult> InitiateLipilaBucketMobileMoneyAsync(
+            Guid studentFinanceId,
+            Guid bucketId,
+            decimal amount,
+            string phoneNumber,
+            string? email = null,
+            CancellationToken cancellationToken = default);
     }
 }

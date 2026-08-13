@@ -1,4 +1,3 @@
-@using EDUSphereSharedProject.FinanceModels
 @using EDUSphereSharedProject.PaymentDTos.Lipila
 @using System.Net.Http.Json
 
@@ -8,97 +7,123 @@
 
     <DialogContent>
 
-        <MudText Typo="Typo.h6">@(Invoice.InvoiceType ?? "Invoice")</MudText>
+        <MudText Typo="Typo.h6">@BucketName</MudText>
 
         <MudDivider Class="my-2" />
 
-        <!-- SUMMARY -->
-        <MudPaper Class="pa-3 mb-3">
-            <MudText Typo="Typo.caption">Outstanding</MudText>
-            <MudText Typo="Typo.h4">@CurrencySymbol@Invoice.GetOutstandingAmount().ToString("N2")</MudText>
-        </MudPaper>
-
-        @if (CheckingEligibility)
+        @if (LoadingSummary)
         {
             <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
         }
-        else if (GatewayEligible)
-        {
-            <!-- ONLINE PAYMENT -->
-            <MudPaper Class="pa-3 mb-3">
-
-                <MudText Typo="Typo.subtitle2" Class="mb-2">Pay with Mobile Money</MudText>
-
-                @if (InitiationResult is null)
-                {
-                    <MudForm @ref="form">
-                        <MudTextField Label="Mobile Money Number"
-                                      @bind-Value="PhoneNumber"
-                                      Required="true"
-                                      HelperText="e.g. 0977123456" />
-                    </MudForm>
-
-                    <MudButton Color="Color.Primary"
-                               Variant="Variant.Filled"
-                               FullWidth="true"
-                               Class="mt-3"
-                               Disabled="Submitting"
-                               OnClick="InitiatePayment">
-                        Pay @CurrencySymbol@Invoice.GetOutstandingAmount().ToString("N2")
-                    </MudButton>
-                }
-                else
-                {
-                    <MudAlert Severity="@GetResultSeverity()">@StatusMessage</MudAlert>
-
-                    @if (!IsTerminal(InitiationResult.Status))
-                    {
-                        <MudText Typo="Typo.caption" Class="mt-2 mb-2">
-                            Approve the prompt on your phone, then check the status below.
-                        </MudText>
-
-                        <MudButton Variant="Variant.Outlined"
-                                   Disabled="Submitting"
-                                   OnClick="CheckStatus">
-                            Check Status
-                        </MudButton>
-                    }
-                }
-
-                @if (!string.IsNullOrEmpty(ErrorMessage))
-                {
-                    <MudAlert Severity="Severity.Error" Class="mt-3">@ErrorMessage</MudAlert>
-                }
-
-            </MudPaper>
-        }
         else
         {
-            <!-- MANUAL PAYMENT FALLBACK -->
-            <MudAlert Severity="Severity.Info" Class="mb-3">
-                Online payment isn't set up for this invoice yet. Please pay via bank
-                transfer using the school's account details and upload your receipt
-                below - the school will verify it manually.
-            </MudAlert>
+            <!-- SUMMARY -->
+            <MudPaper Class="pa-3 mb-3">
+                <MudText Typo="Typo.caption">Outstanding</MudText>
+                <MudText Typo="Typo.h4">@CurrencySymbol@Summary.TotalOutstanding.ToString("N2")</MudText>
+            </MudPaper>
 
+            <!-- INVOICE BREAKDOWN -->
             <MudPaper Class="pa-3 mb-3">
 
-                <MudText Typo="Typo.subtitle2">Upload Receipt</MudText>
+                <MudText Typo="Typo.subtitle2" Class="mb-1">
+                    Covers @Summary.Invoices.Count invoice(s)
+                </MudText>
 
-                @if (!Uploaded)
+                @foreach (var invoice in Summary.Invoices)
                 {
-                    <MudFileUpload T="IBrowserFile"
-                                   Accept=".jpg,.png,.pdf"
-                                   FilesChanged="OnFileChanged" />
-                }
-                else
-                {
-                    <MudAlert Severity="Severity.Success">
-                        Receipt uploaded successfully
-                    </MudAlert>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2">
+                            @(invoice.InvoiceType ?? "Fees") - @invoice.TermStartDate.ToShortDateString()
+                        </MudText>
+                        <MudText Typo="Typo.body2">@CurrencySymbol@invoice.OutstandingForBucket.ToString("N2")</MudText>
+                    </MudStack>
                 }
 
             </MudPaper>
+
+            @if (CheckingEligibility)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+            }
+            else if (GatewayEligible)
+            {
+                <!-- ONLINE PAYMENT -->
+                <MudPaper Class="pa-3 mb-3">
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Pay with Mobile Money</MudText>
+
+                    @if (InitiationResult is null)
+                    {
+                        <MudForm @ref="form">
+                            <MudTextField Label="Mobile Money Number"
+                                          @bind-Value="PhoneNumber"
+                                          Required="true"
+                                          HelperText="e.g. 0977123456" />
+                        </MudForm>
+
+                        <MudButton Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   FullWidth="true"
+                                   Class="mt-3"
+                                   Disabled="Submitting"
+                                   OnClick="InitiatePayment">
+                            Pay @CurrencySymbol@Summary.TotalOutstanding.ToString("N2") for all @Summary.Invoices.Count invoice(s)
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="@GetResultSeverity()">@StatusMessage</MudAlert>
+
+                        @if (!IsTerminal(InitiationResult.Status))
+                        {
+                            <MudText Typo="Typo.caption" Class="mt-2 mb-2">
+                                Approve the prompt on your phone, then check the status below.
+                            </MudText>
+
+                            <MudButton Variant="Variant.Outlined"
+                                       Disabled="Submitting"
+                                       OnClick="CheckStatus">
+                                Check Status
+                            </MudButton>
+                        }
+                    }
+
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mt-3">@ErrorMessage</MudAlert>
+                    }
+
+                </MudPaper>
+            }
+            else
+            {
+                <!-- MANUAL PAYMENT FALLBACK -->
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    Online payment isn't set up for this bucket yet. Please pay via bank
+                    transfer using the school's account details and upload your receipt
+                    below - the school will verify it manually.
+                </MudAlert>
+
+                <MudPaper Class="pa-3 mb-3">
+
+                    <MudText Typo="Typo.subtitle2">Upload Receipt</MudText>
+
+                    @if (!Uploaded)
+                    {
+                        <MudFileUpload T="IBrowserFile"
+                                       Accept=".jpg,.png,.pdf"
+                                       FilesChanged="OnFileChanged" />
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Success">
+                            Receipt uploaded successfully
+                        </MudAlert>
+                    }
+
+                </MudPaper>
+            }
         }
 
     </DialogContent>
@@ -106,7 +131,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel">Close</MudButton>
 
-        @if (!CheckingEligibility && !GatewayEligible)
+        @if (!LoadingSummary && !CheckingEligibility && !GatewayEligible)
         {
             <MudButton Color="Color.Primary"
                        Disabled="@(!Uploaded)"
@@ -121,8 +146,13 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
-    [Parameter] public Invoice Invoice { get; set; } = default!;
+    [Parameter] public Guid StudentFinanceId { get; set; }
+    [Parameter] public Guid BucketId { get; set; }
+    [Parameter] public string BucketName { get; set; } = default!;
     [Parameter] public string CurrencySymbol { get; set; } = "$";
+
+    private bool LoadingSummary = true;
+    private BucketOutstandingDto Summary = new();
 
     private bool CheckingEligibility = true;
     private bool GatewayEligible;
@@ -138,13 +168,31 @@
 
     protected override async Task OnInitializedAsync()
     {
+        LoadingSummary = true;
         try
         {
-            var response = await HttpClient.GetFromJsonAsync<EligibilityResponse>(
-                $"api/payments/lipila/eligibility/{Invoice.Id}",
+            var summary = await HttpClient.GetFromJsonAsync<BucketOutstandingDto>(
+                $"api/payments/lipila/bucket/outstanding/{StudentFinanceId}/{BucketId}",
                 JsonDefaults.Web);
 
-            GatewayEligible = response?.Eligible ?? false;
+            Summary = summary ?? new BucketOutstandingDto { BucketId = BucketId };
+        }
+        catch
+        {
+            Summary = new BucketOutstandingDto { BucketId = BucketId };
+        }
+        finally
+        {
+            LoadingSummary = false;
+        }
+
+        try
+        {
+            var eligibility = await HttpClient.GetFromJsonAsync<EligibilityResponse>(
+                $"api/payments/lipila/bucket/eligibility/{BucketId}",
+                JsonDefaults.Web);
+
+            GatewayEligible = eligibility?.Eligible ?? false;
         }
         catch
         {
@@ -172,15 +220,16 @@
 
         try
         {
-            var request = new InitiateLipilaMobileMoneyRequest
+            var request = new InitiateLipilaBucketMobileMoneyRequest
             {
-                InvoiceId = Invoice.Id,
-                Amount = Invoice.GetOutstandingAmount(),
+                StudentFinanceId = StudentFinanceId,
+                BucketId = BucketId,
+                Amount = Summary.TotalOutstanding,
                 PhoneNumber = PhoneNumber
             };
 
             var response = await HttpClient.PostAsJsonAsync(
-                "api/payments/lipila/mobile-money",
+                "api/payments/lipila/bucket/mobile-money",
                 request,
                 JsonDefaults.Web);
 

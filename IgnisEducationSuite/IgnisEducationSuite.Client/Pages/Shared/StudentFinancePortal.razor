@@ -28,7 +28,7 @@
             <MudItem xs="12" md="9">
                 @if (ShowSection == "Invoices")
                 {
-                    <InvoiceSection Invoices="Invoices" StudentNamesByInvoiceId="StudentNamesByInvoiceId" CurrencySymbol="@CurrencySymbol" />
+                    <InvoiceSection Invoices="Invoices" Students="Students" CurrencySymbol="@CurrencySymbol" />
                 }
                 else if (ShowSection == "Balance")
                 {
@@ -52,7 +52,11 @@
     // These lists / properties will be populated via API
     private List<Invoice> Invoices = new();
     private List<Payment> Payments = new();
-    private Dictionary<Guid, string> StudentNamesByInvoiceId = new();
+
+    /// <summary>Every student this logged-in user can pay fees for - just
+    /// themselves for a Student login, or each child for a Parent login.</summary>
+    private List<StudentPaymentContext> Students = new();
+
     private decimal AccountBalance;
     private string CurrencySymbol = "$";
 
@@ -75,6 +79,15 @@
         else
         {
             Invoices = await GetInvoicesForStudentUserIdAsync(AppState.UserID);
+
+            var ownStudentFinanceId = Invoices.FirstOrDefault()?.StudentFinanceId;
+            if (ownStudentFinanceId is Guid id)
+            {
+                Students = new List<StudentPaymentContext>
+                {
+                    new() { StudentFinanceId = id, StudentName = string.Empty }
+                };
+            }
         }
     }
 
@@ -99,7 +112,7 @@
         }
 
         var combined = new List<Invoice>();
-        var studentNames = new Dictionary<Guid, string>();
+        var students = new List<StudentPaymentContext>();
 
         foreach (var student in studentsResult.Data)
         {
@@ -109,18 +122,22 @@
             }
 
             var studentInvoices = await GetInvoicesForStudentUserIdAsync(student.UserID);
-            var displayName = $"{student.FirstName} {student.LastName}".Trim();
+            var studentFinanceId = studentInvoices.FirstOrDefault()?.StudentFinanceId;
 
-            foreach (var invoice in studentInvoices)
+            if (studentFinanceId is Guid id)
             {
-                studentNames[invoice.Id] = displayName;
+                students.Add(new StudentPaymentContext
+                {
+                    StudentFinanceId = id,
+                    StudentName = $"{student.FirstName} {student.LastName}".Trim()
+                });
             }
 
             combined.AddRange(studentInvoices);
         }
 
         Invoices = combined;
-        StudentNamesByInvoiceId = studentNames;
+        Students = students;
     }
 
     private async Task<List<Invoice>> GetInvoicesForStudentUserIdAsync(string studentUserId)

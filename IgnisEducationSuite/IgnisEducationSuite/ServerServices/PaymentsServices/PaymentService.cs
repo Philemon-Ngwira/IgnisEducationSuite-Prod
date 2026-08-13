@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using EduSphereDomain.FinanceData;
 using EDUSphereSharedProject.FinanceModels;
 using EDUSphereSharedProject.PaymentDTos.Lipila;
@@ -200,6 +201,203 @@ public sealed class PaymentService : IPaymentService
         }
     }
 
+    public async Task<List<StudentBucketSummaryDto>> GetOutstandingBucketsAsync(
+        Guid studentFinanceId,
+        CancellationToken cancellationToken = default)
+    {
+        var invoices = await _context.Invoices
+            .AsNoTracking()
+            .Include(i => i.InvoiceBucketAllocations)
+                .ThenInclude(a => a.Bucket)
+            .Where(i => i.StudentFinanceId == studentFinanceId)
+            .ToListAsync(cancellationToken);
+
+        if (invoices.Count == 0)
+        {
+            return new List<StudentBucketSummaryDto>();
+        }
+
+        var paidByInvoiceBucket = await LoadPaidByInvoiceBucketAsync(
+            invoices.Select(i => i.Id).ToList(),
+            cancellationToken);
+
+        var totals = new Dictionary<Guid, (string Name, decimal Outstanding)>();
+
+        foreach (var invoice in invoices)
+        {
+            foreach (var allocation in invoice.InvoiceBucketAllocations)
+            {
+                var paid = paidByInvoiceBucket.TryGetValue((invoice.Id, allocation.BucketId), out var p) ? p : 0m;
+                var outstanding = allocation.Amount - paid;
+
+                if (outstanding <= 0)
+                {
+                    continue;
+                }
+
+                var bucketName = allocation.Bucket?.Name ?? "Fees";
+
+                totals[allocation.BucketId] = totals.TryGetValue(allocation.BucketId, out var existing)
+                    ? (existing.Name, existing.Outstanding + outstanding)
+                    : (bucketName, outstanding);
+            }
+        }
+
+        return totals
+            .Select(kvp => new StudentBucketSummaryDto
+            {
+                BucketId = kvp.Key,
+                BucketName = kvp.Value.Name,
+                TotalOutstanding = kvp.Value.Outstanding
+            })
+            .OrderBy(x => x.BucketName)
+            .ToList();
+    }
+
+    public async Task<BucketOutstandingDto> GetBucketOutstandingAsync(
+        Guid studentFinanceId,
+        Guid bucketId,
+        CancellationToken cancellationToken = default)
+    {
+        var invoices = await LoadBucketInvoicesAsync(studentFinanceId, bucketId, cancellationToken);
+
+        return new BucketOutstandingDto
+        {
+            BucketId = bucketId,
+            TotalOutstanding = invoices.Sum(i => i.Outstanding),
+            Invoices = invoices
+                .Select(i => new BucketInvoiceOutstandingDto
+                {
+                    InvoiceId = i.Invoice.Id,
+                    InvoiceType = i.Invoice.InvoiceType,
+                    TermStartDate = i.Invoice.TermStartDate,
+                    TermEndDate = i.Invoice.TermEndDate,
+                    OutstandingForBucket = i.Outstanding
+                })
+                .OrderBy(i => i.TermStartDate)
+                .ToList()
+        };
+    }
+
+    public async Task<bool> IsBucketGatewayEligibleAsync(
+        Guid bucketId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await ResolveBucketGatewayAccountAsync(bucketId, cancellationToken);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    public async Task<LipilaPaymentInitiationResult> InitiateLipilaBucketMobileMoneyAsync(
+        Guid studentFinanceId,
+        Guid bucketId,
+        decimal amount,
+        string phoneNumber,
+        string? email = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(amount),
+                "Payment amount must be greater than zero.");
+        }
+
+        var normalizedPhone = NormalizeZambianPhoneNumber(phoneNumber);
+
+        var gatewayAccount = await ResolveBucketGatewayAccountAsync(bucketId, cancellationToken);
+        var invoices = await LoadBucketInvoicesAsync(studentFinanceId, bucketId, cancellationToken);
+
+        var totalOutstanding = invoices.Sum(i => i.Outstanding);
+
+        if (invoices.Count == 0 || totalOutstanding <= 0)
+        {
+            throw new InvalidOperationException("There is nothing outstanding for this bucket.");
+        }
+
+        if (amount > totalOutstanding)
+        {
+            throw new InvalidOperationException(
+                $"Payment amount {amount:F2} exceeds the outstanding balance of {totalOutstanding:F2} for this bucket.");
+        }
+
+        var breakdown = BuildInvoiceBreakdown(invoices, amount);
+
+        var internalReference = GenerateInternalReference();
+        var narration = invoices.Count == 1
+            ? $"Payment for invoice {invoices[0].Invoice.InvoiceNumber ?? invoices[0].Invoice.Id.ToString()}"
+            : $"Bucket payment covering {invoices.Count} invoices";
+        var now = DateTime.UtcNow;
+
+        // No Payment row(s) yet - they're only created once Lipila confirms success
+        // (see StageBucketPaymentAsync), so the DB's payment triggers never touch
+        // any invoice for a collection that hasn't actually settled. The breakdown
+        // recorded here is what tells the webhook how to split the confirmed amount.
+        var gatewayTransaction = new PaymentGatewayTransaction
+        {
+            Id = Guid.NewGuid(),
+            PaymentId = null,
+            InvoiceId = null,
+            PaymentGatewayAccountId = gatewayAccount.Id,
+            InternalReference = internalReference,
+            Provider = Provider,
+            TransactionType = "Collection",
+            PaymentType = "MobileMoney",
+            Status = "Pending",
+            Amount = amount,
+            Currency = DefaultCurrency,
+            AccountNumber = normalizedPhone,
+            ReferenceData = bucketId.ToString(),
+            Narration = narration,
+            InvoiceBreakdownJson = JsonSerializer.Serialize(breakdown),
+            CreatedAt = now
+        };
+
+        await _context.PaymentGatewayTransactions.AddAsync(gatewayTransaction, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var lipilaRequest = new LipilaMobileMoneyCollectionRequest
+        {
+            ReferenceId = internalReference,
+            Amount = amount,
+            Narration = narration,
+            AccountNumber = normalizedPhone,
+            Currency = DefaultCurrency,
+            Email = email,
+            ReferenceData = bucketId.ToString()
+        };
+
+        try
+        {
+            var response = await _lipilaService.CreateMobileMoneyCollectionAsync(
+                gatewayAccount.Id,
+                lipilaRequest,
+                cancellationToken);
+
+            return await ApplyProviderResponseAsync(gatewayTransaction, response, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to initiate Lipila bucket collection for reference {InternalReference}.",
+                internalReference);
+
+            await MarkTransactionFailedAsync(
+                gatewayTransaction,
+                "Failed to initiate collection with Lipila.",
+                cancellationToken);
+
+            throw;
+        }
+    }
+
     public async Task<LipilaCollectionResponse> CheckLipilaPaymentStatusAsync(
         string referenceId,
         CancellationToken cancellationToken = default)
@@ -314,31 +512,26 @@ public sealed class PaymentService : IPaymentService
                 return;
             }
 
-            var invoice = gatewayTransaction.Invoice
-                ?? throw new InvalidOperationException(
-                    $"Gateway transaction '{gatewayTransaction.Id}' has no associated invoice.");
+            // Creating the Payment row(s) below is what triggers Finance.TR_Payment_UpdateInvoice,
+            // TR_Payment_PreventOverpayment and trg_Payment_InsertLedger in the database - this is
+            // deliberately the first and only place a Payment is created for a Lipila collection,
+            // so the invoice/ledger only ever move for confirmed money. A bucket payment stages one
+            // Payment per invoice it covers; a single-invoice payment stages exactly one.
+            var staged = !string.IsNullOrWhiteSpace(gatewayTransaction.InvoiceBreakdownJson)
+                ? await StageBucketPaymentAsync(gatewayTransaction, now, cancellationToken)
+                : await StageSingleInvoicePaymentAsync(gatewayTransaction, now, cancellationToken);
 
-            // Creating this Payment row is what triggers Finance.TR_Payment_UpdateInvoice,
-            // TR_Payment_PreventOverpayment and trg_Payment_InsertLedger in the database -
-            // this is deliberately the first and only place a Payment is created for a
-            // Lipila collection, so the invoice/ledger only ever move for confirmed money.
-            var payment = new Payment
+            if (!staged)
             {
-                Id = Guid.NewGuid(),
-                InvoiceId = invoice.Id,
-                AmountPaid = gatewayTransaction.Amount,
-                PaymentDate = now,
-                PaymentMethod = BuildPaymentMethodLabel(gatewayTransaction.PaymentType),
-                CreatedAt = now,
-                SchoolID = invoice.SchoolID
-            };
+                gatewayTransaction.Status = "Failed";
+                gatewayTransaction.Message = "This payment could not be matched to an invoice.";
+                gatewayTransaction.CompletedAt = now;
 
-            var allocations = BuildAllocations(invoice, payment, gatewayTransaction.Amount, now);
+                await _context.SaveChangesAsync(cancellationToken);
+                await dbTransaction.CommitAsync(cancellationToken);
+                return;
+            }
 
-            await _context.Payments.AddAsync(payment, cancellationToken);
-            await _context.PaymentAllocations.AddRangeAsync(allocations, cancellationToken);
-
-            gatewayTransaction.PaymentId = payment.Id;
             gatewayTransaction.Status = "Successful";
             gatewayTransaction.Message = callback.Message;
             gatewayTransaction.CompletedAt = now;
@@ -555,6 +748,275 @@ public sealed class PaymentService : IPaymentService
         }
 
         return (invoice, gatewayAccount);
+    }
+
+    /// <summary>
+    /// Resolves the single active Lipila wallet configured directly for a bucket,
+    /// independent of any particular invoice or amount.
+    /// </summary>
+    private async Task<PaymentGatewayAccount> ResolveBucketGatewayAccountAsync(
+        Guid bucketId,
+        CancellationToken cancellationToken)
+    {
+        var environment = NormalizeEnvironment(_lipilaOptions.Environment);
+
+        var gatewayAccount = await _context.PaymentGatewayAccounts
+            .AsNoTracking()
+            .Include(g => g.PaymentGatewayCredentials)
+            .FirstOrDefaultAsync(
+                g =>
+                    g.BucketId == bucketId &&
+                    g.Provider == Provider &&
+                    g.IsActive == true &&
+                    g.Environment == environment,
+                cancellationToken);
+
+        if (gatewayAccount is null)
+        {
+            throw new InvalidOperationException(
+                $"No active Lipila wallet is configured for this bucket in the {environment} environment.");
+        }
+
+        if (!gatewayAccount.PaymentGatewayCredentials.Any())
+        {
+            throw new InvalidOperationException(
+                "The Lipila wallet for this bucket has no API key configured yet.");
+        }
+
+        return gatewayAccount;
+    }
+
+    /// <summary>
+    /// All of one student's invoices that allocate money to this bucket, paired
+    /// with how much of that allocation is still outstanding (original allocation
+    /// minus whatever's already been paid toward this specific invoice+bucket).
+    /// Only invoices with a positive remainder are included.
+    /// </summary>
+    private async Task<List<(Invoice Invoice, decimal Outstanding)>> LoadBucketInvoicesAsync(
+        Guid studentFinanceId,
+        Guid bucketId,
+        CancellationToken cancellationToken)
+    {
+        var invoices = await _context.Invoices
+            .Include(i => i.InvoiceBucketAllocations)
+            .Where(i =>
+                i.StudentFinanceId == studentFinanceId &&
+                i.InvoiceBucketAllocations.Any(a => a.BucketId == bucketId))
+            .ToListAsync(cancellationToken);
+
+        if (invoices.Count == 0)
+        {
+            return new List<(Invoice, decimal)>();
+        }
+
+        var paidByInvoiceBucket = await LoadPaidByInvoiceBucketAsync(
+            invoices.Select(i => i.Id).ToList(),
+            cancellationToken);
+
+        var result = new List<(Invoice, decimal)>();
+
+        foreach (var invoice in invoices)
+        {
+            var allocated = invoice.InvoiceBucketAllocations
+                .Where(a => a.BucketId == bucketId)
+                .Sum(a => a.Amount);
+
+            var paid = paidByInvoiceBucket.TryGetValue((invoice.Id, bucketId), out var p) ? p : 0m;
+            var outstanding = allocated - paid;
+
+            if (outstanding > 0)
+            {
+                result.Add((invoice, outstanding));
+            }
+        }
+
+        return result;
+    }
+
+    private async Task<Dictionary<(Guid InvoiceId, Guid BucketId), decimal>> LoadPaidByInvoiceBucketAsync(
+        List<Guid> invoiceIds,
+        CancellationToken cancellationToken)
+    {
+        var rows = await _context.PaymentAllocations
+            .AsNoTracking()
+            .Where(a => invoiceIds.Contains(a.InvoiceId))
+            .GroupBy(a => new { a.InvoiceId, a.BucketId })
+            .Select(g => new { g.Key.InvoiceId, g.Key.BucketId, Paid = g.Sum(x => x.Amount) })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(x => (x.InvoiceId, x.BucketId), x => x.Paid);
+    }
+
+    /// <summary>
+    /// Splits an amount being paid toward a bucket across the invoices that make
+    /// it up, pro-rata to each invoice's outstanding share, oldest due date first.
+    /// The last invoice absorbs any rounding remainder so the parts always sum
+    /// exactly to amountToPay.
+    /// </summary>
+    private static List<InvoiceBreakdownEntry> BuildInvoiceBreakdown(
+        List<(Invoice Invoice, decimal Outstanding)> invoices,
+        decimal amountToPay)
+    {
+        var ordered = invoices.OrderBy(i => i.Invoice.DueDate).ToList();
+        var totalOutstanding = ordered.Sum(i => i.Outstanding);
+        var remaining = amountToPay;
+        var breakdown = new List<InvoiceBreakdownEntry>();
+
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            decimal share;
+
+            if (i == ordered.Count - 1)
+            {
+                share = remaining;
+            }
+            else
+            {
+                share = totalOutstanding == 0
+                    ? 0m
+                    : Math.Round(
+                        amountToPay * (ordered[i].Outstanding / totalOutstanding),
+                        2,
+                        MidpointRounding.AwayFromZero);
+
+                remaining -= share;
+            }
+
+            if (share <= 0)
+            {
+                continue;
+            }
+
+            breakdown.Add(new InvoiceBreakdownEntry
+            {
+                InvoiceId = ordered[i].Invoice.Id,
+                Amount = share
+            });
+        }
+
+        return breakdown;
+    }
+
+    private sealed class InvoiceBreakdownEntry
+    {
+        public Guid InvoiceId { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    /// <summary>
+    /// Stages a Payment for a legacy single-invoice gateway transaction (one
+    /// InvoiceId, no breakdown). Returns false if the invoice couldn't be loaded.
+    /// </summary>
+    private async Task<bool> StageSingleInvoicePaymentAsync(
+        PaymentGatewayTransaction gatewayTransaction,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var invoice = gatewayTransaction.Invoice;
+
+        if (invoice is null)
+        {
+            return false;
+        }
+
+        var payment = new Payment
+        {
+            Id = Guid.NewGuid(),
+            InvoiceId = invoice.Id,
+            AmountPaid = gatewayTransaction.Amount,
+            PaymentDate = now,
+            PaymentMethod = BuildPaymentMethodLabel(gatewayTransaction.PaymentType),
+            CreatedAt = now,
+            SchoolID = invoice.SchoolID
+        };
+
+        var allocations = BuildAllocations(invoice, payment, gatewayTransaction.Amount, now);
+
+        await _context.Payments.AddAsync(payment, cancellationToken);
+        await _context.PaymentAllocations.AddRangeAsync(allocations, cancellationToken);
+
+        gatewayTransaction.PaymentId = payment.Id;
+        return true;
+    }
+
+    /// <summary>
+    /// Stages one Payment per invoice recorded in a bucket transaction's
+    /// InvoiceBreakdownJson, each allocated to the bucket the transaction's
+    /// wallet belongs to. Returns false if the breakdown is missing/empty or
+    /// none of its invoices could be resolved.
+    /// </summary>
+    private async Task<bool> StageBucketPaymentAsync(
+        PaymentGatewayTransaction gatewayTransaction,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var breakdown = JsonSerializer.Deserialize<List<InvoiceBreakdownEntry>>(
+            gatewayTransaction.InvoiceBreakdownJson!);
+
+        if (breakdown is null || breakdown.Count == 0)
+        {
+            return false;
+        }
+
+        var bucketId = await _context.PaymentGatewayAccounts
+            .AsNoTracking()
+            .Where(g => g.Id == gatewayTransaction.PaymentGatewayAccountId)
+            .Select(g => g.BucketId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var invoiceIds = breakdown.Select(b => b.InvoiceId).ToList();
+
+        var invoices = await _context.Invoices
+            .Where(i => invoiceIds.Contains(i.Id))
+            .ToDictionaryAsync(i => i.Id, cancellationToken);
+
+        Guid? firstPaymentId = null;
+
+        foreach (var entry in breakdown)
+        {
+            if (entry.Amount <= 0 || !invoices.TryGetValue(entry.InvoiceId, out var invoice))
+            {
+                continue;
+            }
+
+            var payment = new Payment
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = invoice.Id,
+                AmountPaid = entry.Amount,
+                PaymentDate = now,
+                PaymentMethod = BuildPaymentMethodLabel(gatewayTransaction.PaymentType),
+                CreatedAt = now,
+                SchoolID = invoice.SchoolID
+            };
+
+            var allocation = new PaymentAllocation
+            {
+                Id = Guid.NewGuid(),
+                PaymentId = payment.Id,
+                InvoiceId = invoice.Id,
+                BucketId = bucketId,
+                Amount = entry.Amount,
+                CreatedAt = now
+            };
+
+            await _context.Payments.AddAsync(payment, cancellationToken);
+            await _context.PaymentAllocations.AddAsync(allocation, cancellationToken);
+
+            firstPaymentId ??= payment.Id;
+        }
+
+        if (firstPaymentId is null)
+        {
+            return false;
+        }
+
+        // A bucket payment covers several invoices, so several Payment rows get
+        // created above - PaymentId can only reference one. It's kept as a
+        // best-effort pointer to the first for quick lookups; InvoiceBreakdownJson
+        // (already on this row) remains the authoritative record of the full split.
+        gatewayTransaction.PaymentId = firstPaymentId;
+        return true;
     }
 
     private static List<PaymentAllocation> BuildAllocations(

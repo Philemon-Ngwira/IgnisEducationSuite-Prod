@@ -429,6 +429,7 @@ public partial class PhoenixEdusphereFinanceContext : DbContext
             entity.Property(e => e.InternalReference)
                 .IsRequired()
                 .HasMaxLength(100);
+            entity.Property(e => e.InvoiceBreakdownJson);
             entity.Property(e => e.Message).HasMaxLength(1000);
             entity.Property(e => e.Narration).HasMaxLength(1000);
             entity.Property(e => e.PaymentType).HasMaxLength(50);
