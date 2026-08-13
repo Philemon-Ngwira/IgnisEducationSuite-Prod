@@ -58,7 +58,6 @@ public partial class PaymentGatewayTransaction
 
     public Guid? InvoiceId { get; set; }
 
-    public string InvoiceBreakdownJson { get; set; }
 
     public virtual Invoice Invoice { get; set; }
 
