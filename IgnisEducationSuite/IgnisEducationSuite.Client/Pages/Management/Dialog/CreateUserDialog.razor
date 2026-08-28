@@ -266,40 +266,54 @@
 
     public static string GenerateOneTimePassword(int length = 8)
     {
-        const string validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_-+=<>?";
+        const string lowercase = "abcdefghijklmnopqrstuvwxyz";
+        const string uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const string numbers = "1234567890";
+        const string special = "!@#$%^&*()_-+=<>?";
 
-        // Ensure that the OTP length is at least 8 characters
         if (length < 8)
-        {
             length = 8;
-        }
 
-        using (var rng = new RNGCryptoServiceProvider())
+        const string allChars = lowercase + uppercase + numbers + special;
+
+        using var rng = RandomNumberGenerator.Create();
+
+        var password = new List<char>
+    {
+        GetRandomChar(lowercase, rng),
+        GetRandomChar(uppercase, rng),
+        GetRandomChar(numbers, rng),
+        GetRandomChar(special, rng)
+    };
+
+        // Fill the remaining characters randomly
+        while (password.Count < length)
         {
-            while (true) // Continue generating until we get a valid OTP
-            {
-                byte[] randomBytes = new byte[length];
-                rng.GetBytes(randomBytes);
-
-                StringBuilder otp = new StringBuilder(length);
-
-                // Build the OTP string by selecting characters from the validChars string
-                foreach (var randomByte in randomBytes)
-                {
-                    otp.Append(validChars[randomByte % validChars.Length]);
-                }
-
-                string generatedOtp = otp.ToString();
-
-                // Check if the generated OTP contains at least one number
-                if (generatedOtp.Any(c => numbers.Contains(c)))
-                {
-                    return generatedOtp;
-                }
-            }
+            password.Add(GetRandomChar(allChars, rng));
         }
+
+        // Shuffle the password so the required characters aren't always first
+        for (int i = password.Count - 1; i > 0; i--)
+        {
+            byte[] randomByte = new byte[1];
+            rng.GetBytes(randomByte);
+
+            int j = randomByte[0] % (i + 1);
+
+            (password[i], password[j]) = (password[j], password[i]);
+        }
+
+        return new string(password.ToArray());
     }
+
+    private static char GetRandomChar(string characters, RandomNumberGenerator rng)
+    {
+        byte[] randomByte = new byte[1];
+        rng.GetBytes(randomByte);
+
+        return characters[randomByte[0] % characters.Length];
+    }
+    
     public async Task<string> GetLoggedInuser()
     {
         var auth = await _authenticationStateProvider.GetAuthenticationStateAsync();

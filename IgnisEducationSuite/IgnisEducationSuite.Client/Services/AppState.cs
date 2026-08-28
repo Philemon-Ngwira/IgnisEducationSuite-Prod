@@ -130,7 +130,7 @@ public class AppState
                         .Select(r => r.Trim())
                         .ToList() ?? new();
 
-            UserRole = (UserRoles.Count == 1 && (UserRoles[0] == "SuperAdmin" || UserRoles[0] == "Parent"))
+            UserRole = (UserRoles.Count == 1 && (UserRoles[0] == "SuperAdmin" || UserRoles[0] == "Parent" || UserRoles[0] == "Finance"))
                         ? UserRoles[0]
                         : rolePriority.FirstOrDefault(role => UserRoles.Contains(role)) ?? "Guest";
 
@@ -140,12 +140,19 @@ public class AppState
             UserEmail = data.Email ?? "";
             FirstName = data.FirstName ?? "";
             LastName = data.LastName ?? "";
-            SchoolLogo = data.SchoolLogo?.Length > 0 ? Convert.ToBase64String(data.SchoolLogo) : string.Empty;
-            Currency.Currency = data.SchoolCurrencyName;
-            Currency.CurrencyCode = data.CurrencyCode;
-            Currency.CurrencyCountry = data.CurrencyCountry;
-            Currency.CurrencySymbol = data.CurrencySymbol;
-            HideStudentDashboard = data.HideStudentDashboard == 1;
+
+
+            if (UserRole != "SuperAdmin")
+            {
+                SchoolLogo = data.SchoolLogo?.Length > 0
+              ? Convert.ToBase64String(data.SchoolLogo)
+              : "/images/logo.png";
+                Currency.Currency = data.SchoolCurrencyName;
+                Currency.CurrencyCode = data.CurrencyCode;
+                Currency.CurrencyCountry = data.CurrencyCountry;
+                Currency.CurrencySymbol = data.CurrencySymbol;
+                HideStudentDashboard = data.HideStudentDashboard == 1;
+            }
 
             // --- 4️⃣ Load License ---
             //if (UserRole != "SuperAdmin")

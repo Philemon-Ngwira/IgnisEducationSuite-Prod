@@ -150,6 +150,15 @@
                             <MudNavLink Href="MainChat" Icon="@Icons.Material.Filled.ChatBubbleOutline">Communication</MudNavLink>
                         </MudNavGroup>
                         break;
+                    case "Finance":
+                        <MudNavGroup IconColor="Color.Warning" Icon="@MaterialDesignIcons.Normal.BankPlus" Title="Finance(TEST)">
+                            <MudNavLink Href="finance-management" Icon="@MaterialDesignIcons.Normal.Finance">Finance Management</MudNavLink>
+                            <MudNavLink Href="feestructures" Icon="@MaterialDesignIcons.Normal.BankPlus">Fee Structure</MudNavLink>
+                            <MudNavLink Href="/finance/buckets" Icon="@MaterialDesignIcons.Normal.PiggyBank">Fee Accounts</MudNavLink>
+                            <MudNavLink Href="/finance/payment-gateways" Icon="@Icons.Material.Filled.AccountBalanceWallet">Payment Gateways</MudNavLink>
+                            <MudNavLink Href="FinancePortal" Icon="@MaterialDesignIcons.Normal.BankCircle">Finance Portal</MudNavLink>\
+                        </MudNavGroup>
+                        break;
 
                     case "Student":
                         <MudNavGroup Icon="@Icons.Material.Filled.Mediation" Title="Student Portal">

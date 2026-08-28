@@ -256,7 +256,7 @@ namespace IgnisEducationSuite.Controllers
 
             var ret = await _userManager.RemovePasswordAsync(user);
 
-            var result = await _userManager.AddPasswordAsync(user, "P@ssword1");
+            var result = await _userManager.AddPasswordAsync(user, newPassword);
 
             if (result.Succeeded)
             {
