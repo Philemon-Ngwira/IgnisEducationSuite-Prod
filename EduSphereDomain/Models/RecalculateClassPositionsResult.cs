@@ -6,12 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EduSphereDomain.Models
 {
-    public partial class sp_CreateStudentFinanceForExistingStudentsResult
+    public partial class RecalculateClassPositionsResult
     {
-        public Guid StudentFinanceId { get; set; }
-        public Guid StudentId { get; set; }
-        public Guid? SchoolId { get; set; }
-        [StringLength(101)]
-        public string StudentName { get; set; }
     }
 }

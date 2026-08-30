@@ -19,7 +19,7 @@ public partial class FeeBucket
 
     public string BankName { get; set; }
 
-    public bool? IsMandatory { get; set; }
+    public bool IsMandatory { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

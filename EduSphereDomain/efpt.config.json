@@ -1,18 +1,22 @@
 ﻿{
-   "CodeGenerationMode": 3,
+   "CodeGenerationMode": 4,
    "ContextClassName": "PhoenixEdusphereFinanceContext",
    "ContextNamespace": null,
-   "DefaultDacpacSchema": null,
    "FilterSchemas": false,
    "IncludeConnectionString": false,
+   "IrregularWords": null,
+   "MinimumProductVersion": "2.6.1604",
    "ModelNamespace": null,
    "OutputContextPath": "FinanceData",
    "OutputPath": "Models",
+   "PluralRules": null,
    "PreserveCasingWithRegex": true,
    "ProjectRootNamespace": "EduSphereDomain",
    "Schemas": null,
    "SelectedHandlebarsLanguage": 0,
    "SelectedToBeGenerated": 1,
+   "SingularRules": null,
+   "T4TemplatePath": null,
    "Tables": [
       {
          "Name": "[dbo].[Students]",
@@ -176,6 +180,10 @@
       },
       {
          "Name": "[dbo].[DeactivateAndCleanSchedules]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[FixStudentAcademicMappings]",
          "ObjectType": 1
       },
       {
@@ -403,7 +411,51 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[LogJobFailure]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[LogJobStart]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[LogJobSuccess]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RecalculateClassPositions]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RecalculateSchoolPositions]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunAttendanceAndSyncJobs]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[RunDailyJobs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunDailyJobsWithLogging]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunFinanceJobs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunRankingJobs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunReportCardJobs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SendJobFailureEmail]",
          "ObjectType": 1
       },
       {
@@ -535,23 +587,32 @@
          "ObjectType": 1
       }
    ],
-   "UiHint": "phoenix.PhoenixEdusphere.dbo",
+   "UiHint": null,
    "UncountableWords": null,
+   "UseAsyncStoredProcedureCalls": true,
    "UseBoolPropertiesWithoutDefaultSql": false,
    "UseDatabaseNames": true,
+   "UseDatabaseNamesForRoutines": true,
    "UseDateOnlyTimeOnly": false,
    "UseDbContextSplitting": false,
+   "UseDecimalDataAnnotationForSprocResult": true,
    "UseFluentApiOnly": true,
    "UseHandleBars": false,
    "UseHierarchyId": false,
    "UseInflector": true,
+   "UseInternalAccessModifiersForSprocsAndFunctions": false,
    "UseLegacyPluralizer": false,
    "UseManyToManyEntity": false,
    "UseNoDefaultConstructor": false,
+   "UseNoNavigations": false,
    "UseNoObjectFilter": false,
    "UseNodaTime": false,
    "UseNullableReferences": false,
+   "UsePrefixNavigationNaming": false,
    "UseSchemaFolders": false,
+   "UseSchemaNamespaces": false,
    "UseSpatial": false,
-   "UseT4": false
+   "UseT4": false,
+   "UseT4Split": false,
+   "UseTypedTvpParameters": true
 }

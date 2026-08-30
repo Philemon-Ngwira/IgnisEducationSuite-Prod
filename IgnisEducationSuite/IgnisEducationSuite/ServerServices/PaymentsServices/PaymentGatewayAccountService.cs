@@ -216,7 +216,7 @@ public sealed class PaymentGatewayAccountService : IPaymentGatewayAccountService
             Provider = account.Provider,
             WalletId = account.WalletId,
             Environment = account.Environment,
-            IsActive = account.IsActive ?? false,
+            IsActive = account.IsActive,
             HasCredential = latestCredential is not null,
             CredentialSetAt = latestCredential?.CreatedAt,
             CreatedAt = account.CreatedAt,

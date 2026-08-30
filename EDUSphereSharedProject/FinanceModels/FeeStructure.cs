@@ -21,7 +21,7 @@ public partial class FeeStructure
 
     public string AcademicYear { get; set; }
 
-    public bool? IsActive { get; set; }
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

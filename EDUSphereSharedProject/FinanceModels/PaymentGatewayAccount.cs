@@ -17,7 +17,7 @@ public partial class PaymentGatewayAccount
 
     public string WalletId { get; set; }
 
-    public bool? IsActive { get; set; }
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
