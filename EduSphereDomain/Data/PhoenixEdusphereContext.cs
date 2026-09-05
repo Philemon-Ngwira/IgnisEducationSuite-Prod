@@ -187,6 +187,10 @@ public partial class PhoenixEdusphereContext : DbContext
 
     public virtual DbSet<Subject> Subjects { get; set; }
 
+    public virtual DbSet<SubjectAdjacencyRule> SubjectAdjacencyRules { get; set; }
+
+    public virtual DbSet<SubjectScheduleConfig> SubjectScheduleConfigs { get; set; }
+
     public virtual DbSet<Teacher> Teachers { get; set; }
 
     public virtual DbSet<TeacherSubjectNormalized> TeacherSubjectNormalizeds { get; set; }
@@ -658,9 +662,15 @@ public partial class PhoenixEdusphereContext : DbContext
 
         modelBuilder.Entity<ClassSchedule>(entity =>
         {
-            entity.ToTable("ClassSchedule");
+            // The trigger must be declared so EF Core skips its OUTPUT-clause save path.
+            // Harmless if absent; required the moment any store-generated column appears here.
+            entity.ToTable("ClassSchedule", tb => tb.HasTrigger("trg_BlockNotRequiredClassSchedule"));
 
-            entity.HasIndex(e => new { e.DayOfTheWeekID, e.TimeSlotID }, "UX_ClassSchedule_Day_Time").IsUnique();
+            // NOTE: a unique index UX_ClassSchedule_Day_Time on (DayOfTheWeekID, TimeSlotID) used to
+            // be declared here. It was unfiltered and unscoped, so it would have permitted only one
+            // schedule row per day+time across every school, level and section — and would break the
+            // soft-retire save path, since retired rows keep occupying the pair. It is absent from
+            // the current production schema; the declaration was stale scaffold output.
 
             entity.HasIndex(e => new { e.SchoolID, e.AcademicLevel, e.AcademicLevelSection, e.DayOfTheWeekID, e.TimeSlotID }, "UX_ClassSchedule_Logical")
                 .IsUnique()
@@ -2003,6 +2013,58 @@ public partial class PhoenixEdusphereContext : DbContext
                 .IsRequired()
                 .HasMaxLength(100);
             entity.Property(e => e.OptionalNotes).HasMaxLength(250);
+
+            entity.HasOne(d => d.PreferredTimeSlot).WithMany()
+                .HasForeignKey(d => d.PreferredTimeSlotID)
+                .HasConstraintName("FK_TimeTableActivity_PreferredTimeSlot");
+
+            entity.HasOne(d => d.PreferredDay).WithMany()
+                .HasForeignKey(d => d.PreferredDayID)
+                .HasConstraintName("FK_TimeTableActivity_PreferredDay");
+        });
+
+        modelBuilder.Entity<SubjectScheduleConfig>(entity =>
+        {
+            entity.HasKey(e => e.SubjectScheduleConfigID);
+
+            entity.ToTable("SubjectScheduleConfig");
+
+            entity.HasIndex(e => e.SchoolID, "IX_SubjectScheduleConfig_SchoolID");
+
+            entity.HasIndex(e => e.ClassID, "UX_SubjectScheduleConfig_ClassID").IsUnique();
+
+            entity.Property(e => e.SubjectScheduleConfigID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+
+            entity.HasOne(d => d.Class).WithMany()
+                .HasForeignKey(d => d.ClassID)
+                .HasConstraintName("FK_SubjectScheduleConfig_Classes");
+        });
+
+        modelBuilder.Entity<SubjectAdjacencyRule>(entity =>
+        {
+            entity.HasKey(e => e.SubjectAdjacencyRuleID);
+
+            entity.ToTable("SubjectAdjacencyRule");
+
+            entity.HasIndex(e => e.SchoolID, "IX_SubjectAdjacencyRule_SchoolID");
+
+            entity.HasIndex(e => new { e.ClassID, e.CannotFollowClassID }, "UX_SubjectAdjacencyRule_Pair").IsUnique();
+
+            entity.Property(e => e.SubjectAdjacencyRuleID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+
+            // Both FKs point at Classes; NoAction on at least one is required to avoid
+            // SQL Server's multiple-cascade-paths restriction.
+            entity.HasOne(d => d.Class).WithMany()
+                .HasForeignKey(d => d.ClassID)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_SubjectAdjacencyRule_Class");
+
+            entity.HasOne(d => d.CannotFollowClass).WithMany()
+                .HasForeignKey(d => d.CannotFollowClassID)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_SubjectAdjacencyRule_CannotFollowClass");
         });
 
         modelBuilder.Entity<TimetableOverride>(entity =>

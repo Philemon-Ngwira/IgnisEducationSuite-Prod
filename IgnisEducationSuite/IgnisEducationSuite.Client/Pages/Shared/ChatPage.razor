@@ -3,19 +3,35 @@
 @using EDUSphereSharedProject.ChatModels
 @using EDUSphereSharedProject.IdentitySharedModels
 @using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.UniversalModels.Chat
 @using IgnisEducationSuite.Client.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.AspNetCore.WebUtilities;
 
 @inject NavigationManager Navigation
 @inject HttpClient Http
+@inject ChatRealtimeService Chat
 @inherits AppBaseComponent
+@implements IAsyncDisposable
 <MudCard>
     <MudCardHeader>
         <MudText Align="Align.Left" Typo="Typo.h6"><b><i>Ignis Chat</i></b></MudText>
     </MudCardHeader>
     <MudDivider />
     <MudCardContent>
+        @if (_identityWarning is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                @_identityWarning
+            </MudAlert>
+        }
+        else if (!isConnected)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                Reconnecting to the chat service — new messages will appear once the connection is back.
+            </MudAlert>
+        }
+
         <div class="chat-wrapper">
             <div class="chat-sidebar card">
                 <div class="chat-sidebar-single active top-profile">
@@ -67,9 +83,15 @@
                     <span class="icon">
                         <iconify-icon icon="iconoir:search"></iconify-icon>
                     </span>
-                    <MudAutocomplete T="string" Label="Find User" @bind-Value="SelectedUser" SearchFunc="@Search"
+                    @* Bound to the user object, not a display string. The previous version searched
+                       into formatted labels and then tried to match them against UserName, which
+                       could never succeed. *@
+                    <MudAutocomplete T="ApplicationUser" Label="Find User"
+                                     Value="_selectedUser" ValueChanged="OnUserSelectedAsync"
+                                     SearchFunc="@SearchUsers"
+                                     ToStringFunc="@UserDisplayName"
                                      ResetValueOnEmptyText="true"
-                                     CoerceText="true" CoerceValue="true"
+                                     Clearable="true"
                                      AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                 </div>
                 <div class="chat-all-list">
@@ -106,7 +128,13 @@
                             </div>
                             <div class="action text-end">
                                 <p class="mb-0 text-neutral-400 text-xs lh-1">@item.LastMessageTimestamp.ToString("hh:mm tt")</p>
-                                <span class="w-16-px h-16-px text-xs rounded-circle bg-warning-main text-white d-inline-flex align-items-center justify-content-center">I</span>
+                                @{ var unread = UnreadFor(item); }
+                                @if (unread > 0)
+                                {
+                                    <span class="w-16-px h-16-px text-xs rounded-circle bg-danger-main text-white d-inline-flex align-items-center justify-content-center">
+                                        @(unread > 9 ? "9+" : unread.ToString())
+                                    </span>
+                                }
                             </div>
                         </div>
                     }
@@ -247,10 +275,9 @@
 </MudCard>
 
 @code {
-    private HubConnection _hubConnection;
     public bool isConnected;
     private string message;
-    private string SelectedUser;
+    private ApplicationUser? _selectedUser;
     private List<Message> messages = new List<Message>();
     private List<Chat> chats = new List<Chat>();
     private Chat selectedChat = new();
@@ -265,74 +292,28 @@
         // Load users first
         await GetUsers();
 
-        // Build HubConnection
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
-            .Build();
+        // The hub connection is owned by ChatRealtimeService and shared with the whole app, rather
+        // than built here. That is what lets messages keep arriving after you navigate away from
+        // this page, which in turn is what makes the navigation badge and notifications possible.
+        Chat.MessageReceived += OnMessageReceivedAsync;
+        Chat.ConnectionStateChanged += OnConnectionStateChanged;
 
-        // Setup message listener
-        _hubConnection.On<Message>("ReceiveMessage", receivedMessage =>
+        await Chat.EnsureStartedAsync(AppState.UserID);
+        isConnected = Chat.IsConnected;
+
+        if (Chat.HubIdentityResolved == false)
         {
-            if (receivedMessage == null) return;
-
-            InvokeAsync(async () =>
-            {
-                // Signal to refresh all chats/messages
-                if (receivedMessage.Content == null)
-                {
-                    messages.Clear();
-                    await LoadChats();
-                    if (selectedChat != null)
-                        await LoadMessages(AppState.UserID, selectedChat.Reciepientid);
-
-                    StateHasChanged();
-                    return;
-                }
-
-                // Determine if message is for currently open chat
-                bool isForCurrentChat = selectedChat != null &&
-                    ((selectedChat.IsGroup && selectedChat.GroupIdentifier == receivedMessage.GroupIdentifier) ||
-                     (!selectedChat.IsGroup && selectedChat.id == receivedMessage.RecipientId));
-
-                if (isForCurrentChat)
-                {
-                    messages.Add(receivedMessage);
-                    StateHasChanged();
-
-                    // Scroll to bottom
-                    await JS.InvokeVoidAsync("scrollChatToBottom", "chatMessageList");
-                }
-                else
-                {
-                    // Update chat list teaser/last message
-                    var chat = chats.FirstOrDefault(c =>
-                        (c.IsGroup && c.Name == receivedMessage.GroupName) ||
-                        (!c.IsGroup && c.id == receivedMessage.UserId));
-
-                    if (chat != null)
-                    {
-                        chat.LastMessage = receivedMessage.Content;
-                        chat.LastMessageTimestamp = receivedMessage.Timestamp ?? DateTime.Now;
-                        StateHasChanged();
-                    }
-                }
-            });
-        });
-
-        // Start hub connection
-        try
-        {
-            await _hubConnection.StartAsync();
-            isConnected = _hubConnection.State == HubConnectionState.Connected;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Hub connection failed: {ex.Message}");
-            isConnected = false;
+            _identityWarning = "The chat service could not identify your sign-in, so messages sent " +
+                               "to you will not arrive until you refresh. Please sign out and back in; " +
+                               "if it persists, report it.";
         }
 
         // Load all chats
         await LoadChats();
+
+        // Group delivery only reaches connections that have joined the group. Nothing joined them
+        // before, so every group message was saved and then delivered to an empty group.
+        await Chat.JoinGroupsAsync();
 
         // Auto-open group if query parameter exists
         var uri = new Uri(_navigationManager.Uri);
@@ -344,6 +325,164 @@
             {
                 await SelectChat(chat);
             }
+        }
+    }
+
+    /// <summary>
+    /// The id of the person on the other side of the currently open direct chat. Set when the chat
+    /// is opened (Reciepientid) and again on send (id), so both are checked.
+    /// </summary>
+    private string? OpenChatPartnerId =>
+        selectedChat is null || selectedChat.IsGroup
+            ? null
+            : (!string.IsNullOrWhiteSpace(selectedChat.Reciepientid) ? selectedChat.Reciepientid : selectedChat.id);
+
+    /// <summary>
+    /// Whether an incoming message belongs to the conversation on screen.
+    ///
+    /// The previous check compared selectedChat.id against the message's RecipientId. For an
+    /// incoming direct message the recipient is ME, while selectedChat.id is the OTHER person — so
+    /// it never matched and no incoming message was ever appended. A message belongs to the open
+    /// direct chat when the partner is either its sender (they messaged me) or its recipient (my
+    /// own message echoed back by the server).
+    /// </summary>
+    private bool BelongsToOpenChat(Message incoming)
+    {
+        if (selectedChat is null) return false;
+
+        if (selectedChat.IsGroup)
+        {
+            return !string.IsNullOrWhiteSpace(incoming.GroupName)
+                   && (string.Equals(incoming.GroupName, selectedChat.Name, StringComparison.OrdinalIgnoreCase)
+                       || string.Equals(incoming.GroupIdentifier, selectedChat.GroupIdentifier, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var partnerId = OpenChatPartnerId;
+        if (string.IsNullOrWhiteSpace(partnerId)) return false;
+
+        return string.Equals(incoming.UserId, partnerId, StringComparison.OrdinalIgnoreCase)
+               || string.Equals(incoming.RecipientId, partnerId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Keeps the chat list preview in step with whatever just arrived.</summary>
+    private void UpdateTeaser(Message incoming)
+    {
+        // For a direct message the conversation is with whoever is not me.
+        var counterpartId = string.Equals(incoming.UserId, AppState.UserID, StringComparison.OrdinalIgnoreCase)
+            ? incoming.RecipientId
+            : incoming.UserId;
+
+        var chat = chats.FirstOrDefault(c =>
+            (c.IsGroup && string.Equals(c.Name, incoming.GroupName, StringComparison.OrdinalIgnoreCase)) ||
+            (!c.IsGroup && (string.Equals(c.id, counterpartId, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(c.Reciepientid, counterpartId, StringComparison.OrdinalIgnoreCase))));
+
+        if (chat is null) return;
+
+        chat.LastMessage = incoming.Content;
+        chat.LastMessageTimestamp = incoming.Timestamp ?? DateTime.Now;
+    }
+
+    private void OnConnectionStateChanged()
+    {
+        isConnected = Chat.IsConnected;
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Unread count for a sidebar entry. Conversations are keyed by the other participant's user id
+    /// (direct) or the group name, matching how the server records read state; a chat row may carry
+    /// either identifier depending on how it was loaded, so both are tried.
+    /// </summary>
+    private int UnreadFor(Chat chat)
+    {
+        if (chat.IsGroup) return Chat_UnreadFor(chat.Name);
+
+        var byRecipient = Chat_UnreadFor(chat.Reciepientid);
+        return byRecipient > 0 ? byRecipient : Chat_UnreadFor(chat.id);
+    }
+
+    private int Chat_UnreadFor(string? key) =>
+        string.IsNullOrWhiteSpace(key) ? 0 : Chat.UnreadFor(key);
+
+    /// <summary>
+    /// Handles a message arriving while this page is open. The same event also drives the app-wide
+    /// badge and toast, so this handler only concerns the conversation currently on screen.
+    /// </summary>
+    private async Task OnMessageReceivedAsync(ChatMessageDto incoming)
+    {
+        var received = ToMessage(incoming);
+
+        await InvokeAsync(async () =>
+        {
+            if (BelongsToOpenChat(received))
+            {
+                messages.Add(received);
+                UpdateTeaser(received);
+                StateHasChanged();
+
+                // It is on screen, so it has been read — keeping the badge honest rather than
+                // leaving a count for a conversation the user is actively looking at.
+                var key = selectedChat.IsGroup ? selectedChat.Name : OpenChatPartnerId;
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    await Chat.MarkReadAsync(key, selectedChat.IsGroup);
+                }
+
+                await ScrollToLatestAsync();
+            }
+            else
+            {
+                UpdateTeaser(received);
+                StateHasChanged();
+            }
+        });
+    }
+
+    private static Message ToMessage(ChatMessageDto dto) => new()
+    {
+        Content = dto.Content,
+        UserId = dto.UserId,
+        RecipientId = dto.RecipientId,
+        GroupName = dto.GroupName,
+        GroupIdentifier = dto.GroupIdentifier,
+        Timestamp = dto.Timestamp,
+    };
+
+    /// <summary>
+    /// Scrolling is decoration. If the helper is missing or interop fails it must not surface as a
+    /// messaging error — a throw here previously bubbled into the send handler and reported a
+    /// perfectly delivered message as failed.
+    /// </summary>
+    private async Task ScrollToLatestAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("scrollChatToBottom", "chatMessageList");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Could not scroll the chat list: {ex.Message}");
+        }
+    }
+
+    /// <summary>Set when the hub cannot identify this connection, so the banner can explain why
+    /// direct messages will not arrive live.</summary>
+    private string? _identityWarning;
+
+    /// <summary>
+    /// Confirms SignalR resolved this connection to the same account id the app is using.
+
+    private async Task ReloadCurrentConversationAsync()
+    {
+        await LoadChats();
+
+        if (selectedChat is null || string.IsNullOrWhiteSpace(selectedChat.Name)) return;
+
+        var idToSend = selectedChat.IsGroup ? selectedChat.Name : selectedChat.Reciepientid;
+        if (!string.IsNullOrWhiteSpace(idToSend))
+        {
+            await LoadMessages(AppState.UserID, idToSend);
         }
     }
 
@@ -416,10 +555,36 @@
             IdTosend = chat.Reciepientid;
         }
         await LoadMessages(AppState.UserID, IdTosend);
+
+        // Opening a conversation reads it, so clear its badge.
+        var conversationKey = chat.IsGroup ? chat.Name : (!string.IsNullOrWhiteSpace(chat.Reciepientid) ? chat.Reciepientid : chat.id);
+        if (!string.IsNullOrWhiteSpace(conversationKey))
+        {
+            await Chat.MarkReadAsync(conversationKey, chat.IsGroup);
+        }
+
+        if (chat.IsGroup)
+        {
+            await Chat.JoinGroupAsync(chat.Name);
+        }
+
         StateHasChanged();
     }
 
-    Task Send(string user, Message message, string method) => _hubConnection.SendAsync(method, user, message);
+    Task Send(string target, Message message, bool isGroup) =>
+        isGroup ? Chat.SendGroupAsync(target, message) : Chat.SendDirectAsync(target, message);
+
+    /// <summary>
+    /// Only unsubscribes. The connection itself belongs to ChatRealtimeService and must survive this
+    /// page being disposed — tearing it down here is what previously ended realtime the moment you
+    /// navigated away.
+    /// </summary>
+    public ValueTask DisposeAsync()
+    {
+        Chat.MessageReceived -= OnMessageReceivedAsync;
+        Chat.ConnectionStateChanged -= OnConnectionStateChanged;
+        return ValueTask.CompletedTask;
+    }
     private async Task SendMessage()
     {
         if (selectedChat == null || string.IsNullOrWhiteSpace(selectedChat.Name))
@@ -428,42 +593,70 @@
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(message)) return;
+
+        if (!Chat.IsConnected)
+        {
+            Snackbar.Add("You are not connected to the chat service. Your message was not sent.", Severity.Error);
+            return;
+        }
+
+        // Held so the box can be cleared immediately, then restored if the send fails.
+        var outgoing = message;
+
+        var newMessage = new Message
+        {
+            Content = outgoing,
+            UserId = AppState.UserID,
+            Timestamp = DateTime.Now
+        };
+
+        // Only the send itself sits in this try. Anything after it has already succeeded, and a
+        // failure there must never be reported as "your message could not be sent" — which is
+        // exactly what happened when the scroll helper threw.
         try
         {
-            var newMessage = new Message
-            {
-                Content = message,
-                UserId = AppState.UserID,
-                Timestamp = DateTime.Now
-            };
+            message = string.Empty;
 
             if (selectedChat.IsGroup)
             {
-                newMessage.GroupName = selectedChat.UserName;
-                await Send(selectedChat.Name, newMessage, "SendMessageToGroup");
-                //await _hubConnection.SendAsync("SendMessageToGroup", selectedChat.Name, newMessage);
+                newMessage.GroupName = selectedChat.Name;
+                newMessage.GroupIdentifier = selectedChat.GroupIdentifier;
+                await Send(selectedChat.Name, newMessage, isGroup: true);
             }
             else
             {
+                var recipient = _users.FirstOrDefault(x => x.UserName == selectedChat.Name);
+                var recipientId = recipient?.Id
+                                  ?? (!string.IsNullOrWhiteSpace(selectedChat.Reciepientid) ? selectedChat.Reciepientid : selectedChat.id);
 
-                selectedChat.id = _users.Where(x => x.UserName == selectedChat.Name).Select(x => x.Id).First();
+                if (string.IsNullOrWhiteSpace(recipientId))
+                {
+                    message = outgoing;
+                    Snackbar.Add("Could not work out who this chat is with, so the message was not sent.", Severity.Error);
+                    return;
+                }
 
-                newMessage.RecipientId = selectedChat.id;
-                await Send(selectedChat.id, newMessage, "SendMessageToUser");
-                //await _hubConnection.SendAsync("SendMessageToUser", selectedChat.Name, newMessage);
+                selectedChat.id = recipientId;
+                newMessage.RecipientId = recipientId;
+                await Send(recipientId, newMessage, isGroup: false);
             }
-
-            // Add the new message to the local list
-            messages.Add(newMessage);
-
-            // Clear the message input
-            message = string.Empty;
         }
         catch (Exception ex)
         {
-            // Handle or log the exception
+            message = outgoing;
+            Snackbar.Add("Your message could not be sent. Please try again.", Severity.Error);
             Console.WriteLine($"Error sending message: {ex.Message}");
+            return;
         }
+
+        // Past this point the hub call has returned, so the message is stored. Because Send uses
+        // InvokeAsync, reaching here means the save succeeded — the sender's own copy does not
+        // depend on SignalR resolving their user id. The hub does not echo to the sender, so this
+        // cannot duplicate.
+        messages.Add(newMessage);
+        UpdateTeaser(newMessage);
+        await ScrollToLatestAsync();
     }
 
 
@@ -484,43 +677,90 @@
         await SelectChat(new Chat { Name = newGroup.GroupName, IsGroup = true });
     }
     private async Task StartNewChat()
-    { // Prompt the user to select the name of the new chat from the list of users
-        var newChatUser = _users.Where(x => x.UserName == SelectedUser).FirstOrDefault();
-        if (newChatUser != null)
-        {
-            // Create a new chat
-            var newChat = new Chat
-            {
-                id = newChatUser.Id,
-                Name = newChatUser.UserName,
-                UserName = $"{newChatUser.FirstName} {newChatUser.LastName}",
-                IsGroup = false,
-                ProfilePic = newChatUser.ProfilePic,
-                LastMessage = string.Empty,
-                LastMessageTimestamp = DateTime.Now
-            };
-            // Add the new chat to the list of chats
-            if (!chats.Contains(newChat))
-            {
-                chats.Add(newChat);
-
-
-            }
-            // Select the new chat
-            await SelectChat(newChat);
-        }
-    }
-    private async Task<IEnumerable<string>> Search(string value, CancellationToken token)
     {
-        await Task.Delay(2); // small async delay, optional
-        if (string.IsNullOrEmpty(value))
-            return Array.Empty<string>();
+        var newChatUser = _selectedUser;
 
-        return _users
-            .Where(x => x.UserName.Contains(value, StringComparison.InvariantCultureIgnoreCase)
-                     || x.FirstName.Contains(value, StringComparison.InvariantCultureIgnoreCase)
-                     || x.LastName.Contains(value, StringComparison.InvariantCultureIgnoreCase))
-                     .Select(x => $"{x.UserID}: {x.FirstName ?? ""} {x.LastName ?? ""}".Trim());
+        if (newChatUser is null)
+        {
+            // Previously this returned silently, which is what made the button look dead.
+            Snackbar.Add("Search for and select a person first, then start the chat.", Severity.Info);
+            return;
+        }
+
+        // Match on identity, not object reference: Chat has no Equals override, so the old
+        // chats.Contains(newChat) was always false and re-opened a duplicate every time.
+        var existing = chats.FirstOrDefault(c =>
+            !c.IsGroup &&
+            (string.Equals(c.id, newChatUser.Id, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(c.Reciepientid, newChatUser.Id, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(c.Name, newChatUser.UserName, StringComparison.OrdinalIgnoreCase)));
+
+        if (existing is not null)
+        {
+            await SelectChat(existing);
+            return;
+        }
+
+        var newChat = new Chat
+        {
+            id = newChatUser.Id,
+            Reciepientid = newChatUser.Id,
+            Name = newChatUser.UserName ?? "",
+            UserName = UserDisplayName(newChatUser),
+            IsGroup = false,
+            ProfilePic = newChatUser.ProfilePic ?? Array.Empty<byte>(),
+            LastMessage = string.Empty,
+            LastMessageTimestamp = DateTime.Now
+        };
+
+        chats.Add(newChat);
+        await SelectChat(newChat);
+    }
+    /// <summary>
+    /// Returns the matching users themselves rather than formatted labels, so the selection can be
+    /// used directly instead of being parsed back out of a string.
+    ///
+    /// Every field is null-guarded: FirstName and LastName are nullable, and a single user with no
+    /// first name used to throw inside the search, which surfaced as an autocomplete that simply
+    /// never returned anything.
+    /// </summary>
+    private Task<IEnumerable<ApplicationUser>> SearchUsers(string value, CancellationToken token)
+    {
+        IEnumerable<ApplicationUser> candidates = _users
+            .Where(x => !string.Equals(x.Id, AppState.UserID, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            candidates = candidates.Where(x =>
+                Contains(x.UserName, value) ||
+                Contains(x.FirstName, value) ||
+                Contains(x.LastName, value));
+        }
+
+        return Task.FromResult(candidates
+            .OrderBy(x => x.FirstName)
+            .ThenBy(x => x.LastName)
+            .Take(20)
+            .AsEnumerable());
+
+        static bool Contains(string? source, string term) =>
+            !string.IsNullOrEmpty(source) && source.Contains(term, StringComparison.InvariantCultureIgnoreCase);
+    }
+
+    private static string UserDisplayName(ApplicationUser? user)
+    {
+        if (user is null) return string.Empty;
+
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+        return string.IsNullOrWhiteSpace(fullName) ? user.UserName ?? "" : fullName;
+    }
+
+    /// <summary>Selecting someone opens the conversation straight away — the natural gesture —
+    /// while the New Message button remains for anyone who reaches for it instead.</summary>
+    private async Task OnUserSelectedAsync(ApplicationUser? user)
+    {
+        _selectedUser = user;
+        if (user is not null) await StartNewChat();
     }
 
 }

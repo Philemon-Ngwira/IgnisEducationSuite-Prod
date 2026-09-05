@@ -1,0 +1,32 @@
+@using IgnisEducationSuite.Client.Services
+@inject ChatRealtimeService Chat
+@implements IDisposable
+
+@* Navigation entry for chat with a live unread count. Extracted into a component because the nav
+   menu renders a chat link per role, and the badge has to behave identically in all of them. *@
+
+<MudNavLink Href="MainChat" Icon="@Icon">
+    <div class="d-flex align-center justify-space-between" style="width:100%; gap:8px;">
+        <span>@Label</span>
+        @if (Chat.Unread.TotalUnread > 0)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled" Class="ma-0">
+                @(Chat.Unread.TotalUnread > 99 ? "99+" : Chat.Unread.TotalUnread.ToString())
+            </MudChip>
+        }
+    </div>
+</MudNavLink>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = "Communication";
+
+    [Parameter]
+    public string Icon { get; set; } = Icons.Material.Filled.ChatBubbleOutline;
+
+    protected override void OnInitialized() => Chat.UnreadChanged += OnUnreadChanged;
+
+    private void OnUnreadChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Chat.UnreadChanged -= OnUnreadChanged;
+}

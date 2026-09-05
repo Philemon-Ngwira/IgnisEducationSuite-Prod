@@ -99,6 +99,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <script src="_content/ChartJs.Blazor.Fork/ChartJsBlazorInterop.js"></script>
+    @* Local helpers (scrollChatToBottom, createChart, updateChart). Despite the name this is NOT
+       the Chart.js library loaded above — it was never referenced, so scrollChatToBottom was
+       undefined and every chat scroll threw. *@
+    <script src="/js/Chart.js"></script>
     <script src="/js/mainloader.js"></script>
     <script type="text/javascript" src="https://www.google.com/books/jsapi.js"></script>
     <script src="/js/GoogleBooksPreview.js"></script>

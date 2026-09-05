@@ -23,6 +23,8 @@ public partial class MessagingContext : DbContext
 
     public virtual DbSet<GroupMember> GroupMembers { get; set; }
 
+    public virtual DbSet<ChatReadState> ChatReadStates { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AspNetUser>(entity =>
@@ -69,6 +71,26 @@ public partial class MessagingContext : DbContext
             entity.Property(e => e.ReciepientId).HasMaxLength(255);
             entity.Property(e => e.Timestamp).HasColumnType("datetime");
             entity.Property(e => e.UserId).HasMaxLength(255);
+            entity.Property(e => e.AttachmentPath).HasMaxLength(1024);
+            entity.Property(e => e.AttachmentName).HasMaxLength(255);
+            entity.Property(e => e.AttachmentContentType).HasMaxLength(100);
+            entity.Property(e => e.NotifiedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ChatReadState>(entity =>
+        {
+            entity.HasKey(e => e.ChatReadStateID);
+
+            entity.ToTable("ChatReadState");
+
+            entity.HasIndex(e => new { e.UserId, e.ConversationKey }, "UX_ChatReadState_User_Conversation")
+                .IsUnique();
+
+            entity.Property(e => e.ChatReadStateID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.UserId).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.ConversationKey).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.LastReadAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime").HasDefaultValueSql("(getdate())");
         });
 
         modelBuilder.Entity<GroupMember>(entity =>

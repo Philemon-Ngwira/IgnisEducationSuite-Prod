@@ -6,6 +6,8 @@ using EduSphereDomain.Data;
 using EduSphereDomain.FinanceData;
 using EduSphereDomain.MessagingData;
 using EduSphereDomain.Repositories;
+using EduSphereDomain.Repositories.ReportCards;
+using EduSphereDomain.Repositories.Scheduling;
 using EDUSphereSharedProject.PaymentDTos.Lipila;
 using IgnisEducationSuite.Client.Pages.Achievements;
 using IgnisEducationSuite.Client.Pages.Achievements.Interfaces;
@@ -18,6 +20,9 @@ using IgnisEducationSuite.Hubs;
 using IgnisEducationSuite.ServerServices;
 using IgnisEducationSuite.ServerServices.PaymentsServices;
 using IgnisEducationSuite.ServerServices.PaymentsServices.Lipila_Service;
+using IgnisEducationSuite.ServerServices.Chat;
+using IgnisEducationSuite.ServerServices.ReportCards;
+using IgnisEducationSuite.ServerServices.Scheduling;
 using IgnisEducationSuite.ServerServices.Security;
 using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
 using IgnisEducationSuite.Settings;
@@ -145,8 +150,26 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<ZoomInteropBridge>();
             builder.Services.AddScoped<CountryCurrencyService>();
             builder.Services.AddScoped<StudentPaymentUploadTemplate>();
-            builder.Services.AddScoped<ITimetableGenerator, TimetableGenerator>();
             builder.Services.AddScoped<ITeacherAvailabilityProvider, TeacherAvailabilityProvider>();
+
+            // Scheduling / timetable generation
+            builder.Services.AddScoped<ISchedulingConfigRepository, SchedulingConfigRepository>();
+            builder.Services.AddScoped<IScheduleGenerationRepository, ScheduleGenerationRepository>();
+            builder.Services.AddScoped<ITeacherAvailabilityRepository, TeacherAvailabilityRepository>();
+            builder.Services.AddScoped<SchedulingEngine>();
+            builder.Services.AddScoped<SchedulingManagementOrchestrator>();
+
+            // Report card entry (class-based)
+            builder.Services.AddScoped<IReportCardEntryRepository, ReportCardEntryRepository>();
+            builder.Services.AddScoped<ReportCardEntryOrchestrator>();
+
+            // Chat unread state, history paging and realtime
+            builder.Services.AddScoped<ChatEngagementService>();
+            builder.Services.AddScoped<ChatRealtimeService>();
+
+            // Server-side counterparts for the interactive-auto client services (prerendering).
+            builder.Services.AddScoped<ISchedulingManagementService, ClientSchedulingManagementService>();
+            builder.Services.AddScoped<IReportCardEntryService, ClientReportCardEntryService>();
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory
 
             builder.Services.AddSingleton<IConverter>(new SynchronizedConverter(new PdfTools()));

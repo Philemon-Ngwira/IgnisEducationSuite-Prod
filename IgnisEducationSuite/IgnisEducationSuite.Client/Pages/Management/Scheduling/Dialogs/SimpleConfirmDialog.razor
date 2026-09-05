@@ -1,0 +1,109 @@
+@* Generic confirm-then-run dialog. The caller supplies the action so the dialog can report a
+   failure inline instead of closing optimistically and leaving the list stale. *@
+
+<MudDialog Options="_dialogOptions">
+    <TitleContent>
+        <div class="d-flex align-center gap-3">
+            <MudAvatar Color="@IconColor" Variant="Variant.Filled">
+                <MudIcon Icon="@Icon" />
+            </MudAvatar>
+            <MudText Typo="Typo.h6"><b>@Title</b></MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        <MudText Typo="Typo.body2">@Message</MudText>
+
+        @if (_errors.Count > 0)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+                @foreach (var error in _errors)
+                {
+                    <div>@error</div>
+                }
+            </MudAlert>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="_running">Cancel</MudButton>
+        <MudButton Color="@IconColor" Variant="Variant.Filled" OnClick="ConfirmAsync" Disabled="_running">
+            @(_running ? "Working..." : ConfirmLabel)
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = "";
+
+    [Parameter]
+    public string ConfirmLabel { get; set; } = "Delete";
+
+    [Parameter]
+    public Color IconColor { get; set; } = Color.Error;
+
+    [Parameter]
+    public string Icon { get; set; } = Icons.Material.Outlined.DeleteOutline;
+
+    /// <summary>
+    /// Runs the caller's action and reports whether it succeeded. Returning a message instead of a
+    /// bare false lets the dialog explain *why* — e.g. "this time slot is in use by a timetable".
+    /// </summary>
+    [Parameter]
+    public Func<Task<bool>>? ConfirmActionAsync { get; set; }
+
+    [Parameter]
+    public Func<Task<(bool Succeeded, List<string> Errors)>>? ConfirmActionWithErrorsAsync { get; set; }
+
+    private readonly DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+    };
+
+    private bool _running;
+    private List<string> _errors = new();
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task ConfirmAsync()
+    {
+        _running = true;
+        _errors = new();
+
+        bool succeeded;
+        var errors = new List<string>();
+
+        if (ConfirmActionWithErrorsAsync is not null)
+        {
+            (succeeded, errors) = await ConfirmActionWithErrorsAsync();
+        }
+        else if (ConfirmActionAsync is not null)
+        {
+            succeeded = await ConfirmActionAsync();
+        }
+        else
+        {
+            succeeded = true;
+        }
+
+        _running = false;
+
+        if (succeeded)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _errors = errors.Count > 0 ? errors : new List<string> { "The action could not be completed." };
+        }
+    }
+}

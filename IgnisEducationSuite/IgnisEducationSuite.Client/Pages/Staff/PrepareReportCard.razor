@@ -16,6 +16,17 @@
     <MudCardContent>
         <MudDivider Class="border border-secondary border-2 opacity-50 mb-4" />
 
+        @* Score entry is class-based: a teacher opens the subject-class they teach and marks every
+           enrolled student on one sheet. Entering per student is what allowed students to be skipped.
+           The per-student list below is kept only for the Dean/Principal review step, which is about
+           the whole student (overall comments, position, best-six) and has no per-class equivalent. *@
+        @if (IsScoreEntryRole)
+        {
+            <ClassResultsEntry />
+        }
+        else
+        {
+
         <MudPaper Class="p-4 mb-4" Elevation="2">
             <MudAlert Severity="Severity.Normal" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Book">
                 Prepare Report Cards
@@ -104,6 +115,7 @@
                 <MudDataGridPager T="StudentWithClassesDTO" />
             </PagerContent>
         </MudDataGrid>
+        }
     </MudCardContent>
 </MudCard>
 
@@ -133,8 +145,18 @@
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
 
+    /// <summary>
+    /// Teachers and admins enter marks through the class-based sheet. Everyone else (Dean,
+    /// Principal) still uses the per-student list, because their step is a per-student review.
+    /// </summary>
+    private bool IsScoreEntryRole => AppState.UserRole is "Teacher" or "Admin" or "Staff";
+
     protected override async Task OnInitializedAsync()
     {
+        // The per-student list and its supporting lookups are only needed by the review roles;
+        // score-entry roles render the class sheet, which loads its own data.
+        if (IsScoreEntryRole) return;
+
         LoaderService.Show("Please wait, we are preparing your work environment");
         await Task.Delay(500); // Simulate loading delay
         if (AppState.UserRole == "Dean")

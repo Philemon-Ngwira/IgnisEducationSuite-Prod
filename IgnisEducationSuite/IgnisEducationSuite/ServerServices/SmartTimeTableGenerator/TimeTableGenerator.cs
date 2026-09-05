@@ -1,115 +1,77 @@
-﻿using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.UniversalModels.TimeTabling;
 
 namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
 {
-    public class TimetableGenerator : ITimetableGenerator
+    /// <summary>
+    /// Greedy initial placement over an already-built, activity-locked board: doubles before
+    /// singles, time-restricted subjects before unrestricted ones, checking teacher conflicts at
+    /// every placement.
+    ///
+    /// Placement bookkeeping goes through TimetableState rather than a private day-count map, so
+    /// the counts the later repair/optimize passes read are the same ones written here.
+    /// </summary>
+    public class TimetableGenerator
     {
-        private readonly Random _rand = new();
-        private readonly Dictionary<(DayOfWeek, Guid), int> dailyCount = new();
-        private TimeSpan EarlyMorningCutOFF = TimeSpan.Zero;
-
-
-        public async Task<List<TimeSlot>> Generate(
-            List<TimeSlot> slots,
-            List<SubjectScheduleConfig> subjects,
-            List<SubjectAdjacencyConstraints> adjacencyConstraints,
-            TimeTableActivity? prepActivity = null,
-            TeacherConflictChecker? teacherChecker = null)
+        public void Generate(TimetableState state, TeacherConflictChecker teacherChecker)
         {
-            await Task.Yield(); // Ensure async context for potential future DB calls in teacherChecker
-            dailyCount.Clear();
-            var prepareslots = BuildEmptyWeek(slots);
-            EarlyMorningCutOFF = subjects.First().EarlyMorningEnd;
-
-            var remainingPeriods = subjects.ToDictionary(s => s.SubjectId, s => s.WeeklyPeriods);
-            var remainingDoubles = subjects.ToDictionary(s => s.SubjectId, s => s.RequiredDoubles);
-
-            var earlySubjects = subjects.Where(s => s.EarlyMorningOnly).ToList();
-            var normalSubjects = subjects.Where(s => !s.EarlyMorningOnly).ToList();
-
-            var adjacencyDict = subjects.ToDictionary(
-                s => s.SubjectId,
-                s => adjacencyConstraints.FirstOrDefault(a => a.SubjectId == s.SubjectId)
-                     ?? new SubjectAdjacencyConstraints { SubjectId = s.SubjectId }
-            );
-
-            // 1️⃣ LOCK ACTIVITIES
-            LockActivities(prepareslots, prepActivity);
-
-            var slotsByDay = prepareslots
+            var slotsByDay = state.Slots
                 .GroupBy(s => s.Day)
                 .ToDictionary(g => g.Key, g => g.OrderBy(s => s.StartTime).ToList());
 
-            // 2️⃣ EARLY MORNING DOUBLES
-            PlaceDoubles(slotsByDay, earlySubjects, remainingPeriods, remainingDoubles, adjacencyDict, morningOnly: true, teacherChecker);
+            // Subjects with a time restriction go first: they have strictly fewer legal slots, so
+            // placing them after the unrestricted ones would leave them nothing to take.
+            var restricted = state.Subjects.Values
+                .Where(s => s.TimePreference != SubjectTimePreference.Any)
+                .ToList();
+            var unrestricted = state.Subjects.Values
+                .Where(s => s.TimePreference == SubjectTimePreference.Any)
+                .ToList();
 
-            // 3️⃣ EARLY MORNING SINGLES
-            PlaceSingles(slotsByDay, earlySubjects, remainingPeriods, adjacencyDict, morningOnly: true, teacherChecker);
-
-            // 4️⃣ NORMAL DOUBLES
-            PlaceDoubles(slotsByDay, normalSubjects, remainingPeriods, remainingDoubles, adjacencyDict, morningOnly: false, teacherChecker);
-
-            // 5️⃣ NORMAL SINGLES
-            PlaceSingles(slotsByDay, normalSubjects, remainingPeriods, adjacencyDict, morningOnly: false, teacherChecker);
-
-#if DEBUG
-            foreach (var subject in subjects)
-            {
-                var placed = prepareslots.Count(s => s.SubjectId == subject.SubjectId);
-                if (placed > subject.WeeklyPeriods)
-                    throw new InvalidOperationException(
-                        $"{subject.SubjectName} overfilled: {placed}/{subject.WeeklyPeriods}");
-            }
-#endif
-
-            return prepareslots;
+            PlaceDoubles(state, slotsByDay, restricted, teacherChecker);
+            PlaceSingles(state, slotsByDay, restricted, teacherChecker);
+            PlaceDoubles(state, slotsByDay, unrestricted, teacherChecker);
+            PlaceSingles(state, slotsByDay, unrestricted, teacherChecker);
         }
 
-        // ------------------------------------------------
-        // DOUBLES
-        // ------------------------------------------------
-        private void PlaceDoubles(
-            Dictionary<DayOfWeek, List<TimeSlot>> slotsByDay,
-            List<SubjectScheduleConfig> subjects,
-            Dictionary<Guid, int> remainingPeriods,
-            Dictionary<Guid, int> remainingDoubles,
-            Dictionary<Guid, SubjectAdjacencyConstraints> adjacencyDict,
-            bool morningOnly,
+        private static void PlaceDoubles(
+            TimetableState state,
+            Dictionary<DayOfWeek, List<GenerationSlot>> slotsByDay,
+            List<SubjectScheduleConfigDto> subjects,
             TeacherConflictChecker teacherChecker)
         {
             foreach (var subject in subjects)
             {
-                while (remainingDoubles[subject.SubjectId] > 0 &&
-                       remainingPeriods[subject.SubjectId] >= 2)
+                while (state.RequiredDoublesRemaining(subject.ClassId) > 0 &&
+                       state.WeeklyRemaining(subject.ClassId) >= 2)
                 {
-                    bool placed = false;
+                    var placed = false;
 
                     foreach (var day in slotsByDay.Keys)
                     {
-                        if (GetDailyCount(day, subject.SubjectId) != 0)
-                            continue;
+                        if (state.DailyCount(day, subject.ClassId) != 0) continue;
 
                         var daySlots = slotsByDay[day];
 
-                        for (int i = 0; i < daySlots.Count - 1; i++)
+                        for (var i = 0; i < daySlots.Count - 1; i++)
                         {
                             var a = daySlots[i];
                             var b = daySlots[i + 1];
 
-                            if (!IsFree(a) || !IsFree(b)) continue;
+                            if (!a.IsFree || !b.IsFree) continue;
                             if (a.EndTime != b.StartTime) continue;
-                            if (morningOnly && a.StartTime >= EarlyMorningCutOFF) continue;
+                            if (!state.SatisfiesTimePreference(subject, a)) continue;
+                            if (!state.SatisfiesTimePreference(subject, b)) continue;
 
-                            // ✅ Teacher conflict check for both slots of the double
-                            if (teacherChecker.IsTeacherBusy(subject.TeacherId, day, a.StartTime.Value)) continue;
-                            if (teacherChecker.IsTeacherBusy(subject.TeacherId, day, b.StartTime.Value)) continue;
+                            var teacherId = subject.TeacherId ?? Guid.Empty;
+                            if (teacherChecker.IsTeacherBusy(teacherId, day, a.StartTime!.Value)) continue;
+                            if (teacherChecker.IsTeacherBusy(teacherId, day, b.StartTime!.Value)) continue;
 
-                            if (remainingPeriods[subject.SubjectId] < 2) break;
+                            if (state.WeeklyRemaining(subject.ClassId) < 2) break;
 
-                            Place(a, subject, remainingPeriods, day, teacherChecker);
-                            Place(b, subject, remainingPeriods, day, teacherChecker);
-                            remainingDoubles[subject.SubjectId]--;
+                            Place(state, a, subject, teacherChecker);
+                            Place(state, b, subject, teacherChecker);
+                            a.IsDoublePeriod = true;
+                            b.IsDoublePeriod = true;
 
                             placed = true;
                             break;
@@ -123,108 +85,46 @@ namespace IgnisEducationSuite.ServerServices.SmartTimeTableGenerator
             }
         }
 
-        // ------------------------------------------------
-        // SINGLES
-        // ------------------------------------------------
-        private void PlaceSingles(
-            Dictionary<DayOfWeek, List<TimeSlot>> slotsByDay,
-            List<SubjectScheduleConfig> subjects,
-            Dictionary<Guid, int> remainingPeriods,
-            Dictionary<Guid, SubjectAdjacencyConstraints> adjacencyDict,
-            bool morningOnly,
+        private static void PlaceSingles(
+            TimetableState state,
+            Dictionary<DayOfWeek, List<GenerationSlot>> slotsByDay,
+            List<SubjectScheduleConfigDto> subjects,
             TeacherConflictChecker teacherChecker)
         {
             foreach (var subject in subjects)
             {
                 foreach (var day in slotsByDay.Keys)
                 {
-                    if (remainingPeriods[subject.SubjectId] <= 0) break;
-                    if (GetDailyCount(day, subject.SubjectId) >= 2) continue;
+                    if (state.WeeklyRemaining(subject.ClassId) <= 0) break;
+                    if (state.DailyCount(day, subject.ClassId) >= 2) continue;
 
                     foreach (var slot in slotsByDay[day])
                     {
-                        if (remainingPeriods[subject.SubjectId] <= 0) break;
-                        if (!IsFree(slot)) continue;
-                        if (morningOnly && slot.StartTime >= EarlyMorningCutOFF) continue;
+                        if (state.WeeklyRemaining(subject.ClassId) <= 0) break;
+                        if (!slot.IsFree) continue;
+                        if (!state.SatisfiesTimePreference(subject, slot)) continue;
+                        if (teacherChecker.IsTeacherBusy(subject.TeacherId ?? Guid.Empty, day, slot.StartTime!.Value)) continue;
 
-                        // ✅ Teacher conflict check
-                        if (teacherChecker.IsTeacherBusy(subject.TeacherId, day, slot.StartTime.Value)) continue;
-
-                        Place(slot, subject, remainingPeriods, day, teacherChecker);
+                        Place(state, slot, subject, teacherChecker);
                         break;
                     }
                 }
             }
         }
 
-        // ------------------------------------------------
-        // HELPERS
-        // ------------------------------------------------
-        private static bool IsFree(TimeSlot slot) =>
-            !slot.IsLocked && slot.SubjectId == Guid.Empty && slot.ScheduledActivityId == null;
-
-        private void Place(
-            TimeSlot slot,
-            SubjectScheduleConfig subject,
-            Dictionary<Guid, int> remainingPeriods,
-            DayOfWeek day,
+        private static void Place(
+            TimetableState state,
+            GenerationSlot slot,
+            SubjectScheduleConfigDto subject,
             TeacherConflictChecker teacherChecker)
         {
-            if (remainingPeriods[subject.SubjectId] <= 0) return;
+            if (state.WeeklyRemaining(subject.ClassId) <= 0) return;
 
-            // ✅ Final teacher conflict guard before committing
-            if (teacherChecker.IsTeacherBusy(subject.TeacherId, day, slot.StartTime.Value))
-                return;
+            var teacherId = subject.TeacherId ?? Guid.Empty;
+            if (teacherChecker.IsTeacherBusy(teacherId, slot.Day, slot.StartTime!.Value)) return;
 
-            slot.SubjectId = subject.SubjectId;
-            slot.SubjectName = subject.SubjectName;
-            remainingPeriods[subject.SubjectId]--;
-            IncrementDailyCount(day, subject.SubjectId);
-
-            // ✅ Mark teacher as busy so no other subject/grade can clash
-            teacherChecker.MarkBusy(subject.TeacherId, day, slot.StartTime.Value);
+            state.PlaceSubject(slot, subject.ClassId);
+            teacherChecker.MarkBusy(teacherId, slot.Day, slot.StartTime.Value);
         }
-
-        private List<TimeSlot> BuildEmptyWeek(List<TimeSlot> slots)
-        {
-            var list = new List<TimeSlot>();
-            foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
-            {
-                if (day is DayOfWeek.Saturday or DayOfWeek.Sunday) continue;
-                foreach (var s in slots)
-                {
-                    list.Add(new TimeSlot
-                    {
-                        Day = day,
-                        StartTime = s.StartTime,
-                        EndTime = s.EndTime,
-                        TimeslotID = s.TimeslotID,
-                        SubjectId = Guid.Empty,
-                        SubjectName = "Free"
-                    });
-                }
-            }
-            return list;
-        }
-
-        private void LockActivities(List<TimeSlot> slots, TimeTableActivity? activity)
-        {
-            if (activity == null) return;
-
-            foreach (var slot in slots.Where(s =>
-                s.StartTime >= activity.StartFrom &&
-                activity.Days.Contains(s.Day)))
-            {
-                slot.IsLocked = true;
-                slot.SubjectName = activity.ActivityName;
-                slot.ScheduledActivityId = activity.ActivityID;
-            }
-        }
-
-        private int GetDailyCount(DayOfWeek day, Guid subjectId) =>
-            dailyCount.TryGetValue((day, subjectId), out var c) ? c : 0;
-
-        private void IncrementDailyCount(DayOfWeek day, Guid subjectId) =>
-            dailyCount[(day, subjectId)] = GetDailyCount(day, subjectId) + 1;
     }
 }

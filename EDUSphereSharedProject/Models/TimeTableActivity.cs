@@ -21,5 +21,19 @@ public partial class TimeTableActivity
 
     public Guid? SchoolID { get; set; }
 
+    /// <summary>
+    /// When set, this activity locks exactly this one time slot (on PreferredDay, or every
+    /// weekday when PreferredDay is null) instead of a whole morning/afternoon window.
+    /// MustBeMorning/MustBeAfternoon are ignored when this is set.
+    /// </summary>
+    public Guid? PreferredTimeSlotID { get; set; }
+
+    /// <summary>Only meaningful alongside PreferredTimeSlotID. Null means every weekday.</summary>
+    public Guid? PreferredDayID { get; set; }
+
     public virtual ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
+
+    public virtual TimeSlot PreferredTimeSlot { get; set; }
+
+    public virtual DayofTheWeek PreferredDay { get; set; }
 }

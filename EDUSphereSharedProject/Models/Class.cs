@@ -23,6 +23,13 @@ public partial class Class
 
     public string  GroupName { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Classes flagged here must never be scheduled: the AFTER INSERT trigger
+    /// trg_BlockNotRequiredClassSchedule ROLLBACKs the whole transaction and throws 50001 if a
+    /// ClassSchedule row references one. Scheduling code must filter these out up front.
+    /// </summary>
+    public bool? notRequired { get; set; }
+
     public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
 
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();

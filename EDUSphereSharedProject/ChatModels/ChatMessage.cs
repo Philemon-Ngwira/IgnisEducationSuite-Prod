@@ -20,4 +20,18 @@ public partial class ChatMessage
     public string ReciepientId { get; set; }
 
     public string GroupIdentifier { get; set; }
+
+    /// <summary>Blob path, not a public URL — a read SAS is minted per request so links cannot be
+    /// shared outside the app.</summary>
+    public string AttachmentPath { get; set; }
+
+    public string AttachmentName { get; set; }
+
+    public string AttachmentContentType { get; set; }
+
+    public long? AttachmentSizeBytes { get; set; }
+
+    /// <summary>Stamped once an unread-message email has gone out, so a restart cannot re-notify
+    /// the same backlog. Null means never notified.</summary>
+    public DateTime? NotifiedAt { get; set; }
 }

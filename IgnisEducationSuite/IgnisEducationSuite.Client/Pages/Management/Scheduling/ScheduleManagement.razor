@@ -1,198 +1,1712 @@
-﻿@using EDUSphereSharedProject.Models
-@using EDUSphereSharedProject.Models.StoreProModels
-@using EDUSphereSharedProject.UniversalModels
-@using System.Net.Http.Headers
+@using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.UniversalModels.TimeTabling
-@using System.Diagnostics
+@using IgnisEducationSuite.Client.Pages.Management.Scheduling.Dialogs
+@using IgnisEducationSuite.Client.Services
 @page "/ClassSchedules"
 @inherits AppBaseComponent
+@inject ISchedulingManagementService SchedulingService
+
 <MudCard Elevation="3" Class="pa-4">
 
-    <!-- PAGE HEADER -->
     <MudText Typo="Typo.h4"><b>Class Schedules</b></MudText>
     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-        Define school time slots, upload class schedules, and assign them to students.
+        Define time slots and subject policy once, then generate, adjust and publish a timetable per section.
     </MudText>
 
-    <!-- MAIN TABS -->
-    <MudTabs Outlined="true" Rounded="true">
+    <MudTabs Outlined="true" Rounded="true" @bind-ActivePanelIndex="_activeTab">
 
-        <!-- TAB 1: TIME SLOTS -->
+        <!-- ================= TIME SLOTS ================= -->
         <MudTabPanel Text="Time Slots" Icon="@Icons.Material.Filled.Schedule">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.subtitle1"><b>School Time Slots</b></MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => OpenTimeSlotDialogAsync(null))">
+                    Add Time Slot
+                </MudButton>
+            </div>
 
-            <TimeSlotManager />
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                Slot types drive generation. Subjects are only ever placed in
+                <b>EarlyMorning</b>, <b>Morning</b> and <b>Afternoon</b> slots —
+                <b>BreakTime</b> and <b>LunchTime</b> are excluded entirely.
+                The end of the last EarlyMorning slot is the early-morning cutoff;
+                the start of the first Afternoon slot is the morning/afternoon boundary.
+            </MudAlert>
+
+            @if (_loadingTimeSlots)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+            }
+            else if (_timeSlots.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                    No time slots yet. Add at least one teaching slot before generating a timetable.
+                </MudAlert>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                    <thead>
+                        <tr>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Max Occupancy</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var slot in _timeSlots)
+                        {
+                            <tr>
+                                <td>@($"{slot.StartTime:HH\\:mm}")</td>
+                                <td>@($"{slot.EndTime:HH\\:mm}")</td>
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Color="@SlotTypeColor(slot.SlotType)">
+                                        @slot.SlotType
+                                    </MudChip>
+                                </td>
+                                <td>@slot.Description</td>
+                                <td>@slot.MaxOccupancy</td>
+                                <td class="text-right">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   OnClick="@(() => OpenTimeSlotDialogAsync(slot.TimeslotId))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => DeleteTimeSlotAsync(slot))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
+            <MudDivider Class="my-6" />
+
+            <div class="d-flex justify-space-between align-center mb-3">
+                <MudText Typo="Typo.subtitle1"><b>Timetable Activities</b></MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => OpenActivityDialogAsync(null))">
+                    Add Activity
+                </MudButton>
+            </div>
+
+            @if (_loadingActivities)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+            }
+            else if (_activities.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    No activities defined. Activities (Assembly, Prep, P.E.) reserve periods before subjects are placed.
+                </MudText>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                    <thead>
+                        <tr>
+                            <th>Activity</th>
+                            <th>Timing</th>
+                            <th>Duration</th>
+                            <th>Notes</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var activity in _activities)
+                        {
+                            <tr>
+                                <td>@activity.ActivityName</td>
+                                <td>@DescribeActivityTiming(activity)</td>
+                                <td>@(activity.DefaultDuration is null ? "-" : $"{activity.DefaultDuration} min")</td>
+                                <td>@activity.OptionalNotes</td>
+                                <td class="text-right">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   OnClick="@(() => OpenActivityDialogAsync(activity.ActivityId))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => DeleteActivityAsync(activity))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
         </MudTabPanel>
 
-        <!-- TAB 2: CREATE MANUAL SCHEDULE -->
-        <MudTabPanel Text="Create Manual Schedule" Icon="@Icons.Material.Filled.UploadFile">
-            <ManualTimetableUploader activities="@activities"
-                                     classes="@classes"
-                                     dayOrder="@dayOrder"
-                                     daysofTheWeek="@daysofTheWeek"
-                                     loggedInAdmin="@loggedInAdmin"
-                                     timeSlots="@timeSlots" />
+        <!-- ================= SUBJECT POLICY ================= -->
+        <MudTabPanel Text="Subject Policy" Icon="@Icons.Material.Filled.Rule">
+            <MudText Typo="Typo.subtitle1" Class="mb-1"><b>Subject Scheduling Policy</b></MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                Saved per subject and reused by every generation run — no need to re-enter it each time.
+                A subject with zero weekly periods is skipped entirely.
+            </MudText>
+
+            <MudGrid Spacing="2" Class="mb-3">
+                <MudItem xs="12" md="3">
+                    <MudSelect T="Guid" Label="Academic Level" Value="_policyLevelId"
+                               ValueChanged="OnPolicyLevelChanged"
+                               ToStringFunc="@LevelToString"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var level in academicLevels)
+                        {
+                            <MudSelectItem Value="@level.AcademicLevelID">@level.LevelName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudSelect T="Guid" Label="Section" @bind-Value="_policySectionId"
+                               ToStringFunc="@PolicySectionToString"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Disabled="@(_policyLevelId == Guid.Empty)">
+                        <MudSelectItem Value="@Guid.Empty">All sections</MudSelectItem>
+                        @foreach (var levelSection in PolicySectionsForLevel)
+                        {
+                            <MudSelectItem Value="@levelSection.LevelSectionID">@levelSection.SectionCode</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudTextField @bind-Value="_policyFilter" Label="Filter by name"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Immediate="true" Clearable="true"
+                                  Disabled="@(_policyLevelId == Guid.Empty)" />
+                </MudItem>
+                <MudItem xs="12" md="3" Class="d-flex align-center flex-wrap gap-1">
+                    @if (_policyLevelId != Guid.Empty)
+                    {
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Outlined">
+                            @FilteredPolicy.Count(p => p.WeeklyPeriods > 0) configured
+                        </MudChip>
+                        <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Outlined">
+                            @FilteredPolicy.Count(p => p.WeeklyPeriods == 0) not set
+                        </MudChip>
+                    }
+                </MudItem>
+            </MudGrid>
+
+            @if (_policyErrors.Count > 0)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+                    <MudText Typo="Typo.subtitle2"><b>Nothing was saved. Fix these first:</b></MudText>
+                    @foreach (var error in _policyErrors)
+                    {
+                        <div>• @error</div>
+                    }
+                </MudAlert>
+            }
+
+            @if (DirtyPolicy.Count > 0)
+            {
+                <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background:var(--mud-palette-warning-hover);">
+                    <div class="d-flex flex-wrap align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Filled.EditNote" Color="Color.Warning" />
+                        <MudText Typo="Typo.body2">
+                            <b>@DirtyPolicy.Count unsaved change(s)</b>
+                            @if (DirtyHiddenCount > 0)
+                            {
+                                <text> — @DirtyHiddenCount outside the current filter, and will be saved too.</text>
+                            }
+                        </MudText>
+
+                        <MudSpacer />
+
+                        <MudButton Variant="Variant.Text" Color="Color.Default"
+                                   StartIcon="@Icons.Material.Filled.Undo"
+                                   Disabled="_savingPolicy"
+                                   OnClick="DiscardPolicyChanges">
+                            Discard
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.SaveAlt"
+                                   Disabled="_savingPolicy"
+                                   OnClick="SaveAllPolicyAsync">
+                            @(_savingPolicy ? "Saving..." : $"Save {DirtyPolicy.Count} change(s)")
+                        </MudButton>
+                    </div>
+                </MudPaper>
+            }
+
+            @if (_loadingPolicy)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+            }
+            else if (_policyLevelId == Guid.Empty)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Choose an academic level to view and edit its subject policy.
+                </MudAlert>
+            }
+            else if (FilteredPolicy.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                    No subjects match this level, section and filter.
+                </MudAlert>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true" Striped="true" Style="overflow-x:auto;">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Level / Section</th>
+                            <th>Teacher</th>
+                            <th style="width:110px;">Periods/wk</th>
+                            <th style="width:110px;">Doubles</th>
+                            <th style="width:170px;">Time Preference</th>
+                            <th style="width:80px;">Core</th>
+                            <th class="text-right" style="width:90px;">Changed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var subject in FilteredPolicy)
+                        {
+                            <tr>
+                                <td>
+                                    <b>@subject.SubjectName</b>
+                                    @if (!IsBaseTimetableClass(subject.GroupName))
+                                    {
+                                        <MudTooltip Text="Option-set class. It is not placed by generation — it reaches students through a timetable override.">
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined" Class="ml-2">
+                                                group: @subject.GroupName
+                                            </MudChip>
+                                        </MudTooltip>
+                                    }
+                                    else if (subject.WeeklyPeriods == 0)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined" Class="ml-2">
+                                            unscheduled
+                                        </MudChip>
+                                    }
+                                </td>
+                                <td>@subject.LevelName / @subject.GradeSection</td>
+                                <td>@(string.IsNullOrWhiteSpace(subject.TeacherName) ? "— none —" : subject.TeacherName)</td>
+                                <td>
+                                    <MudNumericField T="int" Value="subject.WeeklyPeriods"
+                                                     ValueChanged="@(v => subject.WeeklyPeriods = v)"
+                                                     Min="0" Max="50" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </td>
+                                <td>
+                                    <MudNumericField T="int" Value="subject.RequiredDoubles"
+                                                     ValueChanged="@(v => subject.RequiredDoubles = v)"
+                                                     Min="0" Max="25" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </td>
+                                <td>
+                                    <MudSelect T="SubjectTimePreference" Value="subject.TimePreference"
+                                               ValueChanged="@(v => subject.TimePreference = v)"
+                                               ToStringFunc="@TimePreferenceToString"
+                                               Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                                        <MudSelectItem Value="@SubjectTimePreference.Any">Any time</MudSelectItem>
+                                        <MudSelectItem Value="@SubjectTimePreference.EarlyMorningOnly">Early morning only</MudSelectItem>
+                                        <MudSelectItem Value="@SubjectTimePreference.MorningOnly">Morning only</MudSelectItem>
+                                        <MudSelectItem Value="@SubjectTimePreference.AfternoonOnly">Afternoon only</MudSelectItem>
+                                    </MudSelect>
+                                </td>
+                                <td>
+                                    <MudCheckBox T="bool" Value="subject.IsCore"
+                                                 ValueChanged="@(v => subject.IsCore = v)" Dense="true" />
+                                </td>
+                                <td class="text-right">
+                                    @if (IsPolicyDirty(subject))
+                                    {
+                                        <MudTooltip Text="Revert this subject">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Undo" Size="Size.Small"
+                                                           Color="Color.Warning"
+                                                           OnClick="@(() => RevertPolicyRow(subject))" />
+                                        </MudTooltip>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
+            <MudDivider Class="my-6" />
+
+            <MudText Typo="Typo.subtitle1" Class="mb-1"><b>Subjects That Must Not Follow Each Other</b></MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                Prevents one subject being scheduled in the period immediately after another.
+            </MudText>
+
+            @if (_policyLevelId == Guid.Empty)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                    Choose an academic level above to add a rule. Existing rules are listed below.
+                </MudAlert>
+            }
+            else
+            {
+                @* Scoped to the same level/section as the policy table — an adjacency rule between
+                   subjects from different sections could never fire, since a section's board only
+                   ever contains its own subjects. *@
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="12" md="5">
+                        <MudSelect T="Guid" Label="Subject" @bind-Value="_newAdjacencySubject"
+                                   ToStringFunc="@SubjectToString"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var subject in FilteredPolicy)
+                            {
+                                <MudSelectItem Value="@subject.ClassId">@subject.SubjectName (@subject.GradeSection)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="5">
+                        <MudSelect T="Guid" Label="must not follow" @bind-Value="_newAdjacencyCannotFollow"
+                                   ToStringFunc="@SubjectToString"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var subject in FilteredPolicy)
+                            {
+                                <MudSelectItem Value="@subject.ClassId">@subject.SubjectName (@subject.GradeSection)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="2" Class="d-flex align-center">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                                   OnClick="AddAdjacencyAsync">Add Rule</MudButton>
+                    </MudItem>
+                </MudGrid>
+            }
+
+            @if (_policyLevelId == Guid.Empty)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Choose an academic level above to see its rules.
+                </MudText>
+            }
+            else if (FilteredAdjacency.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    No adjacency rules for @LevelToString(_policyLevelId)@(_policySectionId == Guid.Empty ? "" : $" {PolicySectionToString(_policySectionId)}").
+                </MudText>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Must not follow</th>
+                            <th>Section</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rule in FilteredAdjacency)
+                        {
+                            <tr>
+                                <td>@rule.SubjectName</td>
+                                <td>@rule.CannotFollowSubjectName</td>
+                                <td>
+                                    @if (SpansOutsideCurrentScope(rule))
+                                    {
+                                        <MudTooltip Text="One side of this rule belongs to another level or section, so it can never take effect. It is shown here so it can be removed.">
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                                                crosses sections
+                                            </MudChip>
+                                        </MudTooltip>
+                                    }
+                                    else
+                                    {
+                                        @SectionOfClass(rule.ClassId)
+                                    }
+                                </td>
+                                <td class="text-right">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => RemoveAdjacencyAsync(rule))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
         </MudTabPanel>
 
-        <!-- TAB 3: SMART GENERATION -->
-        <MudTabPanel Text="Smart Generation" Icon="@Icons.Material.Filled.AutoAwesome">
-            <SmartTimeTableGenerator activities="@activities"
-                                     classes="@classes"
-                                     daysofTheWeek="@daysofTheWeek"
-                                     dayOrder="@dayOrder"
-                                     loggedInAdmin="@loggedInAdmin"
-                                     timeSlots="@timeSlots" />
+        <!-- ================= BUILD SCHEDULE ================= -->
+        <MudTabPanel Text="Build Schedule" Icon="@Icons.Material.Filled.AutoAwesome">
 
+            <MudGrid Spacing="2" Class="mb-3">
+                <MudItem xs="12" md="3">
+                    <MudSelect T="Guid" Label="Academic Level" Value="_selectedLevelId"
+                               ValueChanged="OnLevelChangedAsync"
+                               ToStringFunc="@LevelToString"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var level in academicLevels)
+                        {
+                            <MudSelectItem Value="@level.AcademicLevelID">@level.LevelName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudSelect T="Guid" Label="Section" Value="_selectedSectionId"
+                               ValueChanged="OnSectionChangedAsync"
+                               ToStringFunc="@SectionToString"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Disabled="@(_selectedLevelId == Guid.Empty)">
+                        @* Do not name this 'section' — @section is a reserved Razor directive. *@
+                        @foreach (var levelSection in SectionsForLevel)
+                        {
+                            <MudSelectItem Value="@levelSection.LevelSectionID">@levelSection.SectionCode</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudDatePicker Label="Term Start" @bind-Date="_startDate"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudDatePicker Label="Term End" @bind-Date="_endDate"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudSelect T="Guid" Label="Activities to lock into this run" MultiSelection="true"
+                               SelectedValues="_selectedActivityIds"
+                               SelectedValuesChanged="@(v => _selectedActivityIds = v.ToHashSet())"
+                               ToStringFunc="@ActivityToString"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               MultiSelectionTextFunc="@(v => FormatSelectedActivities(v))"
+                               HelperText="Activities reserve their periods before any subject is placed.">
+                        @foreach (var activity in _activities)
+                        {
+                            <MudSelectItem Value="@activity.ActivityId">
+                                @activity.ActivityName — @DescribeActivityTiming(activity)
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.AutoAwesome"
+                           Disabled="@(!CanGenerate || _generating)"
+                           OnClick="GenerateAsync">
+                    @(_generating ? "Generating..." : "Generate Timetable")
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           Disabled="@(!CanGenerate || _loadingCurrent)"
+                           OnClick="LoadCurrentScheduleAsync">
+                    Load Saved Timetable
+                </MudButton>
+
+                <MudSpacer />
+
+                <MudButton Variant="Variant.Filled" Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.Save"
+                           Disabled="@(_workingSlots.Count == 0 || !CanGenerate || _saving)"
+                           OnClick="SaveScheduleAsync">
+                    @(_saving ? "Saving..." : "Publish Timetable")
+                </MudButton>
+            </div>
+
+            @if (!CanGenerate)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Choose an academic level, a section and the term dates to begin.
+                </MudAlert>
+            }
+
+            @if (_errors.Count > 0)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+                    @foreach (var error in _errors)
+                    {
+                        <div>@error</div>
+                    }
+                </MudAlert>
+            }
+
+            @if (_hasUnsavedEdits)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                    You have unsaved changes. Nothing reaches teachers or students until you publish.
+                </MudAlert>
+            }
+
+            @if (_violations.Count > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3">
+                    <MudText Typo="Typo.subtitle2"><b>@_violations.Count issue(s) with this timetable</b></MudText>
+                    @foreach (var violation in _violations)
+                    {
+                        <div>• @violation</div>
+                    }
+                </MudAlert>
+            }
+            else if (_workingSlots.Count > 0 && !_validating)
+            {
+                <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                    No constraint violations.
+                </MudAlert>
+            }
+
+            @if (_workingSlots.Count > 0)
+            {
+                <MudGrid Spacing="2">
+
+                    <!-- SUBJECT PALETTE -->
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="pa-3" Elevation="1">
+                            <MudText Typo="Typo.subtitle2" Class="mb-1"><b>Subjects</b></MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Click a subject, then click an empty cell to place it.
+                                Click two filled cells to swap them.
+                            </MudText>
+
+                            <MudDivider Class="my-2" />
+
+                            @if (_selectedSubjectId is not null)
+                            {
+                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Dense="true" Class="mb-2">
+                                    Placing <b>@SubjectName(_selectedSubjectId.Value)</b>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                                   OnClick="@(() => _selectedSubjectId = null)" />
+                                </MudAlert>
+                            }
+
+                            @if (_selectedCell is not null)
+                            {
+                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Dense="true" Class="mb-2">
+                                    Swapping from <b>@_selectedCell.Day @TimeLabel(_selectedCell.TimeSlotId)</b>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                                   OnClick="@(() => _selectedCell = null)" />
+                                </MudAlert>
+                            }
+
+                            @foreach (var subject in SectionSubjects)
+                            {
+                                var remaining = RemainingPeriods(subject);
+                                <div class="d-flex align-center justify-space-between mb-1" style="cursor:pointer;"
+                                     @onclick="@(() => SelectSubject(subject.ClassId))">
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@(_selectedSubjectId == subject.ClassId ? Color.Primary : Color.Default)"
+                                             Variant="@(_selectedSubjectId == subject.ClassId ? Variant.Filled : Variant.Outlined)">
+                                        @subject.SubjectName
+                                    </MudChip>
+                                    <MudText Typo="Typo.caption"
+                                             Color="@(remaining == 0 ? Color.Success : remaining < 0 ? Color.Error : Color.Warning)">
+                                        @(remaining == 0 ? "done" : remaining > 0 ? $"{remaining} left" : $"{-remaining} over")
+                                    </MudText>
+                                </div>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- TIMETABLE GRID -->
+                    <MudItem xs="12" md="9">
+                        <div style="overflow-x:auto;">
+                            <MudSimpleTable Dense="true" Bordered="true" Style="min-width:720px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width:110px;">Time</th>
+                                        @foreach (var day in Weekdays)
+                                        {
+                                            <th class="text-center">@day</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var slot in TeachingSlots)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <MudText Typo="Typo.caption">
+                                                    <b>@($"{slot.StartTime:HH\\:mm}")</b><br />@($"{slot.EndTime:HH\\:mm}")
+                                                </MudText>
+                                            </td>
+                                            @foreach (var day in Weekdays)
+                                            {
+                                                var cell = FindCell(day, slot.TimeslotId);
+                                                <td class="text-center pa-1" style="@CellStyle(cell, day, slot)"
+                                                    @onclick="@(() => OnCellClickAsync(day, slot))">
+                                                    @if (cell is null)
+                                                    {
+                                                        <MudText Typo="Typo.caption" Color="Color.Secondary">— free —</MudText>
+                                                    }
+                                                    else if (cell.ScheduledActivityId is not null)
+                                                    {
+                                                        <MudText Typo="Typo.caption"><b>@cell.ActivityName</b></MudText>
+                                                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <MudText Typo="Typo.caption"><b>@cell.ClassName</b></MudText>
+                                                        @if (cell.IsDoublePeriod)
+                                                        {
+                                                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ma-0">double</MudChip>
+                                                        }
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 mt-2 align-center">
+                            @if (_validating)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                                <MudText Typo="Typo.caption">Re-checking constraints...</MudText>
+                            }
+                            <MudSpacer />
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.ClearAll"
+                                       Disabled="_selectedCell is null"
+                                       OnClick="ClearSelectedCellAsync">
+                                Clear selected cell
+                            </MudButton>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+            }
+        </MudTabPanel>
+
+        <!-- ================= OVERRIDES ================= -->
+        <MudTabPanel Text="Overrides" Icon="@Icons.Material.Filled.SwapHoriz">
+            <div class="d-flex justify-space-between align-center mb-3">
+                <div>
+                    <MudText Typo="Typo.subtitle1"><b>Timetable Overrides</b></MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Substitutes a different class into one period for one student group over a date range.
+                        Applied when timetables are read — the published timetable is not modified.
+                    </MudText>
+                </div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => OpenOverrideDialogAsync(null))">
+                    Add Override
+                </MudButton>
+            </div>
+
+            @if (_loadingOverrides)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+            }
+            else if (_overrides.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">No overrides defined.</MudText>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                    <thead>
+                        <tr>
+                            <th>Level / Section</th>
+                            <th>Group</th>
+                            <th>Day</th>
+                            <th>Period</th>
+                            <th>Replacement</th>
+                            <th>Effective</th>
+                            <th>Reason</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _overrides)
+                        {
+                            <tr>
+                                <td>@item.LevelName / @item.SectionCode</td>
+                                <td>@item.StudentGroup</td>
+                                <td>@item.DayName</td>
+                                <td>@($"{item.StartTime:HH\\:mm} - {item.EndTime:HH\\:mm}")</td>
+                                <td>@item.ReplacementClassName</td>
+                                <td>@FormatRange(item)</td>
+                                <td>@item.Reason</td>
+                                <td class="text-right">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   OnClick="@(() => OpenOverrideDialogAsync(item.OverrideId))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => DeleteOverrideAsync(item))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </MudTabPanel>
+
+        <!-- ================= MANUAL UPLOAD ================= -->
+        <MudTabPanel Text="Manual Upload" Icon="@Icons.Material.Filled.UploadFile">
+            <ManualTimetableUploader activities="@_legacyActivities"
+                                     classes="@_legacyClasses"
+                                     dayOrder="@_dayOrder"
+                                     daysofTheWeek="@_legacyDays"
+                                     loggedInAdmin="@_loggedInAdmin"
+                                     timeSlots="@_legacyTimeSlots" />
         </MudTabPanel>
     </MudTabs>
 </MudCard>
 
-
-
-
 @code {
+    private int _activeTab;
 
+    // ---- Scheduling data (new API) ----
+    private List<TimeSlotDto> _timeSlots = new();
+    private List<ActivityDto> _activities = new();
+    private List<SubjectScheduleConfigDto> _policy = new();
+    private List<SubjectAdjacencyRuleDto> _adjacency = new();
+    private List<OverrideListItem> _overrides = new();
+    private List<DayOptionDto> _days = new();
 
+    private bool _loadingTimeSlots;
+    private bool _loadingActivities;
+    private bool _loadingPolicy;
+    private bool _savingPolicy;
+    private List<string> _policyErrors = new();
+    private bool _loadingOverrides;
+    private bool _loadingCurrent;
+    private bool _generating;
+    private bool _saving;
+    private bool _validating;
 
-    [Inject] NavigationManager _navigationManager { get; set; } = default!;
-    [Inject] HttpClient Http { get; set; } = default!;
-    [Inject] GenericServiceFactory _genericService { get; set; } = default!;
-    [Inject] ISnackbar Snackbar { get; set; } = default!;
-    [Inject] AppState _appState { get; set; } = default!;
-    protected ClientAdmin loggedInAdmin = new();
-    protected List<StudentClassSchedule> classSchedulestoSave = new();
-    protected List<GetActiveClassScheduleResult> activeClassSchedules = new();
-    protected List<DayofTheWeek> daysofTheWeek = new();
-    protected List<Class> classes = new();
-    public List<TimeSlot> timeSlots = new();
-    protected List<GetStudentsInGradeResult> StudentsInGrade = new();
-    protected List<GetStudentsInGradeWithoutScheduleResult> StudentsInGradeWithoutSchedule = new();
-    List<TimeSlotGroup> groupedSmartSchedules;
+    private string? _policyFilter;
+    private Guid _policyLevelId;
+    private Guid _policySectionId;
+    private Guid _newAdjacencySubject;
+    private Guid _newAdjacencyCannotFollow;
 
-    private Dictionary<Guid, ActivityTimePreference> ActivityTimePreferences = new();
-    private Dictionary<Guid, bool> ActivityFixed = new();
+    // ---- Build tab state ----
+    private Guid _selectedLevelId;
+    private Guid _selectedSectionId;
+    private DateTime? _startDate = DateTime.Today;
+    private DateTime? _endDate = DateTime.Today.AddMonths(3);
+    private HashSet<Guid> _selectedActivityIds = new();
 
-    protected List<TimeTableActivity> activities = new();
-    protected int GradeInt = 0;
-    protected string NoGradeLevel = "N/A";
-    protected MudTabs mudTabs = new();
-    private bool _editable = true;
-    private bool _clearable = true;
-    MudTabPanel panel01;
-    MudTabPanel panel02;
-    MudTabPanel panel03;
+    private List<GeneratedSlotDto> _workingSlots = new();
+    private List<string> _violations = new();
+    private List<string> _errors = new();
+    private bool _hasUnsavedEdits;
 
+    // Editor selection: either a subject from the palette, or a cell awaiting a swap partner.
+    private Guid? _selectedSubjectId;
+    private GeneratedSlotDto? _selectedCell;
 
-    private readonly List<string> dayOrder = new List<string>
+    // ---- Legacy data, still needed by ManualTimetableUploader ----
+    private ClientAdmin _loggedInAdmin = new();
+    private List<TimeTableActivity> _legacyActivities = new();
+    private List<Class> _legacyClasses = new();
+    private List<DayofTheWeek> _legacyDays = new();
+    private List<TimeSlot> _legacyTimeSlots = new();
 
-{
-    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-};
-    protected string UserID = string.Empty;
+    private readonly List<string> _dayOrder = new()
+    {
+        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+    };
 
+    private static readonly DayOfWeek[] Weekdays =
+    {
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday
+    };
+
+    // ---- Derived ----
+
+    private IEnumerable<LevelSection> SectionsForLevel =>
+        levelSections.Where(s => s.AcademicLevelID == _selectedLevelId);
+
+    private AcademicLevel? SelectedLevel =>
+        academicLevels.FirstOrDefault(l => l.AcademicLevelID == _selectedLevelId);
+
+    private string? SelectedSectionCode =>
+        levelSections.FirstOrDefault(s => s.LevelSectionID == _selectedSectionId)?.SectionCode;
+
+    private bool CanGenerate =>
+        _selectedLevelId != Guid.Empty && _selectedSectionId != Guid.Empty &&
+        _startDate is not null && _endDate is not null && _endDate >= _startDate;
+
+    private IEnumerable<LevelSection> PolicySectionsForLevel =>
+        levelSections.Where(s => s.AcademicLevelID == _policyLevelId);
+
+    /// <summary>
+    /// Adjacency rules relevant to the level/section being worked on. Matches on either side of the
+    /// rule rather than both: a rule that reaches outside the current scope is still listed, flagged,
+    /// so it stays deletable. Hiding it would make it invisible and permanent.
+    /// </summary>
+    private List<SubjectAdjacencyRuleDto> FilteredAdjacency
+    {
+        get
+        {
+            if (_policyLevelId == Guid.Empty) return new List<SubjectAdjacencyRuleDto>();
+
+            var inScope = FilteredPolicy.Select(p => p.ClassId).ToHashSet();
+
+            return _adjacency
+                .Where(r => inScope.Contains(r.ClassId) || inScope.Contains(r.CannotFollowClassId))
+                .OrderBy(r => r.SubjectName)
+                .ThenBy(r => r.CannotFollowSubjectName)
+                .ToList();
+        }
+    }
+
+    /// <summary>True when the two subjects in a rule are not both within the current filter — such a
+    /// rule can never fire, since a section's board only ever holds its own subjects.</summary>
+    private bool SpansOutsideCurrentScope(SubjectAdjacencyRuleDto rule)
+    {
+        var inScope = FilteredPolicy.Select(p => p.ClassId).ToHashSet();
+        return !(inScope.Contains(rule.ClassId) && inScope.Contains(rule.CannotFollowClassId));
+    }
+
+    private string SectionOfClass(Guid classId) =>
+        _policy.FirstOrDefault(p => p.ClassId == classId)?.GradeSection ?? "";
+
+    /// <summary>
+    /// Scoped by level first, so the table never lists every subject in the school at once. An
+    /// unset level shows nothing rather than everything — a school with hundreds of classes made
+    /// the unfiltered table unusable.
+    /// </summary>
+    private List<SubjectScheduleConfigDto> FilteredPolicy
+    {
+        get
+        {
+            if (_policyLevelId == Guid.Empty) return new List<SubjectScheduleConfigDto>();
+
+            var levelInt = academicLevels.FirstOrDefault(l => l.AcademicLevelID == _policyLevelId)?.LevelInt;
+            var sectionCode = _policySectionId == Guid.Empty
+                ? null
+                : levelSections.FirstOrDefault(s => s.LevelSectionID == _policySectionId)?.SectionCode;
+
+            return _policy
+                .Where(p => levelInt is null || p.AcademicLevel == levelInt)
+                .Where(p => sectionCode is null || string.Equals(p.GradeSection, sectionCode, StringComparison.OrdinalIgnoreCase))
+                .Where(p => string.IsNullOrWhiteSpace(_policyFilter) ||
+                            (p.SubjectName?.Contains(_policyFilter, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                            (p.TeacherName?.Contains(_policyFilter, StringComparison.OrdinalIgnoreCase) ?? false))
+                .OrderBy(p => p.GradeSection)
+                .ThenBy(p => p.SubjectName)
+                .ToList();
+        }
+    }
+
+    /// <summary>
+    /// Subjects belonging to the selected level+section. Mirrors the server's scoping exactly —
+    /// numeric level, matching section, allocated periods, and "All"-group only — so the palette
+    /// never offers a subject the generator would refuse to place.
+    /// </summary>
+    private List<SubjectScheduleConfigDto> SectionSubjects =>
+        _policy
+            .Where(p => p.WeeklyPeriods > 0)
+            .Where(p => SelectedLevel?.LevelInt is null || p.AcademicLevel == SelectedLevel.LevelInt)
+            .Where(p => SelectedSectionCode is null || string.Equals(p.GradeSection, SelectedSectionCode, StringComparison.OrdinalIgnoreCase))
+            .Where(p => IsBaseTimetableClass(p.GroupName))
+            .OrderBy(p => p.SubjectName)
+            .ToList();
+
+    /// <summary>"All" (or unset) classes form the base timetable; option-set classes reach students
+    /// through an override instead.</summary>
+    private static bool IsBaseTimetableClass(string? groupName) =>
+        string.IsNullOrWhiteSpace(groupName) || string.Equals(groupName, "All", StringComparison.OrdinalIgnoreCase);
+
+    private List<TimeSlotDto> TeachingSlots =>
+        _timeSlots
+            .Where(s => s.SlotType is not null && SlotTypes.Teaching.Contains(s.SlotType))
+            .OrderBy(s => s.StartTime)
+            .ToList();
+
+    // ---- Lifecycle ----
 
     protected override async Task OnInitializedAsync()
     {
-        LoaderService.Show("Initializing Please wait");
-        await GetClasses();
-        await GetTimeSlots();
-        await GetDaysOfWeek();
-        await GetAdminData();
-        await GetSchoolActivities();
+        await base.OnInitializedAsync();
+
+        LoaderService.Show("Loading scheduling data...");
+
+        await Task.WhenAll(
+            LoadTimeSlotsAsync(),
+            LoadActivitiesAsync(),
+            LoadPolicyAsync(),
+            LoadAdjacencyAsync(),
+            LoadOverridesAsync(),
+            LoadDaysAsync(),
+            LoadLegacyDataAsync());
+
         LoaderService.Hide();
     }
 
-
-    private async Task GetSchoolActivities()
+    private async Task LoadTimeSlotsAsync()
     {
-        var service = GenericService.GetService<TimeTableActivity>();
-        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolActivities/{AppState.SchoolID}", true);
-        if (result.IsSuccess)
-        {
-            activities = result.Data.ToList();
-            foreach (var act in activities)
-            {
-                ActivityTimePreferences[act.ActivityID] = ActivityTimePreference.Any;
-                ActivityFixed[act.ActivityID] = false;
-            }
+        _loadingTimeSlots = true;
+        _timeSlots = await SchedulingService.ListTimeSlotsAsync();
+        _loadingTimeSlots = false;
+    }
 
+    private async Task LoadActivitiesAsync()
+    {
+        _loadingActivities = true;
+        _activities = await SchedulingService.ListActivitiesAsync();
+        _loadingActivities = false;
+    }
+
+    private async Task LoadPolicyAsync()
+    {
+        _loadingPolicy = true;
+        _policy = await SchedulingService.ListPolicyAsync();
+
+        // Baseline for dirty-tracking. Taken on every load so a reload also clears pending edits.
+        _policyBaseline = _policy.ToDictionary(p => p.ClassId, SnapshotOf);
+        _policyErrors = new();
+
+        _loadingPolicy = false;
+    }
+
+    private async Task LoadAdjacencyAsync() => _adjacency = await SchedulingService.ListAdjacencyAsync();
+
+    private async Task LoadDaysAsync() => _days = await SchedulingService.ListDaysAsync();
+
+    private async Task LoadOverridesAsync()
+    {
+        _loadingOverrides = true;
+        _overrides = await SchedulingService.ListOverridesAsync();
+        _loadingOverrides = false;
+    }
+
+    /// <summary>
+    /// ManualTimetableUploader still takes raw entities via api/Dynamic. Kept as-is so that feature
+    /// is untouched by this change.
+    /// </summary>
+    private async Task LoadLegacyDataAsync()
+    {
+        if (string.IsNullOrEmpty(AppState.SchoolID)) return;
+
+        var schoolId = Guid.Parse(AppState.SchoolID);
+
+        var classService = GenericService.GetService<Class>();
+        var classResult = await classService.GetAllAsync($"api/Dynamic/GetEntity/{"class"}", true);
+        if (classResult.IsSuccess)
+            _legacyClasses = classResult.Data.Where(x => x.SChoolID == schoolId).ToList();
+
+        var slotService = GenericService.GetService<TimeSlot>();
+        var slotResult = await slotService.GetAllAsync($"api/Dynamic/GetEntity/{"timeslot"}", true);
+        if (slotResult.IsSuccess)
+            _legacyTimeSlots = slotResult.Data.Where(x => x.SchoolID == schoolId).ToList();
+
+        var dayService = GenericService.GetService<DayofTheWeek>();
+        var dayResult = await dayService.GetAllAsync($"api/Dynamic/GetEntity/{"days"}", true);
+        if (dayResult.IsSuccess)
+            _legacyDays = dayResult.Data.ToList();
+
+        var activityService = GenericService.GetService<TimeTableActivity>();
+        var activityResult = await activityService.GetAllAsync($"api/Dynamic/GetSchoolActivities/{AppState.SchoolID}", true);
+        if (activityResult.IsSuccess)
+            _legacyActivities = activityResult.Data.ToList();
+
+        if (!string.IsNullOrEmpty(AppState.UserID))
+        {
+            var adminService = GenericService.GetService<ClientAdmin>();
+            var adminResult = await adminService.GetAllAsync($"api/Dynamic/GetAdminByUserID/{AppState.UserID}", true);
+            if (adminResult.IsSuccess)
+                _loggedInAdmin = adminResult.Data.FirstOrDefault() ?? new ClientAdmin();
+        }
+    }
+
+    // ---- Time slots ----
+
+    private async Task OpenTimeSlotDialogAsync(Guid? timeslotId)
+    {
+        var parameters = new DialogParameters<CreateEditTimeSlotDialog>
+        {
+            { x => x.TimeslotId, timeslotId },
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateEditTimeSlotDialog>(
+            timeslotId is null ? "Add Time Slot" : "Edit Time Slot", parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadTimeSlotsAsync();
+            Snackbar.Add("Time slot saved.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteTimeSlotAsync(TimeSlotDto slot)
+    {
+        var parameters = new DialogParameters<SimpleConfirmDialog>
+        {
+            { x => x.Title, "Delete Time Slot" },
+            { x => x.Message, $"Delete the {slot.StartTime:HH\\:mm} - {slot.EndTime:HH\\:mm} slot?" },
+            { x => x.ConfirmActionWithErrorsAsync, async () =>
+                {
+                    var result = await SchedulingService.DeleteTimeSlotAsync(slot.TimeslotId);
+                    return (result.Succeeded, result.Errors);
+                }
+            },
+        };
+
+        var dialog = await DialogService.ShowAsync<SimpleConfirmDialog>("Delete Time Slot", parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadTimeSlotsAsync();
+            Snackbar.Add("Time slot deleted.", Severity.Success);
+        }
+    }
+
+    // ---- Activities ----
+
+    private async Task OpenActivityDialogAsync(Guid? activityId)
+    {
+        var parameters = new DialogParameters<CreateEditActivityDialog>
+        {
+            { x => x.ActivityId, activityId },
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateEditActivityDialog>(
+            activityId is null ? "Add Activity" : "Edit Activity", parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadActivitiesAsync();
+            Snackbar.Add("Activity saved.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteActivityAsync(ActivityDto activity)
+    {
+        var parameters = new DialogParameters<SimpleConfirmDialog>
+        {
+            { x => x.Title, "Delete Activity" },
+            { x => x.Message, $"Delete '{activity.ActivityName}'?" },
+            { x => x.ConfirmActionWithErrorsAsync, async () =>
+                {
+                    var result = await SchedulingService.DeleteActivityAsync(activity.ActivityId);
+                    return (result.Succeeded, result.Errors);
+                }
+            },
+        };
+
+        var dialog = await DialogService.ShowAsync<SimpleConfirmDialog>("Delete Activity", parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            _selectedActivityIds.Remove(activity.ActivityId);
+            await LoadActivitiesAsync();
+            Snackbar.Add("Activity deleted.", Severity.Success);
+        }
+    }
+
+    // ---- Policy ----
+
+    // ---- Bulk policy editing ----
+    //
+    // Edits mutate the loaded DTOs directly, so "dirty" is decided by comparing each row against a
+    // snapshot taken when the policy was loaded. Edits survive changing the level/section filter,
+    // and the action bar counts rows that are currently hidden so nothing is saved or lost silently.
+
+    private readonly record struct PolicySnapshot(
+        bool IsCore, int WeeklyPeriods, int RequiredDoubles, SubjectTimePreference TimePreference);
+
+    private Dictionary<Guid, PolicySnapshot> _policyBaseline = new();
+
+    private static PolicySnapshot SnapshotOf(SubjectScheduleConfigDto subject) =>
+        new(subject.IsCore, subject.WeeklyPeriods, subject.RequiredDoubles, subject.TimePreference);
+
+    private bool IsPolicyDirty(SubjectScheduleConfigDto subject) =>
+        !_policyBaseline.TryGetValue(subject.ClassId, out var baseline) || baseline != SnapshotOf(subject);
+
+    private List<SubjectScheduleConfigDto> DirtyPolicy => _policy.Where(IsPolicyDirty).ToList();
+
+    /// <summary>Dirty rows the current level/section/name filter is hiding.</summary>
+    private int DirtyHiddenCount
+    {
+        get
+        {
+            var visible = FilteredPolicy.Select(p => p.ClassId).ToHashSet();
+            return DirtyPolicy.Count(p => !visible.Contains(p.ClassId));
+        }
+    }
+
+    private void RevertPolicyRow(SubjectScheduleConfigDto subject)
+    {
+        if (!_policyBaseline.TryGetValue(subject.ClassId, out var baseline)) return;
+
+        subject.IsCore = baseline.IsCore;
+        subject.WeeklyPeriods = baseline.WeeklyPeriods;
+        subject.RequiredDoubles = baseline.RequiredDoubles;
+        subject.TimePreference = baseline.TimePreference;
+    }
+
+    private void DiscardPolicyChanges()
+    {
+        foreach (var subject in _policy)
+        {
+            RevertPolicyRow(subject);
         }
 
+        _policyErrors = new();
     }
 
-
-    #region Get from Database
-    protected async Task GetAdminData()
+    private async Task SaveAllPolicyAsync()
     {
+        var dirty = DirtyPolicy;
+        if (dirty.Count == 0) return;
 
-        UserID = _appState.UserID;
+        _savingPolicy = true;
+        _policyErrors = new();
 
-        if (UserID != string.Empty || UserID != null)
+        var result = await SchedulingService.UpsertPolicyBulkAsync(new BulkSubjectScheduleConfigRequest
         {
-            var service = _genericService.GetService<ClientAdmin>();
-            var result = await service.GetAllAsync($"api/Dynamic/GetAdminByUserID/{UserID}", true);
-            if (result.IsSuccess)
+            Items = dirty.Select(p => new SubjectSchedulePolicyItem
             {
-                loggedInAdmin = result.Data.FirstOrDefault();
-            }
+                ClassId = p.ClassId,
+                IsCore = p.IsCore,
+                WeeklyPeriods = p.WeeklyPeriods,
+                RequiredDoubles = p.RequiredDoubles,
+                TimePreference = p.TimePreference,
+            }).ToList(),
+        });
+
+        _savingPolicy = false;
+
+        if (!result.Succeeded)
+        {
+            // The server writes nothing unless every row passes, so the edits are still on screen
+            // for the admin to correct — do not reload and throw their work away.
+            _policyErrors = result.Errors;
+            Snackbar.Add("Nothing was saved. See the errors above.", Severity.Error);
+            return;
+        }
+
+        // Re-baseline to what was just persisted rather than reloading, so the table doesn't flicker
+        // and any row the filter is hiding keeps its saved state.
+        foreach (var subject in dirty)
+        {
+            _policyBaseline[subject.ClassId] = SnapshotOf(subject);
+        }
+
+        Snackbar.Add($"Saved policy for {result.SavedCount} subject(s).", Severity.Success);
+    }
+
+    private async Task AddAdjacencyAsync()
+    {
+        if (_newAdjacencySubject == Guid.Empty || _newAdjacencyCannotFollow == Guid.Empty)
+        {
+            Snackbar.Add("Choose both subjects.", Severity.Warning);
+            return;
+        }
+
+        if (_newAdjacencySubject == _newAdjacencyCannotFollow)
+        {
+            Snackbar.Add("A subject cannot be prevented from following itself.", Severity.Warning);
+            return;
+        }
+
+        if (await SchedulingService.AddAdjacencyRuleAsync(_newAdjacencySubject, _newAdjacencyCannotFollow))
+        {
+            _newAdjacencySubject = Guid.Empty;
+            _newAdjacencyCannotFollow = Guid.Empty;
+            await LoadAdjacencyAsync();
+            Snackbar.Add("Rule added.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Could not add the rule — it may already exist.", Severity.Error);
         }
     }
-    protected async Task GetClasses()
+
+    private async Task RemoveAdjacencyAsync(SubjectAdjacencyRuleDto rule)
     {
-        var result = _genericService.GetService<Class>();
-        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"class"}", true);
-        classes = service.Data.Where(x => x.SChoolID == Guid.Parse(AppState.SchoolID)).ToList();
-
-
+        if (await SchedulingService.RemoveAdjacencyRuleAsync(rule.SubjectAdjacencyRuleId))
+        {
+            await LoadAdjacencyAsync();
+            Snackbar.Add("Rule removed.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Could not remove the rule.", Severity.Error);
+        }
     }
 
-    // protected async Task GetUnassignedStudentsForSchedule()
-    // {
-    //     var service = _genericService.GetService<GetStudentsInGradeWithoutScheduleResult>();
-    //     if (GradeLevel == string.Empty)
-    //     {
-    //         GradeLevel = "null";
-    //     }
-    //     var result = await service.GetAllAsync($"api/Dynamic/GetStudentsInGradeWithoutSchedule/{GradeInt}/{loggedInAdmin.SchoolID}/{GradeLevel}", true);
-    //     if (result.IsSuccess)
-    //     {
-    //         StudentsInGradeWithoutSchedule = result.Data.ToList();
-    //     }
-    // }
-    protected async Task GetTimeSlots()
-    {
-        var result = _genericService.GetService<TimeSlot>();
-        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"timeslot"}", true);
-        timeSlots = service.Data.Where(x => x.SchoolID == Guid.Parse(AppState.SchoolID)).ToList();
-    }
-    protected async Task GetDaysOfWeek()
-    {
-        var result = _genericService.GetService<DayofTheWeek>();
-        var service = await result.GetAllAsync($"api/Dynamic/GetEntity/{"days"}", true);
-        daysofTheWeek = service.Data.ToList();
-    }
-    // protected async Task GetActiveSchedulesPerClass()
-    // {
-    //     LoaderService.Show("Please wait...");
-    //     var service = _genericService.GetService<GetActiveClassScheduleResult>();
-    //     if (GradeLevel == string.Empty)
-    //     {
-    //         GradeLevel = "null";
-    //     }
-    //     var result = await service.GetAllAsync($"api/Dynamic/GetActiveScheduleByGrade/{GradeInt}/{GradeLevel}/{loggedInAdmin.SchoolID}", true);
-    //     if (result.IsSuccess)
-    //     {
-    //         activeClassSchedules = result.Data.ToList();
-    //         OrganizeTableData();
-    //         LoaderService.Hide();
-    //     }
-    //     else
-    //     {
-    //         LoaderService.Hide();
-    //         Snackbar.Add("Failed to retrieve Schedules please check your connection and try again", Severity.Error);
-    //     }
-    // }
-    #endregion
+    // ---- Build tab ----
 
+    private async Task OnLevelChangedAsync(Guid levelId)
+    {
+        _selectedLevelId = levelId;
+        _selectedSectionId = Guid.Empty;
+        ResetBoard();
+        await Task.CompletedTask;
+    }
+
+    private async Task OnSectionChangedAsync(Guid sectionId)
+    {
+        _selectedSectionId = sectionId;
+        ResetBoard();
+
+        // Show what's already published for this section rather than an empty board.
+        if (CanGenerate) await LoadCurrentScheduleAsync();
+    }
+
+    private void ResetBoard()
+    {
+        _workingSlots = new();
+        _violations = new();
+        _errors = new();
+        _hasUnsavedEdits = false;
+        _selectedSubjectId = null;
+        _selectedCell = null;
+    }
+
+    private async Task GenerateAsync()
+    {
+        if (SelectedLevel?.LevelInt is null)
+        {
+            Snackbar.Add("This academic level has no numeric grade value set and cannot be scheduled.", Severity.Error);
+            return;
+        }
+
+        _generating = true;
+        _errors = new();
+        _violations = new();
+
+        var result = await SchedulingService.PreviewGenerationAsync(new GenerateScheduleRequest
+        {
+            AcademicLevel = SelectedLevel.LevelInt.Value,
+            AcademicLevelSection = _selectedSectionId,
+            StartDate = _startDate!.Value,
+            EndDate = _endDate!.Value,
+            ActivityIds = _selectedActivityIds.ToList(),
+        });
+
+        _generating = false;
+
+        if (!result.Success)
+        {
+            _errors = result.Errors;
+            _workingSlots = new();
+            return;
+        }
+
+        _workingSlots = result.Slots.Where(HasContent).ToList();
+        _violations = result.Violations;
+        _hasUnsavedEdits = false;
+        _selectedSubjectId = null;
+        _selectedCell = null;
+    }
+
+    private async Task LoadCurrentScheduleAsync()
+    {
+        if (SelectedLevel?.LevelInt is null) return;
+
+        _loadingCurrent = true;
+        _errors = new();
+
+        var current = await SchedulingService.GetCurrentScheduleAsync(SelectedLevel.LevelInt.Value, _selectedSectionId);
+
+        _workingSlots = current
+            .Where(item => Enum.TryParse<DayOfWeek>(item.DayName, true, out _))
+            .Select(item => new GeneratedSlotDto
+            {
+                Day = Enum.Parse<DayOfWeek>(item.DayName!, true),
+                TimeSlotId = item.TimeSlotId,
+                ClassId = item.ClassId,
+                ClassName = item.ClassName,
+                TeacherName = item.TeacherName,
+                IsDoublePeriod = item.IsDoublePeriod,
+                ScheduledActivityId = item.ActivityId,
+                ActivityName = item.ActivityName,
+            })
+            .ToList();
+
+        _hasUnsavedEdits = false;
+        _selectedSubjectId = null;
+        _selectedCell = null;
+        _loadingCurrent = false;
+
+        if (_workingSlots.Count == 0)
+        {
+            _violations = new();
+            Snackbar.Add("No published timetable for this section yet.", Severity.Info);
+        }
+        else
+        {
+            await RevalidateAsync();
+        }
+    }
+
+    private async Task SaveScheduleAsync()
+    {
+        if (SelectedLevel?.LevelInt is null) return;
+
+        if (_violations.Count > 0)
+        {
+            var parameters = new DialogParameters<SimpleConfirmDialog>
+            {
+                { x => x.Title, "Publish with issues?" },
+                { x => x.Message, $"This timetable has {_violations.Count} unresolved issue(s). Publish it anyway?" },
+                { x => x.ConfirmLabel, "Publish anyway" },
+                { x => x.IconColor, Color.Warning },
+                { x => x.Icon, Icons.Material.Outlined.WarningAmber },
+            };
+
+            var confirm = await DialogService.ShowAsync<SimpleConfirmDialog>("Publish with issues?", parameters);
+            if ((await confirm.Result) is not { Canceled: false }) return;
+        }
+
+        _saving = true;
+        _errors = new();
+
+        var result = await SchedulingService.SaveScheduleAsync(new SaveGeneratedScheduleRequest
+        {
+            AcademicLevel = SelectedLevel.LevelInt.Value,
+            AcademicLevelSection = _selectedSectionId,
+            StartDate = _startDate!.Value,
+            EndDate = _endDate!.Value,
+            Slots = _workingSlots,
+        });
+
+        _saving = false;
+
+        if (!result.Succeeded)
+        {
+            _errors = result.Errors;
+            Snackbar.Add("The timetable was not published.", Severity.Error);
+            return;
+        }
+
+        _hasUnsavedEdits = false;
+
+        // A save with no student links means nobody in the section will see this timetable, which
+        // looks identical to success from the admin's side unless we say so.
+        if (result.StudentLinkCount == 0)
+        {
+            Snackbar.Add(
+                $"Published ({result.RetiredRowCount} prior row(s) retired), but no students are enrolled in this section — nobody will see it yet.",
+                Severity.Warning);
+        }
+        else
+        {
+            Snackbar.Add(
+                $"Published. {result.RetiredRowCount} prior row(s) retired, {result.StudentLinkCount} student link(s) rebuilt.",
+                Severity.Success);
+        }
+
+        await LoadCurrentScheduleAsync();
+    }
+
+    // ---- Editing ----
+
+    private void SelectSubject(Guid classId)
+    {
+        _selectedSubjectId = _selectedSubjectId == classId ? null : classId;
+        _selectedCell = null;
+    }
+
+    private async Task OnCellClickAsync(DayOfWeek day, TimeSlotDto slot)
+    {
+        var cell = FindCell(day, slot.TimeslotId);
+
+        // Activity slots are reserved and never reassigned by hand.
+        if (cell?.ScheduledActivityId is not null)
+        {
+            Snackbar.Add($"'{cell.ActivityName}' is a locked activity period.", Severity.Info);
+            return;
+        }
+
+        // Placing from the palette.
+        if (_selectedSubjectId is { } subjectId)
+        {
+            var subject = _policy.FirstOrDefault(p => p.ClassId == subjectId);
+            if (subject is null) return;
+
+            if (cell is null)
+            {
+                _workingSlots.Add(new GeneratedSlotDto
+                {
+                    Day = day,
+                    TimeSlotId = slot.TimeslotId,
+                    ClassId = subject.ClassId,
+                    ClassName = subject.SubjectName,
+                    TeacherName = subject.TeacherName,
+                });
+            }
+            else
+            {
+                cell.ClassId = subject.ClassId;
+                cell.ClassName = subject.SubjectName;
+                cell.TeacherName = subject.TeacherName;
+                cell.IsDoublePeriod = false;
+            }
+
+            _selectedSubjectId = null;
+            _hasUnsavedEdits = true;
+            await RevalidateAsync();
+            return;
+        }
+
+        // Swapping: first click selects, second click swaps.
+        if (_selectedCell is null)
+        {
+            if (cell is null)
+            {
+                Snackbar.Add("Pick a subject from the list first to fill an empty period.", Severity.Info);
+                return;
+            }
+
+            _selectedCell = cell;
+            return;
+        }
+
+        if (ReferenceEquals(_selectedCell, cell))
+        {
+            _selectedCell = null;
+            return;
+        }
+
+        SwapCells(_selectedCell, day, slot.TimeslotId, cell);
+        _selectedCell = null;
+        _hasUnsavedEdits = true;
+        await RevalidateAsync();
+    }
+
+    /// <summary>
+    /// Moves the selected cell's contents to the target position and vice versa. When the target is
+    /// empty there is no second slot object to swap into, so the source row is simply relocated.
+    /// </summary>
+    private void SwapCells(GeneratedSlotDto source, DayOfWeek targetDay, Guid targetSlotId, GeneratedSlotDto? target)
+    {
+        if (target is null)
+        {
+            source.Day = targetDay;
+            source.TimeSlotId = targetSlotId;
+            source.IsDoublePeriod = false;
+            return;
+        }
+
+        (source.ClassId, target.ClassId) = (target.ClassId, source.ClassId);
+        (source.ClassName, target.ClassName) = (target.ClassName, source.ClassName);
+        (source.TeacherName, target.TeacherName) = (target.TeacherName, source.TeacherName);
+
+        // A double period is a property of two adjacent same-subject slots. Once either half moves
+        // the pairing no longer holds, so drop the flag rather than carry a stale one.
+        source.IsDoublePeriod = false;
+        target.IsDoublePeriod = false;
+    }
+
+    private async Task ClearSelectedCellAsync()
+    {
+        if (_selectedCell is null) return;
+
+        _workingSlots.Remove(_selectedCell);
+        _selectedCell = null;
+        _hasUnsavedEdits = true;
+        await RevalidateAsync();
+    }
+
+    /// <summary>
+    /// Re-runs validation on the server after every edit, so the violation list always describes
+    /// the board as it currently stands — including teacher clashes against other sections, which
+    /// cannot be detected from this page's data alone.
+    /// </summary>
+    private async Task RevalidateAsync()
+    {
+        if (SelectedLevel?.LevelInt is null) return;
+
+        _validating = true;
+
+        var result = await SchedulingService.ValidateScheduleAsync(new ValidateScheduleRequest
+        {
+            AcademicLevel = SelectedLevel.LevelInt.Value,
+            AcademicLevelSection = _selectedSectionId,
+            ActivityIds = _selectedActivityIds.ToList(),
+            Slots = _workingSlots,
+        });
+
+        _validating = false;
+
+        if (result.Success)
+        {
+            _violations = result.Violations;
+        }
+        else
+        {
+            _errors = result.Errors;
+        }
+    }
+
+    // ---- Select display ----
+    //
+    // MudSelect renders the raw value when nothing is selected, so a Guid-typed select with no
+    // selection shows "00000000-0000-0000-0000-000000000000". Every Guid select below gets a
+    // ToStringFunc that maps the empty Guid to a placeholder and a real id to its name.
+
+    private string LevelToString(Guid id) =>
+        id == Guid.Empty
+            ? "Select a level"
+            : academicLevels.FirstOrDefault(l => l.AcademicLevelID == id)?.LevelName ?? "Unknown level";
+
+    private string SectionToString(Guid id) =>
+        id == Guid.Empty
+            ? "Select a section"
+            : levelSections.FirstOrDefault(s => s.LevelSectionID == id)?.SectionCode ?? "Unknown section";
+
+    private string PolicySectionToString(Guid id) =>
+        id == Guid.Empty
+            ? "All sections"
+            : levelSections.FirstOrDefault(s => s.LevelSectionID == id)?.SectionCode ?? "Unknown section";
+
+    private string SubjectToString(Guid id)
+    {
+        if (id == Guid.Empty) return "Select a subject";
+
+        var subject = _policy.FirstOrDefault(p => p.ClassId == id);
+        return subject is null ? "Unknown subject" : $"{subject.SubjectName} ({subject.LevelName}/{subject.GradeSection})";
+    }
+
+    private string ActivityToString(Guid id) =>
+        id == Guid.Empty
+            ? "None"
+            : _activities.FirstOrDefault(a => a.ActivityId == id)?.ActivityName ?? "Unknown activity";
+
+    private static string TimePreferenceToString(SubjectTimePreference preference) => preference switch
+    {
+        SubjectTimePreference.EarlyMorningOnly => "Early morning only",
+        SubjectTimePreference.MorningOnly => "Morning only",
+        SubjectTimePreference.AfternoonOnly => "Afternoon only",
+        _ => "Any time",
+    };
+
+    private void OnPolicyLevelChanged(Guid levelId)
+    {
+        _policyLevelId = levelId;
+
+        // The previously chosen section belongs to the old level, so it would filter everything out.
+        _policySectionId = Guid.Empty;
+    }
+
+    // ---- Presentation helpers ----
+
+    private static bool HasContent(GeneratedSlotDto slot) =>
+        (slot.ClassId.HasValue && slot.ClassId.Value != Guid.Empty) || slot.ScheduledActivityId is not null;
+
+    private GeneratedSlotDto? FindCell(DayOfWeek day, Guid timeSlotId) =>
+        _workingSlots.FirstOrDefault(s => s.Day == day && s.TimeSlotId == timeSlotId);
+
+    private int RemainingPeriods(SubjectScheduleConfigDto subject) =>
+        subject.WeeklyPeriods - _workingSlots.Count(s => s.ClassId == subject.ClassId);
+
+    private string SubjectName(Guid classId) =>
+        _policy.FirstOrDefault(p => p.ClassId == classId)?.SubjectName ?? "subject";
+
+    private string TimeLabel(Guid timeSlotId)
+    {
+        var slot = _timeSlots.FirstOrDefault(s => s.TimeslotId == timeSlotId);
+        return slot is null ? "" : $"{slot.StartTime:HH\\:mm}";
+    }
+
+    private string CellStyle(GeneratedSlotDto? cell, DayOfWeek day, TimeSlotDto slot)
+    {
+        var style = "cursor:pointer;";
+
+        if (cell is not null && ReferenceEquals(cell, _selectedCell))
+            return style + "outline:2px solid var(--mud-palette-primary);background:var(--mud-palette-primary-hover);";
+
+        if (cell?.ScheduledActivityId is not null)
+            return "cursor:not-allowed;background:var(--mud-palette-warning-hover);";
+
+        if (cell is null)
+            return style + (_selectedSubjectId is not null ? "background:var(--mud-palette-success-hover);" : "");
+
+        if (IsCellFlagged(cell))
+            return style + "background:var(--mud-palette-error-hover);";
+
+        return style;
+    }
+
+    /// <summary>
+    /// Matches a cell against the validator's messages, which name the subject and day in plain
+    /// text. Cheap and slightly fuzzy, but it points the admin at the right cell.
+    /// </summary>
+    private bool IsCellFlagged(GeneratedSlotDto cell)
+    {
+        if (_violations.Count == 0 || string.IsNullOrEmpty(cell.ClassName)) return false;
+
+        return _violations.Any(v =>
+            v.Contains(cell.ClassName, StringComparison.OrdinalIgnoreCase) &&
+            (v.Contains(cell.Day.ToString(), StringComparison.OrdinalIgnoreCase) || !ViolationMentionsAnyDay(v)));
+    }
+
+    private static bool ViolationMentionsAnyDay(string violation) =>
+        Weekdays.Any(d => violation.Contains(d.ToString(), StringComparison.OrdinalIgnoreCase));
+
+    private static Color SlotTypeColor(string? slotType) => slotType switch
+    {
+        SlotTypes.EarlyMorning => Color.Info,
+        SlotTypes.Morning => Color.Primary,
+        SlotTypes.Afternoon => Color.Secondary,
+        SlotTypes.BreakTime => Color.Default,
+        SlotTypes.LunchTime => Color.Default,
+        _ => Color.Default,
+    };
+
+    private static string DescribeActivityTiming(ActivityDto activity)
+    {
+        if (activity.PreferredTimeSlotId is not null)
+        {
+            var slotLabel = activity.PreferredTimeSlotLabel ?? "a specific period";
+            return activity.PreferredDayName is null
+                ? $"{slotLabel}, every weekday"
+                : $"{slotLabel}, {activity.PreferredDayName} only";
+        }
+
+        if (activity.MustBeMorning) return "Locks the whole morning";
+        if (activity.MustBeAfternoon) return "Locks the whole afternoon";
+        return "Locks the whole day";
+    }
+
+    private string FormatSelectedActivities(List<string> values) =>
+        values.Count switch
+        {
+            0 => "None",
+            1 => _activities.FirstOrDefault(a => a.ActivityId.ToString() == values[0])?.ActivityName ?? "1 selected",
+            _ => $"{values.Count} activities selected",
+        };
+
+    private static string FormatRange(OverrideListItem item)
+    {
+        if (item.EffectiveFrom is null && item.EffectiveTo is null) return "Always";
+        return $"{item.EffectiveFrom?.ToString("d") ?? "..."} - {item.EffectiveTo?.ToString("d") ?? "..."}";
+    }
+
+    // ---- Overrides ----
+
+    private async Task OpenOverrideDialogAsync(Guid? overrideId)
+    {
+        var parameters = new DialogParameters<CreateEditOverrideDialog>
+        {
+            { x => x.OverrideId, overrideId },
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateEditOverrideDialog>(
+            overrideId is null ? "Add Override" : "Edit Override", parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadOverridesAsync();
+            Snackbar.Add("Override saved.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteOverrideAsync(OverrideListItem item)
+    {
+        var parameters = new DialogParameters<SimpleConfirmDialog>
+        {
+            { x => x.Title, "Delete Override" },
+            { x => x.Message, "Delete this timetable override? This cannot be undone." },
+            { x => x.ConfirmActionAsync, () => SchedulingService.DeleteOverrideAsync(item.OverrideId) },
+        };
+
+        var dialog = await DialogService.ShowAsync<SimpleConfirmDialog>("Delete Override", parameters);
+
+        if ((await dialog.Result) is { Canceled: false })
+        {
+            await LoadOverridesAsync();
+            Snackbar.Add("Override deleted.", Severity.Success);
+        }
+    }
 }
-
-

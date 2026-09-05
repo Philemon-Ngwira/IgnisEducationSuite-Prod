@@ -4,8 +4,11 @@
 @inject AppState AppState
 @inject NavigationManager Nav
 @using System.Security.Claims
+@using EDUSphereSharedProject.UniversalModels.Chat
 @implements IAsyncDisposable
 @inject AuthenticationStateProvider AuthProvider
+@inject ChatRealtimeService Chat
+@inject ISnackbar Snackbar
 <MudThemeProvider Theme="theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
@@ -71,6 +74,51 @@
     private bool _subscribed;
     private bool _authChecked = false;
     private bool _isAuthenticated = false;
+    private bool _chatSubscribed;
+
+    /// <summary>
+    /// Brings up the shared chat connection and shows a toast for messages that arrive while the
+    /// user is somewhere other than the chat page. Clicking the toast opens the conversation.
+    /// </summary>
+    private async Task StartChatAsync(string userId)
+    {
+        if (!_chatSubscribed)
+        {
+            Chat.MessageReceived += OnChatMessageAsync;
+            _chatSubscribed = true;
+        }
+
+        await Chat.EnsureStartedAsync(userId);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task OnChatMessageAsync(ChatMessageDto incoming)
+    {
+        // Your own message is not news, and the chat page announces its own arrivals.
+        if (string.Equals(incoming.UserId, AppState.UserID, StringComparison.OrdinalIgnoreCase))
+            return Task.CompletedTask;
+
+        if (Nav.Uri.Contains("/MainChat", StringComparison.OrdinalIgnoreCase))
+            return Task.CompletedTask;
+
+        return InvokeAsync(() =>
+        {
+            var from = string.IsNullOrWhiteSpace(incoming.SenderName) ? "Someone" : incoming.SenderName;
+            var where = string.IsNullOrWhiteSpace(incoming.GroupName) ? "" : $" in {incoming.GroupName}";
+            var preview = incoming.Content.Length <= 60 ? incoming.Content : incoming.Content[..60] + "…";
+
+            Snackbar.Add($"{from}{where}: {preview}", Severity.Info, config =>
+            {
+                config.OnClick = _ =>
+                {
+                    Nav.NavigateTo("/MainChat");
+                    return Task.CompletedTask;
+                };
+            });
+
+            StateHasChanged();
+        });
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _initialized)
@@ -92,6 +140,12 @@
                 _ = Task.Run(async () =>
                 {
                     await AppState.EnsureInitializedAsync(userId, true);
+
+                    // Started from the layout rather than the chat page, so messages arrive on every
+                    // page. Without this the unread badge could only ever update while chat was open,
+                    // which is the whole reason messages went unnoticed.
+                    await StartChatAsync(userId);
+
                     await InvokeAsync(StateHasChanged);
                 });
             }
@@ -126,6 +180,12 @@
         {
             AppState.OnChange -= StateHasChanged;
             _subscribed = false;
+        }
+
+        if (_chatSubscribed)
+        {
+            Chat.MessageReceived -= OnChatMessageAsync;
+            _chatSubscribed = false;
         }
 
         await Task.CompletedTask;
