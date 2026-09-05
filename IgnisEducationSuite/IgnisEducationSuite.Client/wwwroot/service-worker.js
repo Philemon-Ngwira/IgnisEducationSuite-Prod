@@ -3,7 +3,7 @@
 // ======================
 
 
-const CACHE_VERSION = 'v1.0.9'; // increment this with every deployment
+const CACHE_VERSION = 'v1.1.1'; // increment this with every deployment
 const CACHE_NAME = `Ignis-Edu-cache-${CACHE_VERSION}`;
 
 // During install, cache all assets from the manifest
