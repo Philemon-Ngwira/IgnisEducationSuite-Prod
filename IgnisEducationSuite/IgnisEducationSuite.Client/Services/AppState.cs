@@ -1,4 +1,4 @@
-﻿using EDUSphereSharedProject.AchievementModels;
+using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
@@ -56,35 +56,50 @@ public class AppState
     /// </summary>
     /// 
 
-    public async Task<bool> EnsureInitializedAsync(string userName, bool isAuthenticated)
+    private readonly object _initializationLock = new();
+    private Task<bool>? _initializationTask;
+
+    public Task<bool> EnsureInitializedAsync(string userName, bool isAuthenticated)
     {
-        if (!isAuthenticated || string.IsNullOrEmpty(userName))
-            return false;
+        if (!isAuthenticated || string.IsNullOrWhiteSpace(userName))
+            return Task.FromResult(false);
+        lock (_initializationLock)
+        {
+            if (_initializationTask is { IsCompleted: false })
+                return _initializationTask;
+            if (IsFullyInitialized && UserID == userName)
+                return Task.FromResult(true);
+            return _initializationTask = InitializeSessionAsync(userName);
+        }
+    }
 
-        if (IsFullyInitialized)
-            return true;
+    public Task<bool> InitializeAsync(string userName, bool isAuthenticated)
+        => EnsureInitializedAsync(userName, isAuthenticated);
 
-        if (IsInitializing)
-            return false; // prevent double calls
-
+    private async Task<bool> InitializeSessionAsync(string userName)
+    {
         IsInitializing = true;
-
+        IsFullyInitialized = false;
+        IsCoreInitialized = false;
+        IsDeferredLoaded = false;
         try
         {
-            return await InitializeAsync(userName, isAuthenticated);
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                if (await InitializeCoreAsync(userName, true)) return true;
+                if (attempt < 2) await Task.Delay(500 * (attempt + 1));
+            }
+            return false;
         }
-        finally
-        {
-            IsInitializing = false;
-        }
+        finally { IsInitializing = false; }
     }
     private bool HasValidCoreData()
     {
         return !string.IsNullOrEmpty(UserID)
-            && !string.IsNullOrEmpty(SchoolID)
+            && (Guid.TryParse(SchoolID, out _) || UserRole is "SuperAdmin" or "Parent" or "Finance")
             && !string.IsNullOrEmpty(UserRole);
     }
-    public async Task<bool> InitializeAsync(string userName, bool isAuthenticated)
+    private async Task<bool> InitializeCoreAsync(string userName, bool isAuthenticated)
     {
         if (!isAuthenticated || string.IsNullOrEmpty(userName))
             return false;
@@ -179,7 +194,7 @@ public class AppState
             NotifyStateChanged();
 
             // --- 🚀 Fire-and-forget deferred loading ---
-            _ = LoadDeferredDataAsync();
+            await LoadDeferredDataAsync();
 
             return true;
         }
@@ -200,7 +215,7 @@ public class AppState
             tasks.Add(LoadBadgesAsync());
 
             // ❗ Only load school data if NOT SuperAdmin AND SchoolID is valid
-            if (UserRole != "SuperAdmin" && !string.IsNullOrEmpty(SchoolID))
+            if (UserRole != "SuperAdmin" && (Guid.TryParse(SchoolID, out _) || UserRole is "SuperAdmin" or "Parent" or "Finance"))
             {
                 tasks.Add(LoadAcademicLevelsAsync());
                 tasks.Add(LoadAcademicSections());
@@ -222,6 +237,7 @@ public class AppState
         catch (Exception ex)
         {
             Console.WriteLine($"[AppState] Deferred load failed: {ex.Message}");
+            throw;
         }
     }
     private async Task LoadBadgesAsync()
@@ -244,11 +260,12 @@ public class AppState
         {
             var academicService = _genericService.GetService<AcademicLevel>();
             var result = await academicService.GetAllAsync($"api/Dynamic/GetSchoolAcademicStructure/{SchoolID}", true);
-            AcademicLevels = result.IsSuccess ? result.Data.ToList() : new();
+            if (!result.IsSuccess || result.Data is null) throw new InvalidOperationException("Academic levels could not be loaded.");
+            AcademicLevels = result.Data.ToList();
         }
         catch
         {
-            AcademicLevels = new();
+            throw;
         }
     }
     private async Task LoadAcademicSections()
@@ -262,11 +279,12 @@ public class AppState
             var result = await levelSectService.GetAllAsync(
                 $"api/Dynamic/GetSchoolAcademicSections/{Guid.Parse(SchoolID)}", true);
 
-            AcademicSections = result.IsSuccess ? result.Data.ToList() : new();
+            if (!result.IsSuccess || result.Data is null) throw new InvalidOperationException("Academic sections could not be loaded.");
+            AcademicSections = result.Data.ToList();
         }
         catch
         {
-            AcademicSections = new();
+            throw;
         }
     }
     private async Task LoadUserActivitiesAsync()

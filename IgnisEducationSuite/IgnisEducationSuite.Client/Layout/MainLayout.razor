@@ -1,4 +1,4 @@
-﻿﻿@using IgnisEducationSuite.Client.Pages.Shared
+﻿@using IgnisEducationSuite.Client.Pages.Shared
 @using IgnisEducationSuite.Client.Services
 @inherits LayoutComponentBase
 @inject AppState AppState
@@ -50,10 +50,18 @@
             <InitializerLoader Message="Checking session..."
                                SubMessage="Verifying authentication securely..." />
         }
-        else if (_isAuthenticated && !AppState.IsCoreInitialized)
+        else if (_isAuthenticated && !AppState.IsFullyInitialized)
         {
+            @if (_initializationFailed)
+            {
+                <MudAlert Severity="Severity.Error">We couldn't load your school information. Please try again.</MudAlert>
+                <MudButton OnClick="InitializeSessionAsync" Color="Color.Primary">Retry</MudButton>
+            }
+            else
+            {
             <InitializerLoader Message="Loading your dashboard..."
                                SubMessage="Preparing lessons, students, and analytics..." />
+            }
         }
         else
         {
@@ -119,56 +127,50 @@
             StateHasChanged();
         });
     }
+    private bool _initializationFailed;
+    private void OnAppStateChanged() => _ = InvokeAsync(StateHasChanged);
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _initialized)
-            return;
-
-        _initialized = true;
-
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        _isAuthenticated = user.Identity?.IsAuthenticated == true;
-
-        if (_isAuthenticated)
-        {
-            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (!string.IsNullOrEmpty(userId))
-            {
-                _ = Task.Run(async () =>
-                {
-                    await AppState.EnsureInitializedAsync(userId, true);
-
-                    // Started from the layout rather than the chat page, so messages arrive on every
-                    // page. Without this the unread badge could only ever update while chat was open,
-                    // which is the whole reason messages went unnoticed.
-                    await StartChatAsync(userId);
-
-                    await InvokeAsync(StateHasChanged);
-                });
-            }
-        }
-        else
-        {
-            _authChecked = true;
-            _isAuthenticated = false;
-            StateHasChanged();
-            return;
-        }
-        _authChecked = true;
-
-
-        if (!_subscribed)
-        {
-            AppState.OnChange += StateHasChanged;
-            _subscribed = true;
-        }
-
-        StateHasChanged();
+        if (!firstRender) return;
+        AppState.OnChange += OnAppStateChanged;
+        _subscribed = true;
+        await InitializeSessionAsync();
     }
 
+    private async Task InitializeSessionAsync()
+    {
+        _initializationFailed = false;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            _isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+            if (_isAuthenticated)
+            {
+                var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                _initializationFailed = string.IsNullOrWhiteSpace(userId)
+                    || !await AppState.EnsureInitializedAsync(userId, true);
+                _authChecked = true;
+                await InvokeAsync(StateHasChanged);
+                if (!_initializationFailed)
+                {
+                    try { await StartChatAsync(userId!); }
+                    catch (Exception ex) { Console.WriteLine($"Chat startup failed: {ex.Message}"); }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _initializationFailed = true;
+            Console.WriteLine($"Session initialization failed: {ex.Message}");
+        }
+        finally
+        {
+            _authChecked = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
     private bool IsAuthPage =>
         Nav.Uri.Contains("Account/Login", StringComparison.OrdinalIgnoreCase) ||
         Nav.Uri.Contains("Account/Register", StringComparison.OrdinalIgnoreCase) ||
@@ -178,7 +180,7 @@
     {
         if (_subscribed)
         {
-            AppState.OnChange -= StateHasChanged;
+            AppState.OnChange -= OnAppStateChanged;
             _subscribed = false;
         }
 
