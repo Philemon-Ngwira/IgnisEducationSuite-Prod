@@ -21,6 +21,7 @@ using IgnisEducationSuite.ServerServices;
 using IgnisEducationSuite.ServerServices.PaymentsServices;
 using IgnisEducationSuite.ServerServices.PaymentsServices.Lipila_Service;
 using IgnisEducationSuite.ServerServices.Chat;
+using IgnisEducationSuite.ServerServices.ParentLinking;
 using IgnisEducationSuite.ServerServices.ReportCards;
 using IgnisEducationSuite.ServerServices.Scheduling;
 using IgnisEducationSuite.ServerServices.Security;
@@ -164,6 +165,9 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<ReportCardEntryOrchestrator>();
 
             // Chat unread state, history paging and realtime
+            builder.Services.AddScoped<ParentLinkingService>();
+            builder.Services.AddScoped<StudentEnrolmentService>();
+            builder.Services.AddScoped<IParentLinkingClientService, ParentLinkingClientService>();
             builder.Services.AddScoped<ChatEngagementService>();
             builder.Services.AddScoped<ChatRealtimeService>();
 

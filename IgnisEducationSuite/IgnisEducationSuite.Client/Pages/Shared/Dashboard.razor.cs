@@ -5,6 +5,7 @@ using ChartJs.Blazor.PieChart;
 using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
+using EDUSphereSharedProject.UniversalModels.ParentLinking;
 using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -16,6 +17,12 @@ namespace IgnisEducationSuite.Client.Pages.Shared
 {
     public partial class Dashboard : AppBaseComponent
     {
+        [Inject] protected IParentLinkingClientService ParentLinking { get; set; } = default!;
+
+        /// <summary>Empty until loaded, and NeedsWork is false when the count is zero, so the tile
+        /// simply does not render for a school with no gaps.</summary>
+        protected UnparentedSummaryDto UnparentedSummary { get; set; } = new();
+
         protected int activeDayIndex = 0;
         protected bool isLoading = false;
         protected bool isAuthenticated = false;
@@ -154,7 +161,8 @@ namespace IgnisEducationSuite.Client.Pages.Shared
 
                 await Task.WhenAll(
                     GetAllLessons(),
-                    GetStudentDetails()
+                    GetStudentDetails(),
+                    GetUnparentedSummary()
                 );
 
                 // Then load secondary dashboard data
@@ -350,6 +358,17 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 .ToList();
             }
         }
+        /// <summary>
+        /// Students with no parent on record. Admin-only: it is a data-quality prompt aimed at
+        /// whoever can actually fix it, and the tile stays hidden when the count is zero.
+        /// </summary>
+        protected async Task GetUnparentedSummary()
+        {
+            if (AppState.UserRole != "Admin") return;
+
+            UnparentedSummary = await ParentLinking.GetSummaryAsync();
+        }
+
         protected async Task GetStudentDetails()
         {
             var service = _genericService.GetService<vw_StudentGrowth>();

@@ -2,7 +2,10 @@ using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
 using EDUSphereSharedProject.UniversalModels;
+using EDUSphereSharedProject.LicensingModel;
 using IgnisEducationSuite.Client.Services;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http.Json;
 
 public class AppState
 {
@@ -24,7 +27,20 @@ public class AppState
     public string SchoolLogo { get; private set; } = string.Empty;
     public List<string> UserRoles { get; private set; } = new List<string>();
     public bool HideStudentDashboard { get; private set; }
-    public bool LicenseIsActive { get; private set; }
+    public bool LicenseIsActive { get; private set; } = true;
+
+    /// <summary>
+    /// Full licence state, including whether the check actually succeeded.
+    ///
+    /// Read <c>LicenseStatus.IsConfirmedUnlicensed</c> — not <c>!LicenseIsActive</c> — before
+    /// restricting anything. The app fails open, so LicenseIsActive stays true when the licensing
+    /// service is unreachable, and only a successful check that says otherwise should block a
+    /// feature.
+    /// </summary>
+    public LicenseStatusDto LicenseStatus { get; private set; } = new();
+
+    /// <summary>Maximum user accounts allowed, or null when unknown/unenforced.</summary>
+    public int? LicenseUserLimit => LicenseStatus.UserLimit;
     public SchoolCurrency Currency { get; private set; } = new();
     public bool IsLicenseChecked { get; private set; } = false;
     public bool IsLicenseLoading { get; private set; } = false;
@@ -93,6 +109,87 @@ public class AppState
         }
         finally { IsInitializing = false; }
     }
+    /// <summary>
+    /// Resolves this school's licence once per sign-in.
+    ///
+    /// Fails open by construction: any failure leaves LicenseIsActive true and Verified false, so
+    /// the app stays usable and admins can be told the check did not happen. SuperAdmins are not
+    /// tied to a school, so there is nothing to check for them.
+    /// </summary>
+    private async Task LoadLicenseAsync()
+    {
+        IsLicenseLoading = true;
+
+        try
+        {
+            if (UserRole == "SuperAdmin" || !Guid.TryParse(SchoolID, out var clientId))
+            {
+                LicenseStatus = new LicenseStatusDto { IsLicensed = true, Verified = true, Status = "Not applicable" };
+                LicenseIsActive = true;
+                return;
+            }
+
+            var http = _serviceProvider.GetRequiredService<HttpClient>();
+            var status = await http.GetFromJsonAsync<LicenseStatusDto>($"api/Verification/Status/{clientId}");
+
+            LicenseStatus = status ?? new LicenseStatusDto
+            {
+                IsLicensed = true,
+                Verified = false,
+                Status = "Could not be verified",
+                Notice = "The licence check returned no result. Everything continues to work.",
+            };
+
+            LicenseIsActive = LicenseStatus.IsLicensed;
+        }
+        catch (Exception ex)
+        {
+            // Never rethrow: this runs inside initialization, and a licensing problem must not
+            // prevent sign-in.
+            Console.WriteLine($"[AppState] Licence check failed: {ex.Message}");
+
+            LicenseStatus = new LicenseStatusDto
+            {
+                IsLicensed = true,
+                Verified = false,
+                Status = "Could not be verified",
+                Notice = "The licensing service could not be reached, so this school's licence has not been verified.",
+            };
+
+            LicenseIsActive = true;
+        }
+        finally
+        {
+            IsLicenseChecked = true;
+            IsLicenseLoading = false;
+        }
+    }
+
+    /// <summary>Re-checks the licence, bypassing the server cache. For use after a licence is
+    /// activated or renewed, which would otherwise not show up until the cache expires.</summary>
+    public async Task RefreshLicenseAsync()
+    {
+        if (UserRole == "SuperAdmin" || !Guid.TryParse(SchoolID, out var clientId)) return;
+
+        try
+        {
+            var http = _serviceProvider.GetRequiredService<HttpClient>();
+            var status = await http.GetFromJsonAsync<LicenseStatusDto>(
+                $"api/Verification/Status/{clientId}?refresh=true");
+
+            if (status is not null)
+            {
+                LicenseStatus = status;
+                LicenseIsActive = status.IsLicensed;
+                NotifyStateChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AppState] Licence refresh failed: {ex.Message}");
+        }
+    }
+
     private bool HasValidCoreData()
     {
         return !string.IsNullOrEmpty(UserID)
@@ -170,20 +267,11 @@ public class AppState
             }
 
             // --- 4️⃣ Load License ---
-            //if (UserRole != "SuperAdmin")
-            //{
-            //    var licenseService = _genericService.GetService<usp_GetPharmacyLicenseStatusResult>();
-            //    var licenseResult = await licenseService.GetAllAsync($"api/Dynamic/GetLicenseStatus/{SchoolID}", true);
-            //    License = licenseResult.IsSuccess && licenseResult.Data.Any()
-            //        ? licenseResult.Data.First()
-            //        : new usp_GetPharmacyLicenseStatusResult();
-            //    LicenseIsActive = License?.IsValid == 1;
-            //}
-            //else
-            //{
-            //    LicenseIsActive = true;
-            //}
-            LicenseIsActive = true; // 🚨 override for testing - remove in production
+            //
+            // One call, once per sign-in. The server caches the result per school, so this does not
+            // become a per-page cost, and it returns a status object rather than throwing — an
+            // unreachable licensing service must never stop someone signing in.
+            await LoadLicenseAsync();
             if (!HasValidCoreData())
             {
                 Console.WriteLine("[AppState] Core initialization invalid.");

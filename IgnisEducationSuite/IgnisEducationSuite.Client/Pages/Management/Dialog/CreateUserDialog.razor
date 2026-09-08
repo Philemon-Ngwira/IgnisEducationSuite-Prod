@@ -4,11 +4,14 @@
 @using EDUSphereSharedProject.IdentiyModels
 @using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.UniversalModels
+@using EDUSphereSharedProject.UniversalModels.ParentLinking
+@using IgnisEducationSuite.Client.Services
 @inject HttpClient Http
 @inject NavigationManager navigationManager
 @inject GenericServiceFactory genericService
 @inject ISnackbar Snackbar
 @inject StudentNumberGenerator StudentNumberGenerator
+@inject IParentLinkingClientService ParentLinking
 @inherits AppBaseComponent
 <MudDialog>
     <DialogContent>
@@ -64,12 +67,73 @@
             <!-- Student-specific fields -->
             @if (Role == "Student")
             {
+                @* Chosen from the school's actual structure rather than typed. Class matching joins on
+                   LevelName and GradeSection, so a typo here produced a student enrolled in nothing —
+                   with no visible sign anything was wrong. *@
                 <MudItem xs="12" md="6">
-                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="int" @bind-Value="newUser.GradeLevel" Label="Grade Level" />
+                    <MudSelect T="AcademicLevel" Label="Academic Level" Value="_selectedLevel"
+                               ValueChanged="OnAcademicLevelChanged"
+                               ToStringFunc="@(l => l?.LevelName ?? "Select a level")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                        @foreach (var level in AppState.AcademicLevels)
+                        {
+                            <MudSelectItem Value="@level">@level.LevelName</MudSelectItem>
+                        }
+                    </MudSelect>
                 </MudItem>
+
                 <MudItem xs="12" md="6">
-                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newUser.GradeSection" Label="Grade Section" Placeholder="e.g., A for 10A" />
+                    <MudSelect T="LevelSection" Label="Grade Section" Value="_selectedSection"
+                               ValueChanged="OnLevelSectionChanged"
+                               ToStringFunc="@(s => s?.SectionCode ?? "Select a section")"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Disabled="@(_selectedLevel is null)" Required="true">
+                        @foreach (var levelSection in SectionsForSelectedLevel)
+                        {
+                            <MudSelectItem Value="@levelSection">@levelSection.SectionCode</MudSelectItem>
+                        }
+                    </MudSelect>
                 </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string" Label="Option Group" @bind-Value="_selectedGroupName"
+                               ToStringFunc="@(g => string.IsNullOrEmpty(g) ? "None — core classes only" : g)"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               HelperText="Only needed if this student takes option-set subjects.">
+                        <MudSelectItem T="string" Value="@("")">None — core classes only</MudSelectItem>
+                        @foreach (var group in _groupOptions)
+                        {
+                            <MudSelectItem T="string" Value="@group.GroupName">
+                                @group.GroupName (@group.ClassCount class@(group.ClassCount == 1 ? "" : "es"))
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                @* Optional on purpose: an unlinked student appears on the Students Without a Parent
+                   screen, so creation is not blocked on the parent existing yet. *@
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="ParentOptionDto" Label="Parent (optional)"
+                                     Value="_selectedParentForStudent"
+                                     ValueChanged="v => _selectedParentForStudent = v"
+                                     SearchFunc="@SearchParentsForStudent"
+                                     ToStringFunc="@(p => p is null ? "" : p.FullName)"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                                     HelperText="Leave blank to link later from the parent mapping screen." />
+                </MudItem>
+
+                @if (_selectedGroupName is { Length: > 0 })
+                {
+                    var chosen = _groupOptions.FirstOrDefault(g => g.GroupName == _selectedGroupName);
+                    @if (chosen is not null)
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                                Will also be enrolled in: @string.Join(", ", chosen.ClassNames)
+                            </MudAlert>
+                        </MudItem>
+                    }
+                }
             }
 
             <!-- Gender & Address -->
@@ -175,6 +239,50 @@
     [Parameter] public List<CountryDTO> countries { get; set; } = new();
     [Parameter] public List<Gender> genders { get; set; } = new();
     [Parameter] public ClientAdmin LoggedAdmin { get; set; } = new();
+
+    /// <summary>
+    /// Children to attach to the new parent, already chosen elsewhere. Used by the student-to-parent
+    /// mapping screen, which knows which unparented students prompted the creation — so the admin
+    /// does not have to search for them again in this dialog.
+    /// </summary>
+    [Parameter] public List<Student> PreselectedChildren { get; set; } = new();
+
+    // ---- Student enrolment (level, section, group, parent) ----
+
+    private AcademicLevel? _selectedLevel;
+    private LevelSection? _selectedSection;
+    private string _selectedGroupName = "";
+    private ParentOptionDto? _selectedParentForStudent;
+    private List<StudentGroupOptionDto> _groupOptions = new();
+
+    private IEnumerable<LevelSection> SectionsForSelectedLevel =>
+        _selectedLevel is null
+            ? Enumerable.Empty<LevelSection>()
+            : AppState.AcademicSections.Where(s => s.AcademicLevelID == _selectedLevel.AcademicLevelID);
+
+    private void OnAcademicLevelChanged(AcademicLevel? level)
+    {
+        _selectedLevel = level;
+
+        // The previously chosen section belongs to the old level and would put the student in a
+        // section that does not exist for this one.
+        _selectedSection = null;
+
+        newUser.GradeLevel = level?.LevelInt ?? 0;
+        newUser.GradeSection = "";
+    }
+
+    private void OnLevelSectionChanged(LevelSection? levelSection)
+    {
+        _selectedSection = levelSection;
+        newUser.GradeSection = levelSection?.SectionCode ?? "";
+    }
+
+    private async Task<IEnumerable<ParentOptionDto>> SearchParentsForStudent(string value, CancellationToken token)
+    {
+        var parents = await ParentLinking.ListParentsAsync(value);
+        return parents.Take(25);
+    }
     private List<Student> parentsChildren = new();
     protected List<CityDTO> Cities = new();
     protected UniversalUser newUser = new();
@@ -195,6 +303,10 @@
         if (Role == "Student")
         {
             PrefixLabel = "StudentNumber Prefix";
+
+            // Group tokens are derived from real class names, so every option offered is guaranteed
+            // to match at least one class.
+            _groupOptions = await ParentLinking.ListGroupOptionsAsync();
         }
         else if (Role == "Teacher" || Role == "Staff")
         {
@@ -204,6 +316,20 @@
         {
             await GetStudent();
             PrefixLabel = "";
+
+            // Seed the child list from whoever sent us here. Matched by id against the loaded
+            // students so the chips carry the same instances the search would have produced.
+            if (Role == "Parent" && PreselectedChildren.Count > 0)
+            {
+                foreach (var preselected in PreselectedChildren)
+                {
+                    var match = students.FirstOrDefault(s => s.StudentID == preselected.StudentID) ?? preselected;
+                    if (!parentsChildren.Any(c => c.StudentID == match.StudentID))
+                    {
+                        parentsChildren.Add(match);
+                    }
+                }
+            }
         }
         LoaderService.Hide();
     }
@@ -454,6 +580,12 @@
     }
     private async Task CreateStudentAsync(UniversalUser user, string studentID, string userId)
     {
+        if (_selectedLevel is null || _selectedSection is null)
+        {
+            Snackbar.Add("Choose the academic level and section — class matching depends on them.", Severity.Error);
+            return;
+        }
+
         var student = new Student
         {
             StudentID = Guid.NewGuid(),
@@ -461,15 +593,30 @@
             LastName = user.LastName,
             Gender = user.Gender,
             Address = user.Address,
+            Email = user.Email,
             Country = Country.CountryName,
             City = City.CityName,
-            AcademicLevel = user.GradeLevel,
             StudentNumber = studentID,
             ProfilePic = user.profilePic,
             UserID = userId,
             DateOnBoarded = DateTime.Now,
             SchoolID = LoggedAdmin.SchoolID,
-            GradeSection = user.GradeSection
+
+            // These four are what the bulk upload sets and individual creation did not.
+            // SyncStudentsToClasses joins on LevelName and GradeSection and matches option-set
+            // classes by GroupName, so without them a student matches no classes at all.
+            AcademicLevel = _selectedLevel.LevelInt ?? user.GradeLevel,
+            LevelName = _selectedLevel.LevelName,
+            GradeSection = _selectedSection.SectionCode,
+            GroupName = string.IsNullOrWhiteSpace(_selectedGroupName) ? null : _selectedGroupName,
+
+            // Carried so schedule saving and parent-gap reporting can scope by section without
+            // matching on display names.
+            AcademicLevelID = _selectedLevel.AcademicLevelID,
+            LevelSectionID = _selectedSection.LevelSectionID,
+
+            // Optional by design — an unlinked student surfaces on the parent mapping screen.
+            ParentID = _selectedParentForStudent?.ParentId,
         };
 
         var service = genericService.GetService<Student>();
@@ -481,14 +628,50 @@
             return;
         }
 
+        // Enrol them in their classes. The bulk path relies on this procedure; individual creation
+        // never ran it, so a student added one at a time had no StudentClasses rows and was missing
+        // from class lists and report card mark sheets.
+        var sync = await ParentLinking.SyncStudentClassesAsync(student.StudentID);
+
+        if (!sync.Succeeded)
+        {
+            Snackbar.Add(
+                $"{student.FirstName} was created, but class matching failed: {string.Join(" ", sync.Errors)}",
+                Severity.Warning);
+        }
+        else if (sync.StudentClassCount == 0)
+        {
+            // Created but enrolled in nothing. Almost always means no class exists for this
+            // level/section combination — say so now rather than at reporting time.
+            Snackbar.Add(
+                $"{student.FirstName} was created but matched no classes. Check that classes exist for " +
+                $"{_selectedLevel.LevelName} {_selectedSection.SectionCode}.",
+                Severity.Warning);
+        }
+        else
+        {
+            Snackbar.Add($"{student.FirstName} enrolled in {sync.StudentClassCount} class(es).", Severity.Success);
+        }
+
+        if (_selectedParentForStudent is null)
+        {
+            Snackbar.Add(
+                $"{student.FirstName} has no parent linked yet — they will appear on the Students Without a Parent screen.",
+                Severity.Info);
+        }
+
         await SendOneTimePasswordEmail(user, $"{saved.Data.FirstName} {saved.Data.LastName}", studentID);
         MudDialog.Close(DialogResult.Ok("successful"));
     }
     private async Task CreateParentAsync(UniversalUser user, Student selectedStudent, string userId)
     {
-        if (selectedStudent == null)
+        // Checks parentsChildren, which is what the linking below actually uses. The previous guard
+        // tested selectedStudent, a field initialised to new Student() and therefore never null —
+        // so a parent created with no children selected passed the check, linked nobody, and still
+        // reported success, leaving an orphan parent record behind.
+        if (!parentsChildren.Any())
         {
-            Snackbar.Add("Parent must have a child selected", Severity.Error);
+            Snackbar.Add("Add at least one child before creating a parent.", Severity.Error);
             return;
         }
 

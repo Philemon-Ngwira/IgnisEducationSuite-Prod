@@ -14,6 +14,22 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
+@* Licence notices, admins only. Nothing here blocks use: the app fails open, so an unverified
+   licence is reported rather than enforced, and only a confirmed-unlicensed state restricts
+   anything (adding users). *@
+@if (ShowLicenceNotice)
+{
+    <MudAlert Severity="@LicenceNoticeSeverity" Variant="Variant.Filled" Dense="true" Class="rounded-0">
+        <div class="d-flex flex-wrap align-center justify-space-between" style="width:100%; gap:12px;">
+            <span>@AppState.LicenseStatus.Notice</span>
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Inherit"
+                       OnClick="RecheckLicenceAsync">
+                Check again
+            </MudButton>
+        </div>
+    </MudAlert>
+}
+
 <MudLayout Class="ignis-layout">
 
     <MudAppBar>
@@ -83,6 +99,32 @@
     private bool _authChecked = false;
     private bool _isAuthenticated = false;
     private bool _chatSubscribed;
+
+    // ---- Licence notice ----
+    //
+    // Shown to admins only: they are the ones who can act on it, and a teacher or parent cannot do
+    // anything useful with a licensing message.
+
+    private bool IsLicenceAdmin =>
+        AppState.UserRole is "Admin" or "SuperAdmin" or "Principal";
+
+    private bool ShowLicenceNotice =>
+        IsLicenceAdmin
+        && AppState.IsLicenseChecked
+        && !string.IsNullOrWhiteSpace(AppState.LicenseStatus.Notice);
+
+    /// <summary>
+    /// Error only for a confirmed-unlicensed school. An unverified licence is a warning: we do not
+    /// know that anything is wrong, so it should not look like it.
+    /// </summary>
+    private Severity LicenceNoticeSeverity =>
+        AppState.LicenseStatus.IsConfirmedUnlicensed ? Severity.Error : Severity.Warning;
+
+    private async Task RecheckLicenceAsync()
+    {
+        await AppState.RefreshLicenseAsync();
+        await InvokeAsync(StateHasChanged);
+    }
 
     /// <summary>
     /// Brings up the shared chat connection and shows a toast for messages that arrive while the

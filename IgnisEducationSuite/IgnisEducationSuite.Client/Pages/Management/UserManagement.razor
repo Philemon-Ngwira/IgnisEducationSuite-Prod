@@ -1081,13 +1081,31 @@
     }
     private async Task CreateUserAsync(string Role)
     {
-        // Prevent adding more students if the limit is reached
-        if (Role == "Student")
+        // A confirmed-invalid licence blocks adding users, and nothing else. Deliberately checks
+        // IsConfirmedUnlicensed rather than !LicenseIsActive: the app fails open, so a licence we
+        // could not verify must not stop a school working.
+        if (AppState.LicenseStatus.IsConfirmedUnlicensed)
+        {
+            Snackbar.Add(
+                $"This school's licence is {AppState.LicenseStatus.Status?.ToLowerInvariant()}, so new users cannot be added. " +
+                "Renew the licence to continue.",
+                Severity.Error);
+            return;
+        }
+
+        // Prevent adding more students if the limit is reached.
+        //
+        // A null limit means unknown or unenforced — previously an unreachable licensing service
+        // produced a limit of 0, which silently blocked every user creation, including for a school
+        // still being onboarded.
+        if (Role == "Student" && AppState.LicenseUserLimit is { } studentLimit && studentLimit > 0)
         {
             var count = userRoles.Where(x => x.Key == "Student").Sum(x => x.Value.Count);
-            if (count >= LicenseUserLimit.UserLimit) // Corrected condition
+            if (count >= studentLimit)
             {
-                Snackbar.Add("You have reached the number of license slots available for your subscription. Please upgrade your license to add more users.", Severity.Error);
+                Snackbar.Add(
+                    $"You have used all {studentLimit} licence slots on your subscription. Please upgrade your licence to add more users.",
+                    Severity.Error);
                 return;
             }
         }
