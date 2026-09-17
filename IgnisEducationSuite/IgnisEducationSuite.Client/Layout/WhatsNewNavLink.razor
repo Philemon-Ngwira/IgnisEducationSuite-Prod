@@ -1,0 +1,44 @@
+@using EDUSphereSharedProject.UniversalModels.Updates
+@using IgnisEducationSuite.Client.Services
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+@* Navigation entry for the release notes, with a dot until this browser has read the current
+   version. A component rather than a bare MudNavLink because the nav menu renders one per role and
+   the badge has to behave the same in all of them — the same reason ChatNavLink exists. *@
+
+<MudNavLink Href="Updates" Icon="@Icons.Material.Filled.NewReleases">
+    <div class="d-flex align-center justify-space-between" style="width:100%; gap:8px;">
+        <span>@Label</span>
+        @if (_hasUnseen)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled" Class="ma-0">
+                @ReleaseNotes.CurrentVersion
+            </MudChip>
+        }
+    </div>
+</MudNavLink>
+
+@code {
+    [Parameter] public string Label { get; set; } = "What's New";
+
+    private bool _hasUnseen;
+
+    /// <summary>
+    /// Checked after render rather than on initialise: reading localStorage needs a browser, and
+    /// during prerendering there is not one. HasUnseenUpdateAsync never throws, so a browser that
+    /// blocks site data simply shows no dot.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        var unseen = await UpdateTracking.HasUnseenUpdateAsync(JS, ReleaseNotes.CurrentVersion);
+
+        if (unseen != _hasUnseen)
+        {
+            _hasUnseen = unseen;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}

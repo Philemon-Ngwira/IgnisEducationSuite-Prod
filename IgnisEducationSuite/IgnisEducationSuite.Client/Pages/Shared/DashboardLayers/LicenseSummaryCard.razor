@@ -1,0 +1,241 @@
+@using EDUSphereSharedProject.LicensingModel
+@inject ILicenseClientService Licensing
+@inject AppState AppState
+@inject NavigationManager Nav
+
+@* What this school's licence entitles it to, for its own administrator.
+
+   MainLayout already shows a banner when something is wrong. This is the other half: what is
+   included and how much is left, visible when everything is fine — the question an administrator
+   asks before enrolling a new intake, not after being refused. *@
+
+@if (_loading)
+{
+    <div class="row gy-4 mb-24">
+        <div class="col-12">
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
+        </div>
+    </div>
+}
+else if (Summary is { } licence)
+{
+    <div class="row gy-4 mb-24">
+        <div class="col-12">
+            <MudPaper Class="pa-4" Elevation="1">
+
+                <div class="d-flex flex-wrap align-center gap-3 mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.WorkspacePremium" Color="@StateColor(licence)" Size="Size.Large" />
+
+                    <div style="flex:1; min-width:200px;">
+                        <MudText Typo="Typo.subtitle1"><b>Your Ignis licence</b></MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @if (!licence.Verified)
+                            {
+                                <text>
+                                    The licensing service could not be reached, so these details may be out of date.
+                                    Nothing is blocked — Ignis keeps working when the check cannot be made.
+                                </text>
+                            }
+                            else if (licence.IsConfirmedUnlicensed)
+                            {
+                                <text>Adding new users is paused until the licence is renewed. Everything already recorded stays available.</text>
+                            }
+                            else
+                            {
+                                <text>
+                                    @(string.IsNullOrWhiteSpace(licence.PlanType) ? "Active" : Capitalise(licence.PlanType) + " plan")@(licence.EndDate is { } shown ? $", running until {shown:d MMMM yyyy}" : "")
+                                </text>
+                            }
+                        </MudText>
+                    </div>
+
+                    <MudChip T="string" Size="Size.Medium" Variant="Variant.Filled" Color="@StateColor(licence)">
+                        @StateLabel(licence)
+                    </MudChip>
+                </div>
+
+                <MudDivider Class="mb-3" />
+
+                <MudGrid>
+
+                    @* Student places. This is the figure that actually gates anything — the create-user
+                       path measures the licence limit against student accounts, not against all users —
+                       so it is stated as student places rather than the vaguer "users". *@
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Student places</MudText>
+
+                        @if (licence.StudentLimit is { } limit)
+                        {
+                            <MudText Typo="Typo.h6" Class="mb-1">
+                                <b>@licence.StudentCount</b>
+                                <span class="mud-text-secondary" style="font-size:0.7em;"> of @limit</span>
+                            </MudText>
+
+                            <MudProgressLinear Value="@(Math.Min(licence.UsageRatio ?? 0, 1) * 100)"
+                                               Color="@UsageColor(licence)" Size="Size.Medium" Rounded="true" />
+
+                            <MudText Typo="Typo.body2" Class="mt-1">
+                                @if (licence.IsAtOrOverLimit)
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Error" Class="d-inline">
+                                        <b>No places left.</b>
+                                    </MudText>
+                                    <text> Renew or upgrade to enrol more students.</text>
+                                }
+                                else
+                                {
+                                    <text><b>@licence.StudentPlacesRemaining</b> place@(licence.StudentPlacesRemaining == 1 ? "" : "s") remaining.</text>
+                                }
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.h6" class="mb-1"><b>@licence.StudentCount</b></MudText>
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                @* Deliberately not shown as a limit of zero. A limit that could not be read
+                                   is not a limit of none. *@
+                                No student limit is recorded for this school, so enrolment is not capped.
+                            </MudText>
+                        }
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary mb-1">Also on your licence</MudText>
+                        <div class="d-flex flex-wrap gap-2">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Filled.CoPresent">@licence.TeacherCount teacher@(licence.TeacherCount == 1 ? "" : "s")</MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Filled.FamilyRestroom">@licence.ParentCount parent@(licence.ParentCount == 1 ? "" : "s")</MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Filled.Badge">@licence.StaffCount staff</MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Filled.SupervisedUserCircle">@licence.UserAccountCount sign-in account@(licence.UserAccountCount == 1 ? "" : "s")</MudChip>
+                        </div>
+
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
+                            Teachers, parents and staff do not count towards the student limit.
+                        </MudText>
+                    </MudItem>
+
+                    @* Renewal notice, only when it is close enough to act on. *@
+                    @if (licence.IsExpiringSoon && licence.DaysUntilExpiry is { } days)
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                                Your licence ends in @days day@(days == 1 ? "" : "s"), on @(licence.EndDate?.ToString("d MMMM yyyy")).
+                                Contact Philtiara Enterprises to renew before then.
+                            </MudAlert>
+                        </MudItem>
+                    }
+
+                    @if (licence.IsNearLimit)
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                                You have used @((int)Math.Round((licence.UsageRatio ?? 0) * 100))% of your student places.
+                                Worth arranging more before your next intake.
+                            </MudAlert>
+                        </MudItem>
+                    }
+
+                    @* What is and is not possible right now, said plainly rather than discovered at
+                       the point of being refused. *@
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">What you can do right now</MudText>
+                        <div class="d-flex flex-wrap gap-3 mt-1">
+                            <Capability Allowed="@licence.CanAddStudents" Label="Enrol students" />
+                            <Capability Allowed="@licence.CanAddUsers" Label="Add teachers, parents and staff" />
+                            <Capability Allowed="true" Label="Timetables, report cards, chat and records" />
+                        </div>
+                    </MudItem>
+                </MudGrid>
+
+                <div class="d-flex flex-wrap align-center gap-2 mt-3">
+                    <MudButton Size="Size.Small" Variant="Variant.Text"
+                               StartIcon="@Icons.Material.Filled.Group"
+                               OnClick="@(() => Nav.NavigateTo("/UserManagement"))">
+                        Manage users
+                    </MudButton>
+
+                    <MudButton Size="Size.Small" Variant="Variant.Text"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               Disabled="_refreshing"
+                               OnClick="RefreshAsync">
+                        Re-check licence
+                    </MudButton>
+
+                    <MudSpacer />
+
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Checked @licence.CheckedAtUtc.ToLocalTime().ToString("HH:mm")
+                    </MudText>
+                </div>
+            </MudPaper>
+        </div>
+    </div>
+}
+
+@code {
+    private SchoolLicenseSummaryDto? Summary;
+    private bool _loading = true;
+    private bool _refreshing;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync(bool refresh = false)
+    {
+        try
+        {
+            // Null on failure, and the card then renders nothing at all. A licence panel that
+            // cannot load should be absent rather than showing zeroes an administrator might act on.
+            Summary = await Licensing.GetMySchoolAsync(refresh);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        _refreshing = true;
+        try
+        {
+            await LoadAsync(refresh: true);
+
+            // Keep the layout's banner in step: it reads AppState, which still holds the licence
+            // resolved at sign-in.
+            await AppState.RefreshLicenseAsync();
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private static string Capitalise(string value) =>
+        string.IsNullOrWhiteSpace(value) ? value : char.ToUpperInvariant(value[0]) + value[1..];
+
+    /// <summary>
+    /// Three states, not two. "Could not be checked" must never be coloured like "not licensed":
+    /// the school is working normally, and the thing to fix is the check, not the licence.
+    /// </summary>
+    private static Color StateColor(SchoolLicenseSummaryDto licence) =>
+        !licence.Verified ? Color.Default
+        : licence.IsConfirmedUnlicensed ? Color.Error
+        : licence.IsExpiringSoon || licence.IsAtOrOverLimit ? Color.Warning
+        : Color.Success;
+
+    /// <summary>Colour of the places-used bar. Green until it is worth planning around.</summary>
+    private static Color UsageColor(SchoolLicenseSummaryDto licence) =>
+        licence.IsAtOrOverLimit ? Color.Error
+        : licence.IsNearLimit ? Color.Warning
+        : Color.Success;
+
+    private static string StateLabel(SchoolLicenseSummaryDto licence) =>
+        !licence.Verified ? "Unverified"
+        : licence.IsConfirmedUnlicensed ? (licence.Status ?? "Not licensed")
+        : licence.IsAtOrOverLimit ? "At capacity"
+        : licence.IsExpiringSoon ? $"Expires in {licence.DaysUntilExpiry}d"
+        : "Active";
+}

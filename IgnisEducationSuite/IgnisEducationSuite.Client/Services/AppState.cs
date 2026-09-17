@@ -26,6 +26,7 @@ public class AppState
     public string UserEmail { get; private set; } = string.Empty;
     public string SchoolLogo { get; private set; } = string.Empty;
     public List<string> UserRoles { get; private set; } = new List<string>();
+
     public bool HideStudentDashboard { get; private set; }
     public bool LicenseIsActive { get; private set; } = true;
 
@@ -122,7 +123,9 @@ public class AppState
 
         try
         {
-            if (UserRole == "SuperAdmin" || !Guid.TryParse(SchoolID, out var clientId))
+            // No school, nothing to check. Previously this also tested for SuperAdmin, which was
+            // redundant: a SuperAdmin belongs to no school, so SchoolID never parses for them.
+            if (!Guid.TryParse(SchoolID, out var clientId))
             {
                 LicenseStatus = new LicenseStatusDto { IsLicensed = true, Verified = true, Status = "Not applicable" };
                 LicenseIsActive = true;
@@ -169,7 +172,7 @@ public class AppState
     /// activated or renewed, which would otherwise not show up until the cache expires.</summary>
     public async Task RefreshLicenseAsync()
     {
-        if (UserRole == "SuperAdmin" || !Guid.TryParse(SchoolID, out var clientId)) return;
+        if (!Guid.TryParse(SchoolID, out var clientId)) return;
 
         try
         {
@@ -254,6 +257,7 @@ public class AppState
             LastName = data.LastName ?? "";
 
 
+            // School branding and currency only exist for someone who belongs to a school.
             if (UserRole != "SuperAdmin")
             {
                 SchoolLogo = data.SchoolLogo?.Length > 0
@@ -303,7 +307,7 @@ public class AppState
             tasks.Add(LoadBadgesAsync());
 
             // ❗ Only load school data if NOT SuperAdmin AND SchoolID is valid
-            if (UserRole != "SuperAdmin" && (Guid.TryParse(SchoolID, out _) || UserRole is "SuperAdmin" or "Parent" or "Finance"))
+            if (UserRole != "SuperAdmin")
             {
                 tasks.Add(LoadAcademicLevelsAsync());
                 tasks.Add(LoadAcademicSections());

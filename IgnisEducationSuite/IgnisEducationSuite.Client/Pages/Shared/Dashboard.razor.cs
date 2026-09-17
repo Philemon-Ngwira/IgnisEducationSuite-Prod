@@ -24,8 +24,6 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         protected UnparentedSummaryDto UnparentedSummary { get; set; } = new();
 
         protected int activeDayIndex = 0;
-        protected bool isLoading = false;
-        protected bool isAuthenticated = false;
         protected bool showDataLabels = false;
         protected bool showTooltipOnLegend = true;
 
@@ -157,22 +155,38 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 // ----------------------------------------------------------
                 // 5. Load Core Dashboard Data (Lessons + Student first)
                 // ----------------------------------------------------------
-                Console.WriteLine("Loading core data...");
+                // Every load below is scoped to one school, by putting AppState.SchoolID straight
+                // into the URL. A SuperAdmin belongs to no school, so that value is empty for them
+                // and each request resolves to ".../GetStudentGrowthBySchool/" with no id — a route
+                // that requires that segment and therefore cannot match, so all of these returned
+                // 404 on every dashboard load.
+                //
+                // A SuperAdmin's dashboard content comes from SuperAdminOverview, which loads its
+                // own cross-tenant data, so there is nothing to fetch here for them.
+                if (Guid.TryParse(SchoolID, out _))
+                {
+                    Console.WriteLine("Loading core data...");
 
-                await Task.WhenAll(
-                    GetAllLessons(),
-                    GetStudentDetails(),
-                    GetUnparentedSummary()
-                );
+                    await Task.WhenAll(
+                        GetAllLessons(),
+                        GetStudentDetails(),
+                        GetUnparentedSummary()
+                    );
 
-                // Then load secondary dashboard data
-                await Task.WhenAll(
-                    GetTopLessons(),
-                    GetStudentDemoGraphicCountry(),
-                    GetStudentDemographicCity(),
-                    GetTopTeachers(),
-                    GetBestPerformingStudents()
-                );
+                    // Then load secondary dashboard data
+                    await Task.WhenAll(
+                        GetTopLessons(),
+                        GetStudentDemoGraphicCountry(),
+                        GetStudentDemographicCity(),
+                        GetTopTeachers(),
+                        GetBestPerformingStudents()
+                    );
+                }
+                else
+                {
+                    Console.WriteLine(
+                        $"No school resolved for role '{AppState.UserRole}'; skipping school-scoped dashboard data.");
+                }
 
                 // ----------------------------------------------------------
                 // 6. Student / Parent Extra Data
@@ -264,69 +278,6 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 Console.Error.WriteLine($"Error loading country demographics: {ex.Message}");
             }
         }
-        protected async Task LoadInfomation()
-        {
-
-            await InvokeAsync(StateHasChanged); // Show loading state
-
-
-            if (!AppState.IsFullyInitialized)
-            {
-                Console.WriteLine("AppState failed to initialize after retries.");
-                isLoading = false;
-                await InvokeAsync(StateHasChanged); // Notify UI of failure
-                return;
-            }
-
-            var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-            if (authState.User.Identity?.IsAuthenticated == true)
-            {
-                SchoolID = AppState.SchoolID;
-
-                try
-                {
-                    // Load common data sequentially for reliability
-                    await GetAllLessons();
-                    await GetStudentDetails();
-
-                    // Load additional data in parallel
-                    var otherTasks = new[]
-                    {
-                    GetTopLessons(),
-                    GetStudentDemoGraphicCountry(),
-                    GetStudentDemographicCity(),
-                    GetTopTeachers()
-                };
-                    await Task.WhenAll(otherTasks);
-
-                    if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
-                    {
-                        var timeSlotavailable = await GetTimeSlots();
-                        var DOW = await GetDaysOfWeek();
-                        await GetClassSchedule();
-                        await GetStudentPerfomanceData();
-                        await GetUnCompletedClasses();
-                        await GetAttendances();
-
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"Error during initialization: {ex.Message}");
-                }
-                finally
-                {
-                    isLoading = false;
-                    await InvokeAsync(StateHasChanged); // Always ensure UI refresh
-                }
-            }
-            else
-            {
-                isAuthenticated = false;
-                isLoading = false;
-                await InvokeAsync(StateHasChanged); // Notify UI of unauthenticated state
-            }
-        }
         protected async Task GetTopTeachers()
         {
             var service = _genericService.GetService<GetTop5TeachersByHighRatedLessonsResult>();
@@ -358,6 +309,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 .ToList();
             }
         }
+
         /// <summary>
         /// Students with no parent on record. Admin-only: it is a data-quality prompt aimed at
         /// whoever can actually fix it, and the tile stays hidden when the count is zero.
@@ -485,27 +437,6 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             }
         }
 
-
-        private async Task<List<UserActivity>> GetUserActivitiesDone(string UserRole, string UserID)
-        {
-            if (UserRole == "Student")
-            {
-                var service = _genericService.GetService<UserActivity>();
-                var result = await service.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
-                if (result.IsSuccess)
-                {
-                    return result.Data.ToList();
-                }
-                else
-                {
-                    return new List<UserActivity>();
-                }
-            }
-            else
-            {
-                return new List<UserActivity>();
-            }
-        }
         protected async Task<List<TimeSlot>> GetTimeSlots()
         {
             try

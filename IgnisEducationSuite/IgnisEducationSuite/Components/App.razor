@@ -1,4 +1,6 @@
 ﻿@using Radzen.Blazor
+@using Microsoft.Extensions.Hosting
+@inject IWebHostEnvironment HostEnvironment
 <!DOCTYPE html>
 <html lang="en">
 
@@ -125,7 +127,75 @@
     <!-- Zoom Initialization -->
     <script src="/js/Zoom.js"></script>
 
-    <script>navigator.serviceWorker.register('service-worker.js');</script>
+    @* Service worker.
+
+       Registered in Production only. It used to register in every environment, which meant the
+       worker cached the development build and kept serving it: local changes did not appear until
+       the browser's site data was cleared by hand, and a request that failed while the dev server
+       restarted was reported as "TypeError: Failed to fetch at service-worker.js" rather than as
+       the connection error it was.
+
+       There is no <ServiceWorkerAssetsManifest> in the client project, so the SDK's publish-time
+       worker swap never happens and service-worker-assets.js is never generated. service-worker.js
+       is therefore what runs in production as well as here, and it cannot rely on
+       self.assetsManifest — it caches at runtime rather than at install.
+
+       The template's service-worker.published.js was removed for that reason: it could never be
+       reached, and it would have failed on install anyway (it imports the manifest that is never
+       built, and requested a _configuration path belonging to a different application). Restoring
+       real offline support means adding the manifest property first, not restoring that file. *@
+    @* Everywhere except Development, rather than Production only: a staging slot should behave like
+       production, and IsProduction() would silently leave it with no worker at all. *@
+    @if (!HostEnvironment.IsDevelopment())
+    {
+        <script>
+            // Guarded: navigator.serviceWorker is undefined on insecure origins, where the
+            // unguarded call threw. The registration promise is also caught — it was previously an
+            // unhandled rejection.
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('/service-worker.js')
+                        .catch(function (error) { console.warn('[SW] Registration failed:', error); });
+                });
+            }
+        </script>
+    }
+    else
+    {
+        <script>
+            // Development: actively remove any worker a previous build installed and drop its
+            // caches. Simply not registering is not enough — an installed worker stays installed
+            // and keeps serving the old build until something unregisters it.
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations()
+                    .then(function (registrations) {
+                        return Promise.all(registrations.map(function (r) { return r.unregister(); }));
+                    })
+                    .then(function (results) {
+                        var removed = results.some(Boolean);
+                        if (!removed) return false;
+
+                        return (window.caches
+                            ? caches.keys().then(function (keys) {
+                                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                              })
+                            : Promise.resolve()
+                        ).then(function () { return true; });
+                    })
+                    .then(function (removed) {
+                        // This page may itself have been served from the worker's cache, so it needs
+                        // one reload to come from the server. Flagged per tab session so a failure
+                        // to clean up cannot turn into a reload loop.
+                        if (removed && !sessionStorage.getItem('ignis-sw-cleaned')) {
+                            sessionStorage.setItem('ignis-sw-cleaned', '1');
+                            console.info('[SW] Removed a development service worker; reloading once.');
+                            location.reload();
+                        }
+                    })
+                    .catch(function (error) { console.warn('[SW] Cleanup failed:', error); });
+            }
+        </script>
+    }
 
 
 </body>

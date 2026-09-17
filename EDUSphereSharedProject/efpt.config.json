@@ -183,6 +183,10 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[FixStudentAcademicMappings]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[GenerateStudentAttendance]",
          "ObjectType": 1
       },
@@ -407,7 +411,51 @@
          "ObjectType": 1
       },
       {
+         "Name": "[dbo].[LogJobFailure]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[LogJobStart]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[LogJobSuccess]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RecalculateClassPositions]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RecalculateSchoolPositions]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunAttendanceAndSyncJobs]",
+         "ObjectType": 1
+      },
+      {
          "Name": "[dbo].[RunDailyJobs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunDailyJobsWithLogging]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunFinanceJobs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunRankingJobs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[RunReportCardJobs]",
+         "ObjectType": 1
+      },
+      {
+         "Name": "[dbo].[SendJobFailureEmail]",
          "ObjectType": 1
       },
       {

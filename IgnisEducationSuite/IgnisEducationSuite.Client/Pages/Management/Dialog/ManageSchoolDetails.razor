@@ -1,154 +1,153 @@
-﻿@using EDUSphereSharedProject.LicensingModel
+@using EDUSphereSharedProject.LicensingModel
 @using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@using IgnisEducationSuite.Client.Pages.Management.SuperAdmin.Dialogs
 
 <MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6"><b>Manage @school.SchoolName</b></MudText>
+    </TitleContent>
+
     <DialogContent>
-        <MudText Class="mb-6" Align="Align.Center" Typo="Typo.h4"><b>Manage @school.SchoolName</b></MudText>
         <MudGrid>
-            <MudItem xs="12">
-                <MudImage Class="profile-pic" Width="100" Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(school.SchoolLogo)}")"></MudImage>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="school.SchoolName"></MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+            <MudItem xs="12" class="d-flex align-center gap-4">
+                @* Guarded. This used to call Convert.ToBase64String on SchoolLogo unconditionally,
+                   so opening a school registered without a logo threw a NullReferenceException and
+                   the dialog never rendered. *@
+                @if (school.SchoolLogo is { Length: > 0 } logo)
+                {
+                    <MudImage Class="profile-pic" Width="100"
+                              Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(logo)}")" />
+                }
+                else
+                {
+                    <MudAvatar Color="Color.Secondary" Size="Size.Large">
+                        @(string.IsNullOrWhiteSpace(school.SchoolName) ? "?" : school.SchoolName[..1].ToUpperInvariant())
+                    </MudAvatar>
+                }
+
+                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Accept="image/*">
                     <ActivatorContent>
                         <MudFab Color="Color.Secondary"
                                 StartIcon="@Icons.Material.Filled.Image"
-                                Label="Change School Logo" />
+                                Size="Size.Small"
+                                Label="@(school.SchoolLogo is { Length: > 0 } ? "Change logo" : "Add logo")" />
                     </ActivatorContent>
                 </MudFileUpload>
             </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Label="School name"
+                              @bind-Value="school.SchoolName"
+                              Error="@(string.IsNullOrWhiteSpace(school.SchoolName))"
+                              ErrorText="A school name is required." />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Contact number"
+                              @bind-Value="school.SchoolPhoneContact" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Email address"
+                              @bind-Value="school.SchoolEmail" InputType="InputType.Email" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Label="Website"
+                              @bind-Value="school.SchoolWebsite" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    Currency: @(string.IsNullOrWhiteSpace(school.CurrencyCode) ? "not set" : $"{school.CurrencyCode} {school.CurrencySymbol}")
+                    — set at registration and used for every fee and invoice, so it is not editable here.
+                </MudText>
+            </MudItem>
         </MudGrid>
-        <MudDialog @bind-Visible="_nestedVisible">
-            <DialogContent>
-                <MudGrid>
-                    <MudItem xs="12" md="6">
-                        <MudSelect @bind-Value="licenseRequest.PlanType" Label="Select License Plan" HelperText="String" Placeholder="Please Select" AdornmentIcon="@Icons.Material.Filled.Subscriptions" AdornmentColor="Color.Primary">
-                            <MudSelectItem Value="@("Monthly")">Monthly</MudSelectItem>
-                            <MudSelectItem Value="@("Quarterly")">Quarterly</MudSelectItem>
-                            <MudSelectItem Value="@("BiAnnual")">BiAnnual</MudSelectItem>
-                            <MudSelectItem Value="@("Annual")">Annual</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" md="6">
-                        <MudNumericField @bind-Value="licenseRequest.UserLimit" Label="User Limit" Placeholder="0" AdornmentIcon="@Icons.Material.Filled.Numbers"></MudNumericField>
-                    </MudItem>
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="licenseRequest.Email" Label="School Email" AdornmentIcon="@Icons.Material.Filled.ShortText"></MudTextField>
-                    </MudItem>
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="licenseRequest.Phone" Label="School Phone" Placeholder="+260123456789" AdornmentIcon="@Icons.Material.Filled.ShortText"></MudTextField>
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudDateRangePicker Label="Select License Period" @bind-DateRange="_dateRange" />
-                    </MudItem>
-                </MudGrid>
-            </DialogContent>
-            <DialogActions>
-                <MudButton Color="Color.Success" OnClick="GenerateLicense">Generate</MudButton>
-                <MudButton Color="Color.Primary" OnClick="CloseNested">Close</MudButton>
-            </DialogActions>
-        </MudDialog>
     </DialogContent>
+
     <DialogActions>
-        <MudButtonGroup OverrideStyles="false">
-            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" OnClick="CloseDialog">Close</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.GeneratingTokens" OnClick="OpenNested">Generate and Activate License</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.SaveAlt" OnClick="UpdateDetails">Update</MudButton>
-        </MudButtonGroup>
+        <MudButton OnClick="CloseDialog" Disabled="_saving">Close</MudButton>
+
+        @* Licensing now runs through the SuperAdmin console's dialog rather than a nested form here.
+           That one derives the client identity from the school record, defaults the period from the
+           plan, warns when the seat count is below the accounts that already exist, and clears the
+           server's licence cache so the change is visible immediately instead of in half an hour. *@
+        <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                   StartIcon="@Icons.Material.Filled.Key"
+                   Disabled="_saving"
+                   OnClick="OpenLicenceDialogAsync">
+            Licence
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Success"
+                   StartIcon="@Icons.Material.Filled.SaveAlt"
+                   Disabled="_saving"
+                   OnClick="UpdateDetails">
+            Save
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    private MudDateRangePicker _picker;
-    private DateRange _dateRange = new DateRange(DateTime.Now.Date, DateTime.Now.AddDays(5).Date);
-    private bool _nestedVisible = false;
-
-    private void OpenNested() => _nestedVisible = true;
-
-    private void CloseNested() => _nestedVisible = false;
     [Parameter] public School school { get; set; } = new();
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
-    [Inject] HttpClient HttpClient { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
-    protected ActivateLicenseRequest licenseRequest = new();
+
+    private bool _saving;
+
     private async Task UploadFiles(IBrowserFile file)
     {
+        if (file is null) return;
 
-        if (file == null || school == null)
-            throw new ArgumentNullException(nameof(file), "File or model cannot be null");
-
-        using (var memoryStream = new MemoryStream())
-        {
-            await file.OpenReadStream().CopyToAsync(memoryStream);
-            school.SchoolLogo = memoryStream.ToArray();
-        }
+        using var memoryStream = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(memoryStream);
+        school.SchoolLogo = memoryStream.ToArray();
     }
 
     private void CloseDialog() => MudDialog.Close();
-    private async Task GenerateLicense()
+
+    private async Task OpenLicenceDialogAsync()
     {
-        licenseRequest.ClientId = school.SchoolID.ToString();
-        licenseRequest.StartDate = _dateRange.Start.Value;
-        licenseRequest.EndDate = _dateRange.End.Value;
-        licenseRequest.ClientName = school.SchoolName;
-        licenseRequest.Application = "IgnisEducationSuite";
-        if (licenseRequest.Email is null)
+        var parameters = new DialogParameters<LicenseDialog>
         {
-            licenseRequest.Email = "Not Provided";
-        }
-        if (licenseRequest.Phone is null)
-        {
-            licenseRequest.Phone = "Not Provided";
-        }
-        var result = await HttpClient.PostAsJsonAsync("api/Verification/Generate", licenseRequest);
-        if (result.IsSuccessStatusCode)
-        {
-            Snackbar.Add("License Generated Successfully", Severity.Success);
-        }
+            { x => x.SchoolId, school.SchoolID },
+            { x => x.SchoolName, school.SchoolName ?? "this school" },
+        };
+
+        await DialogService.ShowAsync<LicenseDialog>(
+            "Licence", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
     }
+
     private async Task UpdateDetails()
     {
-        var service = _genericService.GetService<School>();
-        var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "school", school);
-        if (result.IsSuccess)
+        if (string.IsNullOrWhiteSpace(school.SchoolName))
         {
-            string Message = "Details Updated Successfully";
-            MudDialog.Close(DialogResult.Ok(Message));
+            Snackbar.Add("A school name is required.", Severity.Error);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var service = _genericService.GetService<School>();
+            var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "school", school);
+
+            // The previous version closed the dialog on success and did nothing at all on failure,
+            // so a failed save looked exactly like no click.
+            if (result.IsSuccess)
+            {
+                MudDialog.Close(DialogResult.Ok("Details updated successfully"));
+            }
+            else
+            {
+                Snackbar.Add("The changes could not be saved. Please try again.", Severity.Error);
+            }
+        }
+        finally
+        {
+            _saving = false;
         }
     }
 }

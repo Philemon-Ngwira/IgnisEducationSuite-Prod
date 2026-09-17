@@ -21,36 +21,33 @@
         </CardHeaderContent>
     </MudCardHeader>
 
+    @* The overlay that used to sit here was unreachable: isLoading was only ever assigned by
+       LoadInfomation, which nothing called, so it was permanently false. Loading state comes from
+       LoaderService, which OnInitializedAsync shows and hides. *@
     <MudCardContent Class="mb-3">
-        @if (isLoading)
-        {
-            <div id="loader-overlay" class="loader-overlay">
-                <div class="loader-container">
-                    <!-- Spinner -->
-                    <div class="spinner"></div>
-                    <!-- Loader Icon -->
-                    <div class="loader-icon">🔄</div>
-                    <!-- Loading Text -->
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
-        }
         <AuthorizeView>
             <Authorized>
                 @if (AppState.IsFullyInitialized)
                 {
-                    @if (!AppState.LicenseIsActive)
-                    {
+                    @* An unlicensed school is warned, not shut out.
 
-                        <div class="license-warning-container">
-                            <div class="license-warning">
-                                <p>Your license is not active.</p>
-                                <p>Please contact support or renew your license to continue using this application.</p>
-                            </div>
-                        </div>
-                    }
-                    else
+                       This branch used to replace the entire dashboard, so any wrong verdict took
+                       the whole application away — and until the LicenseService fix, an unreachable
+                       licensing service produced exactly that verdict for schools whose licence was
+                       perfectly valid. Enforcement belongs at the point of action (adding users),
+                       which is where UserManagement applies it.
+
+                       IsConfirmedUnlicensed, not !LicenseIsActive: only a check that succeeded and
+                       said "no" should show this. *@
+                    @if (AppState.LicenseStatus.IsConfirmedUnlicensed)
                     {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-3">
+                            <b>This school's licence is not active.</b>
+                            Everything already recorded stays available and the school continues to work.
+                            New users cannot be added until the licence is renewed.
+                        </MudAlert>
+                    }
+
                         <MudAlert Variant="MudBlazor.Variant.Filled" Class="mb-3" Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person2">Date and Time: @DateTime.Now</MudAlert>
                         @if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
                         {
@@ -488,6 +485,15 @@
                         }
                         else if (AppState.UserRole == "Teacher" || AppState.UserRole == "Admin" || AppState.UserRole == "Staff")
                         {
+                            @* Licence entitlement. The layout banner only speaks up when something is
+                               wrong; this answers the question asked beforehand — what is included and
+                               how much is left — and is therefore shown while everything is fine.
+                               Admins only: a teacher cannot act on any of it. *@
+                            @if (AppState.UserRole == "Admin")
+                            {
+                                <IgnisEducationSuite.Client.Pages.Shared.DashboardLayers.LicenseSummaryCard />
+                            }
+
                             @* Data-quality prompt. A student with no parent on record is invisible to
                                the parent portal, report card notifications and chat, so it is worth
                                surfacing here rather than being discovered at the end of term. Only
@@ -866,8 +872,16 @@
 
                             </div>
                         }
-                        else if (AppState.UserRole == "Chef/Cook")
+                        else if (AppState.UserRole == "SuperAdmin")
                         {
+                            @* Previously there was no branch here at all, so a SuperAdmin landed on
+                               an empty dashboard. *@
+                            <IgnisEducationSuite.Client.Pages.Management.SuperAdmin.SuperAdminOverview />
+                        }
+                        else if (AppState.UserRole == "KitchenStaff")
+                        {
+                            @* Was "Chef/Cook" — a string nothing else in the solution uses, so this
+                               branch never matched and kitchen staff landed on a blank dashboard. *@
                             <IgnisEducationSuite.Client.Pages.Staff.Kitchen></IgnisEducationSuite.Client.Pages.Staff.Kitchen>
                         }
                         else if (AppState.UserRole == "Clinic Staff")
@@ -882,7 +896,6 @@
                         {
                             <IgnisEducationSuite.Client.Pages.Finance.FinanceReport />
                         }
-                    }
                 }
 
             </Authorized>

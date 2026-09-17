@@ -70,6 +70,8 @@ namespace IgnisEducationSuite.Client
             builder.Services.AddScoped<IReportCardEntryService, ClientReportCardEntryService>();
             builder.Services.AddScoped<ChatRealtimeService>();
             builder.Services.AddScoped<IParentLinkingClientService, ParentLinkingClientService>();
+            builder.Services.AddScoped<ISuperAdminClientService, SuperAdminClientService>();
+            builder.Services.AddScoped<ILicenseClientService, LicenseClientService>();
             builder.Logging.SetMinimumLevel(LogLevel.Debug);
             await builder.Build().RunAsync();
         }

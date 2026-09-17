@@ -1,0 +1,494 @@
+@using EDUSphereSharedProject.UniversalModels
+@using EDUSphereSharedProject.UniversalModels.SuperAdmin
+@inject ISuperAdminClientService Tenants
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ClientEmailService EmailService
+@inject NavigationManager Nav
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (Detail is null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                This school could not be loaded. It may have been removed.
+            </MudAlert>
+        }
+        else
+        {
+
+            @* Anything wrong, stated first and in plain words. *@
+            @foreach (var issue in Summary.Issues.OrderByDescending(i => i.Severity))
+            {
+                <MudAlert Severity="@ToSeverity(issue.Severity)" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                    <b>@issue.Title.</b> @issue.Detail
+                </MudAlert>
+            }
+
+            <MudTabs Elevation="0" Rounded="true" PanelClass="pt-4" Class="mt-2">
+
+                @* ---------------- Overview ---------------- *@
+                <MudTabPanel Text="Overview" Icon="@Icons.Material.Filled.Info">
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">Contact</MudText>
+                            <MudSimpleTable Dense="true" Elevation="0" Bordered="false" Striped="true">
+                                <tbody>
+                                    <tr><td>Email</td><td>@Or(Summary.SchoolEmail)</td></tr>
+                                    <tr><td>Phone</td><td>@Or(Summary.SchoolPhoneContact)</td></tr>
+                                    <tr><td>Website</td><td>@Or(Summary.SchoolWebsite)</td></tr>
+                                    <tr><td>Currency</td><td>@Or(Summary.CurrencyCode) @Summary.CurrencySymbol</td></tr>
+                                    <tr><td>Logo</td><td>@(Summary.HasLogo ? "Uploaded" : "Not set")</td></tr>
+                                </tbody>
+                            </MudSimpleTable>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">Size and activity</MudText>
+                            <MudSimpleTable Dense="true" Elevation="0" Bordered="false" Striped="true">
+                                <tbody>
+                                    <tr><td>Students</td><td>@Summary.StudentCount</td></tr>
+                                    <tr><td>Teachers</td><td>@Summary.TeacherCount</td></tr>
+                                    <tr><td>Other staff</td><td>@Summary.StaffCount</td></tr>
+                                    <tr><td>Parents</td><td>@Summary.ParentCount</td></tr>
+                                    <tr><td>Classes</td><td>@Summary.ClassCount</td></tr>
+                                    <tr>
+                                        <td>User accounts</td>
+                                        <td>
+                                            @Summary.UserAccountCount@(Summary.UserLimit is { } limit ? $" of {limit}" : " (no limit set)")
+                                            @if (Summary.InactiveUserCount > 0)
+                                            {
+                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                    — @Summary.InactiveUserCount deactivated
+                                                </MudText>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr><td>Current term</td><td>@Or(Summary.ActiveTermName, "Not in a term")</td></tr>
+                                    <tr>
+                                        <td>Newest student</td>
+                                        <td>@(Summary.LastStudentOnboardedAt?.ToString("d MMM yyyy") ?? "—")</td>
+                                    </tr>
+                                </tbody>
+                            </MudSimpleTable>
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                @* ---------------- Licensing ---------------- *@
+                <MudTabPanel Text="Licensing" Icon="@Icons.Material.Filled.VerifiedUser">
+
+                    <div class="d-flex flex-wrap align-center gap-3 mb-4">
+                        <MudChip T="string" Size="Size.Medium" Variant="Variant.Filled" Color="@LicenceColor(Summary)">
+                            @LicenceLabel(Summary)
+                        </MudChip>
+
+                        @if (Summary.LicenseEndDate is { } end)
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">Runs until @end.ToString("d MMMM yyyy")</MudText>
+                        }
+
+                        <MudSpacer />
+
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Key"
+                                   Disabled="_working"
+                                   OnClick="OpenLicenceDialogAsync">
+                            @(Summary.LicenseVerified && Summary.IsLicensed ? "Renew or extend" : "Activate licence")
+                        </MudButton>
+                    </div>
+
+                    @if (!Summary.LicenseVerified)
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                            The licensing service could not be reached for this school, so its state below may be
+                            incomplete. The school continues to work normally — Ignis fails open by design.
+                        </MudAlert>
+                    }
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Licence history</MudText>
+
+                    @if (Detail.LicenseHistoryError is { } historyError)
+                    {
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">@historyError</MudAlert>
+                    }
+                    else if (!Detail.LicenseHistory.Any())
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                            This school has never been licensed.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudTable Items="Detail.LicenseHistory" Dense="true" Hover="true" Elevation="0"
+                                  T="TenantLicenseDto" Breakpoint="Breakpoint.Sm">
+                            <HeaderContent>
+                                <MudTh>Plan</MudTh>
+                                <MudTh>Period</MudTh>
+                                <MudTh Style="text-align:right">Seats</MudTh>
+                                <MudTh>Status</MudTh>
+                                <MudTh></MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Plan">@Capitalise(context.PlanType)</MudTd>
+                                <MudTd DataLabel="Period">
+                                    @context.StartDate.ToString("d MMM yyyy") — @context.EndDate.ToString("d MMM yyyy")
+                                </MudTd>
+                                <MudTd DataLabel="Seats" Style="text-align:right">@context.UserLimit</MudTd>
+                                <MudTd DataLabel="Status">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                             Color="@(context.IsCurrent ? Color.Success : Color.Default)">
+                                        @Or(context.Status, "Unknown")
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd Style="text-align:right">
+                                    @if (context.IsCurrent && !string.IsNullOrWhiteSpace(context.LicenseKey))
+                                    {
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                                   Disabled="_working"
+                                                   OnClick="@(() => TerminateAsync(context))">
+                                            Terminate
+                                        </MudButton>
+                                    }
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudTabPanel>
+
+                @* ---------------- Administrators ---------------- *@
+                <MudTabPanel Text="@($"Administrators ({Detail.Admins.Count})")" Icon="@Icons.Material.Filled.AdminPanelSettings">
+
+                    @if (!Detail.Admins.Any())
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+                            This school has no administrator account. Nobody can sign in to run it.
+                        </MudAlert>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                                   OnClick="@(() => GoTo("/ManageSchoolAdmins"))">
+                            Create an administrator
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudTable Items="Detail.Admins" Dense="true" Hover="true" Elevation="0"
+                                  T="TenantAdminDto" Breakpoint="Breakpoint.Sm">
+                            <HeaderContent>
+                                <MudTh>Name</MudTh>
+                                <MudTh>Sign-in</MudTh>
+                                <MudTh>Access</MudTh>
+                                <MudTh></MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">
+                                    <MudText Typo="Typo.body2"><b>@context.DisplayName</b></MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Or(context.Email)</MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Sign-in">
+                                    <MudText Typo="Typo.body2">@Or(context.UserName)</MudText>
+                                    @if (context.RequiresPasswordReset)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Warning">Must change password</MudText>
+                                    }
+                                    else if (!context.EmailConfirmed)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Email not confirmed</MudText>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Access">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                             Color="@(context.AccountActive && !context.IsLockedOut ? Color.Success : Color.Error)">
+                                        @(context.AccountActive && !context.IsLockedOut ? "Active" : "Suspended")
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd Style="text-align:right">
+                                    <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                                        @if (context.AccountActive && !context.IsLockedOut)
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
+                                                       StartIcon="@Icons.Material.Filled.Block"
+                                                       Disabled="_working"
+                                                       OnClick="@(() => SetAdminActiveAsync(context, false))">
+                                                Suspend
+                                            </MudButton>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success"
+                                                       StartIcon="@Icons.Material.Filled.LockOpen"
+                                                       Disabled="_working"
+                                                       OnClick="@(() => SetAdminActiveAsync(context, true))">
+                                                Restore
+                                            </MudButton>
+                                        }
+
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary"
+                                                   StartIcon="@Icons.Material.Filled.Password"
+                                                   Disabled="_working"
+                                                   OnClick="@(() => ResetPasswordAsync(context))">
+                                            Reset password
+                                        </MudButton>
+                                    </MudStack>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudTabPanel>
+            </MudTabs>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        @if (_working)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-3" />
+        }
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public Guid SchoolId { get; set; }
+    [Parameter] public string SchoolName { get; set; } = "";
+
+    private TenantDetailDto? Detail;
+
+    /// <summary>Declared here rather than as a local inside the markup: a bare C# local at the top
+    /// of a Razor code block sits on the boundary between code and markup context, and this is read
+    /// from more than a dozen places.</summary>
+    private TenantSummaryDto Summary => Detail!.Summary;
+    private bool _loading = true;
+    private bool _working;
+
+    /// <summary>
+    /// Whether anything was actually changed here.
+    ///
+    /// Returned to the console so it reloads — and re-checks every licence — only when there is a
+    /// reason to. Closing after a look costs nothing.
+    /// </summary>
+    private bool _changed;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            Detail = await Tenants.GetTenantAsync(SchoolId);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(_changed));
+
+    private void GoTo(string url)
+    {
+        MudDialog.Close(DialogResult.Ok(_changed));
+        Nav.NavigateTo(url);
+    }
+
+    // -------------------------------------------------------------------------------------
+    // Licensing
+    // -------------------------------------------------------------------------------------
+
+    private async Task OpenLicenceDialogAsync()
+    {
+        if (Detail is null) return;
+
+        var parameters = new DialogParameters<LicenseDialog>
+        {
+            { x => x.SchoolId, SchoolId },
+            { x => x.SchoolName, Detail.Summary.SchoolName },
+            { x => x.CurrentUserCount, Detail.Summary.UserAccountCount },
+            { x => x.CurrentLimit, Detail.Summary.UserLimit },
+            { x => x.CurrentEnd, Detail.Summary.LicenseEndDate },
+        };
+
+        var dialog = await DialogService.ShowAsync<LicenseDialog>(
+            "Licence", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: true })
+        {
+            _changed = true;
+            await LoadAsync();
+        }
+    }
+
+    private async Task TerminateAsync(TenantLicenseDto licence)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Terminate this licence?",
+            $"{SchoolName} will be treated as unlicensed. Its records stay intact and everyone can still " +
+            "sign in, but no new users can be added until a licence is activated again.",
+            yesText: "Terminate", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        _working = true;
+        try
+        {
+            var result = await Tenants.TerminateLicenseAsync(SchoolId, licence.LicenseKey!);
+            Snackbar.Add(result.Message, result.Succeeded ? Severity.Success : Severity.Error);
+
+            if (result.Succeeded)
+            {
+                _changed = true;
+                await LoadAsync();
+            }
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
+    // -------------------------------------------------------------------------------------
+    // Administrator accounts
+    // -------------------------------------------------------------------------------------
+
+    private async Task SetAdminActiveAsync(TenantAdminDto admin, bool active)
+    {
+        if (!active)
+        {
+            var confirmed = await DialogService.ShowMessageBox(
+                "Suspend this administrator?",
+                $"{admin.DisplayName} will not be able to sign in. Their account and everything they created " +
+                "stay in place, and access can be restored at any time.",
+                yesText: "Suspend", cancelText: "Cancel");
+
+            if (confirmed != true) return;
+        }
+
+        _working = true;
+        try
+        {
+            var result = await Tenants.SetAdminActiveAsync(SchoolId, admin.UserId, active);
+            Snackbar.Add(result.Message, result.Succeeded ? Severity.Success : Severity.Error);
+
+            if (result.Succeeded)
+            {
+                _changed = true;
+                await LoadAsync();
+            }
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
+    /// <summary>
+    /// Issues a new one-time password and mails it.
+    ///
+    /// The reset and the email are reported separately on purpose: if the password changed but the
+    /// mail failed, saying only "reset failed" would leave the operator with an account whose
+    /// password nobody knows.
+    /// </summary>
+    private async Task ResetPasswordAsync(TenantAdminDto admin)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Reset this password?",
+            $"A new one-time password will be issued to {admin.DisplayName} and emailed to " +
+            $"{admin.Email ?? "their address on file"}. Their current password stops working immediately.",
+            yesText: "Reset", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        _working = true;
+        try
+        {
+            var reset = await Tenants.ResetAdminPasswordAsync(SchoolId, admin.UserId);
+
+            if (!reset.Succeeded)
+            {
+                Snackbar.Add($"Password not reset: {reset.Message}", Severity.Error);
+                return;
+            }
+
+            _changed = true;
+
+            if (string.IsNullOrWhiteSpace(reset.Email))
+            {
+                Snackbar.Add("Password reset, but this account has no email address on file — " +
+                             "the new password could not be sent.", Severity.Warning);
+                return;
+            }
+
+            var mail = new EmailRequest
+            {
+                To = reset.Email,
+                Reciepient = admin.DisplayName,
+                UserName = reset.UserName ?? "",
+                Password = reset.OneTimePassword ?? "",
+                StudentID = "N/A",
+            };
+
+            try
+            {
+                var sent = await EmailService.SendPasswordResetEmailAsync(mail, Nav.BaseUri);
+
+                Snackbar.Add(
+                    sent == "Password reset email sent successfully!"
+                        ? $"Password reset and emailed to {reset.Email}."
+                        : $"Password was reset, but the email failed: {sent}",
+                    sent == "Password reset email sent successfully!" ? Severity.Success : Severity.Warning);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Password was reset, but the email could not be sent: {ex.Message}", Severity.Warning);
+            }
+
+            await LoadAsync();
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
+    // -------------------------------------------------------------------------------------
+    // Display helpers
+    // -------------------------------------------------------------------------------------
+
+    private static string Or(string? value, string fallback = "—") =>
+        string.IsNullOrWhiteSpace(value) ? fallback : value;
+
+    private static string Capitalise(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "—" : char.ToUpperInvariant(value[0]) + value[1..];
+
+    private static Severity ToSeverity(TenantIssueSeverity severity) => severity switch
+    {
+        TenantIssueSeverity.Critical => Severity.Error,
+        TenantIssueSeverity.Warning => Severity.Warning,
+        _ => Severity.Info,
+    };
+
+    private static Color LicenceColor(TenantSummaryDto t) =>
+        !t.LicenseVerified ? Color.Default
+        : !t.IsLicensed ? Color.Error
+        : t.IsExpiringSoon ? Color.Warning
+        : Color.Success;
+
+    private static string LicenceLabel(TenantSummaryDto t) =>
+        !t.LicenseVerified ? "Licence unverified"
+        : !t.IsLicensed ? (t.LicenseStatus ?? "Not licensed")
+        : t.IsExpiringSoon ? $"Expires in {t.DaysUntilExpiry} day(s)"
+        : "Licensed";
+}

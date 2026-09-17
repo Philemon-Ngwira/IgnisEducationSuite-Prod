@@ -85,7 +85,9 @@
         }
     </MudMainContent>
 
-    <Footer Version="1.0.5" Environment="PROD" />
+    @* Version omitted on purpose — the footer reads it from ReleaseNotes, so a release is one edit
+       in one file rather than two that can drift apart. *@
+    <Footer Environment="PROD" />
 
 </MudLayout>
 
@@ -104,7 +106,6 @@
     //
     // Shown to admins only: they are the ones who can act on it, and a teacher or parent cannot do
     // anything useful with a licensing message.
-
     private bool IsLicenceAdmin =>
         AppState.UserRole is "Admin" or "SuperAdmin" or "Principal";
 

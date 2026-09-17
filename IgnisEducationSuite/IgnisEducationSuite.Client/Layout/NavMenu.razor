@@ -48,15 +48,20 @@
                 @switch (AppState.UserRole)
                 {
                     case "SuperAdmin":
-                        <MudNavGroup Icon="@Icons.Material.Filled.SupervisorAccount" Title="Administration">
-                            <MudNavLink Href="ClientManagement" Icon="@Icons.Material.Filled.People">Client Management</MudNavLink>
-                            <MudNavLink Href="ManageSchoolAdmins" Icon="@Icons.Material.Filled.Person">Client Admins</MudNavLink>
-                            <MudNavLink Href="ClassManagement" Icon="@Icons.Material.Filled.Class">Class Management</MudNavLink>
-                            <MudNavLink Href="ClassSchedules" Icon="@Icons.Material.Filled.Schedule">Class Schedules</MudNavLink>
-                            <MudNavLink Href="UserManagement" Icon="@Icons.Material.Filled.SupervisedUserCircle">User Management</MudNavLink>
-                            <MudNavLink Href="ReportCardManagement" Icon="@Icons.Material.Filled.AddCard">Report Card Preparations</MudNavLink>
-                            <MudNavLink Href="ReportCards" Icon="@Icons.Material.Filled.Book">Report Cards</MudNavLink>
+                        @* A SuperAdmin belongs to no school, so AppState.SchoolID is deliberately
+                           empty for them. This menu used to link Class Management, Schedules and
+                           Report Cards — all of which resolve their data by school id and so came up
+                           blank. The console replaces them with what the role can actually act on. *@
+                        <MudNavGroup Icon="@Icons.Material.Filled.SupervisorAccount" Title="Platform" Expanded="true">
+                            <MudNavLink Href="TenantConsole" Icon="@Icons.Material.Filled.Dns">Tenant Console</MudNavLink>
+                            <MudNavLink Href="ClientManagement" Icon="@Icons.Material.Filled.AddBusiness">Register School</MudNavLink>
+                            <MudNavLink Href="ManageSchoolAdmins" Icon="@Icons.Material.Filled.AdminPanelSettings">School Administrators</MudNavLink>
                         </MudNavGroup>
+
+                        <MudDivider Class="my-4" />
+
+                        <ChatNavLink Label="Ignis Communication Hub" Icon="@Icons.Material.Filled.ChatBubble" />
+                        <MudNavLink Href="UserGuide" Icon="@Icons.Material.Filled.Info">Guide</MudNavLink>
                         break;
 
                     case "Admin":

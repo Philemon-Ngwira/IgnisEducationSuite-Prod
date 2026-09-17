@@ -1,0 +1,199 @@
+@using EDUSphereSharedProject.UniversalModels.SuperAdmin
+@inject ISuperAdminClientService Tenants
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Key" Class="mr-2" />
+            Licence @SchoolName
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                @* Picking a plan sets the end date, so the common case is two clicks. The date stays
+                   editable for the ones that are not standard. *@
+                <MudSelect T="string" @bind-Value="Plan" @bind-Value:after="OnPlanChanged"
+                           Label="Plan" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           ToStringFunc="@(p => PlanLabel(p))">
+                    @foreach (var option in Plans)
+                    {
+                        <MudSelectItem Value="@option">@PlanLabel(option)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Starts" @bind-Date="StartDate" @bind-Date:after="OnPlanChanged"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               DateFormat="d MMM yyyy" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker Label="Ends" @bind-Date="EndDate"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               DateFormat="d MMM yyyy" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudNumericField T="int" @bind-Value="UserLimit" Label="User accounts allowed"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                 Min="1" Max="100000" />
+
+                @* The seat count is the number most likely to be set wrong, so show what it is being
+                   set against rather than making the operator go and look. *@
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    This school currently has @CurrentUserCount user account(s)@(CurrentLimit is { } limit ? $", against a limit of {limit}" : "").
+                </MudText>
+
+                @if (UserLimit < CurrentUserCount)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-2">
+                        This limit is below the accounts that already exist. Nobody is locked out, but the
+                        school will not be able to add anyone until accounts are removed or the limit is raised.
+                    </MudAlert>
+                }
+            </MudItem>
+
+            @if (CurrentEnd is { } currentEnd)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        The current licence runs until <b>@currentEnd.ToString("d MMMM yyyy")</b>.
+                        Activating issues a new licence rather than editing that one.
+                    </MudText>
+                </MudItem>
+            }
+
+            @if (Problem is { } problem)
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true">@problem</MudAlert>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync" Disabled="_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            Activate
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public Guid SchoolId { get; set; }
+    [Parameter] public string SchoolName { get; set; } = "";
+
+    /// <summary>Accounts the school already has, so the seat figure can be judged rather than guessed.</summary>
+    [Parameter] public int CurrentUserCount { get; set; }
+
+    [Parameter] public int? CurrentLimit { get; set; }
+    [Parameter] public DateTime? CurrentEnd { get; set; }
+
+    private static readonly string[] Plans = { "monthly", "quarterly", "biannual", "annual" };
+
+    private string Plan { get; set; } = "annual";
+    private DateTime? StartDate { get; set; } = DateTime.Today;
+    private DateTime? EndDate { get; set; } = DateTime.Today.AddYears(1);
+    private int UserLimit { get; set; } = 50;
+
+    private string? Problem;
+    private bool _saving;
+
+    protected override void OnInitialized()
+    {
+        // Renewing runs on from the existing licence rather than from today, so a renewal done early
+        // does not throw away the days already paid for.
+        if (CurrentEnd is { } end && end.Date > DateTime.Today)
+        {
+            StartDate = end.Date.AddDays(1);
+        }
+
+        if (CurrentLimit is > 0) UserLimit = CurrentLimit.Value;
+
+        OnPlanChanged();
+    }
+
+    private void OnPlanChanged()
+    {
+        var start = StartDate ?? DateTime.Today;
+
+        EndDate = Plan switch
+        {
+            "monthly" => start.AddMonths(1),
+            "quarterly" => start.AddMonths(3),
+            "biannual" => start.AddMonths(6),
+            _ => start.AddYears(1),
+        };
+    }
+
+    private static string PlanLabel(string plan) => plan switch
+    {
+        "monthly" => "Monthly (1 month)",
+        "quarterly" => "Quarterly (3 months)",
+        "biannual" => "Half-yearly (6 months)",
+        "annual" => "Annual (12 months)",
+        _ => plan,
+    };
+
+    private async Task SubmitAsync()
+    {
+        Problem = null;
+
+        if (StartDate is not { } start || EndDate is not { } end)
+        {
+            Problem = "Both a start and an end date are needed.";
+            return;
+        }
+
+        if (end.Date <= start.Date)
+        {
+            Problem = "The end date must be after the start date.";
+            return;
+        }
+
+        if (UserLimit < 1)
+        {
+            Problem = "The user limit must be at least 1.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var result = await Tenants.ActivateLicenseAsync(new ActivateTenantLicenseRequest
+            {
+                SchoolId = SchoolId,
+                PlanType = Plan,
+                UserLimit = UserLimit,
+                StartDate = start.Date,
+                EndDate = end.Date,
+            });
+
+            if (!result.Succeeded)
+            {
+                Problem = result.Message;
+                return;
+            }
+
+            Snackbar.Add(result.Message, Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -49,5 +49,7 @@ public partial class Student
 
     public Guid? LevelSectionID { get; set; }
 
+    public Guid? DeletedFrom { get; set; }
+
     public virtual StudentFinance StudentFinance { get; set; }
 }

@@ -1,5 +1,6 @@
 ﻿using EDUSphereSharedProject.LicensingModel;
 using EDUSphereSharedProject.UniversalModels;
+using EDUSphereSharedProject.UniversalModels.SuperAdmin;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -75,27 +76,54 @@ namespace IgnisEducationSuite.ServerServices
             }
 
             var status = await FetchLicenseStatusAsync(clientId);
-
-            // A failed check is cached too, but briefly: without that, an outage would mean every
-            // page load retries a dead endpoint and inherits its timeout.
-            var duration = status.Verified ? CacheDuration : TimeSpan.FromMinutes(2);
-            _cache.Set(CacheKey(clientId), status, duration);
+            _cache.Set(CacheKey(clientId), status, CacheDurationFor(status));
 
             LicenseIsActive = status.IsLicensed;
             return status;
+        }
+
+        /// <summary>
+        /// How long to trust a result.
+        ///
+        /// Deliberately asymmetric. A working licence is the steady state and is held for the full
+        /// window. The two states that take something away are held only briefly, so a wrong answer
+        /// corrects itself in minutes rather than persisting for half an hour — the difference
+        /// between a blip and a school locked out of adding users all morning.
+        /// </summary>
+        private TimeSpan CacheDurationFor(LicenseStatusDto status)
+        {
+            // Could not check: retry soon, but not on every page load — an outage would otherwise
+            // mean every request inherits the timeout.
+            if (!status.Verified) return TimeSpan.FromMinutes(2);
+
+            // Checked, and restrictive. Also the state a licence renewal is meant to clear, and a
+            // renewal made outside Ignis does not invalidate this cache.
+            if (!status.IsLicensed) return TimeSpan.FromMinutes(5);
+
+            return CacheDuration;
         }
 
         private async Task<LicenseStatusDto> FetchLicenseStatusAsync(Guid clientId)
         {
             try
             {
-                var periods = await GetCompanyLicense(clientId);
-                var current = periods.FirstOrDefault();
+                var lookup = await TryGetCompanyLicenseAsync(clientId);
+
+                // The service did not answer. This is the case that used to be reported as "no
+                // licence found" with Verified = true — a licensed school shown as unlicensed, and
+                // cached in that state for the full window because it claimed to be verified.
+                // A timeout is not evidence of anything about the licence.
+                if (!lookup.Answered)
+                {
+                    return UnverifiedFallback();
+                }
+
+                var current = SelectCurrentPeriod(lookup.Periods);
 
                 if (current is null)
                 {
-                    // Reached the service, and it knows of no licence for this school. That is a
-                    // definite answer, so treat it as unlicensed rather than unverified.
+                    // The service answered, and it knows of no licence for this school. Only now is
+                    // "unlicensed" a fact rather than an assumption.
                     return new LicenseStatusDto
                     {
                         IsLicensed = false,
@@ -263,15 +291,36 @@ namespace IgnisEducationSuite.ServerServices
 
             return "License Unverified: the licensing service could not be reached.";
         }
-        public async Task<List<usp_GetPharmacyLicenseStatusResult>> GetCompanyLicense(Guid companyID)
+        /// <summary>
+        /// The outcome of a licence lookup, keeping "the service answered" separate from "there are
+        /// no periods".
+        ///
+        /// This distinction is the whole point of the type. Collapsing the two into an empty list
+        /// meant every timeout, 502 and cold start was reported as a school with no licence — and,
+        /// because that reads as a verified answer, it was then cached in that state.
+        /// </summary>
+        private readonly record struct LicenseLookup(
+            bool Answered,
+            List<usp_GetPharmacyLicenseStatusResult> Periods)
+        {
+            public static LicenseLookup Unreachable() => new(false, new());
+            public static LicenseLookup Found(List<usp_GetPharmacyLicenseStatusResult> periods) => new(true, periods);
+        }
+
+        /// <summary>
+        /// Licence periods for a school, reporting whether the service actually answered.
+        ///
+        /// A 200 is the only response treated as an answer. Everything else — including 404, which
+        /// means the route or base address is wrong rather than that the school is unlicensed — is
+        /// reported as unreachable so the caller fails open.
+        /// </summary>
+        private async Task<LicenseLookup> TryGetCompanyLicenseAsync(Guid companyID)
         {
             var path = $"api/license/GetClientActiveLicensePeriod/{companyID}";
 
             var client = _httpClientFactory.CreateClient();
             client.BaseAddress = new Uri(BaseUrl);
             client.Timeout = RequestTimeout;
-
-            List<usp_GetPharmacyLicenseStatusResult> empty = new();
 
             for (int attempt = 1; attempt <= 3; attempt++)
             {
@@ -285,41 +334,116 @@ namespace IgnisEducationSuite.ServerServices
 
                         var licenses = JsonSerializer.Deserialize<List<usp_GetPharmacyLicenseStatusResult>>(
                             content,
-                            new JsonSerializerOptions
-                            {
-                                PropertyNameCaseInsensitive = true
-                            });
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                        return licenses ?? empty;
+                        return LicenseLookup.Found(licenses ?? new());
                     }
 
-                    // If unauthorized or not found → don't retry aggressively
-                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
-                        response.StatusCode == System.Net.HttpStatusCode.Forbidden ||
-                        response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    // Retrying an authorisation failure or a missing route will not change the
+                    // answer, so stop — but report it as unreachable, not as "no licence". A 404
+                    // here says this app is pointed at the wrong address; it says nothing about the
+                    // school.
+                    if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized
+                                            or System.Net.HttpStatusCode.Forbidden
+                                            or System.Net.HttpStatusCode.NotFound)
                     {
-                        return empty;
+                        _logger.LogWarning(
+                            "Licence lookup for {ClientId} returned {Status}; treating as unverified",
+                            companyID, response.StatusCode);
+
+                        return LicenseLookup.Unreachable();
                     }
+
+                    _logger.LogWarning("Licence lookup for {ClientId} returned {Status} (attempt {Attempt})",
+                        companyID, response.StatusCode, attempt);
                 }
                 catch (TaskCanceledException)
                 {
-                    // timeout → retry
+                    // Timeout. Common when the licensing service is cold-starting, which is exactly
+                    // the case that must not be mistaken for an unlicensed school.
+                    _logger.LogWarning("Licence lookup for {ClientId} timed out (attempt {Attempt})", companyID, attempt);
                 }
-                catch (HttpRequestException)
+                catch (HttpRequestException ex)
                 {
-                    // network failure → retry
+                    _logger.LogWarning(ex, "Licence lookup for {ClientId} failed (attempt {Attempt})", companyID, attempt);
                 }
-                catch (Exception)
+                catch (JsonException ex)
                 {
-                    // unknown error → break early (don't loop forever)
-                    break;
+                    // A malformed body is not an empty licence list.
+                    _logger.LogWarning(ex, "Licence lookup for {ClientId} returned unreadable content", companyID);
+                    return LicenseLookup.Unreachable();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Licence lookup for {ClientId} failed unexpectedly", companyID);
+                    return LicenseLookup.Unreachable();
                 }
 
-                await Task.Delay(300 * attempt); // exponential backoff
+                if (attempt < 3) await Task.Delay(300 * attempt);
             }
 
-            // Final fallback (never throw to caller)
-            return empty;
+            return LicenseLookup.Unreachable();
+        }
+
+        /// <summary>
+        /// The period that decides the licence.
+        ///
+        /// FirstOrDefault() used to take whatever the procedure happened to return first, so a
+        /// school holding both a lapsed licence and its renewal could be judged on the lapsed one.
+        /// A valid period always wins; failing that, the one that ran most recently, so the message
+        /// describes the latest licence rather than an arbitrary old one.
+        /// </summary>
+        private static usp_GetPharmacyLicenseStatusResult? SelectCurrentPeriod(
+            List<usp_GetPharmacyLicenseStatusResult> periods)
+        {
+            if (periods.Count == 0) return null;
+
+            return periods
+                .OrderByDescending(p => p.IsValid == 1)
+                .ThenByDescending(p => p.EndDate)
+                .First();
+        }
+
+        /// <summary>
+        /// Licence periods for a school. Returns an empty list when the service cannot be reached,
+        /// so callers cannot tell a failure from an unlicensed school — use
+        /// <see cref="GetLicenseStatusAsync"/> for anything that makes a decision.
+        /// </summary>
+        public async Task<List<usp_GetPharmacyLicenseStatusResult>> GetCompanyLicense(Guid companyID) =>
+            (await TryGetCompanyLicenseAsync(companyID)).Periods;
+
+        /// <summary>
+        /// Every licence ever issued to a school, newest first.
+        ///
+        /// For the SuperAdmin console only — it is the difference between "renew this school" and
+        /// guessing. Deliberately uncached: history is read on demand when someone opens one school,
+        /// not on the hot path, and a stale history right after an activation would be misleading.
+        /// </summary>
+        public async Task<List<TenantLicenseDto>> GetClientLicensesAsync(Guid clientId, int pageNumber = 1, int pageSize = 25)
+        {
+            if (clientId == Guid.Empty) return new List<TenantLicenseDto>();
+
+            var client = _httpClientFactory.CreateClient();
+            client.BaseAddress = new Uri(BaseUrl);
+            client.Timeout = RequestTimeout;
+
+            var path = $"api/license/GetClientLicenses/{clientId}?pageNumber={pageNumber}&pageSize={pageSize}";
+
+            using var response = await client.GetAsync(path);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Licence history for {ClientId} returned {Status}", clientId, response.StatusCode);
+                return new List<TenantLicenseDto>();
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<TenantLicenseListDto>(
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            return payload?.Licenses
+                       .OrderByDescending(l => l.EndDate)
+                       .ToList()
+                   ?? new List<TenantLicenseDto>();
         }
 
         // ---------------------------

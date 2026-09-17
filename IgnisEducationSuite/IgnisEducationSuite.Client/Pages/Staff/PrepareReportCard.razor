@@ -2,6 +2,7 @@
 @using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.Models.StoreProModels
 @using EDUSphereSharedProject.UniversalModels
+@using EDUSphereSharedProject.UniversalModels.ReportCards
 @using IgnisEducationSuite.Client.Pages.Staff.Dialogs
 @inject IDialogService DialogService
 @inherits AppBaseComponent
@@ -20,6 +21,7 @@
            enrolled student on one sheet. Entering per student is what allowed students to be skipped.
            The per-student list below is kept only for the Dean/Principal review step, which is about
            the whole student (overall comments, position, best-six) and has no per-class equivalent. *@
+
         @if (IsScoreEntryRole)
         {
             <ClassResultsEntry />
@@ -79,8 +81,36 @@
                 </MudItem>
                 @if (AppState.UserRole == "Admin")
                 {
+                    @* Positions are derived from marks, so a late entry or an amended score leaves
+                       them wrong until something recalculates. Placed here, next to the report-card
+                       filters, because this is the screen an administrator is already on when
+                       finalising a term. *@
                     <MudItem xs="12">
-                        <MudButton OnClick="UpdatePositionsInClass" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh">Update Positions In Class</MudButton>
+                        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                            <MudButton OnClick="UpdatePositionsInClass"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Outlined"
+                                       Disabled="_recalculating"
+                                       StartIcon="@Icons.Material.Filled.Refresh">
+                                Update Positions In Class
+                            </MudButton>
+
+                            <MudButton OnClick="RecalculateSchoolPositionsAsync"
+                                       Color="Color.Primary"
+                                       Variant="Variant.Filled"
+                                       Disabled="_recalculating"
+                                       StartIcon="@Icons.Material.Filled.Leaderboard">
+                                @if (_recalculating)
+                                {
+                                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                                }
+                                Recalculate School Positions
+                            </MudButton>
+
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                Renumbers every student across the whole school. Run it after marks are finalised.
+                            </MudText>
+                        </MudStack>
                     </MudItem>
                 }
             </MudGrid>
@@ -219,6 +249,63 @@
             : string.Empty;
     }
     #region Search
+
+    private bool _recalculating;
+
+    /// <summary>
+    /// Renumbers every student across the school.
+    ///
+    /// Confirmed first, and deliberately not offered as a quick action: it rewrites every position
+    /// in the school, and on a large roll it is slow enough that a second click while the first is
+    /// still running would be a natural mistake — hence the disabled state rather than only a
+    /// spinner.
+    /// </summary>
+    private async Task RecalculateSchoolPositionsAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Recalculate school positions?",
+            "Every student's position across the whole school will be worked out again from their current marks. " +
+            "Existing positions are replaced. This is safe to repeat, but on a large school it can take a while.",
+            yesText: "Recalculate", cancelText: "Cancel");
+
+        if (confirmed != true) return;
+
+        _recalculating = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await HttpClient.PostAsync("api/ReportCardPositions/school", null);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("The recalculation could not be started. Please try again.", Severity.Error);
+                return;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<PositionRecalculationResult>();
+
+            if (result is null)
+            {
+                Snackbar.Add("The server returned no result. Check the positions before retrying.", Severity.Warning);
+                return;
+            }
+
+            var elapsed = result.Duration is { } duration && duration.TotalSeconds >= 1
+                ? $" ({duration.TotalSeconds:0.#}s)"
+                : "";
+
+            Snackbar.Add(result.Message + elapsed, result.Succeeded ? Severity.Success : Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"The recalculation failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _recalculating = false;
+        }
+    }
 
     private async Task UpdatePositionsInClass()
     {

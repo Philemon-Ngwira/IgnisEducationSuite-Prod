@@ -1,0 +1,35 @@
+@inject AppState AppState
+
+@* Role gate for the SuperAdmin pages.
+
+   Deliberately checks AppState rather than [Authorize(Roles = "SuperAdmin")]. The client's
+   PersistentAuthenticationStateProvider rebuilds the principal from a UserInfo carrying only
+   NameIdentifier, Name and Email — no role claims survive the trip to WebAssembly — so a
+   role-based Authorize attribute on an interactive page denies genuine SuperAdmins. AppState
+   resolves the role from the server during initialisation, which is why the rest of the app
+   branches on it too.
+
+   This is presentation only. Enforcement lives on SuperAdminController, whose
+   [Authorize(Roles = "SuperAdmin")] runs against the server-side cookie principal, where the role
+   claims genuinely are. Hiding a page is not access control. *@
+
+@if (!AppState.IsFullyInitialized)
+{
+    <div class="d-flex justify-center pa-8">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if (AppState.UserRole == "SuperAdmin")
+{
+    @ChildContent
+}
+else
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="ma-4">
+        This area is for platform administrators only.
+    </MudAlert>
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,135 @@
+@page "/Updates"
+@using EDUSphereSharedProject.UniversalModels.Updates
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IJSRuntime JS
+
+@* What changed, in each release, written for the people running a school rather than for the
+   people who built it.
+
+   Opening this page marks the newest version as seen, which is what clears the "new" dot in the
+   menu. That is stored per browser, so it needs no schema and cannot leak between users. *@
+
+<MudText Typo="Typo.h5" Class="mb-1"><b>What's New</b></MudText>
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    Every update to Ignis Education Suite, newest first. You are running version
+    <b>@ReleaseNotes.CurrentVersion</b>.
+</MudText>
+
+@foreach (var release in ReleaseNotes.All)
+{
+    var isCurrent = release.Version == ReleaseNotes.CurrentVersion;
+
+    <MudPaper Class="pa-4 mb-4" Elevation="@(isCurrent ? 2 : 1)">
+
+        <div class="d-flex flex-wrap align-center gap-3 mb-2">
+            <MudText Typo="Typo.h6"><b>Version @release.Version</b></MudText>
+
+            @if (isCurrent)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">
+                    Current
+                </MudChip>
+            }
+
+            <MudSpacer />
+
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                @release.ReleasedOn.ToString("d MMMM yyyy")
+            </MudText>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(release.Headline))
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">@release.Headline</MudText>
+        }
+
+        <MudDivider Class="mb-3" />
+
+        @* Ordered so the useful things come before the repairs, and security last where it is
+           easy to find but does not lead. *@
+        @foreach (var kind in new[] { ReleaseChangeKind.New, ReleaseChangeKind.Improved,
+                                      ReleaseChangeKind.Fixed, ReleaseChangeKind.Security })
+        {
+            if (!release.Has(kind)) continue;
+
+            <div class="mb-3">
+                <div class="d-flex align-center gap-2 mb-2">
+                    <MudIcon Icon="@KindIcon(kind)" Color="@KindColor(kind)" Size="Size.Small" />
+                    <MudText Typo="Typo.subtitle2"><b>@KindLabel(kind)</b></MudText>
+                </div>
+
+                @foreach (var change in release.Of(kind))
+                {
+                    <div class="d-flex align-start gap-2 mb-2" style="padding-left:4px;">
+                        <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord"
+                                 Color="@KindColor(kind)"
+                                 Style="font-size:0.5rem; margin-top:0.5rem;" />
+                        <div>
+                            <MudText Typo="Typo.body2">
+                                <b>@change.Title</b>
+                                @if (!string.IsNullOrWhiteSpace(change.Audience))
+                                {
+                                    @* Labelled rather than hidden: a school administrator should be able to
+                                       see the whole release and tell which lines are about their school. *@
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                             Color="Color.Default" Class="ml-1">
+                                        @change.Audience
+                                    </MudChip>
+                                }
+                            </MudText>
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@change.Detail</MudText>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </MudPaper>
+}
+
+<MudText Typo="Typo.caption" Class="mud-text-secondary">
+    Something not working as described here? Use <MudLink Href="/contact">Contact</MudLink> to let us know.
+</MudText>
+
+@code {
+    /// <summary>
+    /// Marks the current version as seen.
+    ///
+    /// Runs after render, not in OnInitialized: during prerendering there is no browser to talk to,
+    /// and calling JS there throws. Wrapped because storage can be unavailable entirely — a private
+    /// window, or a browser set to block site data — and failing to remember which release was read
+    /// is not worth an error on the page.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await UpdateTracking.MarkSeenAsync(JS, ReleaseNotes.CurrentVersion);
+    }
+
+    private static string KindLabel(ReleaseChangeKind kind) => kind switch
+    {
+        ReleaseChangeKind.New => "New",
+        ReleaseChangeKind.Improved => "Improved",
+        ReleaseChangeKind.Fixed => "Fixed",
+        ReleaseChangeKind.Security => "Security",
+        _ => kind.ToString(),
+    };
+
+    private static string KindIcon(ReleaseChangeKind kind) => kind switch
+    {
+        ReleaseChangeKind.New => Icons.Material.Filled.AutoAwesome,
+        ReleaseChangeKind.Improved => Icons.Material.Filled.TrendingUp,
+        ReleaseChangeKind.Fixed => Icons.Material.Filled.BuildCircle,
+        ReleaseChangeKind.Security => Icons.Material.Filled.Shield,
+        _ => Icons.Material.Filled.Info,
+    };
+
+    private static Color KindColor(ReleaseChangeKind kind) => kind switch
+    {
+        ReleaseChangeKind.New => Color.Primary,
+        ReleaseChangeKind.Improved => Color.Info,
+        ReleaseChangeKind.Fixed => Color.Success,
+        ReleaseChangeKind.Security => Color.Warning,
+        _ => Color.Default,
+    };
+}

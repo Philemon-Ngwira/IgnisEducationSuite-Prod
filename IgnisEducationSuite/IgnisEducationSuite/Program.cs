@@ -26,6 +26,8 @@ using IgnisEducationSuite.ServerServices.ReportCards;
 using IgnisEducationSuite.ServerServices.Scheduling;
 using IgnisEducationSuite.ServerServices.Security;
 using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
+using IgnisEducationSuite.ServerServices.SuperAdmin;
+using IgnisEducationSuite.ServerServices.Licensing;
 using IgnisEducationSuite.Settings;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -170,6 +172,13 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<IParentLinkingClientService, ParentLinkingClientService>();
             builder.Services.AddScoped<ChatEngagementService>();
             builder.Services.AddScoped<ChatRealtimeService>();
+
+            // SuperAdmin tenant console
+            builder.Services.AddScoped<TenantOversightService>();
+            builder.Services.AddScoped<SchoolEntitlementService>();
+
+            builder.Services.AddScoped<ISuperAdminClientService, SuperAdminClientService>();
+            builder.Services.AddScoped<ILicenseClientService, LicenseClientService>();
 
             // Server-side counterparts for the interactive-auto client services (prerendering).
             builder.Services.AddScoped<ISchedulingManagementService, ClientSchedulingManagementService>();

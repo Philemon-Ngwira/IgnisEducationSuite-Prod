@@ -1,0 +1,38 @@
+@* A single portfolio figure that also acts as a filter.
+
+   Clickable only when a handler is supplied, so the same tile serves the read-only dashboard
+   summary and the interactive console without a second component. *@
+
+<MudPaper Elevation="@(Selected ? 4 : 1)"
+          Class="@TileClass"
+          Style="@TileStyle"
+          @onclick="HandleClickAsync">
+    <div class="d-flex align-center gap-2">
+        <MudIcon Icon="@Icon" Color="@Color" Size="Size.Medium" />
+        <div style="min-width:0;">
+            <MudText Typo="Typo.h6" Class="mb-n1"><b>@Value</b></MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@Label</MudText>
+        </div>
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.Info;
+    [Parameter] public Color Color { get; set; } = Color.Primary;
+
+    /// <summary>Draws the tile as the active filter.</summary>
+    [Parameter] public bool Selected { get; set; }
+
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private bool IsClickable => OnClick.HasDelegate;
+
+    private string TileClass => "pa-3 " + (IsClickable ? "cursor-pointer" : "");
+
+    private string TileStyle =>
+        "height:100%;" + (Selected ? "border:1px solid var(--mud-palette-primary);" : "");
+
+    private Task HandleClickAsync() => IsClickable ? OnClick.InvokeAsync() : Task.CompletedTask;
+}

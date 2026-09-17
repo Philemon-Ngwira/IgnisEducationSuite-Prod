@@ -17,7 +17,10 @@
 
         <!-- Right: Version & Environment -->
         <div class="footer-right">
-            Version @Version
+            @* Links to the release notes, so the number is a way in rather than just a label. *@
+            <a href="/Updates" class="footer-link" title="See what changed in this version">
+                Version @DisplayVersion
+            </a>
             @if (!string.IsNullOrEmpty(Environment))
             {
                 <span class="env-tag">@Environment</span>
@@ -108,9 +111,21 @@
 
 </style>
 @code {
+    /// <summary>
+    /// Override only if you need to show something other than the running version. Left unset — the
+    /// normal case — the number comes from the release notes.
+    ///
+    /// It used to be passed in by hand from MainLayout, which meant two places to remember on every
+    /// release; the footer had already fallen a version behind.
+    /// </summary>
     [Parameter]
-    public string Version { get; set; } = "1.0.2";
+    public string? Version { get; set; }
 
     [Parameter]
     public string Environment { get; set; } = "TEST"; // DEV, TEST, PROD
+
+    private string DisplayVersion =>
+        string.IsNullOrWhiteSpace(Version)
+            ? EDUSphereSharedProject.UniversalModels.Updates.ReleaseNotes.CurrentVersion
+            : Version;
 }
