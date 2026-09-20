@@ -7,9 +7,15 @@ namespace EDUSphereSharedProject.ChatModels;
 
 public partial class GroupMember
 {
-    public string GroupName { get; set; }
+    public Guid GroupMemberID { get; set; }
 
     public string UserId { get; set; }
 
-    public virtual ChatGroup GroupNameNavigation { get; set; }
+    public Guid? GroupID { get; set; }
+
+    public string GroupName { get; set; }
+
+    public DateTime? DateAdded { get; set; }
+
+    public virtual ChatGroup Group { get; set; }
 }

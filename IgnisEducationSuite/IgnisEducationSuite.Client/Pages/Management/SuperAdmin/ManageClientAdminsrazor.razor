@@ -1,121 +1,244 @@
-﻿@page "/ManageSchoolAdmins"
+@page "/ManageSchoolAdmins"
 @using EDUSphereSharedProject.IdentiyModels
 @using EDUSphereSharedProject.Models
 @using EDUSphereSharedProject.UniversalModels
-@using System.Security.Cryptography
-@using System.Text
+@using EDUSphereSharedProject.UniversalModels.SuperAdmin
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-<MudCard>
-    <MudCardHeader>
-        <CardHeaderContent>
-            <MudText Align="Align.Center" Typo="Typo.h4"><b>Client Admin Management</b></MudText>
-        </CardHeaderContent>
-    </MudCardHeader>
-    <MudCardContent>
-        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
-            <MudTabPanel Text="Create New Admin">
+<SuperAdminOnly>
+<MudText Typo="Typo.h5" Class="mb-1"><b>School administrators</b></MudText>
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    The accounts that run each school. Every school needs at least one, or nobody can sign in to it.
+</MudText>
 
+<MudPaper Elevation="1">
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+
+        @* ------------------------------ Existing admins ------------------------------ *@
+        <MudTabPanel Text="Manage administrators" Icon="@Icons.Material.Filled.ManageAccounts">
+
+            <div class="d-flex flex-wrap align-end gap-3 mb-4">
+                <MudSelect T="School" Value="selectedSchool" ValueChanged="OnSchoolChanged"
+                           ToStringFunc="SchoolTypeconverter"
+                           Label="School" Placeholder="Select a school"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Style="max-width:360px;"
+                           AdornmentIcon="@Icons.Material.Filled.School" AdornmentColor="Color.Primary">
+                    @foreach (var item in schools)
+                    {
+                        <MudSelectItem Value="item">@item.SchoolName</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudTextField @bind-Value="searchString" Immediate="true" Clearable="true"
+                              Placeholder="Search by name or email"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Style="max-width:300px;" />
+
+                <MudSpacer />
+
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Refresh"
+                           Disabled="selectedSchool is null || isLoading"
+                           OnClick="LoadAdminsAsync">
+                    Refresh
+                </MudButton>
+            </div>
+
+            @if (isLoading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (selectedSchool is null)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Choose a school to see its administrators.
+                </MudAlert>
+            }
+            else if (!admins.Any())
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                    <b>@selectedSchool.SchoolName has no administrator.</b>
+                    Nobody can sign in to run it. Create one on the next tab.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTable Items="FilteredAdmins" Dense="true" Hover="true" Bordered="false" Striped="true"
+                          T="TenantAdminDto" Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Sign-in</MudTh>
+                        <MudTh>Access</MudTh>
+                        <MudTh Style="text-align:right">Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name">
+                            <MudText Typo="Typo.body2"><b>@context.DisplayName</b></MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Email</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Sign-in">
+                            <MudText Typo="Typo.body2">@context.UserName</MudText>
+                            @if (context.RequiresPasswordReset)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Warning">Must change password</MudText>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Access">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                     Color="@(IsActive(context) ? Color.Success : Color.Error)">
+                                @(IsActive(context) ? "Active" : "Suspended")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Actions" Style="text-align:right">
+                            @* These three buttons used to have no OnClick at all — Disable and
+                               Activate did nothing when pressed. *@
+                            <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                                @if (IsActive(context))
+                                {
+                                    <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined"
+                                               StartIcon="@Icons.Material.Filled.Block"
+                                               Disabled="isWorking"
+                                               OnClick="() => SetActiveAsync(context, false)">
+                                        Suspend
+                                    </MudButton>
+                                }
+                                else
+                                {
+                                    <MudButton Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined"
+                                               StartIcon="@Icons.Material.Filled.LockOpen"
+                                               Disabled="isWorking"
+                                               OnClick="() => SetActiveAsync(context, true)">
+                                        Restore
+                                    </MudButton>
+                                }
+
+                                <MudButton Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined"
+                                           StartIcon="@Icons.Material.Filled.Password"
+                                           Disabled="isWorking"
+                                           OnClick="() => ResetPasswordAsync(context)">
+                                    Reset password
+                                </MudButton>
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
+            }
+        </MudTabPanel>
+
+        @* ------------------------------ Create ------------------------------ *@
+        <MudTabPanel Text="Create administrator" Icon="@Icons.Material.Filled.PersonAdd">
+            <MudForm @ref="_form" Model="newUser">
                 <MudGrid>
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="newUser.UserName" Label="Enter UserName" Placeholder="Username" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                        <MudAutocomplete Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         @bind-Value="school" ToStringFunc="SchoolTypeconverter"
+                                         T="School" Label="School" SearchFunc="@SearchSchool"
+                                         Required="true" RequiredError="Choose the school this administrator belongs to."
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                     </MudItem>
+
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="newUser.Email" Label="Enter Email" Placeholder="example@gmail.com" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                        <MudTextField @bind-Value="newUser.UserName" Label="Username" Placeholder="Username"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Required="true" RequiredError="A username is required." />
                     </MudItem>
+
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="newUser.FirstName" Label="Enter FirstName" Placeholder="First Name" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                        <MudTextField @bind-Value="newUser.Email" Label="Email" Placeholder="example@school.edu"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      InputType="InputType.Email"
+                                      Required="true" RequiredError="An email address is required."
+                                      Validation="@(new Func<string, string?>(ValidateEmail))"
+                                      HelperText="Their one-time password is sent here." />
                     </MudItem>
+
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="newUser.LastName" Label="Enter FirstName" Placeholder="Last Name" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                        <MudTextField @bind-Value="newUser.FirstName" Label="First name" Placeholder="First name"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Required="true" RequiredError="A first name is required." />
                     </MudItem>
+
                     <MudItem xs="12" md="6">
-                        <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newUser.Gender">
+                        @* This field was labelled "Enter FirstName" — the same label as the box above it. *@
+                        <MudTextField @bind-Value="newUser.LastName" Label="Last name" Placeholder="Last name"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Required="true" RequiredError="A last name is required." />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense"
+                                   @bind-Value="newUser.Gender"
+                                   ToStringFunc="@(g => string.IsNullOrWhiteSpace(g) ? "" : g)">
                             @foreach (var item in genders)
                             {
                                 <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
                             }
                         </MudSelect>
+                    </MudItem>
 
-                    </MudItem>
                     <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="newUser.ContactNo" Label="Enter Contact #" Placeholder="+260 123456789" Variant="Variant.Outlined" Margin="Margin.Dense"></MudTextField>
+                        <MudTextField @bind-Value="newUser.ContactNo" Label="Contact number" Placeholder="+260 123456789"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
                     </MudItem>
+
                     <MudItem xs="12" md="6">
-                        <MudAutocomplete Variant="Variant.Outlined" ValueChanged="(e) => GetCities(e)" ToStringFunc="CountryTypeconverter" Margin="Margin.Dense" T="CountryDTO" Label="Countries" Value="Country" Placeholder="Select Country" SearchFunc="@SearchCountry"
-                                         ResetValueOnEmptyText="true"
-                                         CoerceText="true" CoerceValue="true"
+                        <MudAutocomplete Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         ValueChanged="(CountryDTO e) => GetCities(e)"
+                                         ToStringFunc="CountryTypeconverter"
+                                         T="CountryDTO" Label="Country" Value="Country" Placeholder="Select country"
+                                         SearchFunc="@SearchCountry"
+                                         ResetValueOnEmptyText="true" CoerceText="true"
                                          AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                     </MudItem>
+
                     <MudItem xs="12" md="6">
-                        <MudAutocomplete Variant="Variant.Outlined" @bind-Value="City" ToStringFunc="CityTypeconverter" Margin="Margin.Dense" T="CityDTO" Label="Cities" Disabled="Country.CountryName == null" SearchFunc="@SearchCity"
-                                         ResetValueOnEmptyText="true"
-                                         CoerceText="true" CoerceValue="true"
+                        <MudAutocomplete Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         @bind-Value="City" ToStringFunc="CityTypeconverter"
+                                         T="CityDTO" Label="City"
+                                         Disabled="Country?.CountryName is null"
+                                         SearchFunc="@SearchCity"
+                                         ResetValueOnEmptyText="true" CoerceText="true"
                                          AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
                     </MudItem>
-                    <MudItem xs="12" md="6">
-                        <MudAutocomplete Variant="Variant.Outlined" @bind-Value="school" ToStringFunc="SchoolTypeconverter" Margin="Margin.Dense" T="School" Label="Schools" SearchFunc="@SearchSchool"
-                                         ResetValueOnEmptyText="true"
-                                         CoerceText="true" CoerceValue="true"
-                                         AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
-                    </MudItem>
-                    <MudItem xs="12" md="6">
-                        <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+
+                    <MudItem xs="12" md="6" class="d-flex align-center gap-3">
+                        <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Accept="image/*">
                             <ActivatorContent>
-                                <MudFab Color="Color.Secondary"
+                                <MudFab Color="Color.Secondary" Size="Size.Small"
                                         StartIcon="@Icons.Material.Filled.Image"
-                                        Label="Upload Profile Pic" />
+                                        Label="Profile picture (optional)" />
                             </ActivatorContent>
                         </MudFileUpload>
+
+                        @if (newUser.profilePic is { Length: > 0 } pic)
+                        {
+                            <MudAvatar Size="Size.Large">
+                                <MudImage Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(pic)}")" />
+                            </MudAvatar>
+                        }
                     </MudItem>
+
                     <MudItem xs="12">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAdmin" DropShadow="true">Add School Admin</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" DropShadow="true"
+                                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                                   Disabled="isWorking"
+                                   OnClick="AddAdmin">
+                            @if (isWorking)
+                            {
+                                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                            }
+                            Create administrator
+                        </MudButton>
                     </MudItem>
                 </MudGrid>
-            </MudTabPanel>
-            <MudTabPanel Text="Manage Existing Admins">
-                <MudSelect @bind-Value="selectedSchool" T="School" ToStringFunc="SchoolTypeconverter" Label="Select School"  Placeholder="Please Select" AdornmentIcon="@Icons.Material.Filled.School" AdornmentColor="Color.Primary">
-                   @foreach (var item in schools)
-                    {
-                        <MudSelectItem Value="item">@item.SchoolName</MudSelectItem>
-                    }
-                </MudSelect>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GetUsersWithRoles">Get School Admins</MudButton>
-                @if(userRoles.Any()){
-                    <MudTable Items="@userRoles" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<ApplicationUser,bool>(FilterFunc1)" @bind-SelectedItem="selectedAdmin">
-                        <ToolBarContent>
-                            <MudText Typo="Typo.h6">Admins</MudText>
-                            <MudSpacer />
-                            <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-                        </ToolBarContent>
-                        <HeaderContent>
-                            <MudTh>First Name</MudTh>
-                            <MudTh>Last Name</MudTh>
-                            <MudTh>Email</MudTh>
-                            <MudTh>Action</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="First Name">@context.FirstName</MudTd>
-                            <MudTd DataLabel="Last Name">@context.LastName</MudTd>
-                            <MudTd DataLabel="Email">@context.Email</MudTd>
-                            <MudTd DataLabel="Action">
-                                <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false">
-                                    <MudButton Color="Color.Primary" EndIcon="@Icons.Material.Filled.NotAccessible" Variant="Variant.Outlined">Disable Account</MudButton>
-                                    <MudButton Color="Color.Warning" EndIcon="@Icons.Material.Filled.Accessible" Variant="Variant.Outlined">Activate Account</MudButton>
-                                    <MudButton Color="Color.Secondary" EndIcon="@Icons.Material.Filled.Password" Variant="Variant.Outlined" OnClick="() => ResetPassword(context)">Reset Password</MudButton>
-                                </MudButtonGroup>
-                            </MudTd>
-                        </RowTemplate>
-                        <PagerContent>
-                            <MudTablePager />
-                        </PagerContent>
-                    </MudTable>
-
-                }
-               
-            </MudTabPanel>
-            
-        </MudTabs>
-    </MudCardContent>
-</MudCard>
-
-
+            </MudForm>
+        </MudTabPanel>
+    </MudTabs>
+</MudPaper>
+</SuperAdminOnly>

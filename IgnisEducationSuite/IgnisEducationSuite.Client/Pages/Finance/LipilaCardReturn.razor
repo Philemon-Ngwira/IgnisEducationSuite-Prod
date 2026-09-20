@@ -1,0 +1,134 @@
+@page "/payments/lipila/return"
+@using EDUSphereSharedProject.PaymentDTos.Lipila
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.WebUtilities
+
+@inherits AppBaseComponent
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+
+    <MudPaper Class="pa-6" Elevation="2">
+
+        @if (Checking)
+        {
+            <MudStack AlignItems="AlignItems.Center" Spacing="3">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                <MudText>Confirming your payment...</MudText>
+            </MudStack>
+        }
+        else
+        {
+            <MudStack AlignItems="AlignItems.Center" Spacing="3">
+                <MudIcon Icon="@ResultIcon" Color="@ResultColor" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.h6">@ResultTitle</MudText>
+                <MudText Typo="Typo.body2" Align="Align.Center">@ResultMessage</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GoToPayments">
+                    Return to Payments
+                </MudButton>
+            </MudStack>
+        }
+
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    private bool Checking = true;
+    private string ResultTitle = string.Empty;
+    private string ResultMessage = string.Empty;
+    private Color ResultColor = Color.Info;
+    private string ResultIcon = Icons.Material.Filled.Info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var referenceId = GetReferenceIdFromQuery();
+
+        if (string.IsNullOrWhiteSpace(referenceId))
+        {
+            SetResult(
+                "We couldn't find that payment",
+                "No payment reference was provided. If you completed a card payment, check the Payments tab for its status.",
+                Color.Warning,
+                Icons.Material.Filled.Warning);
+
+            Checking = false;
+            return;
+        }
+
+        try
+        {
+            var response = await HttpClient.GetAsync($"api/payments/lipila/status/{referenceId}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                SetResult(
+                    "Couldn't confirm your payment",
+                    "Please check the Payments tab in a moment - your payment may still be processing.",
+                    Color.Warning,
+                    Icons.Material.Filled.Warning);
+
+                return;
+            }
+
+            var status = await response.Content.ReadFromJsonAsync<LipilaCollectionResponse>(JsonDefaults.Web);
+
+            if (string.Equals(status?.Status, "Successful", StringComparison.OrdinalIgnoreCase))
+            {
+                SetResult(
+                    "Payment confirmed",
+                    "Thank you! Your payment has been received.",
+                    Color.Success,
+                    Icons.Material.Filled.CheckCircle);
+            }
+            else if (string.Equals(status?.Status, "Failed", StringComparison.OrdinalIgnoreCase))
+            {
+                SetResult(
+                    "Payment didn't go through",
+                    status?.Message ?? "This payment wasn't successful. You can try again from the Payments tab.",
+                    Color.Error,
+                    Icons.Material.Filled.Cancel);
+            }
+            else
+            {
+                SetResult(
+                    "Payment is still processing",
+                    "We'll update your balance as soon as it's confirmed. Check the Payments tab shortly.",
+                    Color.Info,
+                    Icons.Material.Filled.HourglassTop);
+            }
+        }
+        catch
+        {
+            SetResult(
+                "Couldn't confirm your payment",
+                "Please check the Payments tab in a moment - your payment may still be processing.",
+                Color.Warning,
+                Icons.Material.Filled.Warning);
+        }
+        finally
+        {
+            Checking = false;
+        }
+    }
+
+    private string? GetReferenceIdFromQuery()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+
+        return QueryHelpers.ParseQuery(uri.Query)
+            .TryGetValue("ref", out var value)
+            ? value.ToString()
+            : null;
+    }
+
+    private void SetResult(string title, string message, Color color, string icon)
+    {
+        ResultTitle = title;
+        ResultMessage = message;
+        ResultColor = color;
+        ResultIcon = icon;
+    }
+
+    private void GoToPayments() => Navigation.NavigateTo("/FinancePortal");
+}

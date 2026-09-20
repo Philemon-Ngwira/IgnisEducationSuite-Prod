@@ -21,3 +21,11 @@ window.updateChart = (chartId, chartData) => {
         window[chartId].update();
     }
 };
+
+window.scrollChatToBottom = (id) => {
+    const container = document.getElementById(id);
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+};
+

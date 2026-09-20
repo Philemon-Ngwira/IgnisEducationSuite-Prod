@@ -15,6 +15,24 @@ namespace IgnisEducationSuite.Client.Pages.Management.Dialog
         protected MudTable<Class> _table = new();
         private HashSet<Class> selectedItems = new HashSet<Class>();
         private List<Class> listToSave = new();
+
+        protected async Task UnassignSubject(Class subject)
+        {
+            var service = _genericService.GetService<Class>();
+            subject.TeacherID = null;
+            var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "class", subject);
+            if (result.IsSuccess)
+            {
+                teachersSubjects.Remove(subject);
+                subjects.Add(subject);
+                Snackbar.Add("Subject Successfully Unassined", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Error Saving Error Code: EDUx00000002", Severity.Error);
+                return;
+            }
+        }
         protected async Task FinalizeSubjectSelection()
         {
             var service = _genericService.GetService<List<Class>>();
@@ -34,6 +52,7 @@ namespace IgnisEducationSuite.Client.Pages.Management.Dialog
                 {
 
                     teachersSubjects.Add(item);
+                    subjects.Remove(item);
                     Snackbar.Add("Subject Successfully Assined", Severity.Success);
                 }
             }

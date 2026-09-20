@@ -9,7 +9,7 @@ namespace EDUSphereSharedProject.LicensingModel
 
     public class TerminateLicenseRequest
     {
-        public string LicenseKey { get; set; } // The unique license key
+        public string LicenseKey { get; set; } = ""; // The unique license key
     }
 
 

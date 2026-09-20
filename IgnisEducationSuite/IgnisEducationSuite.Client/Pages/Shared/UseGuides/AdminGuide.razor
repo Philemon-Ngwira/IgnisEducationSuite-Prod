@@ -1,0 +1,1162 @@
+﻿<style>
+    .guide-section {
+        display: none;
+    }
+
+        .guide-section.active {
+            display: block;
+        }
+
+    nav button {
+        cursor: pointer;
+        background: none;
+        border: none;
+        color: #1976d2; /* primary blue for links */
+        font-weight: bold;
+        padding: 0;
+    }
+
+        nav button:hover {
+            text-decoration: underline;
+        }
+</style>
+
+<section id="admin-users" class="guide-section active">
+
+    <h1>Admin Guide: User Management</h1>
+    <p>
+        The User Management section allows administrators to create, manage, and maintain
+        system users across the school. Users are grouped into three main roles:
+        <strong>Students</strong>, <strong>Teachers</strong>, and <strong>Parents</strong>.
+    </p>
+
+    <p>
+        Each role has a dedicated tab with tools designed specifically for that user type.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Main User Management.png" />
+    </p>
+
+    <hr />
+
+    <h2>Users Page Overview</h2>
+    <ul>
+        <li><strong>Students</strong> – Manage all enrolled learners</li>
+        <li><strong>Teachers</strong> – Manage teaching staff accounts</li>
+        <li><strong>Parents</strong> – Manage parent and guardian accounts</li>
+    </ul>
+
+    <p>
+        Each tab shows a table of users for that role, along with actions to
+        create, edit, delete, or bulk upload users.
+    </p>
+
+    <hr />
+
+    <h2>Managing Students</h2>
+    <p>Student users are linked to academic structures such as classes and grade levels.</p>
+    <p> <img src="/images/UserGuideImages/Admin/Students User Management.png" /></p>
+
+    <h3>Adding a Single Student</h3>
+    <ol>
+        <li>Click <strong>Create Student</strong></li>
+        <li>Fill in the required student details</li>
+        <li>Assign the student to the appropriate class and academic level</li>
+        <li>Save the record</li>
+    </ol>
+
+    <h3>Bulk Uploading Students</h3>
+    <ol>
+        <li>Click <strong>Bulk Upload</strong> in the Students tab</li>
+        <li>Upload the provided Excel template filled with student data</li>
+        <li>Preview uploaded data before confirming</li>
+        <li>Fix any validation errors per row</li>
+        <li>Confirm to create the student accounts</li>
+    </ol>
+
+    <hr />
+
+    <h2>Managing Teachers</h2>
+    <p>Manage all teaching staff accounts.</p>
+    <p> <img src="/images/UserGuideImages/Admin/Teachers User Management.png" /></p>
+
+    <h3>Adding a Teacher</h3>
+    <ol>
+        <li>Click <strong>Create Teacher</strong></li>
+        <li>Enter personal and employment details</li>
+        <li>Save the teacher profile</li>
+    </ol>
+
+    <h3>Bulk Uploading Teachers</h3>
+    <ol>
+        <li>Select <strong>Bulk Upload</strong> under the Teachers tab</li>
+        <li>Upload the completed Excel template</li>
+        <li>Review the preview table</li>
+        <li>Resolve any errors highlighted by the system</li>
+        <li>Confirm to save all valid teacher accounts</li>
+    </ol>
+
+    <hr />
+
+    <h2>Managing Parents</h2>
+    <p>Manage parent and guardian accounts linked to students.</p>
+    <p> <img src="/images/UserGuideImages/Admin/Parent User Management.png" /></p>
+
+    <h3>Adding a Parent</h3>
+    <ol>
+        <li>Click <strong>Create Parent</strong></li>
+        <li>Enter parent or guardian details</li>
+        <li>Link the parent to one or more students</li>
+        <li>Save the account</li>
+    </ol>
+
+    <h3>Bulk Uploading Parents</h3>
+    <ol>
+        <li>Open the Parents tab</li>
+        <li>Select <strong>Bulk Upload</strong></li>
+        <li>Upload the completed Excel template</li>
+        <li>Preview records and fix any errors</li>
+        <li>Confirm to create the parent accounts</li>
+    </ol>
+
+    <hr />
+
+    <h2>Editing and Removing Users</h2>
+    <ul>
+        <li>Edit user details using the edit action</li>
+        <li>Remove inactive users</li>
+        <li>View user information from the table</li>
+    </ul>
+
+    <nav>
+        <button onclick="showGuideSection('admin-terms')">Next: Term Settings →</button>
+    </nav>
+
+</section>
+
+<section id="admin-terms" class="guide-section">
+
+    <h1>Admin Guide: Term Settings</h1>
+
+    <p>
+        The Term Settings page allows administrators to define and manage academic terms
+        used throughout the system. These dates control grading periods, report card workflows,
+        and approval timelines.
+    </p>
+
+    <p>
+        Each term includes start and end dates for mid-term reviews, final assessments,
+        and administrative approvals.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Term Settings Overview.png" />
+    </p>
+
+    <hr />
+
+    <h2>Understanding Term Settings</h2>
+
+    <p>
+        A term represents a defined academic period within the school year.
+        Term settings are used by teachers, deans, and principals during assessments
+        and report card preparation.
+    </p>
+
+    <p>
+        Each term includes the following key dates:
+    </p>
+
+    <ul>
+        <li><strong>Mid Term Start & End</strong> – Period for mid-term assessments</li>
+        <li><strong>Final Term Start & End</strong> – Period for final exams and grading</li>
+        <li><strong>Dean Start & End</strong> – Review window for deans</li>
+        <li><strong>Principal Start & End</strong> – Final approval window for principals</li>
+    </ul>
+
+    <hr />
+
+    <h2>Viewing Existing Terms</h2>
+
+    <p>
+        All configured terms are displayed in a table.
+        Each row shows the full timeline for a specific term.
+    </p>
+
+    <p>
+        Administrators can quickly review and verify important academic dates
+        from this table.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Term Settings Table.png" />
+    </p>
+
+    <hr />
+
+    <h2>Adding a New Term</h2>
+
+    <p>
+        To create a new academic term:
+    </p>
+
+    <ol>
+        <li>Click the <strong>Add Term</strong> button</li>
+        <li>Enter the term name</li>
+        <li>Select all required start and end dates</li>
+        <li>Save the term</li>
+    </ol>
+
+    <p>
+        Once saved, the term becomes available for academic and reporting workflows.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Add Term Dialog.png" />
+    </p>
+
+    <hr />
+
+    <h2>Editing an Existing Term</h2>
+
+    <p>
+        Administrators can modify a term if dates need to be adjusted.
+    </p>
+
+    <ol>
+        <li>Locate the term in the table</li>
+        <li>Click the <strong>Edit</strong> button</li>
+        <li>Update the necessary dates</li>
+        <li>Save the changes</li>
+    </ol>
+
+    <p>
+        Changes take effect immediately after saving.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Edit Term Dialog.png" />
+    </p>
+
+    <hr />
+
+    <h2>Deleting a Term</h2>
+
+    <p>
+        If a term is no longer required, it can be removed from the system.
+    </p>
+
+    <ol>
+        <li>Click the <strong>Delete</strong> button next to the term</li>
+        <li>Confirm the deletion when prompted</li>
+    </ol>
+
+    <p>
+        Deleted terms are permanently removed and cannot be recovered.
+    </p>
+
+    <hr />
+
+    <h2>Important Notes</h2>
+
+    <ul>
+        <li>Ensure dates do not overlap between terms</li>
+        <li>Confirm approval windows align with school policies</li>
+        <li>Term settings affect report cards and grading workflows</li>
+    </ul>
+
+    <hr />
+    <nav>
+        <button onclick="showGuideSection('admin-users')">← Back to User Management</button>
+        &nbsp;|&nbsp;
+        <button onclick="showGuideSection('admin-academic-structure')">Next: Academic Structure →</button>
+    </nav>
+
+</section>
+
+<section id="admin-academic-structure" class="guide-section">
+
+
+    <h1>Admin Guide: Academic Structure</h1>
+
+    <p>
+        The Academic Structure page defines the educational levels used across the system,
+        such as grades, forms, or year groups. This structure is foundational and is used
+        throughout student management, class assignment, and reporting.
+    </p>
+
+    <p>
+        Changes to the academic structure affect how students, classes, and assessments
+        are organized.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Academic Structure Stepper.png" />
+    </p>
+
+    <hr />
+
+    <h2>Step 1: Review Current Structure</h2>
+
+    <p>
+        The first step displays all academic levels currently configured for the school.
+        These levels are shown in their defined order.
+    </p>
+
+    <p>
+        If no levels exist, the system will indicate that the academic structure
+        has not yet been set up.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Academic Structure Current.png" />
+    </p>
+
+    <p>
+        Review the existing levels carefully before proceeding.
+    </p>
+
+    <hr />
+
+    <h2>Step 2: Upload Academic Structure</h2>
+
+    <p>
+        Academic levels are added to the system using an Excel template.
+        This ensures consistency and prevents manual data entry errors.
+    </p>
+
+    <h3>Downloading the Template</h3>
+    <ol>
+        <li>Click <strong>Download Template</strong></li>
+        <li>Open the Excel file and enter the academic level names</li>
+        <li>Ensure all required columns are filled correctly</li>
+    </ol>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Academic Structure Template.png" />
+    </p>
+
+    <h3>Uploading the Completed File</h3>
+    <ol>
+        <li>Click <strong>Upload Excel File</strong></li>
+        <li>Select the completed template</li>
+        <li>Wait for the system to validate the file</li>
+    </ol>
+
+    <p>
+        Any errors found during validation will be displayed, including the row number
+        and reason for the issue.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Academic Structure Upload Errors.png" />
+    </p>
+
+    <p>
+        Only valid uploads can proceed to the review step.
+    </p>
+
+    <hr />
+
+    <h2>Step 3: Review and Confirm Changes</h2>
+
+    <p>
+        Before saving, the system presents a summary of detected changes.
+        Each academic level is marked with a status indicator.
+    </p>
+
+    <ul>
+        <li><strong>New</strong> – Level does not exist and will be added</li>
+        <li><strong>Existing</strong> – Level already exists and will be skipped</li>
+        <li><strong>Conflict</strong> – Level has an issue that needs attention</li>
+    </ul>
+
+
+    <p>
+        Only new academic levels can be confirmed and saved.
+    </p>
+
+    <h3>Confirming the Structure</h3>
+    <ol>
+        <li>Review the change summary carefully</li>
+        <li>Click <strong>Confirm Additions</strong></li>
+        <li>Wait for the system to complete setup</li>
+    </ol>
+
+    <p>
+        Successfully added levels become immediately available across the system.
+    </p>
+
+    <hr />
+
+    <h2>Important Notes</h2>
+
+    <ul>
+        <li>Academic levels cannot be edited from this page once added</li>
+        <li>Plan your structure carefully before uploading</li>
+        <li>This structure affects students, classes, and report cards</li>
+    </ul>
+
+    <hr />
+    <nav>
+        <button onclick="showGuideSection('admin-terms')">← Back to Term Settings</button>
+        &nbsp;|&nbsp;
+        <button onclick="showGuideSection('admin-class-management')">Next: Class Management →</button>
+    </nav>
+
+</section>
+
+<section id="admin-class-management" class="guide-section">
+
+    <h1>Admin Guide: Class Management</h1>
+
+    <p>
+        The Class Management page allows administrators to create and manage classes
+        within the school. Each class is linked to an academic level and assigned
+        a responsible teacher.
+    </p>
+
+    <p>
+        Classes form the foundation for student enrollment, timetables, and academic reporting.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Class Management Overview.png" />
+    </p>
+
+    <hr />
+
+    <h2>Creating a New Class</h2>
+
+    <p>
+        New classes are created using the form at the top of the page.
+        All required details must be provided before saving.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Create Class Form.png" />
+    </p>
+
+    <h3>Required Class Information</h3>
+
+    <ul>
+        <li><strong>Class Name</strong> – The official name of the class</li>
+        <li><strong>Academic Level</strong> – The level the class belongs to</li>
+        <li><strong>Grade Section</strong> – Section identifier (e.g. A, B, C)</li>
+        <li><strong>Assigned Teacher</strong> – The teacher responsible for the class</li>
+    </ul>
+
+    <h3>Saving the Class</h3>
+
+    <ol>
+        <li>Fill in all required fields</li>
+        <li>Select a teacher from the search field</li>
+        <li>Click <strong>Add Class</strong></li>
+    </ol>
+
+    <p>
+        Once saved, the class becomes immediately available in the system.
+    </p>
+
+    <hr />
+
+    <h2>Viewing Existing Classes</h2>
+
+    <p>
+        All available classes are displayed in a table below the creation form.
+        Each entry shows the assigned teacher, class name, and academic level.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Class List Table.png" />
+    </p>
+
+    <p>
+        Classes are grouped by academic level for easier navigation.
+    </p>
+
+    <hr />
+
+
+    <hr />
+
+    <h2>Important Notes</h2>
+
+    <ul>
+        <li>Each class must be linked to an academic level</li>
+        <li>A teacher can be assigned to multiple classes if required</li>
+        <li>Classes are used throughout timetables and reporting</li>
+    </ul>
+
+    <hr />
+    <nav>
+        <button onclick="showGuideSection('admin-academic-structure')">
+            ← Back: Class Management
+        </button>
+        <button onclick="showGuideSection('admin-class-schedules')">
+            Next: Schedule Management →
+        </button>
+
+        @*  <button onclick="showGuideSection('admin-smart-timetable-editor')">
+            Next: Smart Timetable Editor →
+        </button>
+ *@
+
+    </nav>
+
+</section>
+
+<section id="admin-class-schedules" class="guide-section" data-role="Admin">
+    <h1>Admin Guide: Class Schedules</h1>
+    <p>Define school time slots, upload class schedules, and assign them to students.</p>
+
+    <h2>1. Time Slots</h2>
+    <p>Create and manage the school's time slots to structure daily lessons.</p>
+    <p>
+        <img src="/images/UserGuideImages/Admin/TimeSlots.png" />
+    </p>
+
+    <h3>Creating a Time Slot</h3>
+    <ul>
+        <li>Enter <strong>Start Time</strong> and <strong>End Time</strong> for the slot.</li>
+        <li>Give a <strong>Slot Name</strong>, e.g., "First Period".</li>
+        <li>Select <strong>Slot Type</strong>: Morning, Mid-morning, Afternoon, Evening, Break, Lunch.</li>
+        <li>Click <strong>Register Time Slot</strong> to save it.</li>
+    </ul>
+    <p> <img src="/images/UserGuideImages/Admin/TimeSlotsRegister.png" /></p>
+
+    <h2>2. Manual Schedule Upload</h2>
+    <p>You can upload a class schedule using an Excel template.</p>
+    <ul>
+        <li>Download the provided template.</li>
+        <li>Fill in weekly lessons for each class.</li>
+        <li>Upload the completed file using the "Upload Excel" button.</li>
+    </ul>
+    <p> <img src="/images/UserGuideImages/Admin/ManualUpload.png" /></p>
+    <h2>3. Smart Timetable Generation</h2>
+    <p>Automatically generate class timetables based on school rules, teacher availability, and preferences.</p>
+
+    <h3>Step 1: Select Grade & Class</h3>
+    <p>Choose the grade level you want to generate the timetable for.</p>
+    <p>
+        <img src="/images/UserGuideImages/Admin/SmartGen.png" />
+    </p>
+
+    <h3>Step 2: Set Preferences (Optional)</h3>
+    <ul>
+        <li>Prefer morning slots for core subjects.</li>
+        <li>Allow double periods.</li>
+        <li>Spread subjects evenly across the week.</li>
+    </ul>
+    <p> <img src="/images/UserGuideImages/Admin/SmartGenPrefs.png" /></p>
+
+    <h3>Step 3: Class Time Preferences & Periods</h3>
+    <ul>
+        <li>Select time preference for each class: Flexible, Morning only, Mid-morning+.</li>
+        <li>Mark core subjects.</li>
+        <li>Optionally, define the number of periods per week.</li>
+        <li>Set double periods if needed.</li>
+    </ul>
+    <p><img src="/images/UserGuideImages/Admin/SmartGenClassPrefs.png" /></p>
+
+    <h3>Step 4: Adjacency Rules</h3>
+    <p>Define classes that should NOT follow each other to prevent schedule conflicts.</p>
+    <p><img src="/images/UserGuideImages/Admin/SmartGenAdj.png" /></p>
+
+    <h3>Step 5: Activity Scheduling</h3>
+    <ul>
+        <li>Set time preferences for non-academic activities.</li>
+        <li>Optionally lock the activity to a specific time.</li>
+    </ul>
+    <p><img src="/images/UserGuideImages/Admin/SmartGenActivities.png" /></p>
+
+    <h3>Step 6: Generate Timetable</h3>
+    <p>Click "Generate Timetable" to auto-create a schedule for the selected grade.</p>
+    <p><img src="/images/UserGuideImages/Admin/Generate.png" /></p>
+
+    <h3>Step 7: Generated Timetable Preview</h3>
+    <p>Preview the generated timetable before finalizing it.</p>
+    <ul>
+        <li>Edit timetable if necessary.</li>
+        <li>Validate the schedule for any conflicts.</li>
+        <li>Click "Save Class Timetable" to finalize.</li>
+    </ul>
+    <p><img src="/images/UserGuideImages/Admin/GeneratedPreview.png" /></p>
+
+    <h2>4. Assign Schedule to Classes</h2>
+    <ul>
+        <li>Select Grade and Section.</li>
+        <li>Load the active schedules for the selected class.</li>
+        <li>Assign the schedule to all students in that class.</li>
+    </ul>
+    <p><img src="/images/UserGuideImages/Admin/GeneratedAssign.png" /></p>
+
+    <h2>Tips & Notes</h2>
+    <div class="important-note">
+        <p>Always review the timetable preview before assigning to students to avoid conflicts. Locked activity slots cannot be modified manually.</p>
+    </div>
+    <nav class="guide-nav">
+        <button onclick="showGuideSection('admin-class-management')">
+            ← Back: Class Management
+        </button>
+        <button onclick="showGuideSection('admin-smart-timetable-editor')">
+            Next: Smart Timetable Editor →
+        </button>
+    </nav>
+
+</section>
+<section class="guide-section" id="admin-smart-timetable-editor">
+
+    <h1>Admin Guide: Smart Timetable Editor</h1>
+
+    <p>
+        The Smart Timetable Editor allows administrators to review, adjust, and finalize
+        automatically generated timetables before they are completed and assigned.
+        This editor provides full visibility of weekly schedules across all weekdays
+        and time slots.
+    </p>
+
+    <p>
+        The editor enforces academic rules and prevents invalid scheduling through
+        built-in validation.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Smart Time Table Editor Overview.png" />
+    </p>
+
+    <hr />
+
+    <h2>Timetable Grid Overview</h2>
+
+    <p>
+        The timetable grid is organized by:
+    </p>
+
+    <ul>
+        <li><strong>Rows</strong> – Time slots (start and end time)</li>
+        <li><strong>Columns</strong> – Weekdays (Monday to Friday)</li>
+    </ul>
+
+    <p>
+        Each cell represents a single scheduled slot for a specific day and time.
+    </p>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Smart Time Table Editor Grid.png" />
+    </p>
+
+    <hr />
+
+    <h2>Locked Activity Slots</h2>
+
+    <p>
+        Some slots may be pre-filled with scheduled activities such as assemblies,
+        breaks, or special events.
+    </p>
+
+    <ul>
+        <li>These slots are <strong>locked</strong></li>
+        <li>They cannot be edited, swapped, or overwritten</li>
+        <li>They are visually distinguished in the timetable</li>
+    </ul>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Smart Time Table Editor Locked Activity.png" />
+    </p>
+
+    <hr />
+
+    <h2>Available Subjects Panel</h2>
+
+    <p>
+        Below the timetable grid is the <strong>Available Subjects</strong> panel.
+        This shows all subjects that still require placement.
+    </p>
+
+    <p>
+        Each subject displays:
+    </p>
+
+    <ul>
+        <li>Subject name</li>
+        <li>Remaining weekly periods</li>
+    </ul>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Smart Time Table Editor Subjects Panel.png" />
+    </p>
+
+    <h3>Placing a Subject</h3>
+
+    <ol>
+        <li>Select a subject from the Available Subjects list</li>
+        <li>Click an empty timetable slot</li>
+        <li>The subject is placed automatically</li>
+    </ol>
+
+    <p>
+        Once placed, the remaining count for that subject is updated.
+    </p>
+
+    <hr />
+
+    <h2>Swapping Subjects</h2>
+
+    <p>
+        Subjects can be rearranged using the swap mechanism.
+    </p>
+
+    <ol>
+        <li>Click the first timetable slot</li>
+        <li>Click a second slot</li>
+        <li>The subjects in the two slots are swapped</li>
+    </ol>
+
+    <p>
+        Swapping is not allowed if either slot contains a locked activity.
+    </p>
+
+
+    <hr />
+
+    <h2>Validation and Error Feedback</h2>
+
+    <p>
+        Before a timetable can be completed, it must pass validation checks.
+        These checks ensure academic rules and constraints are respected.
+    </p>
+
+    <p>
+        When validation fails:
+    </p>
+
+    <ul>
+        <li>Invalid slots are visually highlighted</li>
+        <li>Error messages are displayed below the timetable</li>
+        <li>The timetable cannot be completed until issues are resolved</li>
+    </ul>
+
+
+    <hr />
+
+    <h2>Action Buttons</h2>
+
+    <p>
+        The following actions are available at the bottom of the editor:
+    </p>
+
+    <ul>
+        <li><strong>Validate Changes</strong> – Runs validation checks without finalizing</li>
+        <li><strong>Complete</strong> – Finalizes the timetable</li>
+        <li><strong>Cancel</strong> – Discards all changes</li>
+    </ul>
+
+    <p>
+        <img src="/images/UserGuideImages/Admin/Smart Time Table Actions.png" />
+    </p>
+
+    <hr />
+
+    <h2>Important Notes</h2>
+
+    <ul>
+        <li>Each day and time combination can contain only one subject or activity</li>
+        <li>All required subjects must be fully scheduled before completion</li>
+        <li>Locked activities cannot be modified</li>
+        <li>Validation must pass before final submission</li>
+    </ul>
+
+    <hr />
+    <!-- NAVIGATION -->
+    <nav class="guide-nav">
+        <button onclick="showGuideSection('admin-class-management')">
+            ← Back: Class Management
+        </button>
+        <button onclick="showGuideSection('admin-report-card-management')">
+            Next: Report Card Management →
+        </button>
+    </nav>
+
+
+</section>
+
+<section class="guide-section" id="admin-report-card-management">
+
+    <header class="guide-header">
+        <span class="guide-ribbon admin">ADMIN</span>
+        <h2>Report Card Management</h2>
+        <p>
+            The Report Card Management page allows administrators to oversee, filter,
+            and prepare student report cards while enforcing role-based approval stages.
+        </p>
+    </header>
+
+    <!-- OVERVIEW -->
+    <div class="guide-block">
+        <h3>Overview</h3>
+        <p>
+            This page displays all students eligible for report card preparation.
+            Access to edit a report card depends on the current approval stage
+            and the logged-in user’s role.
+        </p>
+        <p>
+            Administrators can view all students, open report cards, and prepare
+            or review results when permitted by the system state.
+        </p>
+        <!-- Image: Report Card Management main page -->
+        <p class="guide-image-placeholder">
+            <img src="/images/UserGuideImages/Admin/ReportCardManagement Oveview.png" />
+        </p>
+    </div>
+
+    <!-- FILTERING -->
+    <div class="guide-block">
+        <h3>Filtering Students</h3>
+        <ul>
+            <li>
+                <strong>Filter by Academic Level</strong> – Narrow the list to a specific grade or level.
+            </li>
+            <li>
+                <strong>Filter by Class</strong> – Show students belonging to a selected class.
+            </li>
+        </ul>
+        <p>
+            Filters can be combined to quickly locate a specific group of students.
+        </p>
+        <!-- Image: Filters -->
+        <p class="guide-image-placeholder">
+            <img src="/images/UserGuideImages/Admin/ReportCardManagement Oveview.png" />
+        </p>
+    </div>
+
+    <!-- STUDENT LIST -->
+    <div class="guide-block">
+        <h3>Student List</h3>
+        <p>
+            The table displays students with their academic level and student ID.
+            Each row includes a <strong>Prepare Report Card</strong> button.
+        </p>
+        <ul>
+            <li>
+                The button is disabled if the report card is not available
+                for editing at the current approval stage.
+            </li>
+            <li>
+                Clicking the button opens the Report Card dialog.
+            </li>
+        </ul>
+        <!-- Image: Student list -->
+        <p class="guide-image-placeholder">
+            <img src="/images/UserGuideImages/Admin/ReportCardManagement Table.png" />
+        </p>
+    </div>
+
+    <!-- REPORT CARD DIALOG -->
+    <div class="guide-block">
+        <h3>Preparing a Report Card</h3>
+        <p>
+            When a report card is opened, a dialog appears showing the student’s
+            academic details and subject results.
+        </p>
+        <ul>
+            <li>
+                Student information (name, grade, student ID) is shown at the top.
+            </li>
+            <li>
+                Term start and end dates can be selected.
+            </li>
+            <li>
+                Subjects are listed with editable scores when editing is allowed.
+            </li>
+            <li>
+                Grades and GPA(if supported) values are calculated automatically.
+            </li>
+        </ul>
+        @*  <!-- Image: Report Card dialog -->
+        <p class="guide-image-placeholder">
+            (Image: Report Card dialog showing subjects and score entry)
+        </p> *@
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="guide-block">
+        <h3>Summary Section</h3>
+        <p>
+            The summary section allows entry of overall performance values such as:
+        </p>
+        <ul>
+            <li>Points in Best Six</li>
+            <li>Marks in Best Six</li>
+            <li>Position in Class</li>
+        </ul>
+        <p>
+            These fields are editable only when the user has permission at the
+            current approval stage.
+        </p>
+        <!-- Image: Summary fields -->
+        <p class="guide-image-placeholder">
+            (Image: Summary fields section)
+        </p>
+    </div>
+
+    <!-- REVIEW & COMMENTS -->
+    <div class="guide-block">
+        <h3>Review & Comments</h3>
+        <p>
+            Depending on role, additional review fields appear:
+        </p>
+        <ul>
+            <li>
+                <strong>Dean</strong> – Name and comment fields for academic review.
+            </li>
+            <li>
+                <strong>Principal</strong> – Final approval name and comments.
+            </li>
+        </ul>
+        <p>
+            These fields are locked unless the report card is in the correct
+            approval state.
+        </p>
+        <!-- Image: Review & comments -->
+        <p class="guide-image-placeholder">
+            (Image: Dean or Principal review section)
+        </p>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="guide-block">
+        <h3>Submitting the Report Card</h3>
+        <ul>
+            <li>
+                <strong>Close</strong> – Exits without saving changes.
+            </li>
+            <li>
+                <strong>Submit Report Card</strong> – Saves scores, grades, GPA,
+                and advances the report card in the approval workflow.
+            </li>
+        </ul>
+        <!-- Image: Action buttons -->
+        <p class="guide-image-placeholder">
+            (Image: Close and Submit Report Card buttons)
+        </p>
+    </div>
+
+    <!-- NAVIGATION -->
+    <nav class="guide-nav">
+        <button onclick="showGuideSection('admin-class-management')">
+            ← Back: Class Management
+        </button>
+        <button onclick="showGuideSection('admin-transport-staff-management')">
+            Next: School Ops Transport Staff →
+        </button>
+    </nav>
+
+</section>
+<section class="guide-section" id="admin-transport-staff-management">
+    <header class="guide-header">
+        <h2>Transport Staff</h2>
+        <ul>
+            <li>Staff type is selected automatically based on the active tab.</li>
+            <li>Driver records require license details and expiry dates.</li>
+            <li>Certifications can be added during staff creation.</li>
+        </ul>
+    </header>
+    <div>
+        <p class="guide-image-placeholder">
+            <img src="/images/UserGuideImages/Admin/Add Bus Staff Dialog.png" />
+        </p>
+    </div>
+    <!-- DRIVER CARDS -->
+    <div class="guide-block">
+        <h3>Driver Cards & Compliance</h3>
+        <p>
+            Drivers are displayed using profile cards that highlight identity and compliance status.
+        </p>
+        <ul>
+            <li>Active or De-active status is clearly shown.</li>
+            <li>License expiry dates are monitored automatically.</li>
+            <li>Visual alerts indicate expired, expiring, or valid licenses.</li>
+        </ul>
+        <p class="guide-image-placeholder">
+            <img src="/images/UserGuideImages/Admin/ Bus Staff Card.png" />
+        </p>
+    </div>
+
+
+    <!-- CERTIFICATIONS -->
+    <div class="guide-block">
+        <h3>Certifications</h3>
+        <p>
+            Certifications associated with each staff member are displayed as tags
+            within their profile.
+        </p>
+        <p class="guide-image-placeholder">
+            <img src="/images/UserGuideImages/Admin/Bus Staff Certification.png" />
+        </p>
+    </div>
+
+
+    <!-- ATTENDANTS TABLE -->
+    <div class="guide-block">
+        <h3>Attendants & Helpers List</h3>
+        <p>
+            Attendants and helpers are displayed in a table format for quick reference.
+        </p>
+        <ul>
+            <li>View employee numbers, contact information, and certification status.</li>
+            <li>Staff can be managed directly from the Action column.</li>
+        </ul>
+        <p class="guide-image-placeholder">
+            <img src="/images/UserGuideImages/Admin/Attendants Table.png" />
+        </p>
+    </div>
+
+
+    <!-- STAFF MANAGEMENT -->
+    <div class="guide-block">
+        <h3>Managing Staff Profiles</h3>
+        <p>
+            Selecting <strong>View Profile</strong> or <strong>Manage</strong> opens a detailed
+            staff management dialog.
+        </p>
+        <ul>
+            <li>Update personal and contact information.</li>
+            <li>Activate or deactivate staff accounts.</li>
+            <li>Update certifications and compliance records.</li>
+        </ul>
+        <p class="guide-image-placeholder">
+            <img src="/images/UserGuideImages/Admin/Bus Staff Management Card.png" />
+        </p>
+    </div>
+
+
+    <!-- NAVIGATION -->
+    <nav class="guide-nav">
+        <button onclick="showGuideSection('admin-smart-timetable-editor')">
+            ← Back: Smart Timetable Editor
+        </button>
+        <button onclick="showGuideSection('admin-fleet-registry')">
+            Next: Bus Fleet Management →
+        </button>
+    </nav>
+</section>
+<section class="guide-section" id="admin-fleet-registry">
+
+    <header class="guide-header">
+        <span class="guide-ribbon admin">ADMIN</span>
+        <h2>Fleet & Registry</h2>
+        <p>
+            The Fleet & Registry page allows administrators to manage the school’s bus fleet,
+            monitor maintenance requests, and analyze vehicle status using the AI Maintenance Advisor.
+        </p>
+    </header>
+
+    <!-- OVERVIEW -->
+    <div class="guide-block">
+        <h3>Overview</h3>
+        <p>
+            This page displays all buses in the school fleet along with their current status, mileage,
+            fuel type, and maintenance needs. Administrators can add new buses and view open driver reports.
+        </p>
+        <p class="guide-image-placeholder">
+            (Image: Fleet & Registry main dashboard with Open Reports and Fleet)
+        </p>
+    </div>
+
+    <!-- OPEN DRIVER REPORTS -->
+    <div class="guide-block">
+        <h3>Open Driver Reports</h3>
+        <p>
+            The Open Driver Reports banner lists all reported issues from drivers. Each report shows:
+        </p>
+        <ul>
+            <li>Registration Number of the bus</li>
+            <li>Priority of the issue</li>
+            <li>Short description</li>
+            <li>Date reported and reporting staff</li>
+        </ul>
+        <p>
+            Administrators can take action using the <strong>Maintenance</strong> or <strong>Resolve</strong> buttons.
+        </p>
+        <p class="guide-image-placeholder">
+            (Image: Open Driver Reports with example issues)
+        </p>
+    </div>
+
+    <!-- FLEET REGISTRY -->
+    <div class="guide-block">
+        <h3>Fleet Registry</h3>
+        <p>
+            The Fleet Registry section lists all buses in the school. Each bus card displays:
+        </p>
+        <ul>
+            <li>Registration Number, Model, and Model Year</li>
+            <li>Active or Out of Service status</li>
+            <li>Fuel type (electric or fuel) with icon</li>
+            <li>Current mileage and last service date</li>
+        </ul>
+        <p>
+            Administrators can add new buses using the <strong>Add New Bus</strong> button.
+        </p>
+        <p class="guide-image-placeholder">
+            (Image: Fleet Registry section with bus cards)
+        </p>
+    </div>
+
+    <!-- BUS CARD ACTIONS -->
+    <div class="guide-block">
+        <h3>Bus Actions</h3>
+        <p>
+            Each bus card includes action buttons:
+        </p>
+        <ul>
+            <li><strong>Ignis AI Analysis</strong> – Launches predictive analysis for maintenance needs.</li>
+            <li><strong>Send to Maintenance</strong> – Marks the bus for service and maintenance follow-up.</li>
+        </ul>
+        <p class="guide-image-placeholder">
+            (Image: Bus card with action buttons)
+        </p>
+    </div>
+
+    <!-- AI MAINTENANCE ADVISOR -->
+    <div class="guide-block">
+        <h3>AI Maintenance Advisor</h3>
+        <p>
+            The AI Maintenance Advisor provides insights for proactive maintenance. Select a bus from the fleet to:
+        </p>
+        <ul>
+            <li>Analyze upcoming service requirements</li>
+            <li>Identify potential issues based on mileage and fuel type</li>
+            <li>View maintenance recommendations before assigning tasks</li>
+        </ul>
+        <p class="guide-image-placeholder">
+            (Image: AI Maintenance Advisor panel)
+        </p>
+    </div>
+
+    <!-- NAVIGATION -->
+    <nav class="guide-nav">
+        <button onclick="showGuideSection('admin-bus-staff-management')">
+            ← Back: Bus Staff Management
+        </button>
+        <button onclick="showGuideSection('admin-route-planning')">
+            Next: Route Planning →
+        </button>
+    </nav>
+
+</section>
+
+<script>
+    function showGuideSection(sectionId) {
+        document.querySelectorAll('.guide-section')
+            .forEach(s => s.classList.remove('active'));
+
+        const section = document.getElementById(sectionId);
+        if (section) {
+            section.classList.add('active');
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+</script>

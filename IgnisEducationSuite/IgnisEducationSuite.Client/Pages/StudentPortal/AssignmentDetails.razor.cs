@@ -19,10 +19,10 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
         protected bool isLoading = false;
         protected override async Task OnInitializedAsync()
         {
-           isLoading = true;
+            LoaderService.Show("Preparing, Please wait...");
             assignmentQuestions = LessonService.assignmentQuestions.OrderBy(x => x.QuestionNumber).ToList();
             studentID = LessonService.studentID;
-            isLoading = false;
+            LoaderService.Hide();
 
         }
         private StudentAssignmentAnswer GetOrCreateAnswer(Guid questionId)
@@ -38,6 +38,32 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
             }
 
             return answer;
+        }
+
+        private void HandleMultipleChoiceSelection(Guid questionId, string selectedLetter, string answerText, bool isChecked)
+        {
+            // Remove previous answer (single-choice logic)
+            var existing = assignmentAnswers.FirstOrDefault(a => a.QuestionID == questionId);
+            if (existing != null)
+                assignmentAnswers.Remove(existing);
+
+            // If checked, add a new answer
+            if (isChecked)
+            {
+                assignmentAnswers.Add(new StudentAssignmentAnswer
+                {
+                    QuestionID = questionId,
+                    AnswerText = selectedLetter,   // store only the letter
+                    AnswerID = Guid.NewGuid(),
+                    AnsweredDate = DateTime.Now
+                });
+            }
+        }
+
+        private bool IsChecked(Guid questionId, string letter)
+        {
+            return assignmentAnswers.Any(a =>
+                a.QuestionID == questionId && a.AnswerText == letter);
         }
 
 
@@ -87,12 +113,12 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
 
         protected async Task SaveAssignment()
         {
-            isLoading = true;
+            LoaderService.Show("Saving Please wait....");
             //save Student Assignment
             studentAssignment.StudentAssignmentID = Guid.NewGuid();
             studentAssignment.StudentID = studentID;
             studentAssignment.SubmissionDate = DateTime.Today;
-            studentAssignment.AssignmentID = assignmentQuestions.Select(x=>x.AssignmentID).FirstOrDefault();
+            studentAssignment.AssignmentID = assignmentQuestions.Select(x => x.AssignmentID).FirstOrDefault();
             studentAssignment.Status = "Pending";
             var service = GenericServiceFactory.GetService<StudentAssignment>();
             var studentAssignmentresult = await service.PostAsync("api/Dynamic/PostEntity", "studentassignment", studentAssignment);
@@ -110,9 +136,9 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
                 }
                 //Save Student Answers
                 var service1 = GenericServiceFactory.GetService<List<StudentAssignmentAnswer>>();
-                var studentAnswers = await service1.PostAsync("api/Dynamic/PostEntities", "studentassignmentasnwers", assignmentAnswers);
+                var studentAnswers = await service1.PostAsync("api/Dynamic/PostEntities", "studentassignmentanswers", assignmentAnswers);
 
-                if(studentAnswers.IsSuccess)
+                if (studentAnswers.IsSuccess)
                 {
 
                     Snackbar.Add("Congrats! Assignment has been submitted successfully", Severity.Success);
@@ -130,7 +156,7 @@ namespace IgnisEducationSuite.Client.Pages.StudentPortal
                 Snackbar.Add("Error Saving Assignment refresh your page and try again", Severity.Error);
                 return;
             }
-            isLoading = false;
+            LoaderService.Hide();
         }
     }
 }

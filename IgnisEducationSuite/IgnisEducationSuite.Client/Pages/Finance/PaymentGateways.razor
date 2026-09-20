@@ -1,0 +1,103 @@
+@page "/finance/payment-gateways"
+@using EDUSphereSharedProject.PaymentDTos.Lipila
+@using System.Net.Http.Json
+@inherits AppBaseComponent
+
+<MudText Typo="Typo.h5" Class="pa-4 pb-0">Lipila Payment Gateways</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="px-4 mb-2">
+    Each fee bucket can have its own Lipila wallet for Sandbox testing and, separately,
+    for Production. Configure and test in Sandbox before switching a bucket over to Production.
+</MudText>
+
+<MudGrid Class="pa-4">
+
+    @if (Loading)
+    {
+        <MudItem xs="12">
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        </MudItem>
+    }
+    else if (!Buckets.Any())
+    {
+        <MudItem xs="12">
+            <MudAlert Severity="Severity.Info">
+                No fee buckets are configured for this school yet. Add fee buckets under
+                Fee Accounts first, then come back here to attach a wallet to each one.
+            </MudAlert>
+        </MudItem>
+    }
+    else
+    {
+        @foreach (var bucket in Buckets)
+        {
+            var currentBucket = bucket;
+            var sandboxAccount = GetAccount(currentBucket, "Sandbox");
+            var productionAccount = GetAccount(currentBucket, "Production");
+
+            <MudItem xs="12">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">@currentBucket.BucketName</MudText>
+
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <GatewayWalletSlot SchoolId="@SchoolId"
+                                               BucketId="@currentBucket.BucketId"
+                                               BucketName="@currentBucket.BucketName"
+                                               Environment="Sandbox"
+                                               Account="@sandboxAccount"
+                                               OnChanged="LoadAsync" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <GatewayWalletSlot SchoolId="@SchoolId"
+                                               BucketId="@currentBucket.BucketId"
+                                               BucketName="@currentBucket.BucketName"
+                                               Environment="Production"
+                                               Account="@productionAccount"
+                                               OnChanged="LoadAsync" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        }
+    }
+
+</MudGrid>
+
+@code {
+    private List<FeeBucketGatewayDto> Buckets = new();
+    private bool Loading = true;
+    private Guid SchoolId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        SchoolId = Guid.Parse(AppState.SchoolID);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        Loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await HttpClient.GetFromJsonAsync<List<FeeBucketGatewayDto>>(
+                $"api/payments/lipila/accounts/school/{SchoolId}");
+
+            Buckets = result ?? new List<FeeBucketGatewayDto>();
+        }
+        catch
+        {
+            Snackbar.Add("Failed to load payment gateway settings.", Severity.Error);
+            Buckets = new List<FeeBucketGatewayDto>();
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private static PaymentGatewayAccountDto? GetAccount(FeeBucketGatewayDto bucket, string environment) =>
+        bucket.Accounts.FirstOrDefault(a => string.Equals(a.Environment, environment, StringComparison.OrdinalIgnoreCase));
+}

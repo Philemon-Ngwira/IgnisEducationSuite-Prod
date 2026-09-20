@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EDUSphereSharedProject.Models;
 
@@ -29,6 +28,4 @@ public partial class AssignmentQuestion
     public virtual ICollection<MultipleChoiceAssignmentAnswer> MultipleChoiceAssignmentAnswers { get; set; } = new List<MultipleChoiceAssignmentAnswer>();
 
     public virtual ICollection<StudentAssignmentAnswer> StudentAssignmentAnswers { get; set; } = new List<StudentAssignmentAnswer>();
- 
- 
 }

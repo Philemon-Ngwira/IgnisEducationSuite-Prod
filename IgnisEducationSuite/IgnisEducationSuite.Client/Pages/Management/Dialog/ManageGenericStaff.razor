@@ -1,0 +1,297 @@
+﻿@using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+
+<MudDialog>
+    <DialogContent>
+        @switch (staffDTO.ActiveType)
+        {
+            case StaffType.Bus:
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.BusStaff.StaffCode"
+                                      Label="Employee ID"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.BusStaff.FirstName"
+                                      Label="First Name"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.BusStaff.LastName"
+                                      Label="Last Name"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.BusStaff.PhoneNumber"
+                                      Label="Phone Number"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.BusStaff.LicenseNumber"
+                                      Label="License Number"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker @bind-Date="staffDTO.BusStaff.LicenseExpiryDate"
+                                       Label="License Expiry Date"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       AnchorOrigin="Origin.TopCenter" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSwitch @bind-Value="staffDTO.BusStaff.IsActive"
+                                   Label="Is Driver Active?"
+                                   Color="Color.Success" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.BusStaff.Certificates"
+                                      Label="Certificates"
+                                      Placeholder="Comma separated (e.g. A,B,C)"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+                </MudGrid>
+                break;
+
+            case StaffType.Clinic:
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.ClinicStaff.EmployeeID"
+                                      Label="Employee ID"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.ClinicStaff.FullName"
+                                      Label="Full Name"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.ClinicStaff.Contact"
+                                      Label="Phone Number"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.ClinicStaff.Role"
+                                      Label="Clinic Role"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudSelect Variant="Variant.Outlined"
+                                   @bind-Value="staffDTO.ClinicStaff.Clinic"
+                                   Margin="Margin.Dense"
+                                   Label="Assign To Clinic"
+                                   Placeholder="Assign Staff to Clinic"
+                                   ToStringFunc="ClinicTypeconverter">
+                            @foreach (var clinic in Clinics)
+                            {
+                                <MudSelectItem Value="clinic">@clinic.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+                break;
+
+            case StaffType.General:
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.Staff.StaffName"
+                                      Label="Full Name"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.Staff.StaffType"
+                                      Label="Staff Type"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="staffDTO.Staff.PhoneNumber"
+                                      Label="Phone Number"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    @if (staffDTO.Staff.isDean == true)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudSelect T="Gender"
+                                       Label="Dean For"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Value="selectedGender"
+                                       ValueChanged="GenderSelected"
+                                       ToStringFunc="GenderConverter">
+
+                                @foreach (var gender in genders)
+                                {
+                                    <MudSelectItem Value="gender">@gender.GenderDescription</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    }
+                </MudGrid>
+                break;
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="UpdateInformation">
+            Update Information
+        </MudButton>
+
+        <MudButton Color="Color.Warning" OnClick="ResetPassword">
+            Reset Password
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined" OnClick="MudDialog.Cancel">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public GenericStaffDTO staffDTO { get; set; } = new();
+    [Parameter] public ApplicationUser applicationUser { get; set; } = new();
+    [Parameter] public List<Gender> genders { get; set; } = new();
+
+    [Parameter] public List<Clinic> Clinics { get; set; } = new();
+    [Inject] private ClientEmailService EmailService { get; set; } = default!;
+
+    private readonly PasswordGenerator _passwordGenerator = new();
+    private Gender selectedGender = new();
+
+    private Func<Gender, string> GenderConverter => g => g.GenderDescription;
+    private Func<Clinic, string> ClinicTypeconverter => g => g.Name;
+
+    protected override void OnParametersSet()
+    {
+        if (staffDTO.ActiveType == StaffType.General && staffDTO.Staff?.isDean == true)
+        {
+            selectedGender = genders.FirstOrDefault(g => g.GenderId == staffDTO.Staff.DeanForGender);
+        }
+    }
+
+    private void GenderSelected(Gender gender)
+    {
+        selectedGender = gender;
+        staffDTO.Staff.DeanForGender = gender.GenderId;
+    }
+
+    private async Task ResetPassword()
+    {
+        LoaderService.Show("Resetting password...");
+
+        try
+        {
+            var userId = staffDTO.ActiveType switch
+            {
+                StaffType.Bus => staffDTO.BusStaff.UserID,
+                StaffType.Clinic => staffDTO.ClinicStaff.UserID,
+                StaffType.General => staffDTO.Staff.UserID,
+                _ => null
+            };
+
+            if (userId == null) return;
+
+            var model = new PasswordResetModel
+            {
+                UserID = userId.ToString(),
+                Password = _passwordGenerator.GenerateOneTimePassword()
+            };
+
+            var response = await HttpClient.PutAsJsonAsync(
+                $"{NavigationManager.BaseUri}api/Admin/resetPassword", model);
+
+            if (!response.IsSuccessStatusCode) return;
+
+            var email = new EmailRequest
+            {
+                To = applicationUser.Email,
+                Reciepient = $"{applicationUser.FirstName} {applicationUser.LastName}",
+                Password = model.Password,
+                UserName = applicationUser.UserName,
+                StudentID = "N/A",
+                isFirstMail = false
+            };
+
+            await EmailService.SendPasswordResetEmailAsync(email, NavigationManager.BaseUri);
+
+            Snackbar.Add("Password reset and emailed successfully.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+    }
+
+    private async Task UpdateInformation()
+    {
+        switch (staffDTO.ActiveType)
+        {
+            case StaffType.Bus:
+                await UpdateEntity(staffDTO.BusStaff, "busstaff", "Bus Staff");
+                break;
+
+            case StaffType.Clinic:
+                await UpdateEntity(staffDTO.ClinicStaff, "clinicstaff", "Clinic Staff");
+                break;
+
+            case StaffType.General:
+                await UpdateEntity(staffDTO.Staff, "staff", "Staff");
+                break;
+
+            default:
+                MudDialog.Cancel();
+                break;
+        }
+    }
+
+    private async Task UpdateEntity<T>(T entity, string route, string label)
+     where T : class
+    {
+        var service = GenericService.GetService<T>();
+
+        var response = await service.UpdateAsync(
+            "api/Dynamic/UpdateEntity",
+            route,
+            entity
+        );
+
+        if (response.IsSuccess)
+        {
+            Snackbar.Add($"{label} information updated successfully!", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
+}
+

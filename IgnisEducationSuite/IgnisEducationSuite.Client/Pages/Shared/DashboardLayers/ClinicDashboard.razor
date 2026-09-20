@@ -1,0 +1,273 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+<MudStack Spacing="4">
+
+    <!-- ===================== METRICS ===================== -->
+    <MudGrid>
+        @* Currently Sick *@
+        <MudItem xs="12" md="6" lg="3">
+            <MudPaper Elevation="1"
+                      Class="pa-5 rounded-xl hover-shadow transition-all cursor-pointer"
+                      Square="false">
+                <MudStack Spacing="1">
+                    <MudStack Row AlignItems="AlignItems.Center" JustifyContent="space-between">
+                        <MudAvatar Color="Color.Error" Variant="Variant.Filled" Size="Size.Medium">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" />
+                        </MudAvatar>
+
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled">
+                            Live
+                        </MudChip>
+                    </MudStack>
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Currently Sick
+                    </MudText>
+
+                    <MudText Typo="Typo.h4" Class="font-semibold">
+                        @dashboard_Metric.CurrentlySickStudents
+                        <MudText Typo="Typo.caption" Inline="true" Color="Color.Secondary">
+                            students
+                        </MudText>
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        @* Expiring Soon *@
+        <MudItem xs="12" md="6" lg="3">
+            <MudPaper Elevation="1" Class="pa-5 rounded-xl hover-shadow cursor-pointer">
+                <MudStack Spacing="1">
+                    <MudStack Row AlignItems="AlignItems.Center" JustifyContent="space-between">
+                        <MudAvatar Color="Color.Warning" Variant="Variant.Filled">
+                            <MudIcon Icon="@Icons.Material.Filled.Schedule" />
+                        </MudAvatar>
+
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">
+                            Action Needed
+                        </MudChip>
+                    </MudStack>
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Expiring Soon
+                    </MudText>
+
+                    <MudText Typo="Typo.h4" Class="font-semibold">
+                        @dashboard_Metric.ExpiringSoonMedications
+                        <MudText Typo="Typo.caption" Inline="true" Color="Color.Secondary">
+                            items
+                        </MudText>
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        @* Low Stock *@
+        <MudItem xs="12" md="6" lg="3">
+            <MudPaper Elevation="1" Class="pa-5 rounded-xl hover-shadow cursor-pointer">
+                <MudStack Spacing="1">
+                    <MudAvatar Color="Color.Warning" Variant="Variant.Filled">
+                        <MudIcon Icon="@Icons.Material.Filled.WarningAmber" />
+                    </MudAvatar>
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Low Stock Alerts
+                    </MudText>
+
+                    <MudText Typo="Typo.h4" Class="font-semibold">
+                        @dashboard_Metric.LowStockMedications
+                        <MudText Typo="Typo.caption" Inline="true" Color="Color.Secondary">
+                            alerts
+                        </MudText>
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        @* Total Records *@
+        <MudItem xs="12" md="6" lg="3">
+            <MudPaper Elevation="1" Class="pa-5 rounded-xl hover-shadow cursor-pointer">
+
+
+                <MudStack Spacing="1">
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                        <MudIcon Icon="@Icons.Material.Filled.People" />
+                    </MudAvatar>
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Clinic Visits (30 Days)
+                    </MudText>
+
+                    <MudText Typo="Typo.h4" Class="font-semibold">
+                        @dashboard_Metric.VisitsLast30Days
+                        <MudText Typo="Typo.caption" Inline="true" Color="Color.Secondary">
+                            records
+                        </MudText>
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- ===================== PANELS ===================== -->
+    <MudGrid>
+
+        <!-- EXPIRING SUPPLIES -->
+        <MudItem xs="12" lg="6">
+            <MudPaper Elevation="1" Class="rounded-xl overflow-hidden">
+                <MudStack>
+
+                    <MudPaper Class="pa-4 mud-background-warning-lighten-5">
+                        <MudStack Row AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.subtitle1" Bold>
+                                <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Class="mr-1" />
+                                Expiring Supplies
+                            </MudText>
+
+                            <MudButton Variant="Variant.Text" Size="Size.Small">
+                                Manage
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudList T="string" Dense>
+                        <MudListItem>
+                            <MudStack>
+                                <MudText><b>Paracetamol Syrup</b></MudText>
+                                <MudText Typo="Typo.caption">Qty: 12 bottles</MudText>
+                            </MudStack>
+
+                            <MudSpacer />
+
+                            <MudStack AlignItems="AlignItems.End">
+                                <MudText Typo="Typo.caption" Color="Color.Warning">
+                                    Exp: 10 Feb 2026
+                                </MudText>
+                                <MudText Typo="Typo.overline">Batch B-1023</MudText>
+                            </MudStack>
+                        </MudListItem>
+
+                        <MudDivider />
+
+                        <MudListItem>
+                            <MudStack>
+                                <MudText><b>Bandages</b></MudText>
+                                <MudText Typo="Typo.caption">Qty: 40 packs</MudText>
+                            </MudStack>
+
+                            <MudSpacer />
+
+                            <MudStack AlignItems="AlignItems.End">
+                                <MudText Typo="Typo.caption" Color="Color.Warning">
+                                    Exp: 01 Mar 2026
+                                </MudText>
+                                <MudText Typo="Typo.overline">Batch C-884</MudText>
+                            </MudStack>
+                        </MudListItem>
+                    </MudList>
+
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- ACTIVE VISITS -->
+        <MudItem xs="12" lg="6">
+            <MudPaper Elevation="1" Class="rounded-xl overflow-hidden">
+                <MudStack>
+
+                    <MudPaper Class="pa-4 mud-background-success-lighten-5">
+                        <MudStack Row AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.subtitle1" Bold>
+                                <MudIcon Icon="@Icons.Material.Filled.MonitorHeart" Size="Size.Small" Class="mr-1" />
+                                Active Clinic Visits
+                            </MudText>
+
+                            <MudButton Variant="Variant.Text" Size="Size.Small">
+                                View All
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudList T="string" Dense>
+                        @foreach (var visit in ActiveVisits)
+                        {
+                            <MudListItem>
+                                <MudAvatar Color="Color.Success" Variant="Variant.Filled">
+                                    @if (visit.ProfilePic != null)
+                                    {
+                                        <MudImage Class="profile-pic" Width="250"
+                                                  Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(visit.ProfilePic)}")" />
+                                    }
+                                    else
+                                    {
+                                        @visit.FirstName.Substring(0, 1)
+                                        @visit.LastName.Substring(0, 1)
+                                    }
+                                </MudAvatar>
+
+                                <MudStack Class="ml-3">
+                                    <MudText><b>@(visit.FirstName + " " + visit.LastName)</b></MudText>
+                                    <MudText Typo="Typo.caption">@visit.Symptoms</MudText>
+                                </MudStack>
+
+                                <MudSpacer />
+
+                                <MudChip Color="Color.Success" Size="Size.Small">
+                                    Active
+                                </MudChip>
+                            </MudListItem>
+
+                            <MudDivider />
+                        }
+                    </MudList>
+
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+    </MudGrid>
+
+</MudStack>
+@code {
+    protected vw_ClinicDashboard_Metric dashboard_Metric = new();
+    protected ClinicStaff LoggedInStaff = new();
+    protected List<ClinicDashboardVisitsDTO> ActiveVisits = new();
+    protected override async Task OnInitializedAsync()
+    {
+        var staff = await GetClinicStaff();
+        var loggedIn = staff.First(x => x.UserID == AppState.UserID);
+        LoggedInStaff = loggedIn;
+        await GetDashMetric();
+        await GetClinicVisits();
+    }
+
+    protected async Task<IEnumerable<ClinicStaff>> GetClinicStaff()
+    {
+        var serv = GenericService.GetService<ClinicStaff>();
+        var res = await serv.GetAllAsync(
+            $"api/Dynamic/GetClinicStaffBySchool/{Guid.Parse(AppState.SchoolID)}", true);
+
+        return res.IsSuccess ? res.Data : Enumerable.Empty<ClinicStaff>();
+    }
+    public async Task GetClinicVisits()
+    {
+        var serv = GenericService.GetService<ClinicDashboardVisitsDTO>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetActiveClinicVisits/{LoggedInStaff.ClinicId}", true);
+
+        if (result.IsSuccess)
+        {
+            var visits = result.Data;
+            ActiveVisits = visits.ToList();
+        }
+    }
+    protected async Task GetDashMetric()
+    {
+        var serv = GenericService.GetService<vw_ClinicDashboard_Metric>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetDashboardMetric/{LoggedInStaff.ClinicId}", true);
+        if (result.IsSuccess)
+        {
+            dashboard_Metric = result.Data.First();
+        }
+    }
+}

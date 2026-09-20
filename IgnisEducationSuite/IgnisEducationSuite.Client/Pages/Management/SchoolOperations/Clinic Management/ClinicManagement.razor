@@ -1,0 +1,159 @@
+﻿@page "/Clinics"
+
+@using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.Management.SchoolOperations.Clinic_Management.ClinicDialogs
+@inherits AppBaseComponent
+
+<MudStack Spacing="4">
+
+    <!-- Page Header -->
+    <MudPaper Elevation="0" Class="pa-4 rounded-lg border">
+        <MudStack Row="true" AlignItems="AlignItems.Center" JustifyContent="SpaceBetween">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h5">
+                    Clinic Locations
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Manage school clinic facilities and their physical locations.
+                </MudText>
+            </MudStack>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="ShowClinicForm">
+                Register Clinic
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Content -->
+    @if (!clinics.Any())
+    {
+        <!-- Empty State -->
+        <MudPaper Class="pa-10 text-center" Elevation="0">
+            <MudIcon Icon="@Icons.Material.Filled.LocalHospital"
+                     Size="Size.Large"
+                     Color="Color.Dark" />
+
+            <MudText Typo="Typo.h6" Class="mt-3">
+                No Clinics Registered
+            </MudText>
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                Get started by registering your first school clinic.
+            </MudText>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="ShowClinicForm">
+                Add First Clinic
+            </MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <!-- Clinic Cards -->
+        <MudGrid>
+            @foreach (var item in clinics)
+            {
+                <MudItem xs="12" md="6" lg="4">
+                    <MudCard Class="h-100">
+
+                        <MudCardHeader>
+                            <CardHeaderAvatar>
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                                    <MudIcon Icon="@Icons.Material.Filled.LocalHospital" />
+                                </MudAvatar>
+                            </CardHeaderAvatar>
+
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.subtitle1">
+                                    @item.Name
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Clinic Facility
+                                </MudText>
+                            </CardHeaderContent>
+
+                            <CardHeaderActions>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Title="Delete Clinic" />
+                            </CardHeaderActions>
+                        </MudCardHeader>
+
+                        <MudCardContent>
+                            <MudStack Row=true AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Place"
+                                         Color="Color.Secondary" />
+                                <MudText Typo="Typo.body2">
+                                    @item.Location
+                                </MudText>
+                            </MudStack>
+                        </MudCardContent>
+
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+</MudStack>
+
+@code {
+    protected List<Clinic> clinics = new();
+
+    [Inject]
+    IDialogService DialogService { get; set; } = default!;
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        try
+        {
+            await GetClinics();
+        }
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+            Snackbar.Add(_, Severity.Error);
+            throw;
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+
+    }
+
+    protected async Task GetClinics()
+    {
+        var service = GenericService.GetService<Clinic>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetSchoolClinics/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            clinics = result.Data.ToList();
+        }
+    }
+    protected async Task ShowClinicForm()
+    {
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = true,
+            NoHeader = true,
+            Position = DialogPosition.Center
+        };
+
+        var dialog = await DialogService.ShowAsync<RegisterNewClinic>("", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is Clinic newClinic)
+        {
+            clinics.Add(newClinic);
+            StateHasChanged();
+        }
+    }
+}

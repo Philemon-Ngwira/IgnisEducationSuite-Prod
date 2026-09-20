@@ -1,0 +1,46 @@
+﻿@* @using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+@inject AppState AppState
+@inject AuthenticationStateProvider AuthProvider
+
+@if (!_ready)
+{
+    <div class="d-flex justify-center align-center" style="height:100vh;">
+        <MudProgressCircular Indeterminate="true" />
+    </div>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment ChildContent { get; set; }
+
+    private bool _ready = false;
+    private bool _initStarted = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initStarted)
+            return;
+
+        _initStarted = true;
+
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                await AppState.EnsureInitializedAsync(userId, true);
+            }
+        }
+
+        _ready = true;
+        StateHasChanged();
+    }
+} *@

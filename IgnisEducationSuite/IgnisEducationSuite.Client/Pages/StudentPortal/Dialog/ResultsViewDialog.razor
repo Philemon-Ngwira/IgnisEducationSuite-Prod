@@ -1,0 +1,177 @@
+﻿@using EDUSphereSharedProject.Models
+
+<MudDialog Class="exam-dialog" MaxWidth="MaxWidth.Large" FullWidth="true">
+    <DialogContent>
+
+        <!-- HEADER -->
+        <MudGrid Justify="Justify.Center">
+            <MudItem xs="12" md="8">
+                <MudText Typo="Typo.h5" Class="exam-title">
+                    Past Paper Results
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Review your answers and see where you did well
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="4" Class="grade-box">
+                <MudPaper Elevation="2" Class="grade-paper">
+                    <MudText Typo="Typo.subtitle1" Align="Align.Right">
+                        Final Grade
+                    </MudText>
+                    <MudText Typo="Typo.h4" Align="Align.Right" Color="Color.Primary">
+                        @(Grade)%
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider Class="my-4" />
+
+        <!-- QUESTIONS -->
+        <MudGrid>
+            @if (contentType == "ETQ")
+            {
+                @foreach (var item in answers)
+                {
+            @QuestionCard(item, ExamAnswerChoices
+                        .Where(a => a.ExamTestQuizQuestionID == item.QuestionID)
+                        .OrderBy(a => a.ExamTestQuizQuestion.QuestionNumber))
+                        }
+            }
+            else
+            {
+                @foreach (var item in assignmentAnswers)
+                {
+            @QuestionCard(item, AssignmentAnswerChoices
+                        .Where(a => a.AssignmentQuestionID == item.QuestionID)
+                        .OrderBy(a => a.AssignmentQuestion.QuestionNumber))
+                        }
+            }
+        </MudGrid>
+
+    </DialogContent>
+</MudDialog>
+<style>
+    .exam-dialog {
+        padding: 24px;
+    }
+
+    .exam-title {
+        font-weight: 600;
+    }
+
+    .grade-box {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .grade-paper {
+        padding: 12px 16px;
+        border-radius: 8px;
+        min-width: 160px;
+    }
+
+    .question-card {
+        padding: 16px;
+        border-radius: 8px;
+        background-color: var(--mud-palette-background-grey-light);
+    }
+
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .mcq-list .mud-list-item {
+        padding: 4px 0;
+    }
+
+    .mcq-option {
+        margin-left: 6px;
+    }
+
+    .written-answer {
+        padding: 10px 14px;
+        border-left: 4px solid var(--mud-palette-primary);
+        background-color: var(--mud-palette-background);
+        border-radius: 4px;
+    }
+
+</style>
+@code {
+    [Parameter] public List<StudentExamQuizAndTestAnswer> answers { get; set; } = new();
+    [Parameter] public List<ExamTestQuizMultipleChoiceAnswer> ExamAnswerChoices { get; set; } = new();
+    [Parameter] public List<MultipleChoiceAssignmentAnswer> AssignmentAnswerChoices { get; set; } = new();
+    [Parameter] public string contentType { get; set; } = string.Empty;
+    [Parameter] public List<StudentAssignmentAnswer> assignmentAnswers { get; set; } = new();
+    [Parameter] public string Grade { get; set; } = string.Empty;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(100);
+        // Ensure answers are ordered by question number (safe if Question may be null)
+        var assignAnswers = assignmentAnswers
+        .OrderBy(a => a.Question?.QuestionNumber ?? int.MaxValue).ToList();
+        assignmentAnswers = assignAnswers.ToList();
+        var answersnew = answers
+                    .OrderBy(a => a.Question?.QuestionNumber ?? int.MaxValue)
+                    .ToList() ?? new List<StudentExamQuizAndTestAnswer>();
+
+        answers = answersnew.ToList();
+    }
+
+    RenderFragment QuestionCard(dynamic item, IEnumerable<dynamic> choices) => @<MudItem xs="12" Class="mb-5">
+
+        <MudPaper Elevation="1" Class="question-card">
+
+            <!-- Question Header -->
+            <div class="question-header">
+                <MudText Typo="Typo.subtitle1">
+                    <strong>@item.Question.QuestionNumber.</strong>
+                    @item.Question.QuestionText?
+                </MudText>
+
+                <MudChip T="string" Color="@(item.isCorrect? Color.Success: Color.Error)"
+                         Variant="Variant.Outlined"
+                         StartIcon="@(item.isCorrect
+                                                     ? Icons.Material.Filled.CheckCircle
+                                                 : Icons.Material.Filled.Cancel)">
+                @(item.isCorrect ? "Correct" : "Wrong")
+            </MudChip>
+        </div>
+
+        <!-- Answer Section -->
+        @if (item.Question.isMultipleChoice)
+                    {
+                <MudList T="string" Dense="true" Class="mcq-list">
+                    @foreach (var Aitem in choices
+                                .OrderBy(c => c.MultipleChoiceLetter))
+                    {
+                        <MudListItem>
+                            <MudCheckBox T="bool" Disabled="true"
+                                         Checked="@(Aitem.MultipleChoiceLetter == item.AnswerText)">
+                                <span class="mcq-option">
+                                    <strong>(@Aitem.MultipleChoiceLetter)</strong>
+                                    @Aitem.MuiltpleChoiceAnswer
+                                </span>
+                            </MudCheckBox>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+                else
+                {
+        <MudPaper Class="written-answer">
+            <MudText Typo="Typo.body2">@item.AnswerText</MudText>
+        </MudPaper>
+                }
+
+    </MudPaper>
+
+</MudItem>;
+}

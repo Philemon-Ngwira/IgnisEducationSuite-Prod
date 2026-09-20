@@ -1,0 +1,82 @@
+﻿/* Container to center the mascot */
+.mascot-container {
+    position: relative;
+    width: 200px; /* Adjust based on your UI needs */
+    height: 200px;
+    margin: auto;
+    overflow: visible;
+}
+
+    /* Base mascot image style */
+    .mascot-container img.mascot {
+        width: 100%;
+        height: 100%;
+        object-fit: contain; /* ensures the mascot scales proportionally */
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    /* Idle animations (optional subtle bob) */
+    .mascot-container img.mascot {
+        animation: idle-bob 3s ease-in-out infinite;
+    }
+
+@keyframes idle-bob {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Loading animation: rotate or bounce */
+.mascot-container img.mascot.loading {
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Warning animation: shake effect */
+.mascot-container img.mascot.warning {
+    animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0px);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    50% {
+        transform: translateX(5px);
+    }
+
+    75% {
+        transform: translateX(-5px);
+    }
+}
+
+/* Optional: Hover effect */
+.mascot-container img.mascot:hover {
+    transform: scale(1.05);
+}
+
+/* Responsive scaling for smaller screens */
+@media (max-width: 600px) {
+    .mascot-container {
+        width: 120px;
+        height: 120px;
+    }
+}

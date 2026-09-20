@@ -12,19 +12,7 @@
         </CardHeaderContent>
     </MudCardHeader>
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
+
     <MudCardContent>
         <MudAlert Severity="Severity.Normal" Variant="Variant.Filled">School Material</MudAlert>
         <div class="library-page">
@@ -32,26 +20,47 @@
                 @foreach (var item in courses)
                 {
                     <div class="library-card" title="Click to view details">
-                        @if (item.CourseImage != null)
+
+                        @if (item.CourseImage is not null && item.CourseImage.Length > 0)
                         {
-                            <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.CourseImage)}")" alt="Course Cover" class="course-cover">
+                            <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.CourseImage)}")"
+                                 alt="Course Cover"
+                                 class="course-cover" />
                         }
                         else
                         {
-                            <img src="@item.ImgUrl" alt="Course Cover" class="course-cover">
+                            <img src="@item.ImgUrl"
+                                 alt="Course Cover"
+                                 class="course-cover" />
                         }
+
                         <div class="card-header">
                             <h6 class="course-name">@item.CourseName</h6>
                         </div>
+
                         <div class="card-body">
-                            <p class="course-grade">Grade: @item.Grade</p>
-                            <p class="course-creator">Created by: @item.CreatedBy</p>
-                            <p class="course-creator">Created Date: @item.DateCreated.Value.ToShortDateString()</p>
+                            <p class="course-grade">
+                                Grade: @(item.AcademicLevel.ToString() ?? "N/A")
+                            </p>
+
+                            <p class="course-creator">
+                                Created by: @(item.CreatedBy ?? "Unknown")
+                            </p>
+
+                            <p class="course-creator">
+                                Created Date:
+                                @(item.DateCreated?.ToShortDateString() ?? "Unknown")
+                            </p>
                         </div>
+
                         <div class="card-footer">
-                            <button class="details-button" @onclick="() => NavigateToCourseDetails(item)">View Details</button>
+                            <button class="details-button"
+                                    @onclick="() => NavigateToCourseDetails(item)">
+                                View Details
+                            </button>
                         </div>
                     </div>
+
                 }
 
                 <!-- Add more cards here -->
@@ -67,44 +76,44 @@
                 {
                     @foreach (var item in Books)
                     {
-                        <div class="library-card" title="Click to view details">
-                            @if (item.VolumeInfo.ImageLinks != null)
-                            {
-                                <img src="@item.VolumeInfo.ImageLinks.Thumbnail" alt="Course Cover" class="course-cover">
-                            }
-                            else
-                            {
-                                <img src="@item.DefaultImg" alt="Course Cover" class="course-cover">
-                            }
-                            <div class="card-header">
-                                @if (item.VolumeInfo.Title != null)
-                                {
-                                    <h6 class="course-name">@item.VolumeInfo.Title</h6>
-                                }
-                                else
-                                {
-                                    <h6 class="course-name">No Title Found</h6>
+                        @* Put this inside your .library-grid loop *@
+                        <div class="library-card" role="button" title="Click to view details" aria-label="@($"Open details for {item.VolumeInfo?.Title ?? "book"}")">
+                            <div class="book-spine" aria-hidden="true"></div>
 
-                                }
+                            <div class="cover-wrap">
+                                <img class="course-cover"
+                                     src="@((item.VolumeInfo?.ImageLinks?.Thumbnail) ?? item.DefaultImg)"
+                                     alt="Cover for @(item.VolumeInfo?.Title ?? "Untitled")"
+                                     loading="lazy" />
                             </div>
+
+                            <div class="card-header">
+                                <h6 class="course-name">@((item.VolumeInfo?.Title) ?? "No Title Found")</h6>
+                            </div>
+
                             <div class="card-body">
                                 <p class="course-creator">
-                                    Created by: @(item.VolumeInfo.Authors != null && item.VolumeInfo.Authors.Any()
-                            ? string.Join(", ", item.VolumeInfo.Authors)
-                            : "Unknown")
-                                </p>
-                                <p class="course-creator">
-                                    Published Date: @(DateTime.TryParse(item.VolumeInfo.PublishedDate, out var date)
-                            ? date.ToString("MMMM dd, yyyy")
-                            : item.VolumeInfo.PublishedDate ?? "Unknown")
-                                </p>
+                                    <strong>By</strong> @(item.VolumeInfo != null && item.VolumeInfo.Authors != null && item.VolumeInfo.Authors.Any()
+                                                                ? string.Join(", ", item.VolumeInfo.Authors)
+                                                                : "Unknown")
+                                                                        </p>
 
-                            </div>
+                                <p class="course-meta">
+                                    <strong>Published:</strong>
+                                    @(DateTime.TryParse(item.VolumeInfo?.PublishedDate, out var date)
+                                                                ? date.ToString("MMMM dd, yyyy")
+                                                                : item.VolumeInfo?.PublishedDate ?? "Unknown")
+                        </p>
+                    </div>
+
                             <div class="card-footer">
-                                <button class="details-button" @onclick="() => NavigateToDetailsGoogleBooks(item.VolumeInfo.IndustryIdentifiers.Select(x=>x.Identifier).FirstOrDefault())">View Details</button>
+                                <button class="details-button" @onclick="() => NavigateToDetailsGoogleBooks(item.VolumeInfo?.IndustryIdentifiers?.Select(x => x.Identifier).FirstOrDefault())" aria-label="View details">
+                                    View Details
+                                </button>
                             </div>
                         </div>
-                    }
+
+                                }
                 }
                 <!-- Add more cards here -->
             </div>
@@ -118,7 +127,6 @@
 
 
 @code {
-    protected bool isLoading = false;
     protected List<Course> courses = new();
     protected string searchString = string.Empty;
     [Inject] LessonService lessonService { get; set; } = default!;
@@ -130,7 +138,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Preparing Resources, please wait...");
         await GetCCourses();
         var DefaultQuery = string.Empty;
         if (AppState.HideStudentDashboard)
@@ -141,20 +149,33 @@
         {
             DefaultQuery = "high school mathematics";
         }
-        var book = (await booksClient.GetDefaultBooksAsync(DefaultQuery))?.Items?.ToList();
-        Books = book.Where(b => b.AccessInfo?.Viewability != "NO_PAGES" && b.AccessInfo?.Viewability != "NONE")
-    .ToList();
-        if (Books.Any())
+        try
         {
-            foreach (var item in Books)
+            var book = (await booksClient.GetDefaultBooksAsync(DefaultQuery))?.Items?.ToList();
+            Books = book.Where(b => b.AccessInfo?.Viewability != "NO_PAGES" && b.AccessInfo?.Viewability != "NONE")
+        .ToList();
+            if (Books.Any())
             {
-                if (item.VolumeInfo.ImageLinks == null)
+                foreach (var item in Books)
                 {
-                    item.DefaultImg = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
+                    if (item.VolumeInfo.ImageLinks == null)
+                    {
+                        item.DefaultImg = await _imageService.GetRandomImageUrlAsync(_navigationManager.BaseUri);
+                    }
                 }
             }
+            LoaderService.Hide();
         }
-        isLoading = false;
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+            throw;
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+
     }
 
     protected async Task GetCCourses()

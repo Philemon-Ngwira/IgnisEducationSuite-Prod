@@ -1,0 +1,16 @@
+﻿@using MudBlazor
+
+<div class="mb-4">
+    <MudText Typo="Typo.h6" GutterBottom>
+        <b>@Title</b>
+    </MudText>
+
+    <MudText Typo="Typo.body1">
+        @ChildContent
+    </MudText>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

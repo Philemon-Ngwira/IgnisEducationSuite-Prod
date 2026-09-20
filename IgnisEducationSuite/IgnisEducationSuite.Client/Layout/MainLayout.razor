@@ -1,65 +1,243 @@
-﻿@using EDUSphereSharedProject.AchievementModels
+﻿@using IgnisEducationSuite.Client.Pages.Shared
 @using IgnisEducationSuite.Client.Services
-@using System.Security.Claims
 @inherits LayoutComponentBase
-@inject AppState appState
-@inject RolesAndLicensingService _rolesAndLicensing
-@inject AuthenticationStateProvider _authenticationStateProvider
-@inject NavigationManager _navigationManager
-@inject GenericServiceFactory _genericService
-@inject HttpClient http
-<MudThemeProvider Theme="@theme" />
+@inject AppState AppState
+@inject NavigationManager Nav
+@using System.Security.Claims
+@using EDUSphereSharedProject.UniversalModels.Chat
+@implements IAsyncDisposable
+@inject AuthenticationStateProvider AuthProvider
+@inject ChatRealtimeService Chat
+@inject ISnackbar Snackbar
+<MudThemeProvider Theme="theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
+@* Licence notices, admins only. Nothing here blocks use: the app fails open, so an unverified
+   licence is reported rather than enforced, and only a confirmed-unlicensed state restricts
+   anything (adding users). *@
+@if (ShowLicenceNotice)
+{
+    <MudAlert Severity="@LicenceNoticeSeverity" Variant="Variant.Filled" Dense="true" Class="rounded-0">
+        <div class="d-flex flex-wrap align-center justify-space-between" style="width:100%; gap:12px;">
+            <span>@AppState.LicenseStatus.Notice</span>
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Inherit"
+                       OnClick="RecheckLicenceAsync">
+                Check again
+            </MudButton>
+        </div>
+    </MudAlert>
+}
+
+<MudLayout Class="ignis-layout">
+
     <MudAppBar>
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(() => DrawerToggle())" />
-        <MudText Typo="Typo.h6" Style="color: white;">Ignis Education Suite</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="DrawerToggle" />
+
+        <MudText Typo="Typo.h6" Style="color: white;">
+            @(string.IsNullOrEmpty(AppState.SchoolName)
+                        ? "Ignis Education Suite"
+                        : AppState.SchoolName)
+        </MudText>
     </MudAppBar>
-    <MudDrawer Elevation="2" @bind-Open="@_drawerOpen">
-        <NavMenu />
-    </MudDrawer>
-    <MudMainContent>
 
-        @Body
+    @if (!IsAuthPage)
+    {
+        <MudDrawer Elevation="0"
+                   @bind-Open="_drawerOpen"
+                   Class="ignis-drawer"
+                   ClipMode="DrawerClipMode.Docked">
+            <NavMenu />
+        </MudDrawer>
+    }
+    <MudMainContent Class="ignis-main-content">
+        <IgnisEducationSuite.Client.Pages.Shared.GlobalLoader />
 
+        @if (IsAuthPage)
+        {
+            @Body
+        }
+        else if (!_authChecked)
+        {
+            <InitializerLoader Message="Checking session..."
+                               SubMessage="Verifying authentication securely..." />
+        }
+        else if (_isAuthenticated && !AppState.IsFullyInitialized)
+        {
+            @if (_initializationFailed)
+            {
+                <MudAlert Severity="Severity.Error">We couldn't load your school information. Please try again.</MudAlert>
+                <MudButton OnClick="InitializeSessionAsync" Color="Color.Primary">Retry</MudButton>
+            }
+            else
+            {
+            <InitializerLoader Message="Loading your dashboard..."
+                               SubMessage="Preparing lessons, students, and analytics..." />
+            }
+        }
+        else
+        {
+            @Body
+        }
     </MudMainContent>
+
+    @* Version omitted on purpose — the footer reads it from ReleaseNotes, so a release is one edit
+       in one file rather than two that can drift apart. *@
+    <Footer Environment="PROD" />
+
 </MudLayout>
 
+<Radzen.Blazor.RadzenComponents @rendermode="InteractiveAuto" />
+
 @code {
+    private bool _initialized;
     private bool _drawerOpen = false;
     private Theme theme = new();
-    public string UserRole { get; set; } = string.Empty;
-    private bool isLoading = true;
+    private bool _subscribed;
+    private bool _authChecked = false;
+    private bool _isAuthenticated = false;
+    private bool _chatSubscribed;
 
-    protected override async Task OnInitializedAsync()
+    // ---- Licence notice ----
+    //
+    // Shown to admins only: they are the ones who can act on it, and a teacher or parent cannot do
+    // anything useful with a licensing message.
+    private bool IsLicenceAdmin =>
+        AppState.UserRole is "Admin" or "SuperAdmin" or "Principal";
+
+    private bool ShowLicenceNotice =>
+        IsLicenceAdmin
+        && AppState.IsLicenseChecked
+        && !string.IsNullOrWhiteSpace(AppState.LicenseStatus.Notice);
+
+    /// <summary>
+    /// Error only for a confirmed-unlicensed school. An unverified licence is a warning: we do not
+    /// know that anything is wrong, so it should not look like it.
+    /// </summary>
+    private Severity LicenceNoticeSeverity =>
+        AppState.LicenseStatus.IsConfirmedUnlicensed ? Severity.Error : Severity.Warning;
+
+    private async Task RecheckLicenceAsync()
     {
-        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.Identity?.IsAuthenticated ?? false)
-        {
-            var UserID = string.Empty;
-
-            UserID = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-
-
-            await appState.InitializeAsync(UserID, true, _navigationManager, http);
-            appState.OnChange += StateHasChanged;
-
-        }
-
-        isLoading = false;
+        await AppState.RefreshLicenseAsync();
         await InvokeAsync(StateHasChanged);
     }
+
+    /// <summary>
+    /// Brings up the shared chat connection and shows a toast for messages that arrive while the
+    /// user is somewhere other than the chat page. Clicking the toast opens the conversation.
+    /// </summary>
+    private async Task StartChatAsync(string userId)
+    {
+        if (!_chatSubscribed)
+        {
+            Chat.MessageReceived += OnChatMessageAsync;
+            _chatSubscribed = true;
+        }
+
+        await Chat.EnsureStartedAsync(userId);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task OnChatMessageAsync(ChatMessageDto incoming)
+    {
+        // Your own message is not news, and the chat page announces its own arrivals.
+        if (string.Equals(incoming.UserId, AppState.UserID, StringComparison.OrdinalIgnoreCase))
+            return Task.CompletedTask;
+
+        if (Nav.Uri.Contains("/MainChat", StringComparison.OrdinalIgnoreCase))
+            return Task.CompletedTask;
+
+        return InvokeAsync(() =>
+        {
+            var from = string.IsNullOrWhiteSpace(incoming.SenderName) ? "Someone" : incoming.SenderName;
+            var where = string.IsNullOrWhiteSpace(incoming.GroupName) ? "" : $" in {incoming.GroupName}";
+            var preview = incoming.Content.Length <= 60 ? incoming.Content : incoming.Content[..60] + "…";
+
+            Snackbar.Add($"{from}{where}: {preview}", Severity.Info, config =>
+            {
+                config.OnClick = _ =>
+                {
+                    Nav.NavigateTo("/MainChat");
+                    return Task.CompletedTask;
+                };
+            });
+
+            StateHasChanged();
+        });
+    }
+    private bool _initializationFailed;
+    private void OnAppStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        AppState.OnChange += OnAppStateChanged;
+        _subscribed = true;
+        await InitializeSessionAsync();
+    }
+
+    private async Task InitializeSessionAsync()
+    {
+        _initializationFailed = false;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            _isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
+            if (_isAuthenticated)
+            {
+                var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                _initializationFailed = string.IsNullOrWhiteSpace(userId)
+                    || !await AppState.EnsureInitializedAsync(userId, true);
+                _authChecked = true;
+                await InvokeAsync(StateHasChanged);
+                if (!_initializationFailed)
+                {
+                    try { await StartChatAsync(userId!); }
+                    catch (Exception ex) { Console.WriteLine($"Chat startup failed: {ex.Message}"); }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _initializationFailed = true;
+            Console.WriteLine($"Session initialization failed: {ex.Message}");
+        }
+        finally
+        {
+            _authChecked = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    private bool IsAuthPage =>
+        Nav.Uri.Contains("Account/Login", StringComparison.OrdinalIgnoreCase) ||
+        Nav.Uri.Contains("Account/Register", StringComparison.OrdinalIgnoreCase) ||
+        Nav.Uri.Contains("Account/ForgotPassword", StringComparison.OrdinalIgnoreCase) ||
+        Nav.Uri.Contains("Account/ResetPassword", StringComparison.OrdinalIgnoreCase);
+    public async ValueTask DisposeAsync()
+    {
+        if (_subscribed)
+        {
+            AppState.OnChange -= OnAppStateChanged;
+            _subscribed = false;
+        }
+
+        if (_chatSubscribed)
+        {
+            Chat.MessageReceived -= OnChatMessageAsync;
+            _chatSubscribed = false;
+        }
+
+        await Task.CompletedTask;
+    }
+
     private void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
-    }
-    public void Dispose()
-    {
-        appState.OnChange -= StateHasChanged;
     }
 }

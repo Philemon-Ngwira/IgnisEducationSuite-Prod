@@ -1,0 +1,402 @@
+@page "/StudentParentMapping"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.UniversalModels
+@using EDUSphereSharedProject.UniversalModels.ParentLinking
+@using IgnisEducationSuite.Client.Pages.Management.Dialog
+@using IgnisEducationSuite.Client.Services
+@inherits AppBaseComponent
+@inject IParentLinkingClientService ParentLinking
+
+<MudCard Elevation="3" Class="pa-4">
+    <MudText Typo="Typo.h4"><b>Students Without a Parent</b></MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        A student with no parent on record cannot be reached through the parent portal, report card
+        notifications or chat. Attach each one to an existing parent, or create the parent here.
+    </MudText>
+
+    @if (_summary.UnparentedCount == 0 && !_loading)
+    {
+        <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+            Every student has a parent on record. Nothing to do here.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="2" Class="mb-3">
+            <MudItem xs="12" md="3">
+                <MudSelect T="int?" Label="Academic Level" Value="_levelFilter"
+                           ValueChanged="OnLevelFilterChangedAsync"
+                           ToStringFunc="@LevelToString"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem T="int?" Value="@((int?)null)">All levels</MudSelectItem>
+                    @foreach (var level in LevelsWithGaps)
+                    {
+                        <MudSelectItem T="int?" Value="@level.AcademicLevel">
+                            @level.LevelName (@level.UnparentedCount)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="_search" Label="Search name or student ID"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" DebounceInterval="300"
+                              OnDebounceIntervalElapsed="ReloadStudentsAsync" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" md="6" Class="d-flex align-center flex-wrap gap-2">
+                <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled">
+                    @_summary.UnparentedCount of @_summary.TotalStudents unparented
+                </MudChip>
+                @if (_selectedStudentIds.Count > 0)
+                {
+                    <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined">
+                        @_selectedStudentIds.Count selected
+                    </MudChip>
+                }
+            </MudItem>
+        </MudGrid>
+
+        <!-- ============ ACTION BAR ============ -->
+        @if (_selectedStudentIds.Count > 0)
+        {
+            <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background:var(--mud-palette-primary-hover);">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudAutocomplete T="ParentOptionDto" Label="Attach to an existing parent"
+                                         Value="_selectedParent" ValueChanged="v => _selectedParent = v"
+                                         SearchFunc="@SearchParents"
+                                         ToStringFunc="@ParentDisplayName"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Clearable="true"
+                                         HelperText="Existing children are shown, so a sibling is easy to spot.">
+                            <ItemTemplate Context="parent">
+                                <div>
+                                    <MudText Typo="Typo.body2"><b>@parent.FullName</b></MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @(string.IsNullOrWhiteSpace(parent.Email) ? "no email" : parent.Email)
+                                        @if (parent.LinkedChildrenCount > 0)
+                                        {
+                                            <text> — already parent to @string.Join(", ", parent.LinkedChildNames)</text>
+                                        }
+                                        @if (!parent.HasUserAccount)
+                                        {
+                                            <text> — no login</text>
+                                        }
+                                    </MudText>
+                                </div>
+                            </ItemTemplate>
+                        </MudAutocomplete>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6" Class="d-flex align-center flex-wrap gap-2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Link"
+                                   Disabled="@(_selectedParent is null || _linking)"
+                                   OnClick="LinkToExistingParentAsync">
+                            @(_linking ? "Linking..." : $"Attach {_selectedStudentIds.Count} student(s)")
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                                   Disabled="_linking"
+                                   OnClick="CreateParentForSelectionAsync">
+                            Create new parent
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="ClearSelection">
+                            Clear
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+
+                @if (_selectedParent is not null && !_selectedParent.HasUserAccount)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-2">
+                        <b>@_selectedParent.FullName</b> has no login, so they will not be able to sign in
+                        even once these students are attached. Create their account from User Management,
+                        or use <b>Create new parent</b> instead.
+                    </MudAlert>
+                }
+            </MudPaper>
+        }
+
+        @if (_errors.Count > 0)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+                @foreach (var error in _errors)
+                {
+                    <div>@error</div>
+                }
+            </MudAlert>
+        }
+
+        <!-- ============ STUDENT LIST ============ -->
+        @if (_loading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        }
+        else if (_students.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                No unparented students match this filter.
+            </MudAlert>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                <thead>
+                    <tr>
+                        <th style="width:48px;">
+                            <MudCheckBox T="bool" Value="AllVisibleSelected"
+                                         ValueChanged="@(v => ToggleSelectAll(v))" Dense="true" />
+                        </th>
+                        <th>Student</th>
+                        <th>Student ID</th>
+                        <th>Level</th>
+                        <th>Section</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var student in _students)
+                    {
+                        <tr style="@(_selectedStudentIds.Contains(student.StudentId) ? "background:var(--mud-palette-primary-hover);" : "")">
+                            <td>
+                                <MudCheckBox T="bool" Value="_selectedStudentIds.Contains(student.StudentId)"
+                                             ValueChanged="@(v => ToggleStudent(student.StudentId, v))" Dense="true" />
+                            </td>
+                            <td><b>@student.FullName</b></td>
+                            <td>@student.StudentNumber</td>
+                            <td>@student.LevelName</td>
+                            <td>@student.GradeSection</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    }
+</MudCard>
+
+@code {
+    private UnparentedSummaryDto _summary = new();
+    private List<UnparentedStudentDto> _students = new();
+    private readonly HashSet<Guid> _selectedStudentIds = new();
+    private ParentOptionDto? _selectedParent;
+
+    private int? _levelFilter;
+    private string? _search;
+
+    private bool _loading;
+    private bool _linking;
+    private List<string> _errors = new();
+
+    // Needed only to hand CreateUserDialog the same parameters User Management gives it.
+    private List<Gender> _genders = new();
+    private List<CountryDTO> _countries = new();
+    private ClientAdmin _loggedAdmin = new();
+
+    /// <summary>Levels are de-duplicated because the summary breaks gaps down by section too.</summary>
+    private List<UnparentedByLevelDto> LevelsWithGaps =>
+        _summary.ByLevel
+            .GroupBy(l => l.AcademicLevel)
+            .Select(g => new UnparentedByLevelDto
+            {
+                AcademicLevel = g.Key,
+                LevelName = g.First().LevelName,
+                UnparentedCount = g.Sum(x => x.UnparentedCount),
+            })
+            .OrderBy(l => l.AcademicLevel)
+            .ToList();
+
+    private bool AllVisibleSelected =>
+        _students.Count > 0 && _students.All(s => _selectedStudentIds.Contains(s.StudentId));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        LoaderService.Show("Loading students without parents...");
+
+        await ReloadSummaryAsync();
+        await ReloadStudentsAsync();
+        await LoadDialogPrerequisitesAsync();
+
+        LoaderService.Hide();
+    }
+
+    private async Task ReloadSummaryAsync() => _summary = await ParentLinking.GetSummaryAsync();
+
+    private async Task ReloadStudentsAsync()
+    {
+        _loading = true;
+        _students = await ParentLinking.ListUnparentedAsync(_levelFilter, null, _search);
+
+        // Drop selections that the new filter no longer shows, so a hidden student cannot be
+        // attached to a parent the admin never saw them next to.
+        var visible = _students.Select(s => s.StudentId).ToHashSet();
+        _selectedStudentIds.RemoveWhere(id => !visible.Contains(id));
+
+        _loading = false;
+    }
+
+    private async Task OnLevelFilterChangedAsync(int? level)
+    {
+        _levelFilter = level;
+        await ReloadStudentsAsync();
+    }
+
+    private string LevelToString(int? level) =>
+        level is null
+            ? "All levels"
+            : LevelsWithGaps.FirstOrDefault(l => l.AcademicLevel == level)?.LevelName ?? $"Level {level}";
+
+    private void ToggleStudent(Guid studentId, bool selected)
+    {
+        if (selected) _selectedStudentIds.Add(studentId);
+        else _selectedStudentIds.Remove(studentId);
+    }
+
+    private void ToggleSelectAll(bool selected)
+    {
+        if (selected)
+        {
+            foreach (var student in _students) _selectedStudentIds.Add(student.StudentId);
+        }
+        else
+        {
+            _selectedStudentIds.Clear();
+        }
+    }
+
+    private void ClearSelection()
+    {
+        _selectedStudentIds.Clear();
+        _selectedParent = null;
+    }
+
+    private async Task<IEnumerable<ParentOptionDto>> SearchParents(string value, CancellationToken token)
+    {
+        // Searched server-side: a school can have thousands of parents, and loading them all just to
+        // filter in the browser would be wasteful.
+        var parents = await ParentLinking.ListParentsAsync(value);
+        return parents.Take(25);
+    }
+
+    private static string ParentDisplayName(ParentOptionDto? parent)
+    {
+        if (parent is null) return string.Empty;
+
+        var name = parent.FullName;
+        return parent.LinkedChildrenCount > 0
+            ? $"{name} ({parent.LinkedChildrenCount} child{(parent.LinkedChildrenCount == 1 ? "" : "ren")})"
+            : name;
+    }
+
+    private async Task LinkToExistingParentAsync()
+    {
+        if (_selectedParent is null || _selectedStudentIds.Count == 0) return;
+
+        _linking = true;
+        _errors = new();
+
+        var result = await ParentLinking.LinkStudentsAsync(new LinkStudentsToParentRequest
+        {
+            ParentId = _selectedParent.ParentId,
+            StudentIds = _selectedStudentIds.ToList(),
+        });
+
+        _linking = false;
+
+        if (!result.Succeeded)
+        {
+            _errors = result.Errors;
+            return;
+        }
+
+        Snackbar.Add($"Attached {result.LinkedCount} student(s) to {_selectedParent.FullName}.", Severity.Success);
+
+        if (result.SkippedAlreadyLinked.Count > 0)
+        {
+            Snackbar.Add(
+                $"Left unchanged (already has a parent): {string.Join(", ", result.SkippedAlreadyLinked)}.",
+                Severity.Warning);
+        }
+
+        ClearSelection();
+        await ReloadSummaryAsync();
+        await ReloadStudentsAsync();
+    }
+
+    /// <summary>
+    /// Reuses the existing user-creation dialog rather than duplicating it: it already creates the
+    /// Identity account, the Parent record, links the children and emails the one-time password.
+    /// The selected students are passed in so they are pre-attached.
+    /// </summary>
+    private async Task CreateParentForSelectionAsync()
+    {
+        if (_selectedStudentIds.Count == 0) return;
+
+        var children = _students
+            .Where(s => _selectedStudentIds.Contains(s.StudentId))
+            .Select(s => new Student
+            {
+                StudentID = s.StudentId,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                StudentNumber = s.StudentNumber,
+                AcademicLevel = s.AcademicLevel,
+                LevelName = s.LevelName,
+                GradeSection = s.GradeSection,
+            })
+            .ToList();
+
+        var parameters = new DialogParameters<CreateUserDialog>
+        {
+            { x => x.Role, "Parent" },
+            { x => x.genders, _genders },
+            { x => x.countries, _countries },
+            { x => x.LoggedAdmin, _loggedAdmin },
+            { x => x.PreselectedChildren, children },
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateUserDialog>(
+            "Create Parent", parameters, new DialogOptions { MaxWidth = MaxWidth.Large });
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Parent created and children attached.", Severity.Success);
+            ClearSelection();
+            await ReloadSummaryAsync();
+            await ReloadStudentsAsync();
+        }
+    }
+
+    private async Task LoadDialogPrerequisitesAsync()
+    {
+        try
+        {
+            var genderService = GenericService.GetService<Gender>();
+            var genderResult = await genderService.GetAllAsync($"api/Dynamic/GetEntity/{"genders"}", true);
+            if (genderResult.IsSuccess) _genders = genderResult.Data.ToList();
+
+            var countryService = GenericService.GetService<CountryDTO>();
+            var countryResult = await countryService.GetAllAsync("api/CountriesAndCities/GetAllCountries", true);
+            if (countryResult.IsSuccess) _countries = countryResult.Data.ToList();
+
+            if (!string.IsNullOrEmpty(AppState.UserID))
+            {
+                var adminService = GenericService.GetService<ClientAdmin>();
+                var adminResult = await adminService.GetAllAsync($"api/Dynamic/GetAdminByUserID/{AppState.UserID}", true);
+                if (adminResult.IsSuccess) _loggedAdmin = adminResult.Data.FirstOrDefault() ?? new ClientAdmin();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Only affects the create-parent dialog; attaching to an existing parent still works.
+            Console.WriteLine($"Could not load create-parent prerequisites: {ex.Message}");
+        }
+    }
+}

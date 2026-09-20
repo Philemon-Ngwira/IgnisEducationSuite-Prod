@@ -1,0 +1,232 @@
+﻿@using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.FinanceModels.DTOs
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+
+<MudCard Class="pa-4">
+
+    <!-- Header -->
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5">Finance Overview</MudText>
+        <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+            View outstanding fees and payment activity.
+        </MudText>
+    </MudStack>
+
+    <MudDivider Class="my-4" />
+
+    <!-- STUDENT SELECTOR -->
+    @if (students.Any())
+    {
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Select Student</MudText>
+
+        <MudGrid Spacing="2" Class="mb-4">
+            @foreach (var student in students)
+            {
+                var isSelected = selectedStudentId == student.UserID;
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-3"
+                              Elevation="@(isSelected ? 6 : 1)"
+                              Style="cursor:pointer; border-radius:12px;"
+                              @onclick="() => OnStudentSelected(student.UserID)">
+
+                        <MudStack Spacing="1">
+
+                            <!-- Name -->
+                            <MudText Typo="Typo.h6">
+                                @student.FirstName @student.LastName
+                            </MudText>
+
+                            <!-- Class -->
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                @(student.LevelName + $" ({student.GradeSection})")
+                            </MudText>
+
+                            <!-- Selected Indicator -->
+                            @if (isSelected)
+                            {
+                                <MudChip T="string" Color="Color.Primary" Size="Size.Small">
+                                    Selected
+                                </MudChip>
+                            }
+
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    <!-- MAIN CONTENT -->
+    <MudGrid Spacing="3">
+
+        <!-- Outstanding Fees -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1" Style="border-radius:12px;">
+
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6">Outstanding Fees</MudText>
+
+                    <MudChip T="string" Color="Color.Error" Variant="Variant.Outlined">
+                        @CurrencySymbol @outstandingInvoices.Sum(x => x.Amount - x.PaidAmount)
+                    </MudChip>
+                </MudStack>
+
+                <MudDivider Class="my-2" />
+
+                <MudTable Items="outstandingInvoices" Dense="true" Hover="true">
+
+                    <HeaderContent>
+                        <MudTh>Term</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Outstanding</MudTh>
+                        <MudTh>Due</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd>
+                            @context.TermStartDate.ToShortDateString()
+                        </MudTd>
+
+                        <MudTd>@context.InvoiceType</MudTd>
+
+                        <MudTd>
+                            <MudText Color="Color.Error">
+                                @CurrencySymbol @(context.Amount - context.PaidAmount)
+                            </MudText>
+                        </MudTd>
+
+                        <MudTd>
+                            <MudChip T="string" Size="Size.Small"
+                                     Color="@(context.DueDate < DateTime.Now ? Color.Error : Color.Warning)">
+                                @context.DueDate.ToShortDateString()
+                            </MudChip>
+                        </MudTd>
+                    </RowTemplate>
+
+                </MudTable>
+
+            </MudPaper>
+        </MudItem>
+
+        <!-- Payment History -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1" Style="border-radius:12px;">
+
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6">Payment History</MudText>
+
+                    @if (!string.IsNullOrEmpty(selectedStudentId))
+                    {
+                        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">
+                            Loaded
+                        </MudChip>
+                    }
+                </MudStack>
+
+                <MudDivider Class="my-2" />
+
+                @if (studentPayments.Any())
+                {
+                    <MudTable Items="studentPayments" Dense="true" Hover="true">
+
+                        <HeaderContent>
+                            <MudTh>Inv #</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Type</MudTh>
+                            <MudTh>Amount</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd>@context.InvoiceNumber</MudTd>
+                            <MudTd>@context.PaymentDate.ToShortDateString()</MudTd>
+                            <MudTd>@context.InvoiceType</MudTd>
+
+                            <MudTd>
+                                <MudText Color="Color.Success">
+                                    @CurrencySymbol @context.AmountPaid
+                                </MudText>
+                            </MudTd>
+                        </RowTemplate>
+
+                    </MudTable>
+                }
+                else
+                {
+                    <MudText Class="mud-text-secondary">
+                        Select a student to view payment history.
+                    </MudText>
+                }
+
+            </MudPaper>
+        </MudItem>
+
+    </MudGrid>
+
+</MudCard>
+
+@code {
+
+    [Parameter] public List<Invoice> outstandingInvoices { get; set; } = new();
+    private List<StudentPayments> studentPayments = new();
+    [Parameter] public string CurrencySymbol { get; set; } = "$";
+    private List<EDUSphereSharedProject.FinanceModels.Student> students = new();
+    private Parent loggedInParent = new();
+    private string selectedStudentId;
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Loading finance data...");
+        await GetParentInfo();
+        LoaderService.Hide();
+    }
+    private async Task OnStudentSelected(string userId)
+    {
+        selectedStudentId = userId;
+
+        LoaderService.Show("Loading payment history...");
+        await LoadPaymentHistoryAsync(userId);
+        LoaderService.Hide();
+    }
+    private async Task GetStudentsByParent(Guid ParentID)
+    {
+        var result = await GenericService.GetService<EDUSphereSharedProject.FinanceModels.Student>()
+                    .GetAllAsync($"api/Finance/GetStudentsByParent/{ParentID}", true);
+        if (result.IsSuccess && result.Data.Any())
+        {
+            if (result.Data.Count() == 1)
+            {
+                var studentID = result.Data.Select(x => x.UserID).FirstOrDefault();
+                if (studentID != null)
+                {
+                    await LoadPaymentHistoryAsync(studentID);
+                }
+            }
+            students = result.Data.ToList();
+        }
+    }
+    public async Task GetParentInfo()
+    {
+        var result = await GenericService.GetService<Parent>()
+                    .GetAllAsync($"api/Dynamic/GetParentById/{AppState.UserID}", true);
+        if (result.IsSuccess && result.Data.Any())
+        {
+            loggedInParent = result.Data.FirstOrDefault();
+
+            if (loggedInParent != null)
+            {
+                await GetStudentsByParent(loggedInParent.ParentID);
+            }
+        }
+    }
+
+    private async Task LoadPaymentHistoryAsync(string userID)
+    {
+        var userId = userID;
+        var service = GenericService.GetService<StudentPayments>();
+        var result = await service.GetAllAsync($"api/Payment/GetStudentPayments/{userId}", true);
+
+        if (result.IsSuccess)
+            studentPayments = result.Data.ToList();
+    }
+}

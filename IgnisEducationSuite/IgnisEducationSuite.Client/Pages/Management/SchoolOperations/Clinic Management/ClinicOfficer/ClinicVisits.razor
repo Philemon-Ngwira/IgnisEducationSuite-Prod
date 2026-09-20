@@ -1,0 +1,348 @@
+﻿@page "/ClinicVisits"
+@using EDUSphereSharedProject.Models
+@using MudBlazor
+@inherits AppBaseComponent
+@inject IDialogService DialogService
+<MudGrid Spacing="2" Class="h-100">
+
+    <!-- ================= LEFT SIDEBAR ================= -->
+    <MudItem xs="12" lg="4">
+        <MudPaper Elevation="1" Class="h-100">
+
+            <!-- 🔒 FIXED SEARCH HEADER -->
+            <div class="pa-3">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">
+                    Find Student
+                </MudText>
+
+                <MudTextField T="string"
+                              Margin="Margin.Dense"
+                              Placeholder="Name or Student Number"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" />
+
+                <MudSelect T="string" Dense="true"
+                           Margin="Margin.Dense"
+                           Placeholder="Grade / Level"
+                           Class="mt-2"
+                           @bind-Value="SelectedLevel">
+                    @foreach (var level in availableLevels)
+                    {
+                        <MudSelectItem Value="level">@level</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+
+            <MudDivider />
+
+            <!-- ✅ SCROLL AREA STARTS HERE -->
+            <MudPaper Square Elevation="0" Class="flex-grow-1 overflow-y-auto">
+
+                <!-- In Clinic -->
+                <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Filled.MedicalServices" Class="px-3 pt-2 text-primary">
+                    In Clinic Now
+                </MudAlert>
+                @foreach (var item in SchoolStudents.Where(x => x.isCurrentlyInHospital))
+                {
+                    <MudList T="string" Dense="true">
+                        <MudListItem OnClick="() => ViewStudentDetail(item)" Dense="true">
+                            <MudAvatar Size="Size.Small" Color="Color.Error">
+                                @if (item.ProfilePic != null)
+                                {
+                                    <MudImage Class="profile-pic" Width="250"
+                                              Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.ProfilePic)}")" />
+                                }
+                                else
+                                {
+                                    @item.FirstName.Substring(0, 1)
+                                    @item.LastName.Substring(0, 1)
+                                }
+                            </MudAvatar>
+                            <MudText Class="ml-2">@item.FirstName @item.LastName</MudText>
+                            <MudSpacer />
+                            <MudChip Size="Size.Small" Color="Color.Error">Active</MudChip>
+                        </MudListItem>
+                    </MudList>
+                }
+
+
+                <MudDivider Class="my-1" />
+                @if (!string.IsNullOrEmpty(SelectedLevel) && SelectedLevel != "NONE")
+                {
+                    <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.People" Class="px-3 pt-2 text-primary">
+                        Directory Results
+                    </MudAlert>
+                    @if (SchoolStudents.Any())
+                    {
+                        <MudList T="string" Dense="true">
+                            @foreach (var item in SchoolStudents.Where(x => x.LevelName == SelectedLevel && x.isCurrentlyInHospital == false))
+                            {
+
+                                <MudListItem OnClick="() => ViewStudentDetail(item)" Dense=true>
+
+                                    <MudAvatar Size="Size.Small">
+                                        @if (item.ProfilePic != null)
+                                        {
+                                            <MudImage Class="profile-pic" Width="250"
+                                                      Src="@($"data:image/jpeg;base64,{Convert.ToBase64String(item.ProfilePic)}")" />
+                                        }
+                                        else
+                                        {
+                                            @item.FirstName.Substring(0, 1)
+                                            @item.LastName.Substring(0, 1)
+                                        }
+                                    </MudAvatar>
+                                    <MudText Class="ml-2">@($"{item.FirstName} {item.LastName}")</MudText>
+                                    <MudSpacer />
+                                    <MudText Typo="Typo.caption">@item.LevelName</MudText>
+                                </MudListItem>
+
+                            }
+                        </MudList>
+                    }
+
+
+                }
+                <!-- Directory -->
+
+            </MudPaper>
+        </MudPaper>
+    </MudItem>
+
+
+
+    <!-- ================= RIGHT CONTENT ================= -->
+    <MudItem xs="12" lg="8">
+        <MudPaper Elevation="1" Class="h-100 pa-4">
+
+            <!-- Empty State -->
+            @* Replace with condition *@
+            @if (selectedStudent == null)
+            {
+                <MudStack AlignItems="AlignItems.Center" Class="h-100">
+                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
+                    <MudText Typo="Typo.h6">Select a Student</MudText>
+                    <MudText Typo="Typo.caption">Search on the left to begin</MudText>
+                </MudStack>
+            }
+
+            else
+            {
+                <!-- ================= STUDENT DETAILS ================= -->
+                <MudStack Spacing="3">
+
+                    <MudStack Row=true AlignItems="AlignItems.Baseline">
+                        <MudStack>
+                            <MudText Typo="Typo.h5">@($"{selectedStudent?.FirstName} {selectedStudent?.LastName}")</MudText>
+                            <MudText Typo="Typo.caption">
+                                @selectedStudent?.LevelName • @selectedStudent?.Gender • Student No: @selectedStudent?.StudentNumber
+                            </MudText>
+                        </MudStack>
+                        <MudSpacer />
+                        @if (selectedStudent.isCurrentlyInHospital)
+                        {
+                            <MudChip T="string" Color="Color.Error">In Clinic</MudChip>
+                        }
+                        else
+                        {
+                            <MudButton Color="Color.Primary"
+                                       Variant="Variant.Filled"
+                                       Size="Size.Large"
+                                       StartIcon="@Icons.Material.Filled.Add" OnClick="LogVisit">
+                                Log Visit
+                            </MudButton>
+                        }
+                    </MudStack>
+
+                    <MudDivider />
+                    <MudText Typo="Typo.h6">Medical History</MudText>
+                    @if (selectedStudent.clinicVisits.Any())
+                    {
+                        @foreach (var item in selectedStudent.clinicVisits.Where(x => x.isActive == true))
+                        {
+                            <MudPaper Outlined Class="pa-3">
+                                <MudStack Row=true>
+                                    <MudText Typo="Typo.subtitle1">@item.VisitDate.ToShortDateString()</MudText>
+                                    <MudChip T="string" Color="Color.Success">Active</MudChip>
+                                </MudStack>
+
+                                <MudText><b>Symptoms:</b> @item.Symptoms</MudText>
+                                <MudText><b>Diagnosis:</b> @item.Diagnosis</MudText>
+                                <MudText><b>Treatment:</b> @item.Treatment</MudText>
+
+                                <MudChip T="string" Color="Color.Secondary" Class="mt-2">
+                                    Sick Leave: @item.DaysOff Day(s)
+                                </MudChip>
+
+                                <MudDivider Class="my-2" />
+
+
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Error"
+                                           OnClick="() => DischargeSickStudent(item)">
+                                    Discharge Student
+                                </MudButton>
+                            </MudPaper>
+
+                        }
+                    }
+
+
+                </MudStack>
+            }
+
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+
+@code {
+    protected List<string> availableLevels = new();
+    protected List<Student> SchoolStudents = new();
+    protected List<ClinicVisit> clinicVisits = new();
+
+    protected string SelectedLevel = "NONE";
+    protected Student? selectedStudent;
+    protected ClinicStaff LoggedInStaff = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        var staff = await GetClinicStaff();
+        var loggedIn = staff.First(x => x.UserID == AppState.UserID);
+        LoggedInStaff = loggedIn;
+        await GetStudent();
+        await GetClinicVisits();
+
+
+        LoaderService.Hide();
+    }
+
+    protected async Task GetStudent()
+    {
+        var service = GenericService.GetService<Student>();
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetStudentsBySchoolID/{Guid.Parse(AppState.SchoolID)}", true);
+
+        if (!result.IsSuccess) return;
+
+        SchoolStudents = result.Data.ToList();
+
+        availableLevels = SchoolStudents
+            .Select(x => x.LevelName)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+
+        availableLevels.Insert(0, "NONE");
+    }
+
+    protected async Task GetClinicVisits()
+    {
+        var serv = GenericService.GetService<ClinicVisit>();
+        var result = await serv.GetAllAsync(
+            $"api/Dynamic/GetClinicVisits/{LoggedInStaff.ClinicId}", true);
+
+        if (!result.IsSuccess) return;
+
+        clinicVisits = result.Data.ToList();
+
+        var studentIdsInHospital = clinicVisits
+            .Where(x => x.isActive == true)
+            .Select(x => x.StudentId)
+            .ToHashSet();
+
+        foreach (var student in SchoolStudents)
+        {
+            var visits = clinicVisits
+                .Where(x => x.StudentId == student.StudentID)
+                .ToList();
+
+            student.clinicVisits = visits;
+            student.isCurrentlyInHospital = studentIdsInHospital.Contains(student.StudentID);
+        }
+    }
+
+    private void ViewStudentDetail(Student student)
+    {
+        selectedStudent = student;
+    }
+
+    protected async Task<IEnumerable<ClinicMedication>> GetSchoolMeds()
+    {
+        var service = GenericService.GetService<ClinicMedication>();
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetSchoolMedicationStocks/{AppState.SchoolID}", true);
+
+        return result.IsSuccess ? result.Data : Enumerable.Empty<ClinicMedication>();
+    }
+
+    protected async Task<IEnumerable<ClinicStaff>> GetClinicStaff()
+    {
+        var serv = GenericService.GetService<ClinicStaff>();
+        var res = await serv.GetAllAsync(
+            $"api/Dynamic/GetClinicStaffBySchool/{Guid.Parse(AppState.SchoolID)}", true);
+
+        return res.IsSuccess ? res.Data : Enumerable.Empty<ClinicStaff>();
+    }
+
+    private async Task LogVisit()
+    {
+
+        var parameters = new DialogParameters<LogClinicVisitDialog>
+        {
+            { x => x.StudentID, selectedStudent!.StudentID },
+            { x => x.medications, await GetSchoolMeds() },
+            { x => x.LoggedInStaff, LoggedInStaff }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true,
+            NoHeader = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<LogClinicVisitDialog>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is ClinicVisit visit)
+        {
+            selectedStudent.isCurrentlyInHospital = true;
+            selectedStudent!.clinicVisits.Add(visit);
+            await GetClinicVisits();
+            StateHasChanged();
+        }
+    }
+
+    private async Task DischargeSickStudent(ClinicVisit visit)
+    {
+        LoaderService.Show("Please wait...");
+        try
+        {
+            visit.isActive = false;
+            visit.ReturnToClassDate = DateTime.Today;
+            visit.ClinicMedicationLogs = null;
+            var updateService = GenericService.GetService<ClinicVisit>();
+            var result = await updateService.UpdateAsync("api/Dynamic/UpdateEntity", "clinicvisit", visit);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add($"Student: {selectedStudent.FirstName}  {selectedStudent.LastName} has been discharged", Severity.Success);
+                selectedStudent.isCurrentlyInHospital = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            var _ = ex.Message;
+            throw;
+        }
+        finally
+        {
+            LoaderService.Hide();
+        }
+    }
+}
+

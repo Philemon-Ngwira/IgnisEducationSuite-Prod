@@ -1,0 +1,90 @@
+﻿.ignis-loader-container {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background);
+}
+
+.ignis-loader-card {
+    text-align: center;
+    padding: 42px 38px;
+    border-radius: 18px;
+    /* blends into your design system */
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 10px 25px rgba(41, 16, 74, 0.18), 0 2px 8px rgba(122, 77, 187, 0.12);
+    width: 360px;
+    position: relative;
+    overflow: hidden;
+}
+
+    /* subtle royal glow accent */
+    .ignis-loader-card::before {
+        content: "";
+        position: absolute;
+        top: -40%;
+        left: -40%;
+        width: 180%;
+        height: 180%;
+        background: radial-gradient( circle, rgba(212, 175, 55, 0.12), transparent 60% );
+        animation: pulseGlow 4s ease-in-out infinite;
+    }
+
+@keyframes pulseGlow {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}
+
+.ignis-logo {
+    width: 72px;
+    height: 72px;
+    animation: float 2.4s ease-in-out infinite;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+/* Make text match your system */
+.ignis-loader-card h6 {
+    font-weight: 600;
+    color: var(--text-primary);
+    position: relative;
+    z-index: 2;
+}
+
+.ignis-loader-card p {
+    color: var(--text-secondary);
+    position: relative;
+    z-index: 2;
+}
+
+/* progress bar styled to match gold theme */
+.ignis-loader-card .mud-progress-linear {
+    margin-top: 18px;
+}
+
+.ignis-loader-card .mud-progress-linear-bar {
+    background: var(--gold) !important;
+}

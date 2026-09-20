@@ -1,0 +1,106 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Models.StoreProModels
+@inherits AppBaseComponent
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Align="Align.Left" Typo="Typo.h5">Add New Special Diet</MudText>
+                <MudDivider />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudAutocomplete T="Student"
+                                 Label="Select Student"
+                                 @bind-Value="SelectedStudent"
+                                 SearchFunc="@SearchStudents"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true" CoerceValue="true"
+                                 SelectValueOnTab="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 AdornmentColor="Color.Primary"
+                                 Class="mb-3"
+                                 ToStringFunc="StudentTypeconverter"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="newSpecialDiet.DietType"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Label="Diet Type"
+                              Placeholder="e.g Vegitarian or Allergic etc">
+                </MudTextField>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="newSpecialDiet.Description"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Label="Diet Description"
+                              Placeholder="e.g Partial Vegitarian eats chicken not beef.">
+                </MudTextField>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       OnClick="MudDialog.Cancel">
+                Cancel
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="SaveNewSpecialDietItem">
+                Create
+            </MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    protected DiningSpecialDiet newSpecialDiet = new();
+    protected Student SelectedStudent = new();
+    [Parameter] public List<Student> StudentsInSchool { get; set; } = new();
+
+    protected Func<Student, string> StudentTypeconverter = p => $"{p?.FirstName} {p?.LastName}";
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = default!;
+
+
+    private async Task<IEnumerable<Student>> SearchStudents(string value, CancellationToken token)
+    {
+        await Task.Delay(1);
+        if (string.IsNullOrWhiteSpace(value)) return StudentsInSchool;
+
+        return StudentsInSchool.Where(s =>
+            s.FirstName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            s.LastName.Contains(value, StringComparison.OrdinalIgnoreCase) ||
+            s.StudentNumber.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task SaveNewSpecialDietItem()
+    {
+        newSpecialDiet.DietId = Guid.NewGuid();
+        newSpecialDiet.StudentId = SelectedStudent.StudentID;
+        var service = GenericService.GetService<DiningSpecialDiet>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "specialdiet", newSpecialDiet);
+        if (result.IsSuccess)
+        {
+            var returned = new StudentsWithSpecialDietsDTO
+            {
+                AcademicLevel = SelectedStudent.LevelName,
+                Description = newSpecialDiet.Description,
+                DietId = newSpecialDiet.DietId,
+                StudentId = newSpecialDiet.StudentId,
+                StudentNumber = SelectedStudent.StudentNumber,
+                DietType = newSpecialDiet.DietType,
+                FirstName = SelectedStudent.FirstName,
+                Gender = SelectedStudent.Gender,
+                LastName = SelectedStudent.LastName,
+                ProfilePic = SelectedStudent.ProfilePic
+            };
+            Snackbar.Add("Successfully Added", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(returned));
+        }
+    }
+}

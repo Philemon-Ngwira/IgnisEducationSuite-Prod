@@ -1,0 +1,168 @@
+﻿@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudCard Elevation="1" Class="rounded-xl">
+
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">@Route.Name</MudText>
+                        </CardHeaderContent>
+
+                        <CardHeaderActions>
+                            <MudButton StartIcon="@Icons.Material.Filled.Add"
+                                       Variant="Variant.Filled"
+                                       Disabled="IsAdding"
+                                       OnClick="@(() => IsAdding = true)">
+                                Add Stop
+                            </MudButton>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+
+                    <MudCardContent>
+
+                        @if (IsAdding)
+                        {
+                            <MudStack Spacing="2">
+                                <MudTextField @bind-Value="StopsInput"
+                                              Lines="4"
+                                              Variant="Variant.Outlined"
+                                              Label="Enter stops (comma-separated)"
+                                              Placeholder="Lusaka, Mazabuka, Monze, Choma" />
+
+                                <MudStack Row Justify="Justify.FlexEnd" Spacing="1">
+                                    <MudButton Variant="Variant.Text"
+                                               OnClick="@CancelAdd">
+                                        Cancel
+                                    </MudButton>
+
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               OnClick="CompleteAddingNewStops">
+                                        Add Stops
+                                    </MudButton>
+                                </MudStack>
+                            </MudStack>
+                        }
+
+                        <MudTimeline TimelinePosition="TimelinePosition.Right">
+                            @foreach (var stop in RouteStops)
+                            {
+                                <MudTimelineItem Variant="Variant.Outlined"
+                                                 Color="Color.Primary"
+                                                 ItemDot="@BusStopDot">
+
+                                    <MudStack AlignItems="AlignItems.End">
+                                        <MudText Typo="Typo.body1">
+                                            @stop.Sequence. @stop.Name
+                                        </MudText>
+
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Text"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => RemoveStop(stop))">
+                                            Remove
+                                        </MudButton>
+                                    </MudStack>
+
+                                </MudTimelineItem>
+                            }
+                        </MudTimeline>
+
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+</MudDialog>
+
+
+@code {
+    [Parameter] public BusRoute Route { get; set; } = new();
+
+    private List<BusStop> RouteStops = new();
+    private bool IsAdding;
+    private string StopsInput = string.Empty;
+
+    RenderFragment BusStopDot => @<MudIcon Icon="@MaterialDesignIcons.Normal.BusStop"
+         Size="Size.Medium" />
+    ;
+
+    protected override void OnParametersSet()
+    {
+        RouteStops = Route.BusStops
+            .OrderBy(s => s.Sequence)
+            .ToList();
+    }
+
+    private void CancelAdd()
+    {
+        IsAdding = false;
+        StopsInput = string.Empty;
+    }
+
+    protected async Task CompleteAddingNewStops()
+    {
+        if (string.IsNullOrWhiteSpace(StopsInput))
+            return;
+
+        var names = StopsInput
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .ToList();
+
+        int nextSequence = RouteStops.Any()
+            ? RouteStops.Max(s => s.Sequence) + 1
+            : 1;
+
+        var newStops = names
+            .Select((name, index) => new BusStop
+            {
+                StopId = Guid.NewGuid(),
+                RouteId = Route.RouteId,
+                Name = name,
+                Sequence = nextSequence + index
+            })
+            .ToList();
+
+        var service = GenericService.GetService<List<BusStop>>();
+        var result = await service.PostAsync("api/Dynamic/PostEntities", "bustop", newStops);
+
+        if (result.IsSuccess)
+        {
+            RouteStops.AddRange(newStops);
+            Route.BusStops = RouteStops;
+            CancelAdd();
+        }
+    }
+
+    protected async Task RemoveStop(BusStop stop)
+    {
+        int removedSequence = stop.Sequence;
+
+        RouteStops.Remove(stop);
+
+        foreach (var s in RouteStops.Where(s => s.Sequence > removedSequence))
+        {
+            s.Sequence--;
+        }
+        var removeStopsService = GenericService.GetService<BusStop>();
+        var result = await removeStopsService.DeleteEntityAsync("bustop", stop.StopId);
+        if (result)
+        {
+            RouteStops = RouteStops
+                .OrderBy(s => s.Sequence)
+                .ToList();
+            var updateService = GenericService.GetService<List<BusStop>>();
+            var Updateresult = await updateService.UpdateAsync("api/Dynamic/UpdateEntities", "bustop", RouteStops);
+            if (Updateresult.IsSuccess)
+            {
+                Route.BusStops = RouteStops.ToList();
+            }
+        }
+    }
+}

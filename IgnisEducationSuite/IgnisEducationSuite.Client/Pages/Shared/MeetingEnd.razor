@@ -1,0 +1,63 @@
+﻿@page "/meeting-ended/{MeetingNumber}"
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+
+<MudCard>
+    @if (isLoading)
+    {
+        <div id="loader-overlay" class="loader-overlay">
+            <div class="loader-container">
+                <!-- Spinner -->
+                <div class="spinner"></div>
+                <!-- Loader Icon -->
+                <div class="loader-icon">🔄</div>
+                <!-- Loading Text -->
+                <p class="loading-text">Loading, please wait...</p>
+            </div>
+        </div>
+    }
+    <MudCardContent>
+        <MudAlert>
+            Live Session : @EndedMeeting.MeetingNumber
+            has Ended
+        </MudAlert>
+    </MudCardContent>
+    <MudCardActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Color="Color.Primary" StartIcon="@MaterialDesignIcons.Normal.Home" Href="/">Return Home</MudButton>
+            @if (AppState.UserEmail == EndedMeeting.CreatorEmail)
+            {
+                <MudButton Color="Color.Secondary" StartIcon="@Icons.Material.Filled.LiveTv" Href="/createliveclass">Create new Session</MudButton>
+            }
+        </MudButtonGroup>
+    </MudCardActions>
+</MudCard>
+@code {
+    [Parameter] public string MeetingNumber { get; set; }
+    private LiveMeeting EndedMeeting = new();
+    bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        // Call your API or service to update meeting status
+        EndedMeeting = await GetMeeting();
+        await UpdateLiveMeeting(EndedMeeting);
+        isLoading = false;
+
+
+    }
+    private async Task UpdateLiveMeeting(LiveMeeting meeting)
+    {
+        meeting.isDone = true;
+        var service = GenericService.GetService<LiveMeeting>();
+        var result = await service.UpdateAsync("api/Dynamic/UpdateEntity", "livemeeting", meeting);
+
+    }
+    public async Task<LiveMeeting> GetMeeting()
+    {
+        var service = GenericService.GetService<LiveMeeting>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetMeetingData/{MeetingNumber}", true);
+        return result.Data.FirstOrDefault()!;
+    }
+}

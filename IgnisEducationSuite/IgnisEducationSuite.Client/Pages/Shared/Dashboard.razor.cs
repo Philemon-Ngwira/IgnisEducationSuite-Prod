@@ -5,6 +5,7 @@ using ChartJs.Blazor.PieChart;
 using EDUSphereSharedProject.AchievementModels;
 using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.Models.StoreProModels;
+using EDUSphereSharedProject.UniversalModels.ParentLinking;
 using IgnisEducationSuite.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -16,8 +17,31 @@ namespace IgnisEducationSuite.Client.Pages.Shared
 {
     public partial class Dashboard : AppBaseComponent
     {
-        private bool isLoading = false;
-        private bool isAuthenticated = false;
+        [Inject] protected IParentLinkingClientService ParentLinking { get; set; } = default!;
+
+        /// <summary>Empty until loaded, and NeedsWork is false when the count is zero, so the tile
+        /// simply does not render for a school with no gaps.</summary>
+        protected UnparentedSummaryDto UnparentedSummary { get; set; } = new();
+
+        protected int activeDayIndex = 0;
+        protected bool showDataLabels = false;
+        protected bool showTooltipOnLegend = true;
+
+        // Replace your PieConfig dataset
+        protected class CityData
+        {
+            public string City { get; set; }
+            public double StudentCount { get; set; }
+        }
+        protected CityData[] StudentCityDemographicRadzen = Array.Empty<CityData>();
+
+        protected class CountryData
+        {
+            public string Country { get; set; }
+            public double StudentCount { get; set; }
+        }
+
+        protected CountryData[] StudentCountryDemographicRadzen = Array.Empty<CountryData>();
         private BarConfig StudentPerformanceChartConfig { get; set; }
         private BarConfig StudentCountryChartConfig { get; set; }
         private PieConfig StudentCityChartConfig { get; set; }
@@ -28,7 +52,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         protected List<TimeSlot> timeSlots = new();
         protected List<GetStudentPerformanceForCurrentYearResult> YearlyStudentPerfomance = new();
         protected List<GetStudentUnCompletedLessonsResult> uncompletedLessons = new();
-        protected List<GetStudentClassScheduleResult> Currentschedules = new();
+        protected List<GetStudentTimetableResult> Currentschedules = new();
         protected List<GetStudentAttendanceByUserIDAndEventDateResult> attendances = new();
         protected List<GetAttendanceTrendForPastSevenDaysResult> attendancesTrends = new();
         protected List<GetMissedClassesForPastWeekResult> missedClasses = new();
@@ -36,6 +60,13 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         protected List<GetStudentDemographicsResult> StudentDemographicsCity = new();
         protected List<GetTop5TeachersByHighRatedLessonsResult> _top5Teachers = new();
         protected List<GetBestPerformingStudentsBySchoolResult> bestPerformingStudents = new();
+
+        //--------------------------------DINING---------------------------------------------\\
+        protected List<DiningMenuDTO> schoolMenu = new();
+
+
+        //-----------------------------DINING END---------------------------------------------\\
+
         [Inject] ISnackbar Snackbar { get; set; }
         private readonly List<string> dayOrder = new List<string>
 
@@ -59,109 +90,146 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         public double[] StudentCityDemographic;
         protected string StudentID = string.Empty;
         protected int GradeLevel = 0;
-        private IEnumerable<IGrouping<TimeSlot, GetStudentClassScheduleResult>> groupedSchedules;
         protected List<DayofTheWeek> daysofTheWeek = new();
         [Inject] AuthenticationStateProvider _authenticationStateProvider { get; set; } = default!;
         protected string SchoolID = string.Empty;
+        private bool _prerendered = true;
 
         public void Dispose()
         {
             AppState.OnChange -= StateHasChanged;
         }
+        private async Task WaitForAppStateAsync()
+        {
+            int attempts = 0;
+
+            while (!AppState.IsCoreInitialized && attempts < 50)
+            {
+                await Task.Delay(100); // 100ms × 50 = 5 seconds max
+                attempts++;
+            }
+        }
         protected override async Task OnInitializedAsync()
         {
-            isLoading = true;
+            LoaderService.Show("Initializing Dashboard please wait....");
 
             try
             {
-                // Step 1: Check authentication state
+
+                // Auth first
                 var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-                if (authState.User.Identity?.IsAuthenticated != true)
+                var user = authState.User;
+
+                if (!(user.Identity?.IsAuthenticated ?? false))
                 {
-                    Console.WriteLine("User is not authenticated. Initialization aborted.");
-                    _navigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(_navigationManager.Uri)}", forceLoad: true);
+                    NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+
                     return;
                 }
-                var user = authState.User;
-                var UserID = string.Empty;
-                UserID = user.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
+                // Wait safely
+                await WaitForAppStateAsync();
 
-                // Step 2: Ensure AppState is initialized
-                int maxTries = 5;
-                int delay = 500;
-
-                for (int attempt = 1; attempt <= maxTries; attempt++)
-                {
-                    if (AppState.IsInitialized) break;
-
-                    Console.WriteLine($"Attempt {attempt}: Initializing AppState...");
-                    await AppState.InitializeAsync(UserID, true, _navigationManager, http); // Ensure initialization is triggered
-                    await Task.Delay(delay);
-                    delay *= 2; // Exponential backoff: 500ms → 1s → 2s → 4s...
-                }
-
-                if (!AppState.IsInitialized)
+                if (!AppState.IsCoreInitialized)
                 {
                     Console.WriteLine("AppState failed to initialize.");
-                    _navigationManager.NavigateTo("/", true);
-                    throw new Exception("AppState failed to initialize.");
+                    return;
                 }
-
-                // Step 3: Handle first login case for non-admin users
-                if (AppState.UserRole != "SuperAdmin" && AppState.UserRole != "Admin")
+                
+                // ----------------------------------------------------------
+                // 4. Handle First Login (non-admins only, after initialize)
+                // ----------------------------------------------------------
+                if (AppState.UserRole is not ("SuperAdmin" or "Admin"))
                 {
-                    var isFirstLogin = await licensingService.GetLoginAttempt(_navigationManager.BaseUri, AppState.UserID);
-                    if (isFirstLogin)
+                    var baseUrl = _navigationManager.BaseUri;
+
+                    if (await licensingService.GetLoginAttempt(baseUrl, AppState.UserID))
                     {
-                        await licensingService.UpdateLoginAttemptAsync(_navigationManager.BaseUri, AppState.UserID);
+                        await licensingService.UpdateLoginAttemptAsync(baseUrl, AppState.UserID);
                         DialogService.Show<OpeningPage>("");
                     }
                 }
 
-                // Step 4: Load user-specific data
                 SchoolID = AppState.SchoolID;
 
-                Console.WriteLine("Loading main data...");
-                await GetAllLessons();
-                await GetStudentDetails();
-
-                var otherTasks = new[]
+                // ----------------------------------------------------------
+                // 5. Load Core Dashboard Data (Lessons + Student first)
+                // ----------------------------------------------------------
+                // Every load below is scoped to one school, by putting AppState.SchoolID straight
+                // into the URL. A SuperAdmin belongs to no school, so that value is empty for them
+                // and each request resolves to ".../GetStudentGrowthBySchool/" with no id — a route
+                // that requires that segment and therefore cannot match, so all of these returned
+                // 404 on every dashboard load.
+                //
+                // A SuperAdmin's dashboard content comes from SuperAdminOverview, which loads its
+                // own cross-tenant data, so there is nothing to fetch here for them.
+                if (Guid.TryParse(SchoolID, out _))
                 {
-            GetTopLessons(),
-            GetStudentDemoGraphicCountry(),
-            GetStudentDemographicCity(),
-            GetTopTeachers(),
-            GetBestPerformingStudents()
-        };
+                    Console.WriteLine("Loading core data...");
 
-                Console.WriteLine("Starting parallel tasks...");
-                await Task.WhenAll(otherTasks);
-                Console.WriteLine("Completed parallel tasks.");
+                    await Task.WhenAll(
+                        GetAllLessons(),
+                        GetStudentDetails(),
+                        GetUnparentedSummary()
+                    );
 
-                // Step 5: Load additional student/parent data
-                if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
+                    // Then load secondary dashboard data
+                    await Task.WhenAll(
+                        GetTopLessons(),
+                        GetStudentDemoGraphicCountry(),
+                        GetStudentDemographicCity(),
+                        GetTopTeachers(),
+                        GetBestPerformingStudents()
+                    );
+                }
+                else
                 {
-                    await GetTimeSlots();
-                    await GetDaysOfWeek();
-                    await GetStudentPerfomanceData();
-                    await GetUnCompletedClasses();
-                    await GetClassSchedule();
-                    await GetAttendances();
+                    Console.WriteLine(
+                        $"No school resolved for role '{AppState.UserRole}'; skipping school-scoped dashboard data.");
                 }
 
-                // Step 6: Subscribe to AppState changes
+                // ----------------------------------------------------------
+                // 6. Student / Parent Extra Data
+                // ----------------------------------------------------------
+                if (AppState.UserRole is "Student" or "Parent")
+                {
+                    await Task.WhenAll(
+                        GetTimeSlots(),
+                        GetDaysOfWeek(),
+                        GetStudentPerfomanceData(),
+                        GetUnCompletedClasses(),
+                        GetAttendances(),
+                        GetDiningMenus()
+
+                    );
+
+                    // This MUST run AFTER timeSlots + daysOfWeek load
+                    await GetClassSchedule();
+
+                    // Now set today’s tab
+                    var today = DateTime.Now.DayOfWeek.ToString();
+                    activeDayIndex = dayOrder.IndexOf(today);
+                    if (activeDayIndex < 0)
+                        activeDayIndex = 0;
+                }
+
+                // ----------------------------------------------------------
+                // 7. Listen for State Change Events
+                // ----------------------------------------------------------
+                AppState.OnChange -= StateHasChanged; // avoid double subscription
                 AppState.OnChange += StateHasChanged;
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error during initialization: {ex.Message}");
+                Console.WriteLine($"Initialization error: {ex}");
             }
             finally
             {
-                isLoading = false;
+                LoaderService.Hide();
             }
         }
+
 
         protected async Task GetBestPerformingStudents()
         {
@@ -173,67 +241,41 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             }
 
         }
-        protected async Task LoadInfomation()
+
+        private void LoadCityDemographics()
         {
-
-            await InvokeAsync(StateHasChanged); // Show loading state
-
-
-            if (!AppState.IsInitialized)
+            try
             {
-                Console.WriteLine("AppState failed to initialize after retries.");
-                isLoading = false;
-                await InvokeAsync(StateHasChanged); // Notify UI of failure
-                return;
-            }
-
-            var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-            if (authState.User.Identity?.IsAuthenticated == true)
-            {
-                SchoolID = AppState.SchoolID;
-
-                try
+                if (StudentDemographicsCity.Any())
                 {
-                    // Load common data sequentially for reliability
-                    await GetAllLessons();
-                    await GetStudentDetails();
-
-                    // Load additional data in parallel
-                    var otherTasks = new[]
-                    {
-                    GetTopLessons(),
-                    GetStudentDemoGraphicCountry(),
-                    GetStudentDemographicCity(),
-                    GetTopTeachers()
-                };
-                    await Task.WhenAll(otherTasks);
-
-                    if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
-                    {
-                        await GetTimeSlots();
-                        await GetDaysOfWeek();
-                        await GetStudentPerfomanceData();
-                        await GetUnCompletedClasses();
-                        await GetClassSchedule();
-                        await GetAttendances();
-                        await GetBadges();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"Error during initialization: {ex.Message}");
-                }
-                finally
-                {
-                    isLoading = false;
-                    await InvokeAsync(StateHasChanged); // Always ensure UI refresh
+                    StudentCityDemographicRadzen = StudentDemographicsCity
+                        .Select(x => new CityData { City = x.City, StudentCount = Convert.ToDouble(x.StudentCount) })
+                        .ToArray();
                 }
             }
-            else
+            catch (Exception ex)
             {
-                isAuthenticated = false;
-                isLoading = false;
-                await InvokeAsync(StateHasChanged); // Notify UI of unauthenticated state
+                Console.Error.WriteLine($"Error loading city demographics: {ex.Message}");
+            }
+        }
+        private void LoadCountryDemographics()
+        {
+            try
+            {
+                if (StudentDemographicsCountries.Any())
+                {
+                    StudentCountryDemographicRadzen = StudentDemographicsCountries
+                        .Select(x => new CountryData
+                        {
+                            Country = x.Country,
+                            StudentCount = (double)(x.StudentCount ?? 0)
+                        })
+                        .ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error loading country demographics: {ex.Message}");
             }
         }
         protected async Task GetTopTeachers()
@@ -245,6 +287,40 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 _top5Teachers = result.Data.ToList();
             }
         }
+        protected async Task GetDiningMenus()
+        {
+            var service = GenericService.GetService<DiningMenuDTO>();
+            var result = await service.GetAllAsync($"api/Dynamic/GetSchoolDiningMenus/{Guid.Parse(AppState.SchoolID)}", true);
+
+            if (result.IsSuccess)
+            {
+                // Group by MealName to avoid duplicates across dining halls
+                var today = DateTime.Now.DayOfWeek.ToString();
+                schoolMenu = result.Data
+                      .GroupBy(x => new
+                      {
+                          x.DayOfWeek,
+                          Meal = x.MealName.Trim().ToLower(),
+                          Main = x.MainDish.Trim().ToLower()
+                      })
+                .Select(g => g.First()) // keeps one per Day+Meal+MainDish combo
+                .OrderBy(x => dayOrder.IndexOf(x.DayOfWeek))
+                .ThenBy(x => MealOrder.IndexOf(x.MealName))
+                .ToList();
+            }
+        }
+
+        /// <summary>
+        /// Students with no parent on record. Admin-only: it is a data-quality prompt aimed at
+        /// whoever can actually fix it, and the tile stays hidden when the count is zero.
+        /// </summary>
+        protected async Task GetUnparentedSummary()
+        {
+            if (AppState.UserRole != "Admin") return;
+
+            UnparentedSummary = await ParentLinking.GetSummaryAsync();
+        }
+
         protected async Task GetStudentDetails()
         {
             var service = _genericService.GetService<vw_StudentGrowth>();
@@ -302,6 +378,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 if (result.IsSuccess)
                 {
                     StudentDemographicsCountries = result.Data.ToList();
+                    LoadCountryDemographics();
                     OrganizeCountryDemographicData();
                     StateHasChanged();
                 }
@@ -324,6 +401,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 if (result.IsSuccess)
                 {
                     StudentDemographicsCity = result.Data.ToList();
+                    LoadCityDemographics();
                     OrganizeCityDemographicData(); StateHasChanged();
                 }
                 else
@@ -359,37 +437,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             }
         }
 
-        protected async Task GetBadges()
-        {
-            var service = _genericService.GetService<Badge>();
-            var result = await service.GetAllAsync("api/Dynamic/GetAllSystemBadges", true);
-            if (result.IsSuccess)
-            {
-                AppState.Badges = result.Data.ToList();
-                AppState.UserActivities = await GetUserActivitiesDone(AppState.UserRole, AppState.UserID);
-            }
-        }
-        private async Task<List<UserActivity>> GetUserActivitiesDone(string UserRole, string UserID)
-        {
-            if (UserRole == "Student")
-            {
-                var service = _genericService.GetService<UserActivity>();
-                var result = await service.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
-                if (result.IsSuccess)
-                {
-                    return result.Data.ToList();
-                }
-                else
-                {
-                    return new List<UserActivity>();
-                }
-            }
-            else
-            {
-                return new List<UserActivity>();
-            }
-        }
-        protected async Task GetTimeSlots()
+        protected async Task<List<TimeSlot>> GetTimeSlots()
         {
             try
             {
@@ -399,13 +447,16 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                 {
                     if (service.Data != null)
                     {
-                        timeSlots = service.Data.ToList();
+                        timeSlots = service.Data.Where(x => x.SchoolID == Guid.Parse(AppState.SchoolID)).ToList();
+                        return timeSlots;
                     }
                     else
                     {
                         timeSlots = new();
+                        return timeSlots;
                     }
                 }
+                return new List<TimeSlot>();
             }
             catch (Exception ex)
             {
@@ -414,7 +465,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             }
 
         }
-        protected async Task GetDaysOfWeek()
+        protected async Task<List<DayofTheWeek>> GetDaysOfWeek()
         {
             try
             {
@@ -425,8 +476,11 @@ namespace IgnisEducationSuite.Client.Pages.Shared
                     if (service.Data != null)
                     {
                         daysofTheWeek = service.Data.ToList();
+                        return daysofTheWeek;
                     }
+
                 }
+                return new List<DayofTheWeek>();
             }
             catch (Exception ex)
             {
@@ -442,6 +496,7 @@ namespace IgnisEducationSuite.Client.Pages.Shared
             {
                 if (StudentDemographicsCountries.Any())
                 {
+
                     CountryNames = StudentDemographicsCountries.Select(x => x.Country).ToArray();
                     //Prepare the datasets
                     var currentMonthDataset = new BarDataset<double>
@@ -802,27 +857,11 @@ namespace IgnisEducationSuite.Client.Pages.Shared
         }
         protected async Task GetClassSchedule()
         {
-            var service = _genericService.GetService<GetStudentClassScheduleResult>();
+            var service = _genericService.GetService<GetStudentTimetableResult>();
             var result = await service.GetAllAsync($"api/Dynamic/GetActiveStudentTimeTable/{AppState.UserID}", true);
             if (result.IsSuccess)
             {
                 Currentschedules = result.Data.ToList();
-                foreach (var item in Currentschedules)
-                {
-                    item.TimeSlot = timeSlots.Where(x => x.TimeslotID == item.TimeslotID).FirstOrDefault();
-                }
-                groupedSchedules = Currentschedules
-                    .OrderBy(cs => dayOrder.IndexOf(cs.DayName)) // Order by day
-                    .ThenBy(cs => cs.StartTime)                     // Then by time
-                    .GroupBy(cs => cs.TimeSlot)                              // Group by TimeSlot
-                    .OrderBy(g => g.Key.StartTime);                          // Order groups by StartTime
-
-                var dayOrderDict = dayOrder.Select((day, index) => new { day, index })
-                           .ToDictionary(x => x.day, x => x.index);
-
-                var orderedDays = daysofTheWeek.OrderBy(x => dayOrderDict[x.DayName]).ToList();
-                daysofTheWeek = orderedDays;
-                GradeLevel = Currentschedules.Select(x => x.Grade.Value).FirstOrDefault();
             }
         }
         #endregion

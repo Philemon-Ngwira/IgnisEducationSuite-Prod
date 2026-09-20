@@ -1,0 +1,361 @@
+@page "/TenantConsole"
+@using EDUSphereSharedProject.UniversalModels.SuperAdmin
+@using IgnisEducationSuite.Client.Pages.Management.SuperAdmin.Dialogs
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject ISuperAdminClientService Tenants
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<SuperAdminOnly>
+<MudText Typo="Typo.h5" Class="mb-1"><b>Tenant Console</b></MudText>
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    Every school on Ignis, its size and its licence. Oversight only — school records stay with the school.
+</MudText>
+
+@* ---- Portfolio strip ---------------------------------------------------------------
+   The numbers that answer "is anything on fire" before opening any one school. Each tile
+   is also a filter, so noticing a problem and looking at it is one click. *@
+<MudGrid Class="mb-4">
+    <MudItem xs="6" sm="4" md="2">
+        <StatTile Label="Schools" Value="@Portfolio.TotalSchools.ToString()"
+                  Icon="@Icons.Material.Filled.School" Color="Color.Primary"
+                  Selected="@(Filter == TenantFilter.All)"
+                  OnClick="@(() => ApplyFilter(TenantFilter.All))" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="2">
+        <StatTile Label="Licensed" Value="@Portfolio.LicensedCount.ToString()"
+                  Icon="@Icons.Material.Filled.VerifiedUser" Color="Color.Success"
+                  Selected="@(Filter == TenantFilter.Licensed)"
+                  OnClick="@(() => ApplyFilter(TenantFilter.Licensed))" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="2">
+        <StatTile Label="Not licensed" Value="@Portfolio.UnlicensedCount.ToString()"
+                  Icon="@Icons.Material.Filled.GppBad" Color="Color.Error"
+                  Selected="@(Filter == TenantFilter.Unlicensed)"
+                  OnClick="@(() => ApplyFilter(TenantFilter.Unlicensed))" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="2">
+        <StatTile Label="Expiring soon" Value="@Portfolio.ExpiringSoonCount.ToString()"
+                  Icon="@Icons.Material.Filled.Timer" Color="Color.Warning"
+                  Selected="@(Filter == TenantFilter.Expiring)"
+                  OnClick="@(() => ApplyFilter(TenantFilter.Expiring))" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="2">
+        <StatTile Label="No admin" Value="@Portfolio.NoAdminCount.ToString()"
+                  Icon="@Icons.Material.Filled.PersonOff" Color="Color.Error"
+                  Selected="@(Filter == TenantFilter.NoAdmin)"
+                  OnClick="@(() => ApplyFilter(TenantFilter.NoAdmin))" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="2">
+        <StatTile Label="Over seats" Value="@Portfolio.OverSeatLimitCount.ToString()"
+                  Icon="@Icons.Material.Filled.GroupAdd" Color="Color.Error"
+                  Selected="@(Filter == TenantFilter.OverSeats)"
+                  OnClick="@(() => ApplyFilter(TenantFilter.OverSeats))" />
+    </MudItem>
+</MudGrid>
+
+@* An outage must read as an outage. Without this the portfolio would look like a estate full
+   of unlicensed schools when in fact nothing could be checked at all. *@
+@if (Portfolio.LicensesIncluded && Portfolio.UnverifiedCount > 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+        @Portfolio.UnverifiedCount of @Portfolio.TotalSchools school(s) could not be checked against the
+        licensing service. They are shown as unverified, not unlicensed, and continue to work normally.
+    </MudAlert>
+}
+
+<MudPaper Class="pa-4" Elevation="1">
+
+    <div class="d-flex flex-wrap align-center gap-3 mb-3">
+        <MudTextField @bind-Value="Search"
+                      @bind-Value:after="StateHasChanged"
+                      Immediate="true"
+                      Placeholder="Search school, email or website"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Clearable="true"
+                      Style="max-width:340px;" />
+
+        <MudSelect T="TenantFilter" Value="Filter" ValueChanged="ApplyFilter"
+                   Label="Show" Variant="Variant.Outlined" Margin="Margin.Dense"
+                   ToStringFunc="@(f => FilterLabel(f))"
+                   Style="max-width:220px;">
+            @foreach (var option in Enum.GetValues<TenantFilter>())
+            {
+                <MudSelectItem Value="@option">@FilterLabel(option)</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudSpacer />
+
+        <MudButton StartIcon="@Icons.Material.Filled.Refresh"
+                   Variant="Variant.Text"
+                   Disabled="_loading"
+                   OnClick="@(() => LoadAsync(force: true))">
+            Refresh
+        </MudButton>
+
+        <MudButton StartIcon="@Icons.Material.Filled.AddBusiness"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="@(() => Nav.NavigateTo("/ClientManagement"))">
+            Register school
+        </MudButton>
+    </div>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Checking licences…</MudText>
+    }
+    else if (!Visible.Any())
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            @(Portfolio.TotalSchools == 0
+                ? "No schools are registered yet."
+                : "No school matches this filter.")
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="Visible" Hover="true" Dense="true" Striped="false"
+                  Breakpoint="Breakpoint.Sm" Elevation="0" T="TenantSummaryDto">
+            <HeaderContent>
+                <MudTh>School</MudTh>
+                <MudTh>Licence</MudTh>
+                <MudTh Style="text-align:right">Users</MudTh>
+                <MudTh Style="text-align:right">Students</MudTh>
+                <MudTh Style="text-align:right">Staff</MudTh>
+                <MudTh>Attention</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="School">
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Circle"
+                                 Size="Size.Small"
+                                 Color="@SeverityColor(context.WorstSeverity)" />
+                        <div>
+                            <MudText Typo="Typo.body1"><b>@context.SchoolName</b></MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @(string.IsNullOrWhiteSpace(context.SchoolEmail) ? "No contact email" : context.SchoolEmail)
+                            </MudText>
+                        </div>
+                    </div>
+                </MudTd>
+
+                <MudTd DataLabel="Licence">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                             Color="@LicenceColor(context)">
+                        @LicenceLabel(context)
+                    </MudChip>
+                    @if (context.LicenseEndDate is { } end)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                            until @end.ToString("d MMM yyyy")
+                        </MudText>
+                    }
+                </MudTd>
+
+                <MudTd DataLabel="Users" Style="text-align:right">
+                    <MudText Typo="Typo.body2">
+                        @context.UserAccountCount@(context.UserLimit is { } limit ? $" / {limit}" : "")
+                    </MudText>
+                    @if (context.SeatUsageRatio is { } ratio)
+                    {
+                        <MudProgressLinear Value="@(Math.Min(ratio, 1) * 100)"
+                                           Color="@(context.IsOverSeatLimit ? Color.Error : context.IsNearSeatLimit ? Color.Warning : Color.Success)"
+                                           Size="Size.Small" Class="mt-1" />
+                    }
+                </MudTd>
+
+                <MudTd DataLabel="Students" Style="text-align:right">@context.StudentCount</MudTd>
+
+                <MudTd DataLabel="Staff" Style="text-align:right">
+                    @(context.TeacherCount + context.StaffCount)
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                        @context.AdminCount admin@(context.AdminCount == 1 ? "" : "s")
+                    </MudText>
+                </MudTd>
+
+                <MudTd DataLabel="Attention">
+                    @if (!context.Issues.Any())
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">—</MudText>
+                    }
+                    else
+                    {
+                        @foreach (var issue in context.Issues.OrderByDescending(i => i.Severity).Take(2))
+                        {
+                            <MudTooltip Text="@issue.Detail">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                         Color="@SeverityColor(issue.Severity)">
+                                    @issue.Title
+                                </MudChip>
+                            </MudTooltip>
+                        }
+                        @if (context.Issues.Count > 2)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                +@(context.Issues.Count - 2) more
+                            </MudText>
+                        }
+                    }
+                </MudTd>
+
+                <MudTd Style="text-align:right">
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="@(() => OpenTenantAsync(context))">
+                        Manage
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }" />
+            </PagerContent>
+        </MudTable>
+    }
+</MudPaper>
+
+</SuperAdminOnly>
+
+@code {
+    private TenantPortfolioDto Portfolio = new();
+    private bool _loading = true;
+
+    private string Search { get; set; } = "";
+    private TenantFilter Filter { get; set; } = TenantFilter.All;
+
+    public enum TenantFilter
+    {
+        All,
+        NeedsAttention,
+        Licensed,
+        Unlicensed,
+        Expiring,
+        OverSeats,
+        NoAdmin,
+        Unverified,
+    }
+
+    private static string FilterLabel(TenantFilter filter) => filter switch
+    {
+        TenantFilter.All => "All schools",
+        TenantFilter.NeedsAttention => "Needs attention",
+        TenantFilter.Licensed => "Licensed",
+        TenantFilter.Unlicensed => "Not licensed",
+        TenantFilter.Expiring => "Expiring soon",
+        TenantFilter.OverSeats => "Over user limit",
+        TenantFilter.NoAdmin => "No administrator",
+        TenantFilter.Unverified => "Unverified",
+        _ => filter.ToString(),
+    };
+
+    private IEnumerable<TenantSummaryDto> Visible =>
+        Portfolio.Tenants
+            .Where(MatchesFilter)
+            .Where(MatchesSearch);
+
+    private bool MatchesFilter(TenantSummaryDto t) => Filter switch
+    {
+        TenantFilter.NeedsAttention => t.WorstSeverity >= TenantIssueSeverity.Warning,
+        TenantFilter.Licensed => t.LicenseVerified && t.IsLicensed,
+        TenantFilter.Unlicensed => t.IsConfirmedUnlicensed,
+        TenantFilter.Expiring => t.IsExpiringSoon,
+        TenantFilter.OverSeats => t.IsOverSeatLimit,
+        TenantFilter.NoAdmin => t.HasNoAdmin,
+        TenantFilter.Unverified => !t.LicenseVerified,
+        _ => true,
+    };
+
+    private bool MatchesSearch(TenantSummaryDto t)
+    {
+        if (string.IsNullOrWhiteSpace(Search)) return true;
+
+        var term = Search.Trim();
+        return Contains(t.SchoolName, term)
+               || Contains(t.SchoolEmail, term)
+               || Contains(t.SchoolWebsite, term)
+               || Contains(t.SchoolPhoneContact, term);
+
+        static bool Contains(string? value, string term) =>
+            value is not null && value.Contains(term, StringComparison.OrdinalIgnoreCase);
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync(bool force = false)
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            Portfolio = await Tenants.GetPortfolioAsync(withLicenses: true, refresh: force);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ApplyFilter(TenantFilter filter)
+    {
+        Filter = filter;
+        StateHasChanged();
+    }
+
+    private async Task OpenTenantAsync(TenantSummaryDto tenant)
+    {
+        var parameters = new DialogParameters<TenantDetailDialog>
+        {
+            { x => x.SchoolId, tenant.SchoolId },
+            { x => x.SchoolName, tenant.SchoolName },
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true,
+        };
+
+        var dialog = await DialogService.ShowAsync<TenantDetailDialog>(tenant.SchoolName, parameters, options);
+        var result = await dialog.Result;
+
+        // The dialog returns true when it changed something — a licence, or an admin's access.
+        // Reloading only then keeps the console from re-checking every licence on a plain close.
+        if (result is { Canceled: false, Data: true })
+        {
+            await LoadAsync(force: true);
+        }
+    }
+
+    private static Color SeverityColor(TenantIssueSeverity severity) => severity switch
+    {
+        TenantIssueSeverity.Critical => Color.Error,
+        TenantIssueSeverity.Warning => Color.Warning,
+        TenantIssueSeverity.Info => Color.Info,
+        _ => Color.Success,
+    };
+
+    /// <summary>
+    /// Deliberately three states, not two. "Unverified" must never be shown in the same colour as
+    /// "not licensed": the app fails open, so an unchecked school is working normally and the
+    /// operator's job is to fix the check, not the school.
+    /// </summary>
+    private static Color LicenceColor(TenantSummaryDto t) =>
+        !t.LicenseVerified ? Color.Default
+        : !t.IsLicensed ? Color.Error
+        : t.IsExpiringSoon ? Color.Warning
+        : Color.Success;
+
+    private static string LicenceLabel(TenantSummaryDto t) =>
+        !t.LicenseVerified ? "Unverified"
+        : !t.IsLicensed ? (t.LicenseStatus ?? "Not licensed")
+        : t.IsExpiringSoon ? $"Expires in {t.DaysUntilExpiry}d"
+        : "Licensed";
+}

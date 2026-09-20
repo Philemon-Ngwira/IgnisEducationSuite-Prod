@@ -1,0 +1,250 @@
+@using EDUSphereSharedProject.UniversalModels.TimeTabling
+@using IgnisEducationSuite.Client.Services
+@inject ISchedulingManagementService SchedulingService
+
+<MudDialog Options="_dialogOptions">
+    <TitleContent>
+        <div class="d-flex align-center gap-3">
+            <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                <MudIcon Icon="@Icons.Material.Outlined.EventNote" />
+            </MudAvatar>
+            <MudText Typo="Typo.h6"><b>@(ActivityId is null ? "Add Activity" : "Edit Activity")</b></MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-6">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <MudForm Model="@_request" @ref="_form">
+                @if (_errors.Count > 0)
+                {
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                        @foreach (var error in _errors)
+                        {
+                            <div>@error</div>
+                        }
+                    </MudAlert>
+                }
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="8">
+                        <MudTextField @bind-Value="_request.ActivityName" For="@(() => _request.ActivityName)"
+                                      Label="Activity Name" Variant="Variant.Outlined" Required="true"
+                                      Immediate="true" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="int?" @bind-Value="_request.DefaultDuration" Label="Default Duration (min)"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSelect T="string" Label="Timing" @bind-Value="_timingMode" ToStringFunc="@TimingToString"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem Value="@TimingNone">No restriction — locks the whole day when used</MudSelectItem>
+                            <MudSelectItem Value="@TimingMorning">Morning only — locks the whole morning</MudSelectItem>
+                            <MudSelectItem Value="@TimingAfternoon">Afternoon only — locks the whole afternoon</MudSelectItem>
+                            <MudSelectItem Value="@TimingSpecific">Specific slot — occupies just one period</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    @if (_timingMode == TimingSpecific)
+                    {
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="Guid?" Label="Time Slot" @bind-Value="_preferredTimeSlotId" ToStringFunc="@TimeSlotToString"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                                @foreach (var slot in _teachingSlots)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)slot.TimeslotId)">@FormatSlot(slot)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="Guid?" Label="Day" @bind-Value="_preferredDayId" ToStringFunc="@DayToString"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                                       HelperText="Leave blank for every weekday">
+                                @foreach (var day in _days)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)day.DayId)">@day.DayName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    }
+                    else if (_timingMode != TimingNone)
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                                This locks every teaching period in the @(_timingMode == TimingMorning ? "morning" : "afternoon").
+                                Only one such activity can be used per generation run.
+                            </MudAlert>
+                        </MudItem>
+                    }
+                    else
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                                With no restriction this activity locks the entire day and cannot be combined
+                                with any other activity in the same run.
+                            </MudAlert>
+                        </MudItem>
+                    }
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_request.OptionalNotes" Label="Notes"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="_saving">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _saving">
+            @(_saving ? "Saving..." : (ActivityId is null ? "Add Activity" : "Save Changes"))
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Guid? ActivityId { get; set; }
+
+    private const string TimingNone = "none";
+    private const string TimingMorning = "morning";
+    private const string TimingAfternoon = "afternoon";
+    private const string TimingSpecific = "specific";
+
+    private readonly ActivityRequest _request = new();
+    private string _timingMode = TimingNone;
+    private Guid? _preferredTimeSlotId;
+    private Guid? _preferredDayId;
+
+    private List<TimeSlotDto> _teachingSlots = new();
+    private List<DayOptionDto> _days = new();
+
+    private MudForm _form = default!;
+    private bool _loading;
+    private bool _saving;
+    private List<string> _errors = new();
+
+    private readonly DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+
+        var slots = await SchedulingService.ListTimeSlotsAsync();
+
+        // Only teaching slots can hold an activity — locking one to a break or lunch period would
+        // have no effect, since the generator never builds those into the board.
+        _teachingSlots = slots
+            .Where(s => s.SlotType is not null && SlotTypes.Teaching.Contains(s.SlotType))
+            .OrderBy(s => s.StartTime)
+            .ToList();
+
+        _days = await SchedulingService.ListDaysAsync();
+
+        if (ActivityId is not null)
+        {
+            var activities = await SchedulingService.ListActivitiesAsync();
+            var current = activities.FirstOrDefault(a => a.ActivityId == ActivityId);
+
+            if (current is not null)
+            {
+                _request.ActivityName = current.ActivityName ?? "";
+                _request.DefaultDuration = current.DefaultDuration;
+                _request.OptionalNotes = current.OptionalNotes;
+                _preferredTimeSlotId = current.PreferredTimeSlotId;
+                _preferredDayId = current.PreferredDayId;
+
+                _timingMode = current.PreferredTimeSlotId is not null ? TimingSpecific
+                    : current.MustBeMorning ? TimingMorning
+                    : current.MustBeAfternoon ? TimingAfternoon
+                    : TimingNone;
+            }
+        }
+
+        _loading = false;
+    }
+
+    private static string FormatSlot(TimeSlotDto slot) =>
+        $"{slot.StartTime:HH\\:mm} - {slot.EndTime:HH\\:mm}" +
+        (string.IsNullOrWhiteSpace(slot.Description) ? "" : $" ({slot.Description})");
+
+    // MudSelect displays the bound VALUE, not the selected item's markup, so without these the
+    // timing select would read "none"/"morning" and an unset id select would render blank.
+
+    private static string TimingToString(string? mode) => mode switch
+    {
+        TimingMorning => "Morning only",
+        TimingAfternoon => "Afternoon only",
+        TimingSpecific => "Specific slot",
+        _ => "No restriction",
+    };
+
+    private string TimeSlotToString(Guid? id)
+    {
+        if (id is null || id == Guid.Empty) return "Select a period";
+
+        var slot = _teachingSlots.FirstOrDefault(s => s.TimeslotId == id.Value);
+        return slot is null ? "Unknown period" : FormatSlot(slot);
+    }
+
+    private string DayToString(Guid? id) =>
+        id is null || id == Guid.Empty
+            ? "Every weekday"
+            : _days.FirstOrDefault(d => d.DayId == id.Value)?.DayName ?? "Unknown day";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        if (_timingMode == TimingSpecific && _preferredTimeSlotId is null)
+        {
+            _errors = new() { "Choose the time slot this activity occupies." };
+            return;
+        }
+
+        // The four timing modes are mutually exclusive by construction; translate the single choice
+        // back into the flag combination the generator expects.
+        _request.MustBeMorning = _timingMode == TimingMorning;
+        _request.MustBeAfternoon = _timingMode == TimingAfternoon;
+        _request.PreferredTimeSlotId = _timingMode == TimingSpecific ? _preferredTimeSlotId : null;
+        _request.PreferredDayId = _timingMode == TimingSpecific ? _preferredDayId : null;
+
+        _saving = true;
+        _errors = new();
+
+        var result = ActivityId is null
+            ? await SchedulingService.CreateActivityAsync(_request)
+            : await SchedulingService.UpdateActivityAsync(ActivityId.Value, _request);
+
+        _saving = false;
+
+        if (result.Succeeded)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _errors = result.Errors;
+        }
+    }
+}

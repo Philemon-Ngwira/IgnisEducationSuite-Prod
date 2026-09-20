@@ -1,23 +1,41 @@
-using DinkToPdf.Contracts;
 using DinkToPdf;
+using DinkToPdf.Contracts;
+using EduSphereDomain.AchievementData;
+using EduSphereDomain.ChatData;
 using EduSphereDomain.Data;
+using EduSphereDomain.FinanceData;
 using EduSphereDomain.MessagingData;
 using EduSphereDomain.Repositories;
+using EduSphereDomain.Repositories.ReportCards;
+using EduSphereDomain.Repositories.Scheduling;
+using EDUSphereSharedProject.PaymentDTos.Lipila;
+using IgnisEducationSuite.Client.Pages.Achievements;
+using IgnisEducationSuite.Client.Pages.Achievements.Interfaces;
+using IgnisEducationSuite.Client.Pages.Achievements.Services;
 using IgnisEducationSuite.Client.Services;
 using IgnisEducationSuite.Components;
 using IgnisEducationSuite.Components.Account;
 using IgnisEducationSuite.Data;
+using IgnisEducationSuite.Hubs;
 using IgnisEducationSuite.ServerServices;
+using IgnisEducationSuite.ServerServices.PaymentsServices;
+using IgnisEducationSuite.ServerServices.PaymentsServices.Lipila_Service;
+using IgnisEducationSuite.ServerServices.Chat;
+using IgnisEducationSuite.ServerServices.ParentLinking;
+using IgnisEducationSuite.ServerServices.ReportCards;
+using IgnisEducationSuite.ServerServices.Scheduling;
+using IgnisEducationSuite.ServerServices.Security;
+using IgnisEducationSuite.ServerServices.SmartTimeTableGenerator;
+using IgnisEducationSuite.ServerServices.SuperAdmin;
+using IgnisEducationSuite.ServerServices.Licensing;
 using IgnisEducationSuite.Settings;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using IgnisEducationSuite.Hubs;
-using IgnisEducationSuite.Client.Pages.Achievements.Interfaces;
-using IgnisEducationSuite.Client.Pages.Achievements.Services;
-using IgnisEducationSuite.Client.Pages.Achievements;
-using EduSphereDomain.AchievementData;
+using QuestPDF.Infrastructure;
+using Radzen;
 
 namespace IgnisEducationSuite
 {
@@ -28,7 +46,7 @@ namespace IgnisEducationSuite
             var builder = WebApplication.CreateBuilder(args);
             //Mudblazor
             builder.Services.AddMudServices();
-
+            builder.Services.AddRadzenComponents();
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents()
@@ -40,10 +58,10 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 
             builder.Services.AddAuthentication(options =>
-                {
-                    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-                    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-                })
+            {
+                options.DefaultScheme = IdentityConstants.ApplicationScheme;
+                options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+            })
                 .AddIdentityCookies();
             //---------------------------------------------------------------
             #region HTTP CLIENT
@@ -57,16 +75,31 @@ namespace IgnisEducationSuite
 
             #endregion
             builder.Services.AddHttpClient<GoogleBooksService>();
+            builder.Services.AddMemoryCache();
+
+            // somewhere at app startup, e.g., Program.cs
+            QuestPDF.Settings.License = LicenseType.Community;
 
             //---------------------------------------------------------------
             #region DB CONTEXTS
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<PhoenixEdusphereContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<PhoenixEdusphereChatContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<PhoenixEdusphereFinanceContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<MessagingContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDbContext<AchievementContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+            builder.Services.Configure<LipilaConfiguration>(
+    builder.Configuration.GetSection("Lipila"));
 
+            builder.Services.AddHttpClient<ILipilaService, LipilaService>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IPaymentGatewayAccountService, PaymentGatewayAccountService>();
+            builder.Services.Configure<EncryptionConfiguration>(
+    builder.Configuration.GetSection("Encryption"));
+
+            builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
             builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -85,6 +118,7 @@ namespace IgnisEducationSuite
             #endregion
             //--------------------------------------------------------------
             #region Custom Services
+            builder.Services.AddScoped<LoaderService>();
             builder.Services.AddScoped<IBadgeService, BadgeService>();
             builder.Services.AddScoped<IUserActivityService, UserActivityService>();
             builder.Services.AddScoped<IActivityService, ActivityService>();
@@ -100,7 +134,9 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped(typeof(IGenericService<>), typeof(GenericService<>));
             builder.Services.AddScoped<GenericServiceFactory>();
             builder.Services.AddScoped<EduSphereRepository>();
+            builder.Services.AddScoped<FinananceRepository>();
             builder.Services.AddScoped<PhoenixEdusphereContextProcedures>();
+            builder.Services.AddScoped<PhoenixEdusphereFinanceContextProcedures>();
             builder.Services.AddScoped<AchievementContextProcedures>();
             builder.Services.AddScoped<ImageService>();
             builder.Services.AddScoped<StudentNumberGenerator>();
@@ -110,7 +146,43 @@ namespace IgnisEducationSuite
             builder.Services.AddScoped<RolesService>();
             builder.Services.AddScoped<LicenseService>();
             builder.Services.AddScoped<LessonService>();
-            builder.Services.AddSingleton<AppState>();
+            builder.Services.AddScoped<AppState>();
+            builder.Services.AddScoped<ILessonMediaClientService, LessonMediaClientService>();
+            builder.Services.AddScoped<LessonMediaService>();
+            builder.Services.AddScoped<ZoomService>();
+            builder.Services.AddScoped<ZoomInteropBridge>();
+            builder.Services.AddScoped<CountryCurrencyService>();
+            builder.Services.AddScoped<StudentPaymentUploadTemplate>();
+            builder.Services.AddScoped<ITeacherAvailabilityProvider, TeacherAvailabilityProvider>();
+
+            // Scheduling / timetable generation
+            builder.Services.AddScoped<ISchedulingConfigRepository, SchedulingConfigRepository>();
+            builder.Services.AddScoped<IScheduleGenerationRepository, ScheduleGenerationRepository>();
+            builder.Services.AddScoped<ITeacherAvailabilityRepository, TeacherAvailabilityRepository>();
+            builder.Services.AddScoped<SchedulingEngine>();
+            builder.Services.AddScoped<SchedulingManagementOrchestrator>();
+
+            // Report card entry (class-based)
+            builder.Services.AddScoped<IReportCardEntryRepository, ReportCardEntryRepository>();
+            builder.Services.AddScoped<ReportCardEntryOrchestrator>();
+
+            // Chat unread state, history paging and realtime
+            builder.Services.AddScoped<ParentLinkingService>();
+            builder.Services.AddScoped<StudentEnrolmentService>();
+            builder.Services.AddScoped<IParentLinkingClientService, ParentLinkingClientService>();
+            builder.Services.AddScoped<ChatEngagementService>();
+            builder.Services.AddScoped<ChatRealtimeService>();
+
+            // SuperAdmin tenant console
+            builder.Services.AddScoped<TenantOversightService>();
+            builder.Services.AddScoped<SchoolEntitlementService>();
+
+            builder.Services.AddScoped<ISuperAdminClientService, SuperAdminClientService>();
+            builder.Services.AddScoped<ILicenseClientService, LicenseClientService>();
+
+            // Server-side counterparts for the interactive-auto client services (prerendering).
+            builder.Services.AddScoped<ISchedulingManagementService, ClientSchedulingManagementService>();
+            builder.Services.AddScoped<IReportCardEntryService, ClientReportCardEntryService>();
             builder.Services.AddHttpClient(); // Registers IHttpClientFactory
 
             builder.Services.AddSingleton<IConverter>(new SynchronizedConverter(new PdfTools()));
@@ -118,7 +190,7 @@ namespace IgnisEducationSuite
             #endregion
             //--------------------------------------------------------------
             #region Controllers
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllers();
             #endregion
             //--------------------------------------------------------------
             #region SignalR

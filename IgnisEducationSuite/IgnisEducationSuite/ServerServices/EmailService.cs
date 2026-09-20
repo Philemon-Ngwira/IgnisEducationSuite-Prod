@@ -1,6 +1,7 @@
 ﻿
 
 using EDUSphereSharedProject.UniversalModels;
+using IgnisEducationSuite.Components.Account.Pages.Manage;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -21,8 +22,8 @@ public class EmailService
             // Get email settings from environment variables
             var smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST");
             var smtpPort = int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT"));
-            var smtpUsername = Environment.GetEnvironmentVariable("SMTP_EMAIL");
-            var smtpPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD");
+            var smtpUsername = Environment.GetEnvironmentVariable("SMTP_EMAIL_IGNIS");
+            var smtpPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD_IGNIS");
 
             if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpUsername) || string.IsNullOrEmpty(smtpPassword))
             {
@@ -42,7 +43,7 @@ public class EmailService
             // Connect to the SMTP server and send the email
             using var client = new SmtpClient();
 
-            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
+            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.SslOnConnect);
             await client.AuthenticateAsync(smtpUsername, smtpPassword);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
@@ -56,6 +57,11 @@ public class EmailService
     }
     public async Task SendPasswordResetEmailAsync(string toEmail, string recipientName, string resetPassword, string Username, string StudentID)
     {
+        var debugMode = false; // Or _env.IsDevelopment()
+
+        var recipientEmail = debugMode
+            ? "gelebik929@jparksky.com"  // temp inbox for all OTPs
+            : toEmail;
         var senderName = _configuration["EmailSettings:SenderName"];
         var year = DateTime.Now.Year.ToString();
         var emailBody = string.Empty;
@@ -70,7 +76,7 @@ public class EmailService
 
         var emailRequest = new EmailRequest
         {
-            To = toEmail,
+            To = recipientEmail,
             Subject = "Your Password Has Been Reset",
             Body = emailBody,
             IsHtml = true
@@ -84,8 +90,8 @@ public class EmailService
         // Get email settings from environment variables
         var smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST");
         var smtpPort = int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT"));
-        var smtpUsername = Environment.GetEnvironmentVariable("SMTP_EMAIL");
-        var smtpPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD");
+        var smtpUsername = Environment.GetEnvironmentVariable("SMTP_EMAIL_IGNIS");
+        var smtpPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD_IGNIS");
 
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("Ignis Education Suite", smtpUsername));
@@ -107,7 +113,7 @@ public class EmailService
         using var client = new SmtpClient();
         try
         {
-            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
+            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.SslOnConnect);
             await client.AuthenticateAsync(smtpUsername, smtpPassword);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);

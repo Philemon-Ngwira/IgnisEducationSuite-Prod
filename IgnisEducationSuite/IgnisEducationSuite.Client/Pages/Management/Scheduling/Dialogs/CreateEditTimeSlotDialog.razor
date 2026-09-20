@@ -1,0 +1,180 @@
+@using EDUSphereSharedProject.UniversalModels.TimeTabling
+@using IgnisEducationSuite.Client.Services
+@inject ISchedulingManagementService SchedulingService
+
+<MudDialog Options="_dialogOptions">
+    <TitleContent>
+        <div class="d-flex align-center gap-3">
+            <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                <MudIcon Icon="@Icons.Material.Outlined.Schedule" />
+            </MudAvatar>
+            <MudText Typo="Typo.h6"><b>@(TimeslotId is null ? "Add Time Slot" : "Edit Time Slot")</b></MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-6">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <MudForm Model="@_request" @ref="_form">
+                @if (_errors.Count > 0)
+                {
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                        @foreach (var error in _errors)
+                        {
+                            <div>@error</div>
+                        }
+                    </MudAlert>
+                }
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                    Only <b>EarlyMorning</b>, <b>Morning</b> and <b>Afternoon</b> slots receive subjects.
+                    <b>BreakTime</b> and <b>LunchTime</b> are never scheduled into.
+                    The end of the last EarlyMorning slot defines the early-morning cutoff, and the start
+                    of the first Afternoon slot defines the morning/afternoon boundary.
+                </MudAlert>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudTimePicker Label="Start Time" @bind-Time="_startTime" Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTimePicker Label="End Time" @bind-Time="_endTime" Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="8">
+                        <MudSelect T="string" @bind-Value="_request.SlotType" Label="Slot Type" ToStringFunc="@SlotTypeToString"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                            @foreach (var type in SlotTypes.All)
+                            {
+                                <MudSelectItem Value="@type">@type</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="int?" @bind-Value="_request.MaxOccupancy" Label="Max Occupancy"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_request.Description" Label="Description"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="_saving">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _saving">
+            @(_saving ? "Saving..." : (TimeslotId is null ? "Add Time Slot" : "Save Changes"))
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Guid? TimeslotId { get; set; }
+
+    private readonly TimeSlotRequest _request = new();
+    private TimeSpan? _startTime;
+    private TimeSpan? _endTime;
+    private MudForm _form = default!;
+    private bool _loading;
+    private bool _saving;
+    private List<string> _errors = new();
+
+    private readonly DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (TimeslotId is null)
+        {
+            _request.SlotType = SlotTypes.Morning;
+            return;
+        }
+
+        _loading = true;
+
+        var slots = await SchedulingService.ListTimeSlotsAsync();
+        var current = slots.FirstOrDefault(s => s.TimeslotId == TimeslotId);
+
+        if (current is not null)
+        {
+            _startTime = current.StartTime?.ToTimeSpan();
+            _endTime = current.EndTime?.ToTimeSpan();
+            _request.Description = current.Description;
+            _request.SlotType = current.SlotType ?? SlotTypes.Morning;
+            _request.MaxOccupancy = current.MaxOccupancy;
+        }
+
+        _loading = false;
+    }
+
+    /// <summary>Splits the stored PascalCase value ("EarlyMorning") for display ("Early Morning")
+    /// without changing what is persisted, and keeps an unset value from rendering blank.</summary>
+    private static string SlotTypeToString(string? slotType) => slotType switch
+    {
+        null or "" => "Select a slot type",
+        SlotTypes.EarlyMorning => "Early Morning",
+        SlotTypes.BreakTime => "Break Time",
+        SlotTypes.LunchTime => "Lunch Time",
+        _ => slotType,
+    };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        await _form.Validate();
+
+        if (_startTime is null || _endTime is null)
+        {
+            _errors = new() { "Start time and end time are required." };
+            return;
+        }
+
+        if (_endTime <= _startTime)
+        {
+            _errors = new() { "End time must be after start time." };
+            return;
+        }
+
+        if (!_form.IsValid) return;
+
+        _request.StartTime = TimeOnly.FromTimeSpan(_startTime.Value);
+        _request.EndTime = TimeOnly.FromTimeSpan(_endTime.Value);
+
+        _saving = true;
+        _errors = new();
+
+        var result = TimeslotId is null
+            ? await SchedulingService.CreateTimeSlotAsync(_request)
+            : await SchedulingService.UpdateTimeSlotAsync(TimeslotId.Value, _request);
+
+        _saving = false;
+
+        if (result.Succeeded)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _errors = result.Errors;
+        }
+    }
+}

@@ -1,0 +1,211 @@
+﻿@page "/KitchenInventory"
+@using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.Management.SchoolOperations.DiningManagement.DiningManagementDialogs
+@inherits AppBaseComponent
+@inject IDialogService DialogService
+<MudStack Spacing="3">
+    <MudStack>
+        <MudText Typo="Typo.h5">
+            <b>Inventory Management</b>
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Track stock levels, expiry dates, and storage locations
+        </MudText>
+    </MudStack>
+    <!-- Stats -->
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Total Batches</MudText>
+                <MudText Typo="Typo.h4">@InventoryBatches.Count</MudText>
+                <MudText Typo="Typo.caption">Across all locations</MudText>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Style="background:#FFF8E1">
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Warning">Expiring Soon</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Warning" />
+                </MudStack>
+                <MudText Typo="Typo.h4">@ExpiringSoonCount</MudText>
+                <MudText Typo="Typo.caption">Use within 7 days</MudText>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Style="background:#FDECEA">
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Error">Expired / Critical</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" />
+                </MudStack>
+                <MudText Typo="Typo.h4">@ExpiredCount</MudText>
+                <MudText Typo="Typo.caption">Immediate action required</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Search + Action -->
+    <MudPaper Class="pa-4">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudTextField T="string"
+                          Placeholder="Search ingredients or status"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          @bind-Value="Search" />
+
+            <MudSpacer />
+            <MudButtonGroup OverrideStyles=false>
+                <MudButton Color="Color.Default"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenFoodItemDialog">
+                    New Item
+                </MudButton>
+            </MudButtonGroup>
+
+        </MudStack>
+    </MudPaper>
+
+    <!-- Inventory Table -->
+    <MudTable Items="FilteredBatches" Hover="true" Dense="true">
+        <HeaderContent>
+            <MudTh>Item</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Expiry</MudTh>
+            <MudTh>Location</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Action</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+            <MudTd>
+                <MudText>@context.FoodName</MudText>
+                <MudText Typo="Typo.caption">@context.Category</MudText>
+            </MudTd>
+
+            <MudTd>
+                @context.Quantity @context.Unit
+            </MudTd>
+
+            <MudTd>@(context.ExpiryDate)</MudTd>
+
+            <MudTd>@(context.StorageLocation ?? "")</MudTd>
+
+            <MudTd>
+                <MudAlert Severity="@GetStatusColor(context.Status)" Variant="Variant.Filled" Size="Size.Small">
+                    @context.Status
+                </MudAlert>
+            </MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => OpenInventoryDialog(context)">Manage Stock</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+
+</MudStack>
+
+@code {
+    /* UI-only placeholders */
+
+    [Parameter] public List<InventoryBatch> InventoryBatches { get; set; } = new();
+    protected List<MeasurementUnit> measurementUnits = new List<MeasurementUnit>();
+
+    private string Search;
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait while we prepare your work environment...");
+        await getUnitsOfMeasurement();
+        await GetDiningInventory();
+        LoaderService.Hide();
+    }
+    private IEnumerable<InventoryBatch> FilteredBatches =>
+        InventoryBatches.Where(x =>
+            string.IsNullOrWhiteSpace(Search) ||
+            x.FoodName.Contains(Search, StringComparison.OrdinalIgnoreCase) ||
+            x.Status.Contains(Search, StringComparison.OrdinalIgnoreCase));
+
+    private int ExpiringSoonCount =>
+        InventoryBatches.Count(x => x.Status is "Use Soon" or "Critical");
+
+    private int ExpiredCount =>
+        InventoryBatches.Count(x => x.Status == "Expired");
+
+    private Severity GetStatusColor(string status) => status switch
+    {
+        "Fresh" => Severity.Success,
+        "Use Soon" => Severity.Warning,
+        "Critical" => Severity.Warning,
+        "Expired" => Severity.Error,
+        _ => Severity.Normal
+    };
+    protected async Task OpenFoodItemDialog()
+    {
+
+        var parameters = new DialogParameters<AddNewFoodItems>
+    {
+        { x => x.measurementUnits, measurementUnits }
+    };
+
+        var dialog = await DialogService.ShowAsync<AddNewFoodItems>($"Add New Food Item", parameters, new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            Snackbar.Add("Food Item(s) added successfully!", Severity.Success);
+            LoaderService.Hide();
+            StateHasChanged();
+
+        }
+    }
+
+    protected async Task OpenInventoryDialog(InventoryBatch batch)
+    {
+
+        var parameters = new DialogParameters<AddInventoryItemDialog>
+    {
+        { x => x.batch, batch }
+    };
+
+        var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>($"Edit Inventory", parameters, new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            Snackbar.Add("Food Item(s) added successfully!", Severity.Success);
+            await GetDiningInventory();
+            LoaderService.Hide();
+            StateHasChanged();
+
+        }
+    }
+
+    protected async Task getUnitsOfMeasurement()
+    {
+        var service = GenericService.GetService<MeasurementUnit>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetEntity/{"measurementunit"}", true);
+        if (result.IsSuccess)
+        {
+            measurementUnits = result.Data.ToList();
+        }
+    }
+
+
+    protected async Task GetDiningInventory()
+    {
+        var serv = GenericService.GetService<InventoryBatch>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetDiningInventory/{Guid.Parse(AppState.SchoolID)}", true);
+
+        if (result.IsSuccess)
+        {
+
+            InventoryBatches = result.Data.ToList();
+        }
+    }
+
+   
+}

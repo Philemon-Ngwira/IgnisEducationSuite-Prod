@@ -13,7 +13,7 @@ public partial class vw_ClassTeacherDetail
 
     public Guid? TeacherID { get; set; }
 
-    public int? Grade { get; set; }
+    public int? AcademicLevel { get; set; }
 
     public string FirstName { get; set; }
 
@@ -22,4 +22,6 @@ public partial class vw_ClassTeacherDetail
     public string Gender { get; set; }
 
     public string UserID { get; set; }
+
+    public string GradeSection { get; set; }
 }

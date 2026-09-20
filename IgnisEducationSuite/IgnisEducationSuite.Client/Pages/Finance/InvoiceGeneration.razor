@@ -1,0 +1,238 @@
+﻿@using EDUSphereSharedProject.FinanceModels
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+
+<MudCard Class="pa-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5">Invoice Generation</MudText>
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                Generate bulk invoices for a selected term and invoice type.
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudCardContent>
+        <MudGrid Spacing="3">
+
+            <!-- Term Dates -->
+            <MudItem xs="12" md="6">
+                <MudDatePicker Label="Term Start Date"
+                               @bind-Date="_termStartDate"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudDatePicker Label="Term End Date"
+                               @bind-Date="_termEndDate"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="FeeStructure"
+                           Label="Fee Structure"
+                           @bind-Value="selectedStructure"
+                           Required="true"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           ToStringFunc="@(x => x?.Name)">
+                    @foreach (var structure in feeStructures)
+                    {
+                        <MudSelectItem Value="@structure">@structure.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @if (selectedStructure != null)
+            {
+               @*  <MudItem xs="12">
+                    <MudPaper Class="pa-3 mt-2" Elevation="0">
+
+                        <MudText Typo="Typo.subtitle2">Bucket Allocation</MudText>
+
+                        @if (BucketBreakdown.Any())
+                        {
+                            @foreach (var bucket in BucketBreakdown)
+                            {
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudText>@bucket.Name</MudText>
+                                    <MudText>@bucket.Amount</MudText>
+                                </MudStack>
+                            }
+
+                            <MudDivider Class="my-2" />
+
+                            <MudText Typo="Typo.subtitle1">
+                                Total: @BucketBreakdown.Sum(x => x.Amount)
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Color="Color.Secondary">
+                                No bucket allocation configured
+                            </MudText>
+                        }
+
+                    </MudPaper>
+                </MudItem> *@
+                <MudItem xs="12">
+                    <MudPaper Class="pa-3 mt-2" Elevation="0">
+
+                        <MudText Typo="Typo.subtitle2">Structure Breakdown</MudText>
+
+                        @foreach (var item in selectedStructure.FeeStructureItems)
+                        {
+                            <MudText>
+                                @invoiceTypes.FirstOrDefault(x => x.Id == item.InvoiceTypeId)?.Name
+                                - @item.Amount
+                                @if (item.IsOptional)
+                                {
+                                    <span>(Optional)</span>
+                                }
+                            </MudText>
+                        }
+
+                        <MudDivider Class="my-2" />
+
+                        <MudText Typo="Typo.subtitle1">
+                            Total: @selectedStructure.FeeStructureItems.Sum(x => x.Amount)
+                        </MudText>
+
+                    </MudPaper>
+                </MudItem>
+            }
+
+            <!-- Due Date -->
+            <MudItem xs="12" md="6">
+                <MudDatePicker Label="Due Date"
+                               @bind-Date="_dueDate"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <!-- Generate Button -->
+            <MudItem xs="12">
+                <MudDivider Class="my-2" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Large"
+                           OnClick="GenerateInvoices"
+                           Disabled="_isGenerating">
+                    @if (_isGenerating)
+                    {
+                        <MudProgressCircular Indeterminate="true"
+                                             Size="Size.Small"
+                                             Class="me-2" />
+                        <span>Generating...</span>
+                    }
+                    else
+                    {
+                        <span>Generate Invoices</span>
+                    }
+                </MudButton>
+            </MudItem>
+
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+
+    private DateTime? _termStartDate;
+    private DateTime? _termEndDate;
+    private DateTime? _dueDate;
+    private Guid? _invoiceTypeId;
+    private decimal? _amount;
+    private bool _isGenerating = false;
+    private List<FeeStructure> feeStructures = new();
+    private FeeStructure? selectedStructure;
+    protected List<InvoiceType> invoiceTypes = new();
+    protected InvoiceType selectedType = new();
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+
+        await GetInvoiceTypes();     // needed for names
+        await GetFeeStructures();    // 🔥 NEW
+
+        LoaderService.Hide();
+    }
+    private async Task GenerateInvoices()
+    {
+        if (_termStartDate == null ||
+            _termEndDate == null ||
+            _dueDate == null ||
+            selectedStructure == null)
+            return;
+
+        _isGenerating = true;
+
+        try
+        {
+            var service = GenericService.GetService<BulkInvoiceRequest>();
+
+            var request = new BulkInvoiceRequest
+            {
+                TermStartDate = _termStartDate.Value,
+                TermEndDate = _termEndDate.Value,
+                DueDate = _dueDate.Value,
+
+                FeeStructureId = selectedStructure.Id, // 🔥 KEY
+
+                SchoolID = Guid.Parse(AppState.SchoolID),
+                SchoolName = AppState.SchoolName
+            };
+
+            var result = await service.PostAsync("api/Invoice/generate-bulk", "invoice", request);
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Invoices generated successfully.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(result.ErrorMessage ?? "Failed to generate invoices.", Severity.Error);
+            }
+        }
+        finally
+        {
+            _isGenerating = false;
+        }
+    }
+    protected async Task GetFeeStructures()
+    {
+        var service = GenericService.GetService<FeeStructure>();
+        var result = await service.GetAllAsync($"api/Finance/GetFeeStructure/{Guid.Parse(AppState.SchoolID)}", true);
+
+        if (result.IsSuccess)
+            feeStructures = result.Data.ToList();
+        foreach (var structure in feeStructures)
+        {
+            structure.FeeStructureItems = (await GetFeeStructureItems(structure.Id))?.ToList() ?? new List<FeeStructureItem>();
+        }
+
+    }
+    protected async Task<IEnumerable<FeeStructureItem>> GetFeeStructureItems(Guid StructureID)
+    {
+        var service = GenericService.GetService<FeeStructureItem>();
+        var result = await service.GetAllAsync($"api/Finance/GetFeeStructureItems/{StructureID}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+        return null;
+    }
+    protected async Task GetInvoiceTypes()
+    {
+        var service = GenericService.GetService<InvoiceType>();
+        var result = await service.GetAllAsync("api/Invoice/GetInvoiceTypes", true);
+
+        if (result.IsSuccess)
+            invoiceTypes = result.Data.ToList();
+    }
+}

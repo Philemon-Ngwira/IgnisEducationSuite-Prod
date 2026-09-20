@@ -1,0 +1,208 @@
+@using EDUSphereSharedProject.UniversalModels.SuperAdmin
+@using IgnisEducationSuite.Client.Pages.Management.SuperAdmin.Dialogs
+@inject ISuperAdminClientService Tenants
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+@* The SuperAdmin dashboard.
+   Before this, the dashboard's role chain had no SuperAdmin branch at all and the page rendered
+   empty. What a platform operator needs on landing is the estate at a glance and a list of what
+   needs doing — everything else is one click away in the console. *@
+
+<MudText Typo="Typo.h5" Class="mb-1"><b>Platform overview</b></MudText>
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    Every school running on Ignis, and anything that needs your attention.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+
+<MudGrid Class="mb-4">
+    <MudItem xs="6" sm="4" md="3">
+        <StatTile Label="Schools" Value="@Portfolio.TotalSchools.ToString()"
+                  Icon="@Icons.Material.Filled.School" Color="Color.Primary" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="3">
+        <StatTile Label="Students" Value="@Portfolio.TotalStudents.ToString("N0")"
+                  Icon="@Icons.Material.Filled.Groups" Color="Color.Info" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="3">
+        <StatTile Label="Teachers" Value="@Portfolio.TotalTeachers.ToString("N0")"
+                  Icon="@Icons.Material.Filled.CoPresent" Color="Color.Info" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="3">
+        <StatTile Label="User accounts" Value="@Portfolio.TotalUserAccounts.ToString("N0")"
+                  Icon="@Icons.Material.Filled.SupervisedUserCircle" Color="Color.Secondary" />
+    </MudItem>
+
+    <MudItem xs="6" sm="4" md="3">
+        <StatTile Label="Licensed" Value="@Portfolio.LicensedCount.ToString()"
+                  Icon="@Icons.Material.Filled.VerifiedUser" Color="Color.Success" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="3">
+        <StatTile Label="Not licensed" Value="@Portfolio.UnlicensedCount.ToString()"
+                  Icon="@Icons.Material.Filled.GppBad"
+                  Color="@(Portfolio.UnlicensedCount > 0 ? Color.Error : Color.Default)" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="3">
+        <StatTile Label="Expiring soon" Value="@Portfolio.ExpiringSoonCount.ToString()"
+                  Icon="@Icons.Material.Filled.Timer"
+                  Color="@(Portfolio.ExpiringSoonCount > 0 ? Color.Warning : Color.Default)" />
+    </MudItem>
+    <MudItem xs="6" sm="4" md="3">
+        <StatTile Label="No administrator" Value="@Portfolio.NoAdminCount.ToString()"
+                  Icon="@Icons.Material.Filled.PersonOff"
+                  Color="@(Portfolio.NoAdminCount > 0 ? Color.Error : Color.Default)" />
+    </MudItem>
+</MudGrid>
+
+@if (Portfolio.LicensesIncluded && Portfolio.UnverifiedCount > 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+        @Portfolio.UnverifiedCount school(s) could not be checked against the licensing service.
+        They are unverified, not unlicensed — the schools continue to work normally.
+    </MudAlert>
+}
+
+<MudGrid>
+    <MudItem xs="12" md="8">
+        <MudPaper Class="pa-4" Elevation="1">
+            <div class="d-flex align-center mb-3">
+                <MudText Typo="Typo.subtitle1"><b>Needs attention</b></MudText>
+                <MudSpacer />
+                <MudButton Size="Size.Small" Variant="Variant.Text"
+                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                           OnClick="@(() => Nav.NavigateTo("/TenantConsole"))">
+                    Open console
+                </MudButton>
+            </div>
+
+            @if (_loading)
+            {
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px" />
+            }
+            else if (!Portfolio.NeedsAttention.Any())
+            {
+                <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true">
+                    Nothing needs attention. Every school is licensed, staffed and within its user limit.
+                </MudAlert>
+            }
+            else
+            {
+                <MudList T="TenantSummaryDto" Dense="true">
+                    @foreach (var tenant in Portfolio.NeedsAttention.Take(8))
+                    {
+                        <MudListItem T="TenantSummaryDto" OnClick="@(() => OpenTenantAsync(tenant))">
+                            <div class="d-flex align-center gap-3" style="width:100%;">
+                                <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small"
+                                         Color="@SeverityColor(tenant.WorstSeverity)" />
+                                <div style="flex:1; min-width:0;">
+                                    <MudText Typo="Typo.body2"><b>@tenant.SchoolName</b></MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @string.Join(" · ", tenant.Issues
+                                            .OrderByDescending(i => i.Severity)
+                                            .Take(2)
+                                            .Select(i => i.Title))
+                                    </MudText>
+                                </div>
+                                <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" />
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+
+                @if (Portfolio.NeedsAttention.Count > 8)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        and @(Portfolio.NeedsAttention.Count - 8) more in the console.
+                    </MudText>
+                }
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-3"><b>Quick actions</b></MudText>
+
+            <MudStack Spacing="2">
+                <MudButton FullWidth="true" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Dns"
+                           OnClick="@(() => Nav.NavigateTo("/TenantConsole"))">
+                    Tenant console
+                </MudButton>
+
+                <MudButton FullWidth="true" Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.AddBusiness"
+                           OnClick="@(() => Nav.NavigateTo("/ClientManagement"))">
+                    Register a school
+                </MudButton>
+
+                <MudButton FullWidth="true" Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.AdminPanelSettings"
+                           OnClick="@(() => Nav.NavigateTo("/ManageSchoolAdmins"))">
+                    School administrators
+                </MudButton>
+
+                <MudButton FullWidth="true" Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           Disabled="_loading"
+                           OnClick="LoadAsync">
+                    Refresh
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private TenantPortfolioDto Portfolio = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            Portfolio = await Tenants.GetPortfolioAsync(withLicenses: true);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenTenantAsync(TenantSummaryDto tenant)
+    {
+        var parameters = new DialogParameters<TenantDetailDialog>
+        {
+            { x => x.SchoolId, tenant.SchoolId },
+            { x => x.SchoolName, tenant.SchoolName },
+        };
+
+        var dialog = await DialogService.ShowAsync<TenantDetailDialog>(
+            tenant.SchoolName, parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true });
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: true })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private static Color SeverityColor(TenantIssueSeverity severity) => severity switch
+    {
+        TenantIssueSeverity.Critical => Color.Error,
+        TenantIssueSeverity.Warning => Color.Warning,
+        TenantIssueSeverity.Info => Color.Info,
+        _ => Color.Success,
+    };
+}

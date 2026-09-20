@@ -2,166 +2,418 @@
 @using EDUSphereSharedProject.Models.StoreProModels
 @using IgnisEducationSuite.Client.Pages.TeachersPortal.Dialogs
 @inherits AppBaseComponent
-<MudCard>
-    <MudCardHeader>
+
+<MudCard Class="pa-4">
+
+    <!-- HEADER -->
+    <MudCardHeader Class="mb-2">
         <CardHeaderContent>
-            <MudText Align="Align.Center" Typo="Typo.h4"><b>Student Attendance</b></MudText>
+            <MudText Align="Align.Center" Typo="Typo.h4">
+                <b>Student Attendance</b>
+            </MudText>
         </CardHeaderContent>
     </MudCardHeader>
+
+    <MudDivider Class="mb-4" />
+
     <MudCardContent>
-        <MudGrid>
+
+        <!-- DATE PICKER + SEARCH BUTTON -->
+        <MudGrid Class="mb-4" Justify="Justify.Center">
+
             <MudItem xs="12" md="9">
-                <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" Label="Enter Attendace Date" @bind-Date="_date" />
+                <MudDatePicker Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Label="Select Attendance Date"
+                               @bind-Date="_date"
+                               Class="w-100" />
             </MudItem>
-            <MudItem xs="3">
-                <MudButton OnClick="GetTimeSheets" Variant="Variant.Filled" Color="Color.Primary" EndIcon="@Icons.Material.Filled.Search">Get Attendance Schedule</MudButton>
+
+            <MudItem xs="12" md="3" Class="d-flex justify-end">
+                <MudButton OnClick="GetTimeSheets"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           EndIcon="@Icons.Material.Filled.Search"
+                           Class="w-100">
+                    Get Attendance
+                </MudButton>
             </MudItem>
-            <MudDivider />
-            <MudItem xs="12">
-                @if (isLoading)
-                {
-                    <div id="loader-overlay" class="loader-overlay">
-                        <div class="loader-container">
-                            <!-- Spinner -->
-                            <div class="spinner"></div>
-                            <!-- Loader Icon -->
-                            <div class="loader-icon">🔄</div>
-                            <!-- Loading Text -->
-                            <p class="loading-text">Loading, please wait...</p>
-                        </div>
-                    </div>
-                }
 
+        </MudGrid>
 
-                <MudTable Items="getAttendances" Dense="true" Hover="true" Bordered="true" Striped="true" Filter="new Func<GetAttendanceByTeacherAndDateResult,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem">
-                    <ToolBarContent>
-                        <MudText Typo="Typo.h6">Student Attendance</MudText>
-                        <MudSpacer />
-                        <MudButton Color="Color.Primary" OnClick="UpdateAttendance" Variant="Variant.Filled">Submit Attendance</MudButton>
-                        <MudSpacer />
-                        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-                    </ToolBarContent>
-                    <HeaderContent>
-                        <MudTh>First Name</MudTh>
-                        <MudTh>Last Name</MudTh>
-                        <MudTh>Class Name</MudTh>
-                        <MudTh>Attendance Status</MudTh>
-                        <MudTh>Late ?</MudTh>
-                        <MudTh>Date</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="First Name">@context.FirstName</MudTd>
-                            <MudTd DataLabel="Last Name">@context.LastName</MudTd>
-                            <MudTd DataLabel="Class Name">@context.ClassName</MudTd>
-                            <MudTd DataLabel="Attendance Status"><MudCheckBox @bind-Value="context.AttendanceStatus" Label="Attendance Status"></MudCheckBox></MudTd>
-                            <MudTd DataLabel="Late Status"><MudCheckBox @bind-Value="context.LateStatus" Label="Lateness Status"></MudCheckBox></MudTd>
-                            <MudTd DataLabel="Late Status">@context.AttendanceDate.Value.ToShortDateString()</MudTd>
-                        </RowTemplate>
-                        <PagerContent>
-                            <MudTablePager />
-                        </PagerContent>
-                    </MudTable>
-                </MudItem>
+        <!-- ATTENDANCE TABLE -->
+        <MudTable Items="FilteredAttendances"
+                  Dense="true"
+                  Hover="true"
+                  Bordered="true"
+                  Striped="true"
+                  Breakpoint="Breakpoint.Sm"
+                  @bind-SelectedItem="selectedItem"
+                  Filter="new Func<GetAttendanceByTeacherAndDateResult, bool>(FilterFunc1)">
 
+            <!-- TOOLBAR -->
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Attendance Records</MudText>
+                <MudSpacer />
 
-            </MudGrid>
-        </MudCardContent>
-    </MudCard>
+                <!-- Academic Level Filter -->
+                <MudAutocomplete T="string"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Label="Filter by Academic Level"
+                                 ValueChanged="(e) => FilterResultsByAcademicLevel(e)"
+                                 Value="AcademicLvlFilterValue"
+                                 SearchFunc="@AcademicLvlFilter"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true"
+                                 AdornmentIcon="@Icons.Material.Filled.School"
+                                 AdornmentColor="Color.Primary"
+                                 Class="mr-2" />
 
-    @code {
+                <!-- Class Filter -->
+                <MudAutocomplete T="string"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Label="Filter by Class"
+                                 ValueChanged="(e) => FilterResultsByClass(e)"
+                                 Value="SelectedClass"
+                                 SearchFunc="@ClassFilter"
+                                 ResetValueOnEmptyText="true"
+                                 CoerceText="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Class"
+                                 AdornmentColor="Color.Primary"
+                                 Class="mr-2" />
+
+                <MudSpacer />
+
+                <!-- Submit Attendance -->
+                <MudButton Color="Color.Success"
+                           Variant="Variant.Filled"
+                           OnClick="UpdateAttendance"
+                           StartIcon="@Icons.Material.Filled.DoneAll"
+                           Class="mr-2">
+                    Submit Attendance
+                </MudButton>
+
+                <!-- Search -->
+                <MudTextField @bind-Value="searchString"
+                              Placeholder="Search Students..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              IconSize="Size.Medium" />
+            </ToolBarContent>
+
+            <!-- HEADER -->
+            <HeaderContent>
+                <MudTh>First Name</MudTh>
+                <MudTh>Last Name</MudTh>
+                <MudTh>Class</MudTh>
+                <MudTh>Periods</MudTh>
+                <MudTh>Present</MudTh>
+                <MudTh>Late</MudTh>
+                <MudTh>Sick Status</MudTh>
+                <MudTh>Date</MudTh>
+            </HeaderContent>
+
+            <!-- ROW TEMPLATE -->
+            <RowTemplate>
+                <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                <MudTd DataLabel="Class">@context.ClassName</MudTd>
+                <MudTd DataLabel="Periods">@context.PeriodCount</MudTd>
+
+                <MudTd DataLabel="Attendance">
+                    <MudCheckBox Value="context.IsPresent"
+                                 Color="Color.Success"
+                                 Label="Present"
+                                 Dense="true"
+                                 T="bool"
+                                 ValueChanged="@(e => context.SetPresent(e))"
+                                 Disabled="@(context.AttendanceReason == "SICK_OFF" && context.ReasonSource == "CLINIC")" />
+
+                    <MudCheckBox Value="context.IsAbsent"
+                                 Color="Color.Error"
+                                 Label="Absent"
+                                 Dense="true"
+                                 T="bool"
+                                 ValueChanged="@(e => context.SetAbsent(e))"
+                                 Disabled="@(context.AttendanceReason == "SICK_OFF" && context.ReasonSource == "CLINIC")" />
+                </MudTd>
+
+                <MudTd DataLabel="Late">
+                    <MudCheckBox @bind-Value="context.LateStatus"
+                                 Color="Color.Warning"
+                                 Label="Late"
+                                 Dense="true"
+                                 Disabled="@(context.AttendanceReason == "SICK_OFF" && context.ReasonSource == "CLINIC")" />
+                </MudTd>
+
+                <MudTd DataLabel="Sick Status">
+                    @if (context.AttendanceReason == "SICK_OFF" && context.ReasonSource == "CLINIC")
+                    {
+                        <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Small">
+                            Sick Off (Clinic)
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">
+                            Available
+                        </MudChip>
+                    }
+                </MudTd>
+
+                <MudTd DataLabel="Date">
+                    @context?.AttendanceDate?.ToShortDateString()
+                </MudTd>
+            </RowTemplate>
+
+            <!-- PAGER -->
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+
+        </MudTable>
+
+    </MudCardContent>
+
+</MudCard>
+
+@code {
+
     protected bool isLoading = false;
     private DateTime? _date = DateTime.Today;
     protected string UserID = string.Empty;
+
+    protected string AcademicLvlFilterValue = string.Empty;
+    protected string SelectedClass = string.Empty;
+
     protected List<GetAttendanceByTeacherAndDateResult> getAttendances = new();
+    protected List<GetAttendanceByTeacherAndDateResult> FilteredAttendances = new();
+
     protected GetAttendanceByTeacherAndDateResult selectedItem = new();
+
+    protected List<string> TeacherGrades = new();
+    protected List<string> ClassNames = new();
     protected string searchString = string.Empty;
+
     [Inject] GenericServiceFactory _genericService { get; set; } = default!;
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
     [Inject] IDialogService DialogService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
 
+    // GET SCHEDULE
     protected async Task GetTimeSheets()
     {
-        isLoading = true;
-       
-            UserID = AppState.UserID;
-        
-        if (UserID != string.Empty || UserID != null)
+        LoaderService.Show("Please wait.....");
+
+        UserID = AppState.UserID;
+
+        if (!string.IsNullOrWhiteSpace(UserID))
         {
             string formattedDate = _date.Value.ToString("yyyy-MM-ddTHH:mm:ss");
+
             var service = _genericService.GetService<GetAttendanceByTeacherAndDateResult>();
             var result = await service.GetAllAsync($"api/Dynamic/GetStudentAttendance/{UserID}/{formattedDate}", true);
+
             if (result.IsSuccess)
             {
                 getAttendances = result.Data.ToList();
-                isLoading = false;
+
+                // Fix missing LevelName
+                foreach (var item in getAttendances)
+                {
+                    if (string.IsNullOrEmpty(item.LevelName))
+                    {
+                        item.LevelName = academicLevels
+                            .Where(x => x.LevelInt == item.AcademicLevel)
+                            .Select(x => x.LevelName)
+                            .FirstOrDefault();
+                    }
+                }
+
+                TeacherGrades = getAttendances.Select(x => x.LevelName).Distinct().ToList();
+                ClassNames = getAttendances.Select(x => x.ClassName).Distinct().ToList();
+
+                // GROUP BY STUDENT FOR DISPLAY
+                FilteredAttendances = getAttendances
+                    .GroupBy(a => a.StudentID)
+                    .Select(g => new GetAttendanceByTeacherAndDateResult
+                    {
+                        StudentID = g.First().StudentID, // ✅ Important!
+                        StudentAttendanceID = g.First().StudentAttendanceID,
+                        StudentScheduleID = g.First().StudentScheduleID,
+                        FirstName = g.First().FirstName,
+                        LastName = g.First().LastName,
+                        ClassName = g.First().ClassName,
+                        AcademicLevel = g.First().AcademicLevel,
+                        LevelName = g.First().LevelName,
+                        AttendanceDate = g.First().AttendanceDate,
+                        AttendanceStatus = g.Any(x => x.AttendanceStatus == true),
+                        LateStatus = g.Any(x => x.LateStatus == true),
+                        AttendanceReason = g.First().AttendanceReason,
+                        ReasonSource = g.First().ReasonSource,
+                        PeriodCount = g.Count()
+                    })
+                    .OrderBy(x => x.LastName)
+                    .ToList();
             }
         }
-        isLoading = false;
+
+        LoaderService.Hide();
     }
 
+    // OPEN CONFIRMATION DIALOG
     protected async Task UpdateAttendance()
     {
-        var parameters = new DialogParameters<AttendacnceConfirmattionDialog> { };
-
         var dialog = await DialogService.ShowAsync<AttendacnceConfirmattionDialog>("");
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (!result.Canceled && result.Data is bool confirmed && confirmed)
         {
-            var data = result.Data;
-            if (data is bool)
-            {
-                bool returned = (bool)data;
-                if (returned)
-                {
-                    await CompleteAttendanceMarking();
-                }
-            }
+            await CompleteAttendanceMarking();
         }
     }
+
+    // SAVE ATTENDANCE
     protected async Task CompleteAttendanceMarking()
     {
-        List<EDUSphereSharedProject.Models.StudentAttendance> attendances = new();
-        foreach (var item in getAttendances)
-        {
+        LoaderService.Show("Submitting attendances please wait...");
 
-            EDUSphereSharedProject.Models.StudentAttendance studentAttendance = new()
+        var allUpdates = new List<EDUSphereSharedProject.Models.StudentAttendance>();
+
+        foreach (var studentRow in FilteredAttendances)
+        {
+            var attendancesToUpdate = getAttendances
+                .Where(a => a.StudentID == studentRow.StudentID
+                            && a.ClassName == studentRow.ClassName
+                            && a.AttendanceDate == studentRow.AttendanceDate)
+                .ToList();
+
+            if (!attendancesToUpdate.Any())
+                continue;
+
+            bool attendanceStatus = studentRow.IsPresent
+                ? true
+                : studentRow.IsAbsent
+                    ? false
+                    : attendancesToUpdate.First().AttendanceStatus ?? false;
+
+            var apiUpdateList = attendancesToUpdate
+                .Select(a => new EDUSphereSharedProject.Models.StudentAttendance
                 {
-                    StudentAttendanceID = item.StudentAttendanceID,
-                    StudentScheduleID = item.StudentScheduleID,
-                    AttendanceStatus = item.AttendanceStatus,
-                    LateStatus = item.LateStatus,
-                    AttendanceDate = item.AttendanceDate,
-                    CreatedDate = item.CreatedDate,
+                    StudentAttendanceID = a.StudentAttendanceID,
+                    StudentScheduleID = a.StudentScheduleID,
+                    AttendanceStatus = attendanceStatus,
+                    LateStatus = studentRow.LateStatus,
+                    AttendanceDate = a.AttendanceDate,
+                    CreatedDate = a.CreatedDate,
                     Marked = true
-                };
-            attendances.Add(studentAttendance);
+                })
+                .ToList();
 
+            allUpdates.AddRange(apiUpdateList);
         }
 
-
-        var service = _genericService.GetService<List<EDUSphereSharedProject.Models.StudentAttendance>>();
-        var result = await service.UpdateAsync("api/Dynamic/UpdateEntities", "studentattendance", attendances);
-        if (result.IsSuccess)
+        if (allUpdates.Count > 0)
         {
-            getAttendances.Clear();
-            attendances.Clear();
-            StateHasChanged();
-            Snackbar.Add("Attendance Successfully Marked", Severity.Success);
+            var service = _genericService.GetService<List<EDUSphereSharedProject.Models.StudentAttendance>>();
+            var result = await service.UpdateAsync("api/Dynamic/UpdateEntities", "studentattendance", allUpdates);
 
+            if (result.IsSuccess)
+            {
+                getAttendances.RemoveAll(a => allUpdates.Any(u => u.StudentAttendanceID == a.StudentAttendanceID));
+            }
         }
+
+        ApplyFilters();
+        LoaderService.Hide();
+        Snackbar.Add("Attendance Successfully Marked", Severity.Success);
+        StateHasChanged();
     }
-    private bool FilterFunc1(GetAttendanceByTeacherAndDateResult element) => FilterFunc(element, searchString);
+
+    // SEARCH FILTERS
+    private bool FilterFunc1(GetAttendanceByTeacherAndDateResult element) =>
+        FilterFunc(element, searchString);
 
     private bool FilterFunc(GetAttendanceByTeacherAndDateResult element, string searchString)
     {
         if (string.IsNullOrWhiteSpace(searchString))
             return true;
-        if (element.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (element.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        return false;
+
+        return element.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+            || element.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // AUTOCOMPLETE FILTERS
+    private async Task<IEnumerable<string>> AcademicLvlFilter(string value, CancellationToken token)
+    {
+        await Task.Delay(5, token);
+        if (string.IsNullOrEmpty(value))
+            return new string[0];
+
+        return TeacherGrades.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private async Task<IEnumerable<string>> ClassFilter(string value, CancellationToken token)
+    {
+        await Task.Delay(5, token);
+        if (string.IsNullOrEmpty(value))
+            return new string[0];
+
+        return ClassNames.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    // APPLY SELECTED FILTERS
+    private void ApplyFilters()
+    {
+        IEnumerable<GetAttendanceByTeacherAndDateResult> query = getAttendances;
+
+        if (!string.IsNullOrEmpty(AcademicLvlFilterValue))
+            query = query.Where(x => x.LevelName == AcademicLvlFilterValue);
+
+        if (!string.IsNullOrEmpty(SelectedClass))
+            query = query.Where(x => x.ClassName == SelectedClass);
+
+        if (!string.IsNullOrWhiteSpace(searchString))
+            query = query.Where(x =>
+                x.FirstName.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+                x.LastName.Contains(searchString, StringComparison.OrdinalIgnoreCase));
+
+        FilteredAttendances = query
+            .GroupBy(x => x.StudentID)
+            .Select(g => new GetAttendanceByTeacherAndDateResult
+            {
+                StudentID = g.First().StudentID, // ✅ fixed
+                StudentAttendanceID = g.First().StudentAttendanceID,
+                StudentScheduleID = g.First().StudentScheduleID,
+                FirstName = g.First().FirstName,
+                LastName = g.First().LastName,
+                ClassName = g.First().ClassName,
+                AcademicLevel = g.First().AcademicLevel,
+                LevelName = g.First().LevelName,
+                AttendanceDate = g.First().AttendanceDate,
+                AttendanceStatus = g.Any(x => x.AttendanceStatus == true),
+                LateStatus = g.Any(x => x.LateStatus == true),
+                AttendanceReason = g.First().AttendanceReason,
+                ReasonSource = g.First().ReasonSource,
+                PeriodCount = g.Count()
+            })
+            .OrderBy(x => x.LastName)
+            .ToList();
+    }
+
+    private void FilterResultsByAcademicLevel(string value)
+    {
+        AcademicLvlFilterValue = value;
+        ApplyFilters();
+    }
+
+    private void FilterResultsByClass(string value)
+    {
+        SelectedClass = value;
+        ApplyFilters();
     }
 }

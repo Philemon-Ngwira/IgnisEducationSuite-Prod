@@ -13,11 +13,22 @@ public partial class Class
 
     public Guid? TeacherID { get; set; }
 
-    public int? Grade { get; set; }
+    public int? AcademicLevel { get; set; }
 
     public Guid? SChoolID { get; set; }
 
     public string GradeSection { get; set; }
+
+    public string LevelName { get; set; }
+
+    public string  GroupName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Classes flagged here must never be scheduled: the AFTER INSERT trigger
+    /// trg_BlockNotRequiredClassSchedule ROLLBACKs the whole transaction and throws 50001 if a
+    /// ClassSchedule row references one. Scheduling code must filter these out up front.
+    /// </summary>
+    public bool? notRequired { get; set; }
 
     public virtual ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
 
@@ -32,6 +43,8 @@ public partial class Class
     public virtual ICollection<ReportCardDetail> ReportCardDetails { get; set; } = new List<ReportCardDetail>();
 
     public virtual School SChool { get; set; }
+
+    public virtual ICollection<StudentClassSchedule> StudentClassSchedules { get; set; } = new List<StudentClassSchedule>();
 
     public virtual ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
 

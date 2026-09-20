@@ -17,6 +17,8 @@ public partial class StudentExamsTestsAndQuiz
 
     public DateTime? SubmissionDate { get; set; }
 
+    public string Status { get; set; }
+
     public virtual ExamQuizTestHeader Exam { get; set; }
 
     public virtual Student Student { get; set; }

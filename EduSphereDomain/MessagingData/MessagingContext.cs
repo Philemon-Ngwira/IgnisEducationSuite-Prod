@@ -23,6 +23,8 @@ public partial class MessagingContext : DbContext
 
     public virtual DbSet<GroupMember> GroupMembers { get; set; }
 
+    public virtual DbSet<ChatReadState> ChatReadStates { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AspNetUser>(entity =>
@@ -40,6 +42,9 @@ public partial class MessagingContext : DbContext
             entity.Property(e => e.NormalizedEmail).HasMaxLength(256);
             entity.Property(e => e.NormalizedUserName).HasMaxLength(256);
             entity.Property(e => e.UserName).HasMaxLength(256);
+            entity.Property(e => e.isFirstLogin)
+                .IsRequired()
+                .HasDefaultValueSql("(CONVERT([bit],(0)))");
             entity.Property(e => e.requiresPasswordReset)
                 .IsRequired()
                 .HasDefaultValueSql("(CONVERT([bit],(0)))");
@@ -47,9 +52,11 @@ public partial class MessagingContext : DbContext
 
         modelBuilder.Entity<ChatGroup>(entity =>
         {
-            entity.HasKey(e => e.GroupName).HasName("PK__ChatGrou__6EFCD43513024390");
+            entity.HasKey(e => e.GroupID).HasName("PK__tmp_ms_x__149AF30A622092C5");
 
-            entity.Property(e => e.GroupName).HasMaxLength(50);
+            entity.Property(e => e.GroupID).ValueGeneratedNever();
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.GroupName).HasMaxLength(255);
         });
 
         modelBuilder.Entity<ChatMessage>(entity =>
@@ -57,22 +64,46 @@ public partial class MessagingContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__ChatMess__3214EC07EAD34E62");
 
             entity.Property(e => e.Id).ValueGeneratedNever();
-            entity.Property(e => e.GroupName).HasMaxLength(50);
+            entity.Property(e => e.GroupIdentifier)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.GroupName).HasMaxLength(255);
             entity.Property(e => e.ReciepientId).HasMaxLength(255);
             entity.Property(e => e.Timestamp).HasColumnType("datetime");
             entity.Property(e => e.UserId).HasMaxLength(255);
+            entity.Property(e => e.AttachmentPath).HasMaxLength(1024);
+            entity.Property(e => e.AttachmentName).HasMaxLength(255);
+            entity.Property(e => e.AttachmentContentType).HasMaxLength(100);
+            entity.Property(e => e.NotifiedAt).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<ChatReadState>(entity =>
+        {
+            entity.HasKey(e => e.ChatReadStateID);
+
+            entity.ToTable("ChatReadState");
+
+            entity.HasIndex(e => new { e.UserId, e.ConversationKey }, "UX_ChatReadState_User_Conversation")
+                .IsUnique();
+
+            entity.Property(e => e.ChatReadStateID).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.UserId).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.ConversationKey).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.LastReadAt).HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime").HasDefaultValueSql("(getdate())");
         });
 
         modelBuilder.Entity<GroupMember>(entity =>
         {
-            entity.HasNoKey();
-
-            entity.Property(e => e.GroupName).HasMaxLength(50);
+            entity.Property(e => e.GroupMemberID).ValueGeneratedNever();
+            entity.Property(e => e.DateAdded).HasColumnType("datetime");
+            entity.Property(e => e.GroupName).HasMaxLength(255);
             entity.Property(e => e.UserId).HasMaxLength(255);
 
-            entity.HasOne(d => d.GroupNameNavigation).WithMany()
-                .HasForeignKey(d => d.GroupName)
-                .HasConstraintName("FK__GroupMemb__Group__23F3538A");
+            entity.HasOne(d => d.Group).WithMany(p => p.GroupMembers)
+                .HasForeignKey(d => d.GroupID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_GroupMembers_ChatGroups");
         });
 
         OnModelCreatingPartial(modelBuilder);

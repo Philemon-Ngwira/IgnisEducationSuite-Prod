@@ -8,6 +8,6 @@ namespace EDUSphereSharedProject.UniversalModels
 {
     public class AccessInfo
     {
-        public string Viewability { get; set; }
+        public string Viewability { get; set; } = "";
     }
 }

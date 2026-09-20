@@ -1,0 +1,295 @@
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels.TimeTabling
+@using IgnisEducationSuite.Client.Services
+@inject ISchedulingManagementService SchedulingService
+@inject AppState AppState
+
+<MudDialog Options="_dialogOptions">
+    <TitleContent>
+        <div class="d-flex align-center gap-3">
+            <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                <MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" />
+            </MudAvatar>
+            <MudText Typo="Typo.h6"><b>@(OverrideId is null ? "Add Override" : "Edit Override")</b></MudText>
+        </div>
+    </TitleContent>
+
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-6">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <MudForm Model="@_request" @ref="_form">
+                @if (_errors.Count > 0)
+                {
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                        @foreach (var error in _errors)
+                        {
+                            <div>@error</div>
+                        }
+                    </MudAlert>
+                }
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                    An override substitutes a different class into one period, for one student group,
+                    over a date range. It does not change the saved timetable — it is applied when
+                    teachers and students read theirs.
+                </MudAlert>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" Label="Academic Level" Value="_request.AcademicLevelId"
+                                   ValueChanged="OnLevelChanged" ToStringFunc="@LevelToString" Variant="Variant.Outlined"
+                                   Margin="Margin.Dense" Required="true">
+                            @foreach (var level in _levels)
+                            {
+                                <MudSelectItem Value="@level.AcademicLevelID">@level.LevelName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" Label="Section" @bind-Value="_request.LevelSectionId" ToStringFunc="@SectionToString" Disabled="@(_request.AcademicLevelId == Guid.Empty)"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                            @* Do not name this 'section' — @section is a reserved Razor directive. *@
+                            @foreach (var levelSection in SectionsForLevel)
+                            {
+                                <MudSelectItem Value="@levelSection.LevelSectionID">@levelSection.SectionCode</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" Label="Day" @bind-Value="_request.DayOfTheWeekId" ToStringFunc="@DayToString"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                            @foreach (var day in _days)
+                            {
+                                <MudSelectItem Value="@day.DayId">@day.DayName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" Label="Time Slot" @bind-Value="_request.TimeSlotId" ToStringFunc="@TimeSlotToString"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                            @foreach (var slot in _teachingSlots)
+                            {
+                                <MudSelectItem Value="@slot.TimeslotId">@FormatSlot(slot)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Guid" Label="Replacement Class" @bind-Value="_request.ReplacementClassId" ToStringFunc="@ClassToString" Disabled="@(_request.AcademicLevelId == Guid.Empty)"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Required="true">
+                            @foreach (var subject in ClassesForSelection)
+                            {
+                                <MudSelectItem Value="@subject.ClassId">@subject.SubjectName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_request.StudentGroup" Label="Student Group"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" Required="true"
+                                      HelperText="Must match the students' group name, or 'All' for everyone in the section." />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Effective From" @bind-Date="_effectiveFrom"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                                       HelperText="Blank means no start limit" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker Label="Effective To" @bind-Date="_effectiveTo"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                                       HelperText="Blank means no end limit" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_request.Reason" Label="Reason"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" />
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="_saving">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SubmitAsync" Disabled="_loading || _saving">
+            @(_saving ? "Saving..." : (OverrideId is null ? "Add Override" : "Save Changes"))
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Guid? OverrideId { get; set; }
+
+    private readonly OverrideRequest _request = new();
+    private DateTime? _effectiveFrom;
+    private DateTime? _effectiveTo;
+
+    private List<AcademicLevel> _levels = new();
+    private List<LevelSection> _sections = new();
+    private List<DayOptionDto> _days = new();
+    private List<TimeSlotDto> _teachingSlots = new();
+    private List<SubjectScheduleConfigDto> _policy = new();
+
+    private MudForm _form = default!;
+    private bool _loading;
+    private bool _saving;
+    private List<string> _errors = new();
+
+    private readonly DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+    };
+
+    private IEnumerable<LevelSection> SectionsForLevel =>
+        _sections.Where(s => s.AcademicLevelID == _request.AcademicLevelId);
+
+    /// <summary>Replacement classes are scoped to the chosen level so the list stays usable in a
+    /// school with hundreds of classes.</summary>
+    private IEnumerable<SubjectScheduleConfigDto> ClassesForSelection
+    {
+        get
+        {
+            var levelName = _levels.FirstOrDefault(l => l.AcademicLevelID == _request.AcademicLevelId)?.LevelName;
+            if (string.IsNullOrEmpty(levelName)) return _policy.OrderBy(p => p.SubjectName);
+
+            return _policy
+                .Where(p => string.Equals(p.LevelName, levelName, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(p => p.SubjectName);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+
+        _levels = AppState.AcademicLevels ?? new List<AcademicLevel>();
+        _sections = AppState.AcademicSections ?? new List<LevelSection>();
+        _days = await SchedulingService.ListDaysAsync();
+        _policy = await SchedulingService.ListPolicyAsync();
+
+        var slots = await SchedulingService.ListTimeSlotsAsync();
+        _teachingSlots = slots
+            .Where(s => s.SlotType is not null && SlotTypes.Teaching.Contains(s.SlotType))
+            .OrderBy(s => s.StartTime)
+            .ToList();
+
+        if (OverrideId is not null)
+        {
+            var detail = await SchedulingService.GetOverrideAsync(OverrideId.Value);
+            if (detail is not null)
+            {
+                _request.AcademicLevelId = detail.AcademicLevelId;
+                _request.LevelSectionId = detail.LevelSectionId;
+                _request.StudentGroup = detail.StudentGroup;
+                _request.DayOfTheWeekId = detail.DayOfTheWeekId;
+                _request.TimeSlotId = detail.TimeSlotId;
+                _request.ReplacementClassId = detail.ReplacementClassId;
+                _request.Reason = detail.Reason;
+                _effectiveFrom = detail.EffectiveFrom?.ToDateTime(TimeOnly.MinValue);
+                _effectiveTo = detail.EffectiveTo?.ToDateTime(TimeOnly.MinValue);
+            }
+        }
+
+        _loading = false;
+    }
+
+    private void OnLevelChanged(Guid levelId)
+    {
+        _request.AcademicLevelId = levelId;
+
+        // The previously chosen section and class belong to the old level; clear them rather than
+        // silently submitting a mismatched pair.
+        _request.LevelSectionId = Guid.Empty;
+        _request.ReplacementClassId = Guid.Empty;
+    }
+
+    private static string FormatSlot(TimeSlotDto slot) =>
+        $"{slot.StartTime:HH\\:mm} - {slot.EndTime:HH\\:mm}" +
+        (string.IsNullOrWhiteSpace(slot.Description) ? "" : $" ({slot.Description})");
+
+    // MudSelect renders the raw value when nothing is selected, so a Guid-typed select would
+    // otherwise show an all-zero Guid before the user picks anything.
+
+    private string LevelToString(Guid id) =>
+        id == Guid.Empty
+            ? "Select a level"
+            : _levels.FirstOrDefault(l => l.AcademicLevelID == id)?.LevelName ?? "Unknown level";
+
+    private string SectionToString(Guid id) =>
+        id == Guid.Empty
+            ? "Select a section"
+            : _sections.FirstOrDefault(s => s.LevelSectionID == id)?.SectionCode ?? "Unknown section";
+
+    private string DayToString(Guid id) =>
+        id == Guid.Empty
+            ? "Select a day"
+            : _days.FirstOrDefault(d => d.DayId == id)?.DayName ?? "Unknown day";
+
+    private string TimeSlotToString(Guid id)
+    {
+        if (id == Guid.Empty) return "Select a period";
+
+        var slot = _teachingSlots.FirstOrDefault(s => s.TimeslotId == id);
+        return slot is null ? "Unknown period" : FormatSlot(slot);
+    }
+
+    private string ClassToString(Guid id) =>
+        id == Guid.Empty
+            ? "Select a class"
+            : _policy.FirstOrDefault(p => p.ClassId == id)?.SubjectName ?? "Unknown class";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SubmitAsync()
+    {
+        await _form.Validate();
+
+        var problems = new List<string>();
+        if (_request.AcademicLevelId == Guid.Empty) problems.Add("Choose an academic level.");
+        if (_request.LevelSectionId == Guid.Empty) problems.Add("Choose a section.");
+        if (_request.DayOfTheWeekId == Guid.Empty) problems.Add("Choose a day.");
+        if (_request.TimeSlotId == Guid.Empty) problems.Add("Choose a time slot.");
+        if (_request.ReplacementClassId == Guid.Empty) problems.Add("Choose a replacement class.");
+        if (string.IsNullOrWhiteSpace(_request.StudentGroup)) problems.Add("Student group is required.");
+
+        if (problems.Count > 0)
+        {
+            _errors = problems;
+            return;
+        }
+
+        _request.EffectiveFrom = _effectiveFrom is null ? null : DateOnly.FromDateTime(_effectiveFrom.Value);
+        _request.EffectiveTo = _effectiveTo is null ? null : DateOnly.FromDateTime(_effectiveTo.Value);
+
+        _saving = true;
+        _errors = new();
+
+        var result = OverrideId is null
+            ? await SchedulingService.CreateOverrideAsync(_request)
+            : await SchedulingService.UpdateOverrideAsync(OverrideId.Value, _request);
+
+        _saving = false;
+
+        if (result.Succeeded)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _errors = result.Errors;
+        }
+    }
+}

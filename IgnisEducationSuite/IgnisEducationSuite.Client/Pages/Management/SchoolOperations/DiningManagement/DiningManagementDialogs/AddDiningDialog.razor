@@ -1,0 +1,60 @@
+﻿@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<MudDialog>
+    <DialogContent>
+        <MudText Align="Align.Left" Typo="Typo.h5">Add New Dining Hall</MudText>
+        <MudDivider />
+        <MudTextField @bind-Value="newDiningHall.Name"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Label="Hall Name"
+                      Placeholder="e.g West Wing Cafeteria">
+        </MudTextField>
+        <MudTextField @bind-Value="newDiningHall.Location"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Label="Location"
+                      Placeholder="e.g Opposite Senior Block A">
+        </MudTextField>
+        <MudTextField @bind-Value="newDiningHall.Capacity"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Label="Capacity"
+                      Placeholder="e.g 100">
+        </MudTextField>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       OnClick="MudDialog.Cancel">
+                Cancel
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+            OnClick="SaveNewDiningHall">
+                Create
+            </MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    protected DiningHall newDiningHall = new();
+
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private async Task SaveNewDiningHall()
+    {
+        newDiningHall.DiningHallId = Guid.NewGuid();
+        newDiningHall.SchoolId = Guid.Parse(AppState.SchoolID);
+        var service = GenericService.GetService<DiningHall>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "dininghall", newDiningHall);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Dining Hall Successfully Added", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(newDiningHall));
+        }
+    }
+}

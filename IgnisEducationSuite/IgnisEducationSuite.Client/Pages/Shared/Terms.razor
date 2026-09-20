@@ -1,0 +1,84 @@
+﻿@page "/terms"
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6 mb-10">
+
+    <MudPaper Elevation="2" Class="pa-6">
+
+        <!-- Header -->
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom>
+            <b>Ignis Education Suite – Terms of Service</b>
+        </MudText>
+
+        <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary" Class="mb-4">
+            Effective Date: @DateTime.UtcNow.ToString("dd MMM yyyy")
+        </MudText>
+
+        <MudDivider Class="mb-4" />
+
+        <!-- Intro -->
+        <MudText Typo="Typo.body1" Paragraph="true">
+            These Terms of Service govern the use of the Ignis Education Suite (“Ignis”).
+            By accessing or using Ignis, schools and users agree to comply with these terms.
+        </MudText>
+
+        <!-- Sections -->
+        <PolicySection Title="1. Eligibility & Authority">
+            Ignis may only be used by registered schools and authorized users.
+            School administrators represent that they have authority to manage
+            accounts for teachers, students, and parents.
+        </PolicySection>
+
+        <PolicySection Title="2. User Roles & Responsibilities">
+            Users must access Ignis only within their assigned role.
+            Misuse, unauthorized access, or impersonation is strictly prohibited.
+        </PolicySection>
+
+        <PolicySection Title="3. Acceptable Use">
+            Ignis must be used solely for educational purposes.
+            Users may not upload malicious, unlawful, or abusive content.
+        </PolicySection>
+
+        <PolicySection Title="4. Data & Content Ownership">
+            Schools retain ownership of academic and institutional data.
+            Ignis does not claim ownership of uploaded content.
+        </PolicySection>
+
+        <PolicySection Title="5. Licensing & Access">
+            Access to Ignis is provided under a school license.
+            Features may be limited or suspended if licensing terms are not met.
+        </PolicySection>
+
+        <PolicySection Title="6. Availability & Maintenance">
+            Ignis strives for high availability but may undergo maintenance
+            or updates that temporarily affect access.
+        </PolicySection>
+
+        <PolicySection Title="7. Limitation of Liability">
+            Ignis is provided “as is”. Philtiara Enterprises is not liable
+            for indirect damages arising from system use.
+        </PolicySection>
+
+        <PolicySection Title="8. Termination">
+            Schools may request termination of service.
+            Ignis may suspend access in cases of misuse or breach.
+        </PolicySection>
+
+        <PolicySection Title="9. Governing Law">
+            These terms are governed by the laws applicable in the operating
+            jurisdiction of Philtiara Enterprises.
+        </PolicySection>
+
+        <PolicySection Title="10. Changes to Terms">
+            Ignis may update these terms periodically.
+            Continued use constitutes acceptance of updated terms.
+        </PolicySection>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Operated by <b>Philtiara Enterprises</b>
+        </MudText>
+
+    </MudPaper>
+</MudContainer>

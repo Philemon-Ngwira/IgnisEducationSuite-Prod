@@ -11,12 +11,29 @@ namespace EDUSphereSharedProject.Models.StoreProModels
         public Guid? StudentID { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public int? GradeLevel { get; set; }
+        public int? AcademicLevel { get; set; }
+        public string LevelName { get; set; }
         public string Term { get; set; }
         [Column(TypeName = "decimal(4,2)")]
         public decimal? GPA { get; set; }
         public DateTime? IssuedDate { get; set; }
         public DateTime? TermStartDate { get; set; }
         public DateTime? TermEndDate { get; set; }
+        public int? MarksInBestSix { get; set; }
+        public int? PointsInBestSix { get; set; }
+        public int? PositionInClass { get; set; }
+        public string PrincipleName { get; set; }
+        public string PrinciplesComment { get; set; }
+        public string DeanName { get; set; }
+        public string DeansComment { get; set; }
+        public string ReportCardType { get; set; }
+        public string SchoolName { get; set; }
+        public string SchoolEmail { get; set; }
+        public string SchoolWebsite { get; set; }
+
+        public string ClassName { get; set; }
+
+        public bool isGCE { get; set; }
+        public string StudentName { get; set; }
     }
 }

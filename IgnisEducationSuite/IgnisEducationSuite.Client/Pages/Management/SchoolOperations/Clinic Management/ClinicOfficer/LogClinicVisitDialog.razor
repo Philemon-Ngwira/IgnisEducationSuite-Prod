@@ -1,0 +1,225 @@
+﻿@inherits AppBaseComponent
+@using EDUSphereSharedProject.Models
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <!-- Symptoms / Complaint -->
+            <MudItem xs="12">
+                <MudTextField Lines="5"
+                              @bind-Value="newVisit.Symptoms"
+                              Label="Symptoms / Complaint"
+                              Placeholder="Describe student's condition" />
+            </MudItem>
+
+            <!-- Diagnosis -->
+            <MudItem xs="12">
+                <MudTextField Lines="5"
+                              @bind-Value="newVisit.Diagnosis"
+                              Label="Diagnosis"
+                              Placeholder="Enter diagnosis" />
+            </MudItem>
+
+            <!-- Initial Treatment -->
+            <MudItem xs="8">
+                <MudTextField @bind-Value="newVisit.Treatment"
+                              Label="Initial Treatment"
+                              Placeholder="e.g., Ice pack applied to swelling" />
+            </MudItem>
+
+            <!-- Days Off -->
+            <MudItem xs="4">
+                <MudTextField @bind-Value="newVisit.DaysOff"
+                              Label="Days Off (Optional)"
+                              Placeholder="e.g., 2" />
+            </MudItem>
+
+            <!-- Medications Autocomplete -->
+            <MudItem xs="12">
+                <MudAutocomplete T="ClinicMedication"
+                                 Label="Medications"
+                                 Value="selectedMed"
+                                 ValueChanged="MedicationSelected"
+                                 SearchFunc="SearchMedications"
+                                 ResetValueOnEmptyText="true"
+                                 SelectValueOnTab="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search"
+                                 AdornmentColor="Color.Primary"
+                                 ToStringFunc="MedicationConverter" />
+            </MudItem>
+
+            <!-- Medications Given List -->
+            @if (medicationsGiven.Any())
+            {
+                <MudItem xs="12">
+                    @foreach (var medLog in medicationsGiven.ToList())
+                    {
+                        <MudItem xs="8">
+                            <MudText Align="Align.Left">medLog.Medication.Name</MudText>
+                        </MudItem>
+                        <MudItem xs="4">
+                            <MudNumericField T="int" Value="@medLog.QuantityUsed"
+                                             ValueChanged="@(q => OnMedicationQuantityChanged(@medLog, q))"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             Min="0"
+                                             Max="@medLog.Medication.Stock" />
+                        </MudItem>
+                    }
+                </MudItem>
+            }
+
+            <!-- Additional Notes -->
+            <MudItem xs="12">
+                <MudTextField Lines="5"
+                              @bind-Value="newVisit.Notes"
+                              Label="Additional Notes"
+                              Placeholder="Private notes for medical records" />
+            </MudItem>
+        </MudGrid>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles=false>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       OnClick="MudDialog.Cancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="LogClinicVisit">Save</MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public Guid StudentID { get; set; } = Guid.Empty;
+    [Parameter] public ClinicStaff LoggedInStaff { get; set; } = new();
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private ClinicVisit newVisit = new();
+    private ClinicMedication selectedMed = new();
+    private List<ClinicMedicationLog> medicationsGiven = new();
+    private List<ClinicMedication> medicationsToUpdate = new();
+
+    [Parameter] public List<ClinicMedication> medications { get; set; } = new();
+
+    private Func<ClinicMedication, string> MedicationConverter = m => m?.Name ?? string.Empty;
+
+    /// <summary>Search medications that have stock</summary>
+    private async Task<IEnumerable<ClinicMedication>> SearchMedications(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return new List<ClinicMedication>();
+
+        return medications
+            .Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            .Where(x => x.Stock > 0);
+    }
+
+    /// <summary>Add medication to the visit if in stock</summary>
+    private void MedicationSelected(ClinicMedication med)
+    {
+        if (med == null || med.Stock <= 0)
+        {
+            Snackbar.Add("Medication is out of stock!", Severity.Warning);
+            return;
+        }
+
+        selectedMed = med;
+
+        var existingLog = medicationsGiven.FirstOrDefault(m => m.Medication == med);
+        if (existingLog != null)
+        {
+            if (existingLog.QuantityUsed < med.Stock)
+            {
+                existingLog.QuantityUsed++;
+            }
+            else
+            {
+                Snackbar.Add($"Cannot add more than available stock ({med.Stock})", Severity.Warning);
+            }
+        }
+        else
+        {
+            medicationsGiven.Add(new ClinicMedicationLog
+            {
+                Medication = med,
+                QuantityUsed = 1
+            });
+        }
+    }
+
+    /// <summary>Handles quantity changes and removes medication if quantity is 0</summary>
+    private void OnMedicationQuantityChanged(ClinicMedicationLog medLog, int quantity)
+    {
+        if (quantity <= 0)
+        {
+            medicationsGiven.Remove(medLog);
+        }
+        else
+        {
+            medLog.QuantityUsed = quantity;
+        }
+    }
+
+    /// <summary>Logs the visit and updates medication stock</summary>
+    private async Task LogClinicVisit()
+    {
+        newVisit.VisitId = Guid.NewGuid();
+        newVisit.VisitDate = DateTime.UtcNow;
+        newVisit.AttendedByStaffId = LoggedInStaff.StaffId;
+        newVisit.ClinicId = LoggedInStaff.ClinicId;
+        newVisit.ReturnToClassDate = DateTime.Today.AddDays(newVisit.DaysOff ?? 0);
+        newVisit.StudentId = StudentID;
+        newVisit.isActive = true;
+        var visitService = GenericService.GetService<ClinicVisit>();
+        var visitResult = await visitService.PostAsync("api/Dynamic/PostEntity", "clinicvisit", newVisit);
+
+        if (!visitResult.IsSuccess)
+        {
+            Snackbar.Add("Failed to log clinic visit.", Severity.Error);
+            return;
+        }
+
+        if (!medicationsGiven.Any())
+        {
+            MudDialog.Close(DialogResult.Ok(newVisit));
+            return;
+        }
+        var MedicationsGiven = medicationsGiven.ToList();
+        // Prepare medication logs and update stock
+        foreach (var medLog in medicationsGiven)
+        {
+            medLog.LogId = Guid.NewGuid();
+            medLog.VisitId = visitResult.Data.VisitId;
+            medLog.MedicationId = medLog.Medication.MedicationId;
+
+            medLog.Medication.Stock -= medLog.QuantityUsed;
+            medicationsToUpdate.Add(medLog.Medication);
+            medLog.Medication = null;
+        }
+
+        // Save medication logs
+        var logService = GenericService.GetService<List<ClinicMedicationLog>>();
+        var logResult = await logService.PostAsync("api/Dynamic/PostEntities", "medlog", medicationsGiven);
+
+        if (!logResult.IsSuccess)
+        {
+            Snackbar.Add("Failed to log medications.", Severity.Error);
+            return;
+        }
+
+        // Update medication stock
+        var medService = GenericService.GetService<List<ClinicMedication>>();
+        var medResult = await medService.UpdateAsync("api/Dynamic/UpdateEntities", "meds", medicationsToUpdate);
+
+        if (medResult.IsSuccess)
+        {
+            newVisit.ClinicMedicationLogs = MedicationsGiven.ToList();
+            MudDialog.Close(DialogResult.Ok(newVisit));
+        }
+        else
+        {
+            Snackbar.Add("Failed to update medication stock.", Severity.Error);
+        }
+    }
+}

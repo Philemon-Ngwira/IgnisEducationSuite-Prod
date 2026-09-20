@@ -1,0 +1,93 @@
+﻿@page "/liveclass/{MeetingNumber}/{Password}"
+@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<!-- Zoom Container for Embedded SDK -->
+<div id="meetingSDKElement" class="zoom-container"></div>
+<style>
+    /* Make the Zoom container take remaining space between header and footer */
+    .zoom-container {
+        width: 100%;
+        height: calc(100vh - 120px); /* Adjust 120px to your header + footer height */
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        background-color: #000;
+    }
+    
+
+
+</style>
+
+@code {
+    [Parameter] public string MeetingNumber { get; set; }
+    [Parameter] public string Password { get; set; }
+    [Inject] LessonService lessonService { get; set; } = default!;
+    [Inject] NavigationManager navigationManager { get; set; } = default!;
+    private string sdkKey = Environment.GetEnvironmentVariable("ZoomSdkKey");
+    private string sdkSecret = Environment.GetEnvironmentVariable("ZoomSdkSecret");
+    private LiveMeeting Meeting = new();
+
+    [JSInvokable]
+    public void OnZoomMeetingEnded(string meetingNumber)
+    {
+        var isDone = true;
+        StateHasChanged(); // optional, if you want the UI to update
+        Console.WriteLine($"Meeting {meetingNumber} ended. isDone = {isDone}");
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await JS.InvokeVoidAsync("HideIgnisFooter");
+        int role = 0; // 0 = attendee, 1 = host
+        Meeting = await GetMeeting();
+
+        if (Meeting == null)
+        {
+            // Handle meeting not found
+            Console.WriteLine("Meeting not found.");
+            return;
+        }
+        if (Meeting.CreatorEmail == AppState.UserEmail)
+        {
+            role = 1;
+        }
+        else
+        {
+            role = 0;
+        }
+        var sigRequest = new
+        {
+            SdkKey = string.Empty,
+            SdkSecret = string.Empty,
+            MeetingNumber = MeetingNumber,
+            Role = role // 0 = attendee, 1 = host
+        };
+
+        var response = await HttpClient.PostAsJsonAsync("api/Zoom/signature", sigRequest);
+        var result = await response.Content.ReadFromJsonAsync<SignatureResponse>();
+
+        await JS.InvokeVoidAsync("ZoomInterop.init",
+            result.signature,
+            MeetingNumber,
+            $"{AppState.FirstName.Substring(0, 1)} {AppState.LastName}",
+            result.SdkKey,
+            Meeting.MeetingPassword
+        );
+    }
+
+    
+    public async Task<LiveMeeting> GetMeeting()
+    {
+        var service = GenericService.GetService<LiveMeeting>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetMeetingData/{MeetingNumber}", true);
+        return result.Data.FirstOrDefault()!;
+    }
+    public class SignatureResponse
+    {
+        public string signature { get; set; }
+        public string SdkKey { get; set; }
+        public string SdkSecret { get; set; }
+    }
+}

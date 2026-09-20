@@ -1,11 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Text;
+﻿using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Packaging;
+using EduSphereDomain.Repositories;
+using EDUSphereSharedProject.Models;
 using EDUSphereSharedProject.UniversalModels;
 using IgnisEducationSuite.ServerServices;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using OpenAI.Assistants;
+using System.Text;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
-using ClosedXML.Excel;
 
 
 namespace IgnisEducationSuite.Controllers
@@ -15,10 +21,14 @@ namespace IgnisEducationSuite.Controllers
     public class UploadController : ControllerBase
     {
         private readonly PDFService _pDFService;
+        private readonly EduSphereRepository _repository;
 
-        public UploadController(PDFService pDFService)
+        private readonly IConfiguration _configuration;
+        public UploadController(PDFService pDFService, EduSphereRepository repository, IConfiguration configuration)
         {
-           _pDFService = pDFService;
+            _pDFService = pDFService;
+            _repository = repository;
+            _configuration = configuration;
         }
         [HttpPost("uploadWord")]
         public async Task<IActionResult> UploadWordDocument(IFormFile file)
@@ -35,7 +45,7 @@ namespace IgnisEducationSuite.Controllers
             }
 
             // Process the file to extract questions
-            var parser = new EduSphereDomain.Repositories.WordParser();
+            var parser = new WordParser();
             var questions = parser.ExtractQuestionsFromWord(filePath);
 
             // Delete the temporary file after use
@@ -46,15 +56,16 @@ namespace IgnisEducationSuite.Controllers
 
         #region Lesson Endpoints
         [HttpPost("uploadLesson")]
-        public async Task<IActionResult> UploadLesson(IFormFile file)
+        public async Task<IActionResult> UploadLesson(
+     IFormFile file,
+     [FromQuery] Guid schoolId)
         {
             if (file == null || file.Length == 0)
-            {
                 return BadRequest("File is empty or not provided.");
-            }
 
             string extractedText = string.Empty;
 
+            // 1️⃣ Extract text (for editor preview only)
             if (file.FileName.EndsWith(".pdf"))
             {
                 extractedText = await ExtractTextFromPdfAsync(file.OpenReadStream());
@@ -68,8 +79,28 @@ namespace IgnisEducationSuite.Controllers
                 return BadRequest("Unsupported file type.");
             }
 
-            return Ok(extractedText);
+            // 2️⃣ Upload to Azure
+            await using var stream = file.OpenReadStream();
+            var uploader = new BlobUploader(_configuration);
+
+            var safeFileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var blobPath = $"schools/{schoolId}/IgnisEduSuitelessons/{DateTime.UtcNow:yyyy/MM}/{safeFileName}";
+
+            var url = await uploader.UploadFileAsync(
+                stream,
+                blobPath,
+                containerName: "ignisedusuitelessons"
+            );
+
+            // 3️⃣ Return both
+            return Ok(new
+            {
+                Url = url,
+                ExtractedText = extractedText
+            });
         }
+
+
         private async Task<string> ExtractTextFromPdfAsync(Stream fileStream)
         {
             StringBuilder text = new StringBuilder();
@@ -95,11 +126,13 @@ namespace IgnisEducationSuite.Controllers
         #endregion
 
         #region Excel
+        
         [HttpPost("uploadSchedules")]
-        public async Task<IActionResult> Upload(IFormFile file)
+        public async Task<IActionResult> Upload([FromForm] IFormFile file,
+    [FromForm] string SchoolID)
         {
-            var bonuses = new List<ScheduleMappingClass>();
-
+            var schedules = new List<ScheduleMappingClass>();
+            var schoolStructure = await _repository.GetAcademicLevelsAsync(SchoolID.ToString());
             if (file != null && file.Length > 0)
             {
                 using var stream = new MemoryStream();
@@ -107,34 +140,588 @@ namespace IgnisEducationSuite.Controllers
                 stream.Position = 0;
 
                 using var workbook = new XLWorkbook(stream);
-                var worksheet = workbook.Worksheet(1); // Assuming data is on the first sheet
+                var worksheet = workbook.Worksheet(1); // First sheet
 
                 foreach (var row in worksheet.RowsUsed().Skip(1)) // Skip header
                 {
-                    var bonus = new ScheduleMappingClass
+                    // Safely read each cell
+                    string className = row.Cell(1).GetValue<string>()?.Trim() ?? "Unknown";
+                    string gradeLevelStr = row.Cell(2).GetValue<string>()?.Trim() ?? "0";
+                    string gradeSection = row.Cell(3).GetValue<string>()?.Trim() ?? "";
+                    string day = row.Cell(4).GetValue<string>()?.Trim() ?? "";
+                    string startTimeStr = row.Cell(5).GetValue<string>()?.Trim() ?? "";
+                    string endTimeStr = row.Cell(6).GetValue<string>()?.Trim() ?? "";
+
+                    // Parse GradeLevel safely
+
+                    var gradeLevel = schoolStructure.Where(x => x.LevelName.ToUpper() == gradeLevelStr.ToUpper()).Select(x => x.LevelInt).FirstOrDefault();
+
+                    // Parse times safely
+                    TimeSpan.TryParse(startTimeStr, out TimeSpan startTime);
+                    TimeSpan.TryParse(endTimeStr, out TimeSpan endTime);
+
+                    var schedule = new ScheduleMappingClass
                     {
-                        Class = row.Cell(1).GetValue<string>(), // Employee ID column
-                        GradeLevel = int.Parse(row.Cell(2).GetValue<string>()),             // Bonus Type column
-                        GradeSection = row.Cell(3).GetValue<string>(),
-                        Day = row.Cell(4).GetValue<string>(),
-                        StartTime = row.Cell(5).GetValue<string>(),
-                        EndTime = row.Cell(6).GetValue<string>(),
+                        Class = className,
+                        GradeLevel = (int)gradeLevel,
+                        GradeSection = gradeSection,
+                        Day = day,
+                        StartTime = startTime.ToString(),
+                        EndTime = endTime.ToString()
                     };
-                    bonuses.Add(bonus);
+
+                    schedules.Add(schedule);
                 }
             }
 
-            return Ok(bonuses);
+            return Ok(schedules);
         }
+
+        [HttpPost("uploadStudents")]
+        public async Task<IActionResult> UploadStudents([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var students = new List<Student>();
+            var errors = new List<RowError>();
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1).Select((r, i) => new { Row = r, RowIndex = i + 2 }))
+            {
+                try
+                {
+                    string firstName = row.Row.Cell(1).GetString()?.Trim();
+                    string lastName = row.Row.Cell(2).GetString()?.Trim();
+                    string gender = row.Row.Cell(3).GetString()?.Trim();
+                    string address = row.Row.Cell(4).GetString()?.Trim();
+                    string email = row.Row.Cell(5).GetString()?.Trim();
+                    string studentNumber = row.Row.Cell(6).GetString()?.Trim();
+                    string dateCell = row.Row.Cell(7).GetString()?.Trim();
+                    string country = row.Row.Cell(8).GetString()?.Trim();
+                    string city = row.Row.Cell(9).GetString()?.Trim();
+                    string gradeSection = row.Row.Cell(10).GetString()?.Trim();
+                    string levelName = row.Row.Cell(11).GetString()?.Trim();
+                    string paymentCell = row.Row.Cell(12).GetString()?.Trim();
+                    string daySchoolCell = row.Row.Cell(13).GetString()?.Trim();
+                    string groupName = row.Row.Cell(14).GetString()?.Trim();
+
+                    // Required fields
+                    if (string.IsNullOrWhiteSpace(firstName) ||
+                        string.IsNullOrWhiteSpace(lastName) ||
+                        string.IsNullOrWhiteSpace(levelName))
+                    {
+                        throw new Exception("Missing required field (FirstName, LastName or LevelName).");
+                    }
+
+                    // Gender default
+                    if (string.IsNullOrWhiteSpace(gender))
+                        gender = "Male";
+
+                    if (!gender.Equals("Male", StringComparison.OrdinalIgnoreCase) &&
+                        !gender.Equals("Female", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new Exception("Gender must be 'Male' or 'Female'.");
+                    }
+
+                    // Date parsing
+                    DateTime dateOnBoarded = DateTime.Today;
+                    if (!string.IsNullOrWhiteSpace(dateCell) && DateTime.TryParse(dateCell, out var parsedDate))
+                    {
+                        dateOnBoarded = parsedDate;
+                    }
+
+                    // Boolean parsing
+                    bool paymentStatus = paymentCell == "1" || paymentCell?.ToLower() == "true";
+                    bool isDaySchool = daySchoolCell == "1" || daySchoolCell?.ToLower() == "true";
+
+                    students.Add(new Student
+                    {
+                        FirstName = firstName,
+                        LastName = lastName,
+                        Gender = gender,
+                        Address = address ?? "",
+                        Email = email ?? "",   // primary school students may not have email
+                        StudentNumber = studentNumber,
+                        DateOnBoarded = dateOnBoarded,
+                        Country = country ?? "",
+                        City = city ?? "",
+                        GradeSection = gradeSection ?? "",
+                        LevelName = levelName,
+                        PaymentStatus = paymentStatus,
+                        isDaySchool = isDaySchool,
+                        GroupName = string.IsNullOrWhiteSpace(groupName) ? null : groupName
+                    });
+                }
+                catch (Exception exRow)
+                {
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
+                }
+            }
+
+            return Ok(new
+            {
+                Preview = students,
+                Errors = errors
+            });
+        }
+
+        [HttpPost("uploadTeachers")]
+        public async Task<IActionResult> UploadTeachers([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var teachers = new List<Teacher>();
+            var errors = new List<RowError>();
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1)
+                         .Select((r, i) => new { Row = r, RowIndex = i + 2 }))
+            {
+                try
+                {
+                    string firstName = row.Row.Cell(1).GetValue<string>()?.Trim();
+                    string lastName = row.Row.Cell(2).GetValue<string>()?.Trim();
+                    string email = row.Row.Cell(3).GetValue<string>()?.Trim();
+                    string contactNo = row.Row.Cell(4).GetValue<string>()?.Trim();
+                    string gender = row.Row.Cell(5).GetValue<string>()?.Trim();
+                    string dateCell = row.Row.Cell(6).GetValue<string>()?.Trim();
+                    string nationality = row.Row.Cell(7).GetValue<string>()?.Trim();
+                    string city = row.Row.Cell(8).GetValue<string>()?.Trim();
+                    string employeeId = row.Row.Cell(9).GetValue<string>()?.Trim();
+
+                    // Required fields
+                    if (string.IsNullOrWhiteSpace(firstName) ||
+                        string.IsNullOrWhiteSpace(lastName) ||
+                        string.IsNullOrWhiteSpace(email) ||
+                        string.IsNullOrWhiteSpace(employeeId))
+                    {
+                        throw new Exception("Missing required field.");
+                    }
+
+                    // Gender validation
+                    if (string.IsNullOrWhiteSpace(gender))
+                        gender = "Male";
+
+                    if (gender != "Male" && gender != "Female")
+                        throw new Exception("Gender must be 'Male' or 'Female'.");
+
+                    // DateEngaged
+                    DateTime dateEngaged;
+                    if (!DateTime.TryParse(dateCell, out dateEngaged))
+                        dateEngaged = DateTime.Today;
+
+                    teachers.Add(new Teacher
+                    {
+                        FirstName = firstName,
+                        LastName = lastName,
+                        EmailAddress = email,
+                        ContactNo = contactNo,
+                        Gender = gender,
+                        DateEngaged = dateEngaged,
+                        Nationality = nationality,
+                        City = city,
+                        EmployeeID = employeeId
+                    });
+                }
+                catch (Exception exRow)
+                {
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
+                }
+            }
+
+            return Ok(new UploadPreviewResult
+            {
+                TeacherPreview = teachers,
+                Errors = errors
+            });
+        }
+
+        [HttpPost("uploadParents")]
+        public async Task<IActionResult> UploadParents([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var parents = new List<Parent>();
+            var errors = new List<RowError>();
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1)
+                         .Select((r, i) => new { Row = r, RowIndex = i + 2 }))
+            {
+                try
+                {
+                    string firstName = row.Row.Cell(1).GetValue<string>()?.Trim();
+                    string lastName = row.Row.Cell(2).GetValue<string>()?.Trim();
+                    string email = row.Row.Cell(3).GetValue<string>()?.Trim();
+                    string phone = row.Row.Cell(4).GetValue<string>()?.Trim();
+                    string gender = row.Row.Cell(5).GetValue<string>()?.Trim();
+                    string address = row.Row.Cell(6).GetValue<string>()?.Trim();
+                    string country = row.Row.Cell(7).GetValue<string>()?.Trim();
+                    string city = row.Row.Cell(8).GetValue<string>()?.Trim();
+                    string studentNumbersRaw = row.Row.Cell(9).GetValue<string>()?.Trim();
+
+                    // Required fields
+                    if (string.IsNullOrWhiteSpace(firstName) ||
+                        string.IsNullOrWhiteSpace(lastName) ||
+                        string.IsNullOrWhiteSpace(phone))
+                    {
+                        throw new Exception("Missing required field.");
+                    }
+
+                    // Gender validation
+                    if (string.IsNullOrWhiteSpace(gender))
+                        gender = "Male";
+
+                    if (gender != "Male" && gender != "Female")
+                        throw new Exception("Gender must be 'Male' or 'Female'.");
+
+                    parents.Add(new Parent
+                    {
+                        FirstName = firstName,
+                        LastName = lastName,
+                        Email = email,
+                        PhoneNumber = phone,
+                        Gender = gender,
+                        Address = address,
+                        Country = country,
+                        City = city,
+
+                        // TEMP storage for preview / later resolution
+                        StudentNumbersRaw = studentNumbersRaw
+                    });
+                }
+                catch (Exception exRow)
+                {
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
+                }
+            }
+
+            return Ok(new UploadPreviewResult
+            {
+                ParentPreview = parents,
+                Errors = errors
+            });
+        }
+        [HttpPost("uploadStructures")]
+        public async Task<IActionResult> UploadStructures([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var levels = new List<AcademicLevel>();
+            var errors = new List<RowError>();
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1)
+                         .Select((r, i) => new { Row = r, RowIndex = i + 2 }))
+            {
+                try
+                {
+                    int levelInt = row.Row.Cell(1).GetValue<int>();
+                    string LevelName = row.Row.Cell(2).GetValue<string>()?.Trim();
+                    string GroupName = row.Row.Cell(3).GetValue<string>()?.Trim();
+                    int SortOrder = row.Row.Cell(4).GetValue<int>();
+
+
+                    // Required fields
+                    if (levelInt == 0 ||
+                        string.IsNullOrWhiteSpace(LevelName) ||
+                        string.IsNullOrWhiteSpace(GroupName)
+                        )
+                    {
+                        throw new Exception("Missing required field.");
+                    }
+
+
+                    levels.Add(new AcademicLevel
+                    {
+                        LevelInt = levelInt,
+                        LevelName = LevelName,
+                        GroupName = GroupName,
+                        SortOrder = SortOrder,
+
+                    });
+                }
+                catch (Exception exRow)
+                {
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
+                }
+            }
+
+            return Ok(new UploadPreviewResult
+            {
+                academicLevels = levels,
+                Errors = errors
+            });
+        }
+        [HttpPost("uploadMedicine")]
+        public async Task<IActionResult> UploadMedInventory([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var levels = new List<ClinicMedication>();
+            var errors = new List<RowError>();
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1)
+                         .Select((r, i) => new { Row = r, RowIndex = i + 2 }))
+            {
+                try
+                {
+                    string Name = row.Row.Cell(1).GetValue<string>();
+                    int Stock = row.Row.Cell(2).GetValue<int>();
+                    string unit = row.Row.Cell(3).GetValue<string>();
+                    DateTime ExpiryDate = row.Row.Cell(4).GetValue<DateTime>();
+
+
+                    levels.Add(new ClinicMedication
+                    {
+                        MedicationId = Guid.NewGuid(),
+                        Name = Name,
+                        Stock = Stock,
+                        Unit = unit,
+                        ExpiryDate = ExpiryDate,
+
+                    });
+                }
+                catch (Exception exRow)
+                {
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
+                }
+            }
+
+            return Ok(new UploadPreviewResult
+            {
+                Medications = levels,
+                Errors = errors
+            });
+        }
+
+
+        //uploadFoodItems
+        [HttpPost("uploadFoodItems")]
+        public async Task<IActionResult> UploadFoodInventory([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var levels = new List<FoodItem>();
+            var errors = new List<RowError>();
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1)
+         .Select((r, i) => new { Row = r, RowIndex = i + 2 }))
+            {
+                try
+                {
+                    var name = row.Row.Cell(1).GetValue<string>()?.Trim();
+                    if (string.IsNullOrWhiteSpace(name))
+                        throw new Exception("Name is required.");
+
+                    var category = row.Row.Cell(2).GetValue<string>()?.Trim();
+                    if (category != "Perishable" && category != "Non-perishable")
+                        throw new Exception("Category must be Perishable or Non-perishable.");
+
+                    if (!int.TryParse(row.Row.Cell(3).GetValue<string>(), out var hasExpiry)
+                        || (hasExpiry != 0 && hasExpiry != 1))
+                        throw new Exception("HasFixedExpiry must be 0 or 1.");
+
+                    int? shelfLife = null;
+                    var shelfLifeCell = row.Row.Cell(4);
+                    if (!shelfLifeCell.IsEmpty())
+                    {
+                        if (int.TryParse(shelfLifeCell.GetValue<string>(), out var parsed))
+                            shelfLife = parsed;
+                        else
+                            throw new Exception("DefaultShelfLife must be a number.");
+                    }
+
+                    if (hasExpiry == 1 && shelfLife.HasValue)
+                        throw new Exception("DefaultShelfLife must be empty when HasFixedExpiry = 1.");
+
+                    var allowedUnits = new HashSet<string> { "L", "g", "kg", "ml", "pcs", "pkt", "bag", "loaf" };
+                    var unit = row.Row.Cell(5).GetValue<string>()?.Trim();
+
+                    if (!allowedUnits.Contains(unit))
+                        throw new Exception($"Invalid unit '{unit}'.");
+
+                    var notes = row.Row.Cell(6).GetValue<string>();
+
+                    levels.Add(new FoodItem
+                    {
+                        FoodItemID = Guid.NewGuid(),
+                        Name = name,
+                        Category = category,
+                        HasFixedExpiry = hasExpiry == 1,
+                        DefaultShelfLife = shelfLife,
+                        Unit = unit,
+                        Notes = notes
+                    });
+                }
+                catch (Exception exRow)
+                {
+                    errors.Add(new RowError
+                    {
+                        RowIndex = row.RowIndex,
+                        Message = exRow.Message
+                    });
+                }
+            }
+
+            return Ok(new UploadPreviewResult
+            {
+                foodItems = levels,
+                Errors = errors
+            });
+        }
+        //uploadStructures
+
+        [HttpPost("uploadPayments")]
+        public async Task<IActionResult> UploadPayments([FromForm] IFormFile file, [FromForm] string schoolId)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            var unmatchedRows = new List<string>();
+            var updatedPayments = new List<(string StudentNumber, bool IsPaid)>();
+
+            // Load all students for the school in memory
+            var students = await _repository.GetStudentsBySchool(schoolId);
+            if (students == null || !students.Any())
+                return BadRequest("No students found for the specified school.");
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1); // first sheet
+
+            // Iterate rows, skip header
+            foreach (var row in worksheet.RowsUsed().Skip(1))
+            {
+                string studentNumber = row.Cell(1).GetValue<string>()?.Trim();
+                string paymentStatusRaw = row.Cell(5).GetValue<string>()?.Trim()?.ToLower();
+
+                if (string.IsNullOrEmpty(studentNumber) || string.IsNullOrEmpty(paymentStatusRaw))
+                {
+                    unmatchedRows.Add($"Row {row.RowNumber()}: Missing student number or payment status.");
+                    continue;
+                }
+
+                if (!new[] { "paid", "unpaid" }.Contains(paymentStatusRaw))
+                {
+                    unmatchedRows.Add($"Row {row.RowNumber()}: Invalid payment status '{paymentStatusRaw}'. Must be 'Paid' or 'Unpaid'.");
+                    continue;
+                }
+
+                var student = students.FirstOrDefault(s => s.StudentNumber.Equals(studentNumber, StringComparison.OrdinalIgnoreCase));
+                if (student == null)
+                {
+                    unmatchedRows.Add($"Row {row.RowNumber()}: Student '{studentNumber}' not found.");
+                    continue;
+                }
+
+                updatedPayments.Add((student.StudentNumber, paymentStatusRaw == "paid"));
+            }
+
+            // If any unmatched rows exist, return them without updating DB
+            if (unmatchedRows.Any())
+            {
+                return BadRequest(new
+                {
+                    message = "Some rows could not be matched. Please fix the issues and re-upload.",
+                    errors = unmatchedRows
+                });
+            }
+
+            // Update all matched students
+            foreach (var p in updatedPayments)
+            {
+                await _repository.UpdateStudentPaymentStatus(p.StudentNumber, p.IsPaid);
+            }
+
+            // Optionally: trigger stored procedure to disable unpaid accounts
+            //await _repository.DisableAccountsForUnpaidStudents(schoolId);
+
+            return Ok(new
+            {
+                message = "Payments uploaded successfully.",
+                updatedCount = updatedPayments.Count
+            });
+        }
+
+
         #endregion
 
         #region ReportCards
         [HttpPost("generatePDF")]
-        public IActionResult GeneratePdf([FromBody] string htmlContent)
+        public IActionResult GeneratePdf([FromBody] ReportCardPdfDTO reportCard)
         {
+            if (reportCard == null)
+                return BadRequest("Report card data is required.");
 
-
-            var pdfBytes = _pDFService.GeneratePdf(htmlContent);
+            var pdfBytes = _pDFService.GeneratePdf(reportCard);
 
             return File(pdfBytes, "application/pdf", "ReportCard.pdf");
         }

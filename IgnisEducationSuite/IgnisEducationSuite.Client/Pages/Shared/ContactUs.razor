@@ -1,0 +1,63 @@
+﻿@page "/Contact"
+@using MudBlazor
+
+<MudPaper Elevation="2" Class="pa-5">
+
+    <MudStack Spacing="3" AlignItems="AlignItems.Center">
+
+        <!-- Title -->
+        <MudText Typo="Typo.h6">
+            <b>Contact & Support</b>
+        </MudText>
+
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+            Need help or want to learn more about Ignis?
+            Reach us through the channels below.
+        </MudText>
+
+        <MudDivider Class="my-2" />
+
+        <!-- Contact Actions -->
+        <MudStack Spacing="2" Style="width:100%">
+
+            <!-- Website -->
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Language"
+                       Href="https://www.philtiaraenterprises.com"
+                       Target="_blank"
+                       FullWidth="true">
+                Visit Our Website
+            </MudButton>
+
+            <!-- Facebook -->
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Custom.Brands.Facebook"
+                       Href="https://web.facebook.com/profile.php?id=61569248762603
+"
+                       Target="_blank"
+                       FullWidth="true">
+                Follow Us on Facebook
+            </MudButton>
+
+            <!-- WhatsApp Business -->
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       StartIcon="@Icons.Custom.Brands.WhatsApp"
+                       Href="https://wa.me/260774448381"
+                       Target="_blank"
+                       FullWidth="true">
+                Chat with Us on WhatsApp
+            </MudButton>
+
+        </MudStack>
+
+        <!-- Footer -->
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
+            © @DateTime.UtcNow.Year Philtiara Enterprises
+        </MudText>
+
+    </MudStack>
+
+</MudPaper>

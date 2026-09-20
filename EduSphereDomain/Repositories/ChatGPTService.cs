@@ -25,7 +25,7 @@ namespace EduSphereDomain.Repositories
         {
             var requestBody = new
             {
-                model = "gpt-3.5-turbo",
+                model = "gpt-4o",
                 messages = new[]
                 {
                 new { role = "system", content = "You are chatting with a Blazor application." },

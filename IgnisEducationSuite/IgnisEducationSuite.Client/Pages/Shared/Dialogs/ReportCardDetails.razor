@@ -1,5 +1,5 @@
 ﻿﻿@using EDUSphereSharedProject.Models.StoreProModels
-
+@inherits AppBaseComponent
 <MudDialog>
     <DialogContent>
         @if (isLoading)
@@ -17,29 +17,66 @@
         }
         <div class="dialog-container">
             <div class="report-card">
+                <!-- Header -->
                 <div class="header">
-                    <img src="/images/LogoW.png" alt="School Logo" />
-                    <h1>Ignis Education Suite</h1>
-                    <p>Phone: +260760581058</p>
-                    <p>Email: philtiara.enterprises@gmail.com</p>
-                    <p>Website: www.philtiara.com</p>
+                    <img src="@($"data:image/jpeg;base64, {AppState.SchoolLogo}")" alt="School Logo" />
+                    <h4>@student.SchoolName</h4>
+                    <p>Email: @student.SchoolEmail</p>
+                    <p>Website: <a href="@student.SchoolWebsite" target="_blank">@student.SchoolWebsite</a></p>
                 </div>
+
+                <!-- Student Info -->
                 <div class="student-info">
                     <table>
                         <tr>
                             <th>Name of Student:</th>
-                            <td id="studentName">@student.FirstName @student.LastName</td>
+                            <td>@student.FirstName @student.LastName</td>
                             <th>School Year:</th>
-                            <td id="schoolYear">@student.IssuedDate.Value.Year</td>
+                            <td>@student.IssuedDate?.Year</td>
                         </tr>
                         <tr>
                             <th>Grade Level:</th>
-                            <td id="gradeLevel">@student.GradeLevel</td>
+                            <td>@student.LevelName</td>
                             <th>GPA:</th>
-                            <td id="overallGrade">@student.GPA</td>
+                            <td>@student.GPA</td>
+                        </tr>
+                        <tr>
+                            <th>Points in Best Six:</th>
+                            @if (isGCE)
+                            {
+                                <td>@("GCE")</td>
+
+                            }
+                            else
+                            {
+                                <td>@student.PointsInBestSix</td>
+
+                            }
+                            <th>Marks in Best Six:</th>
+                            <td>@student.MarksInBestSix</td>
+                        </tr>
+                        <tr>
+                            <th>Position in Class:</th>
+                            @if (isGCE)
+                            {
+                                <td>@("GCE")</td>
+
+                            }
+                            else
+                            {
+                                <td>@student.PositionInClass</td>
+                            }
+                            <th>Term:</th>
+                            <td>@student.Term</td>
+                        </tr>
+                        <tr>
+                            <th>Report Card Type:</th>
+                            <td colspan="3">@student.ReportCardType</td>
                         </tr>
                     </table>
                 </div>
+
+                <!-- Grades Table -->
                 <div class="grades">
                     <table>
                         <thead>
@@ -63,6 +100,8 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Attendance -->
                 <div class="attendance">
                     <table>
                         <thead>
@@ -82,12 +121,47 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Dean/Principal Comments -->
+                @if (!string.IsNullOrWhiteSpace(student.DeanName) || !string.IsNullOrWhiteSpace(student.PrincipleName))
+                {
+                    <div class="comments">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ROLE</th>
+                                    <th>NAME</th>
+                                    <th>COMMENT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!string.IsNullOrWhiteSpace(student.DeanName))
+                                {
+                                    <tr>
+                                        <td>Dean</td>
+                                        <td>@student.DeanName</td>
+                                        <td>@student.DeansComment</td>
+                                    </tr>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(student.PrincipleName))
+                                {
+                                    <tr>
+                                        <td>Principal</td>
+                                        <td>@student.PrincipleName</td>
+                                        <td>@student.PrinciplesComment</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         </div>
+
     </DialogContent>
     <DialogActions>
         <MudButtonGroup OverrideStyles="false">
-            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel">Close</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" OnClick="MudDialog.Cancel">Close</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Mail" OnClick="PrepareAndMailDocument">Get Report Card</MudButton>
         </MudButtonGroup>
     </DialogActions>

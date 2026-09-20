@@ -1,0 +1,648 @@
+@using EDUSphereSharedProject.UniversalModels.ReportCards
+@using IgnisEducationSuite.Client.Services
+@inherits AppBaseComponent
+@inject IReportCardEntryService ReportCardEntry
+
+@* Class-based mark entry. Replaces opening each student in turn: a teacher picks the subject-class
+   they teach and enters marks for every enrolled student on one sheet, so a student who has been
+   missed is visible rather than merely absent. *@
+
+<MudGrid Spacing="2" Class="mb-3">
+    <MudItem xs="12" md="3">
+        <MudSelect T="string" Label="Report Type" Value="_reportCardType"
+                   ValueChanged="OnReportTypeChangedAsync"
+                   Variant="Variant.Outlined" Margin="Margin.Dense">
+            @foreach (var type in ReportTypes)
+            {
+                <MudSelectItem Value="@type">@type</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+
+    @if (_sheet is null)
+    {
+        @* Filter options are built from the classes this user actually teaches, so the level and
+           section lists only ever offer levels they are responsible for. *@
+        <MudItem xs="12" md="3">
+            <MudSelect T="string" Label="Academic Level" Value="_levelFilter"
+                       ValueChanged="OnLevelFilterChanged"
+                       ToStringFunc="@(v => string.IsNullOrEmpty(v) ? "All levels" : v)"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem Value="@("")">All levels</MudSelectItem>
+                @foreach (var level in AvailableLevels)
+                {
+                    <MudSelectItem Value="@level">@level</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" md="3">
+            <MudSelect T="string" Label="Section" @bind-Value="_sectionFilter"
+                       ToStringFunc="@(v => string.IsNullOrEmpty(v) ? "All sections" : v)"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem Value="@("")">All sections</MudSelectItem>
+                @foreach (var sectionCode in AvailableSections)
+                {
+                    <MudSelectItem Value="@sectionCode">@sectionCode</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" md="3">
+            <MudTextField @bind-Value="_subjectFilter" Label="Find a subject"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" Clearable="true" />
+        </MudItem>
+
+        @if (_scope.CanViewAllClasses)
+        {
+            <MudItem xs="12">
+                <MudSwitch T="bool" Value="_viewingAllClasses" ValueChanged="OnViewAllChangedAsync"
+                           Color="Color.Primary" Label="@(_viewingAllClasses ? "Showing every class in the school" : "Showing only classes I teach")" />
+            </MudItem>
+        }
+    }
+</MudGrid>
+
+@if (_sheet is null)
+{
+    <!-- ============ CLASS PICKER ============ -->
+    <MudText Typo="Typo.subtitle1" Class="mb-1"><b>Your Classes</b></MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+        Open a class to enter marks for everyone in it at once.
+    </MudText>
+
+    @if (_scope.Errors.Count > 0)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var error in _scope.Errors)
+            {
+                <div>@error</div>
+            }
+        </MudAlert>
+    }
+
+    @if (_loadingClasses)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else if (_classes.Count == 0 && _scope.Errors.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            No classes are assigned to you. If that looks wrong, ask an administrator to check that
+            your subjects list you as the teacher.
+        </MudAlert>
+    }
+    else if (FilteredClasses.Count == 0 && _classes.Count > 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            None of your @_classes.Count class(es) match this filter.
+            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="ClearFilters">Clear filters</MudButton>
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="2">
+            @foreach (var cls in FilteredClasses)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-3" Elevation="2" Style="height:100%;">
+                        <div class="d-flex align-center justify-space-between">
+                            <MudText Typo="Typo.subtitle1"><b>@cls.ClassName</b></MudText>
+                            @if (cls.IsComplete)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                            }
+                        </div>
+
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @cls.LevelName @cls.GradeSection
+                        </MudText>
+
+                        <MudProgressLinear Class="my-2" Rounded="true" Size="Size.Medium"
+                                           Color="@(cls.IsComplete ? Color.Success : Color.Primary)"
+                                           Value="@ProgressPercent(cls)" />
+
+                        <MudText Typo="Typo.body2">
+                            <b>@cls.EnteredCount</b> of <b>@cls.OpenForEntryCount</b> entered
+                        </MudText>
+
+                        @if (cls.MissingReportCardCount > 0)
+                        {
+                            <MudTooltip Text="These students are enrolled but have no report card for this term, usually because they enrolled late. An administrator must add them before their marks can be recorded.">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="mt-1">
+                                    @cls.MissingReportCardCount not on this run
+                                </MudChip>
+                            </MudTooltip>
+                        }
+
+                        @if (cls.OpenForEntryCount == 0 && cls.EnrolledCount > 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined" Class="mt-1">
+                                closed for entry
+                            </MudChip>
+                        }
+
+                        <MudButton Class="mt-2" FullWidth="true"
+                                   Variant="Variant.Filled" Color="Color.Primary"
+                                   Disabled="@(cls.OpenForEntryCount == 0)"
+                                   OnClick="@(() => OpenClassAsync(cls))">
+                            @(cls.EnteredCount > 0 ? "Continue" : "Enter Marks")
+                        </MudButton>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+}
+else
+{
+    <!-- ============ MARK SHEET ============ -->
+    <div class="d-flex align-center flex-wrap gap-2 mb-2">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="CloseSheetAsync" />
+        <div>
+            <MudText Typo="Typo.h6"><b>@_sheet.ClassName</b></MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @_sheet.LevelName @_sheet.GradeSection — @_reportCardType
+            </MudText>
+        </div>
+
+        <MudSpacer />
+
+        <MudChip T="string" Color="@(_sheet.MissingCount == 0 ? Color.Success : Color.Warning)" Variant="Variant.Filled">
+            @_sheet.EnteredCount / @_sheet.EnterableCount entered
+        </MudChip>
+    </div>
+
+    @if (_sheet.Errors.Count > 0)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+            @foreach (var error in _sheet.Errors)
+            {
+                <div>@error</div>
+            }
+        </MudAlert>
+    }
+
+    @if (_saveErrors.Count > 0)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+            <MudText Typo="Typo.subtitle2"><b>Nothing was saved. Fix these first:</b></MudText>
+            @foreach (var error in _saveErrors)
+            {
+                <div>• @error</div>
+            }
+        </MudAlert>
+    }
+
+    @if (_notOnRun.Count > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3">
+            <MudText Typo="Typo.subtitle2">
+                <b>@_notOnRun.Count student(s) have no report card for this term</b>
+            </MudText>
+            <MudText Typo="Typo.body2">
+                They are enrolled in this class but were not part of this report run — usually a late
+                enrolment. Their rows are shown but cannot be marked. Ask the office to add them, then
+                reopen this class.
+            </MudText>
+            <MudText Typo="Typo.body2" Class="mt-1">@string.Join(", ", _notOnRun)</MudText>
+        </MudAlert>
+    }
+
+    @if (_loadingSheet)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Striped="true" Bordered="true">
+            <thead>
+                <tr>
+                    <th style="width:40px;">#</th>
+                    <th>Student</th>
+                    <th style="width:130px;">Student ID</th>
+                    <th style="width:130px;">Score</th>
+                    <th style="width:110px;">Grade</th>
+                    <th style="width:150px;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ var rowNumber = 0; }
+                @foreach (var row in _sheet.Rows)
+                {
+                    rowNumber++;
+                    <tr style="@RowStyle(row)">
+                        <td>@rowNumber</td>
+                        <td>
+                            <b>@row.FullName</b>
+                            @if (IsDirty(row))
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Class="ml-1">
+                                    edited
+                                </MudChip>
+                            }
+                        </td>
+                        <td>@row.StudentNumber</td>
+                        <td>
+                            @if (row.IsEnterable)
+                            {
+                                <MudNumericField T="double?" Value="row.Score"
+                                                 ValueChanged="@(v => OnScoreChanged(row, v))"
+                                                 Min="0" Max="100" Immediate="true" Clearable="true"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Placeholder="—" Style="max-width:110px;" />
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                            }
+                        </td>
+                        <td>
+                            <MudText Typo="Typo.body2"><b>@GradeFor(row)</b></MudText>
+                        </td>
+                        <td>
+                            @if (!row.HasReportCard)
+                            {
+                                <MudTooltip Text="No report card exists for this student this term. An administrator must add them.">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning">not on this run</MudChip>
+                                </MudTooltip>
+                            }
+                            else if (!row.IsOpenForEntry)
+                            {
+                                <MudTooltip Text="This report card has moved past teacher entry and can no longer be changed here.">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default">locked</MudChip>
+                                </MudTooltip>
+                            }
+                            else if (row.Score is null)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">no mark</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">entered</MudChip>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        <div class="d-flex flex-wrap align-center gap-2 mt-3">
+            @if (_sheet.MissingCount > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Dense="true" Class="py-0">
+                    @_sheet.MissingCount student(s) still have no mark.
+                </MudAlert>
+            }
+
+            <MudSpacer />
+
+            <MudButton Variant="Variant.Text" Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.Undo"
+                       Disabled="@(!HasUnsavedChanges || _saving)"
+                       OnClick="DiscardChanges">
+                Discard changes
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.SaveAlt"
+                       Disabled="@(!HasUnsavedChanges || _saving)"
+                       OnClick="SaveAsync">
+                @(_saving ? "Saving..." : $"Save {DirtyRows.Count} mark(s)")
+            </MudButton>
+        </div>
+    }
+}
+
+@code {
+    protected static readonly string[] ReportTypes = { "Midterm", "EndTerm" };
+
+    private string _reportCardType = "Midterm";
+
+    private ClassEntryScopeDto _scope = new();
+    private List<TeacherClassSummaryDto> _classes = new();
+    private ClassResultsSheetDto? _sheet;
+
+    private bool _viewingAllClasses;
+    private string _levelFilter = "";
+    private string _sectionFilter = "";
+    private string? _subjectFilter;
+
+    private bool _loadingClasses;
+    private bool _loadingSheet;
+    private bool _saving;
+
+    private List<string> _saveErrors = new();
+    private List<string> _notOnRun = new();
+
+    /// <summary>Scores as loaded, so an edited row can be identified and reverted.</summary>
+    private Dictionary<Guid, double?> _baseline = new();
+
+    private List<ClassResultRowDto> DirtyRows =>
+        _sheet is null
+            ? new List<ClassResultRowDto>()
+            : _sheet.Rows.Where(IsDirty).ToList();
+
+    private bool HasUnsavedChanges => DirtyRows.Count > 0;
+
+    private bool IsDirty(ClassResultRowDto row) =>
+        row.IsEnterable
+        && _baseline.TryGetValue(row.StudentId, out var original)
+        && !NullableEquals(original, row.Score);
+
+    private static bool NullableEquals(double? a, double? b) =>
+        (a is null && b is null) || (a is not null && b is not null && Math.Abs(a.Value - b.Value) < 0.0001);
+
+    /// <summary>The role the current class list was loaded for, so a role switch can be noticed.</summary>
+    private string? _loadedForRole;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await LoadClassesAsync();
+    }
+
+    /// <summary>
+    /// The "Current Role" switcher changes scope, so a user who moves from Admin to Teacher must get
+    /// their own classes rather than the school-wide list they were looking at. AppState raises
+    /// OnChange (which AppBaseComponent turns into a re-render) but nothing re-queries on its own.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_loadingClasses || _loadingSheet || _saving) return;
+        if (_loadedForRole == AppState.UserRole) return;
+
+        _sheet = null;
+        _viewingAllClasses = false;
+        ClearFilters();
+
+        await LoadClassesAsync();
+        StateHasChanged();
+    }
+
+    /// <summary>Levels this user actually teaches, in grade order — not every level in the school.</summary>
+    private List<string> AvailableLevels =>
+        _classes
+            .Where(c => !string.IsNullOrWhiteSpace(c.LevelName))
+            .OrderBy(c => c.AcademicLevel)
+            .Select(c => c.LevelName!)
+            .Distinct()
+            .ToList();
+
+    /// <summary>Sections within the chosen level, so picking Grade 10 cannot offer Form 1's sections.</summary>
+    private List<string> AvailableSections =>
+        _classes
+            .Where(c => string.IsNullOrEmpty(_levelFilter) || c.LevelName == _levelFilter)
+            .Where(c => !string.IsNullOrWhiteSpace(c.GradeSection))
+            .OrderBy(c => c.GradeSection)
+            .Select(c => c.GradeSection!)
+            .Distinct()
+            .ToList();
+
+    private List<TeacherClassSummaryDto> FilteredClasses =>
+        _classes
+            .Where(c => string.IsNullOrEmpty(_levelFilter) || c.LevelName == _levelFilter)
+            .Where(c => string.IsNullOrEmpty(_sectionFilter) || c.GradeSection == _sectionFilter)
+            .Where(c => string.IsNullOrWhiteSpace(_subjectFilter) ||
+                        (c.ClassName?.Contains(_subjectFilter, StringComparison.OrdinalIgnoreCase) ?? false))
+            .ToList();
+
+    private void OnLevelFilterChanged(string level)
+    {
+        _levelFilter = level;
+
+        // The chosen section belongs to the previous level, so it would filter everything out.
+        _sectionFilter = "";
+    }
+
+    private void ClearFilters()
+    {
+        _levelFilter = "";
+        _sectionFilter = "";
+        _subjectFilter = null;
+    }
+
+    private async Task OnViewAllChangedAsync(bool viewAll)
+    {
+        _viewingAllClasses = viewAll;
+        ClearFilters();
+        await LoadClassesAsync();
+    }
+
+    private async Task LoadClassesAsync()
+    {
+        _loadingClasses = true;
+
+        // Recorded before the await so a role switch mid-request cannot leave this stale and
+        // re-trigger the reload check on the next render.
+        _loadedForRole = AppState.UserRole;
+
+        _scope = await ReportCardEntry.ListClassesAsync(_reportCardType, _viewingAllClasses, AppState.UserRole);
+        _classes = _scope.Classes;
+
+        // The server decides whether the "all classes" request was allowed; reflect what it actually
+        // returned rather than what was asked for.
+        _viewingAllClasses = _scope.IsViewingAllClasses;
+
+        // Drop filter selections that no longer exist in the new list.
+        if (!string.IsNullOrEmpty(_levelFilter) && !AvailableLevels.Contains(_levelFilter)) _levelFilter = "";
+        if (!string.IsNullOrEmpty(_sectionFilter) && !AvailableSections.Contains(_sectionFilter)) _sectionFilter = "";
+
+        _loadingClasses = false;
+    }
+
+    private async Task OnReportTypeChangedAsync(string reportCardType)
+    {
+        if (HasUnsavedChanges && !await ConfirmDiscardAsync()) return;
+
+        _reportCardType = reportCardType;
+        _sheet = null;
+        _saveErrors = new();
+
+        await LoadClassesAsync();
+    }
+
+    private static int ProgressPercent(TeacherClassSummaryDto cls) =>
+        cls.OpenForEntryCount == 0 ? 0 : (int)Math.Round(100.0 * cls.EnteredCount / cls.OpenForEntryCount);
+
+    private async Task OpenClassAsync(TeacherClassSummaryDto cls)
+    {
+        _loadingSheet = true;
+        _saveErrors = new();
+        _sheet = null;
+
+        var sheet = await ReportCardEntry.GetClassSheetAsync(cls.ClassId, _reportCardType, AppState.UserRole);
+
+        _loadingSheet = false;
+
+        if (sheet.Errors.Count > 0 && sheet.Rows.Count == 0)
+        {
+            Snackbar.Add(string.Join(" ", sheet.Errors), Severity.Error);
+            return;
+        }
+
+        _sheet = sheet;
+        _baseline = sheet.Rows.ToDictionary(r => r.StudentId, r => r.Score);
+        _notOnRun = sheet.Rows.Where(r => !r.HasReportCard).Select(r => r.FullName).ToList();
+    }
+
+    private async Task CloseSheetAsync()
+    {
+        if (HasUnsavedChanges && !await ConfirmDiscardAsync()) return;
+
+        _sheet = null;
+        _saveErrors = new();
+        await LoadClassesAsync();
+    }
+
+    private async Task<bool> ConfirmDiscardAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Unsaved marks",
+            $"{DirtyRows.Count} mark(s) have not been saved. Leave without saving?",
+            yesText: "Leave", cancelText: "Stay");
+
+        return confirmed == true;
+    }
+
+    /// <summary>
+    /// Grades are shown live from the school's grading scale as a score is typed. The server
+    /// recomputes the grade on save from the same bands, so this is display only and cannot put a
+    /// grade in the database that the scale disagrees with.
+    /// </summary>
+    private void OnScoreChanged(ClassResultRowDto row, double? score)
+    {
+        row.Score = score;
+        row.Grade = ResolveGrade(score);
+    }
+
+    private string GradeFor(ClassResultRowDto row)
+    {
+        if (row.Score is null) return "—";
+
+        var grade = ResolveGrade(row.Score);
+        return string.IsNullOrWhiteSpace(grade) ? "out of range" : grade;
+    }
+
+    private string? ResolveGrade(double? score)
+    {
+        if (score is null || _sheet is null) return null;
+
+        var band = _sheet.GradeBands.FirstOrDefault(b =>
+            score >= b.LowerScore && score <= b.UpperScore);
+
+        return band?.Grade;
+    }
+
+    private string RowStyle(ClassResultRowDto row)
+    {
+        if (!row.HasReportCard) return "background:var(--mud-palette-warning-hover);";
+        if (!row.IsOpenForEntry) return "opacity:0.6;";
+        if (row.Score is null) return "background:var(--mud-palette-error-hover);";
+        return "";
+    }
+
+    private void DiscardChanges()
+    {
+        if (_sheet is null) return;
+
+        foreach (var row in _sheet.Rows)
+        {
+            if (_baseline.TryGetValue(row.StudentId, out var original))
+            {
+                row.Score = original;
+                row.Grade = ResolveGrade(original);
+            }
+        }
+
+        _saveErrors = new();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_sheet is null) return;
+
+        var dirty = DirtyRows;
+        if (dirty.Count == 0) return;
+
+        // Saving a partially-filled sheet is allowed — marking a class often spans more than one
+        // sitting — but never silently. The count of unmarked students is stated up front.
+        if (_sheet.MissingCount > 0)
+        {
+            var proceed = await DialogService.ShowMessageBox(
+                "Some students have no mark",
+                $"{_sheet.MissingCount} of {_sheet.EnterableCount} students in {_sheet.ClassName} still have no mark. " +
+                "You can save what you have and finish later, or go back and complete the sheet.",
+                yesText: "Save anyway", cancelText: "Go back");
+
+            if (proceed != true) return;
+        }
+
+        // A score outside every grading band would be rejected by the server; catch it here so the
+        // teacher is pointed at the row instead of reading a server error.
+        var outOfRange = dirty
+            .Where(r => r.Score is not null && ResolveGrade(r.Score) is null)
+            .ToList();
+
+        if (outOfRange.Count > 0)
+        {
+            _saveErrors = outOfRange
+                .Select(r => $"{r.FullName}: a score of {r.Score} does not fall inside any grading band.")
+                .ToList();
+            return;
+        }
+
+        _saving = true;
+        _saveErrors = new();
+
+        var result = await ReportCardEntry.SaveClassResultsAsync(new SaveClassResultsRequest
+        {
+            ClassId = _sheet.ClassId,
+            ReportCardType = _reportCardType,
+            Entries = dirty.Select(r => new ClassResultEntryDto
+            {
+                StudentId = r.StudentId,
+                Score = r.Score,
+            }).ToList(),
+        }, AppState.UserRole);
+
+        _saving = false;
+
+        if (!result.Succeeded)
+        {
+            // Nothing was written, so leave the edits on screen to be corrected.
+            _saveErrors = result.Errors;
+            Snackbar.Add("Nothing was saved. See the errors above.", Severity.Error);
+            return;
+        }
+
+        foreach (var row in dirty)
+        {
+            _baseline[row.StudentId] = row.Score;
+        }
+
+        var message = $"Saved {result.SavedCount} mark(s) for {_sheet.ClassName}.";
+        if (result.ClearedCount > 0) message += $" {result.ClearedCount} cleared.";
+
+        Snackbar.Add(message, Severity.Success);
+
+        if (result.SkippedNoReportCard.Count > 0)
+        {
+            Snackbar.Add(
+                $"Not recorded — no report card this term: {string.Join(", ", result.SkippedNoReportCard)}.",
+                Severity.Warning);
+        }
+
+        if (result.SkippedLocked.Count > 0)
+        {
+            Snackbar.Add(
+                $"Not recorded — already past teacher entry: {string.Join(", ", result.SkippedLocked)}.",
+                Severity.Warning);
+        }
+
+        // Refresh so grades, statuses and the class progress reflect what was stored.
+        await OpenClassAsync(new TeacherClassSummaryDto { ClassId = _sheet.ClassId });
+    }
+}

@@ -118,19 +118,6 @@
         }
     }
 
-    private async Task<List<UserActivity>> GetUserActivitiesDone(string UserRole, string UserID)
-    {
-        if (UserRole == "Student")
-        {
-            var service = GenericService.GetService<UserActivity>();
-            var result = await service.GetAllAsync($"api/Dynamic/GetAllUserActivities/{UserID}", true);
-            if (result.IsSuccess)
-            {
-                return result.Data.ToList();
-            }
-        }
-        return new List<UserActivity>();
-    }
 
     protected async Task NavigateNextLesson()
     {

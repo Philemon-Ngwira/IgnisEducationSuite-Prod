@@ -15,13 +15,50 @@ public partial class School
 
     public bool? HasplagerismEnaabled { get; set; }
 
+    /// <summary>
+    /// When true, admins get a manual "Recalculate positions" control on Report Card Management.
+    /// A SuperAdmin turns this on per school from the tenant console. Null or false means the button
+    /// is hidden and the school keeps whatever automatic recalculation it already had.
+    /// </summary>
+    public bool? ManualPositionRecalculationEnabled { get; set; }
+
+    public string SchoolPhoneContact { get; set; }
+
+    public string SchoolEmail { get; set; }
+
+    public string SchoolWebsite { get; set; }
+
+    public string SchoolCurrencyName { get; set; }
+
+    public string CurrencySymbol { get; set; }
+
+    public string CurrencyCode { get; set; }
+
+    public string CurrencyCountry { get; set; }
+
+    public virtual ICollection<BusFuelLog> BusFuelLogs { get; set; } = new List<BusFuelLog>();
+
+    public virtual ICollection<Bus> Buses { get; set; } = new List<Bus>();
+
+    public virtual ICollection<ClassTeacher> ClassTeachers { get; set; } = new List<ClassTeacher>();
+
     public virtual ICollection<Class> Classes { get; set; } = new List<Class>();
 
     public virtual ICollection<ClientAdmin> ClientAdmins { get; set; } = new List<ClientAdmin>();
 
+    public virtual ICollection<Clinic> Clinics { get; set; } = new List<Clinic>();
+
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
+
+    public virtual ICollection<DiningHall> DiningHalls { get; set; } = new List<DiningHall>();
+
+    public virtual ICollection<Hostel> Hostels { get; set; } = new List<Hostel>();
 
     public virtual ICollection<Parent> Parents { get; set; } = new List<Parent>();
 
+    public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
+
     public virtual ICollection<Teacher> Teachers { get; set; } = new List<Teacher>();
+
+    public virtual ICollection<TermSetting> TermSettings { get; set; } = new List<TermSetting>();
 }

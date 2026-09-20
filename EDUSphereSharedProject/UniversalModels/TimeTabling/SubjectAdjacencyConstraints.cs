@@ -1,0 +1,8 @@
+﻿namespace EDUSphereSharedProject.UniversalModels.TimeTabling
+{
+    public class SubjectAdjacencyConstraints
+    {
+        public Guid SubjectId { get; set; }
+        public List<Guid> CannotFollowSubjects { get; set; } = new();
+    }
+}

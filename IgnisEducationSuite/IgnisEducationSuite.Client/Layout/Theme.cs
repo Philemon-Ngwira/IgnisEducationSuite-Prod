@@ -1,4 +1,6 @@
-﻿using MudBlazor;
+﻿using ChartJs.Blazor.Common;
+using MudBlazor;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace IgnisEducationSuite.Client.Layout
 {
@@ -6,131 +8,155 @@ namespace IgnisEducationSuite.Client.Layout
     {
         public Theme()
         {
+
             PaletteLight = new PaletteLight()
             {
-                Primary = "29104A",
-                Secondary = "#845162",
-                AppbarBackground = "29104a",
-                Background = "#FFE3D8",
-                DrawerBackground = "#FFE3D8",
-                AppbarText = "FFFFFF",
-                DrawerText = "#29104A",
-                DrawerIcon = "#29104A",
-                Info = "#3F51B5",
-                Warning = "#FFB74D",
+                Primary = "#29104A",
+                PrimaryLighten = "#7A4DBB",
+                Background = "#F6F1FA",
+                Surface = "#F0E6F6",
+                TextPrimary = "#1B0F28",
+                TextSecondary = "#4D3A5A",
                 Success = "#4CAF50",
-                Error = "#F44336",
-                Tertiary = "#E3B6B1",
-                TextPrimary = "#150016",
-
+                Warning = "#F7B74A",
+                Error = "#E53935",
+                Info = " #5C6BC0",
             };
             PaletteDark = new PaletteDark()
             {
-                Primary = Colors.Blue.Lighten1
-            };
+                Primary = "#9D7BFF",
+                PrimaryLighten = "#C5A8FF",
 
-            LayoutProperties = new LayoutProperties()
-            {
-                DrawerWidthLeft = "260px",
-                DrawerWidthRight = "300px"
+                Background = "#0F0A17",
+                Surface = "#181122",
+
+                AppbarBackground = "#191226",
+                DrawerBackground = "#100B18",
+
+                TextPrimary = "#F5F0FF",
+                TextSecondary = "#C5B6DB",
+
+                Success = "#66BB6A",
+                Warning = "#FFCA6B",
+                Error = "#FF6B6B",
+                Info = "#7C8CFF",
+
+                Divider = "#3A2C52",
+                LinesDefault = "#3A2C52",
+
+                ActionDefault = "#C5B6DB",
+                ActionDisabled = "#6B5A86",
+
+                TableLines = "#2A203A",
+                TableStriped = "#1C1428",
+
+                GrayDefault = "#9E8CB8",
+                GrayLight = "#C5B6DB",
+                GrayLighter = "#E6DFFF",
+                GrayDark = "#5A4A73",
+                GrayDarker = "#2B213A",
+
+                OverlayDark = "rgba(0,0,0,0.7)"
             };
             Typography = new Typography()
             {
-                Default = new Default()
+                Default = new DefaultTypography()
                 {
-                    FontFamily = new[] { "Lexend", "Helvetica", "Arial", "sans-serif" },
-                    FontSize = ".875rem",
-                    FontWeight = 400,
-                    LineHeight = 1.43,
-                    LetterSpacing = ".01071em"
+                    FontFamily = new[] { "Inter", "Helvetica", "Arial", "sans-serif" },
+                    FontSize = ".925rem",
+                    FontWeight = "400",
+                    LineHeight = "1.45",
+                    LetterSpacing = ".010em"
                 },
-                H1 = new H1()
+
+                /* ---- HEADINGS (Luxury Serif) ---- */
+                H1 = new H1Typography()
                 {
-                    FontFamily = new[] { "Lora", "Helvetica", "Arial", "sans-serif" },
-                    FontSize = "6rem",
-                    FontWeight = 300,
-                    LineHeight = 1.167,
-                    LetterSpacing = "-.01562em"
+                    FontFamily = new[] { "Cormorant Garamond", "Georgia", "serif" },
+                    FontSize = "4.5rem",
+                    FontWeight = "300",
+                    LineHeight = "1.1",
+                    LetterSpacing = "-.020em"
                 },
-                H2 = new H2()
+                H2 = new H2Typography()
                 {
-                    FontFamily = new[] { "Lora", "Helvetica", "Arial", "sans-serif" },
-                    FontSize = "3.75rem",
-                    FontWeight = 300,
-                    LineHeight = 1.2,
-                    LetterSpacing = "-.00833em"
-                },
-                H3 = new H3()
-                {
-                    FontFamily = new[] { "Lora", "Helvetica", "Arial", "sans-serif" },
+                    FontFamily = new[] { "Cormorant Garamond", "Georgia", "serif" },
                     FontSize = "3rem",
-                    FontWeight = 400,
-                    LineHeight = 1.167,
+                    FontWeight = "300",
+                    LineHeight = "1.15",
+                    LetterSpacing = "-.010em"
+                },
+                H3 = new H3Typography()
+                {
+                    FontFamily = new[] { "Cormorant Garamond", "Georgia", "serif" },
+                    FontSize = "2.25rem",
+                    FontWeight = "400",
+                    LineHeight = "1.2",
                     LetterSpacing = "0"
                 },
-                H4 = new H4()
+                H4 = new H4Typography()
                 {
-                    FontFamily = new[] { "Lora", "Helvetica", "Arial", "sans-serif" },
-                    FontSize = "2.125rem",
-                    FontWeight = 400,
-                    LineHeight = 1.235,
-                    LetterSpacing = ".00735em"
+                    FontFamily = new[] { "Cormorant Garamond", "Georgia", "serif" },
+                    FontSize = "1.8rem",
+                    FontWeight = "400",
+                    LineHeight = "1.25"
                 },
-                H5 = new H5()
+                H5 = new H5Typography()
                 {
-                    FontFamily = new[] { "Lora", "Helvetica", "Arial", "sans-serif" },
-                    FontSize = "1.5rem",
-                    FontWeight = 400,
-                    LineHeight = 1.334,
-                    LetterSpacing = "0"
+                    FontFamily = new[] { "Cormorant Garamond", "Georgia", "serif" },
+                    FontSize = "1.4rem",
+                    FontWeight = "400",
+                    LineHeight = "1.3"
                 },
-                H6 = new H6()
+                H6 = new H6Typography()
                 {
-                    FontFamily = new[] { "Lora", "Helvetica", "Arial", "sans-serif" },
-                    FontSize = "1.25rem",
-                    FontWeight = 400,
-                    LineHeight = 1.6,
-                    LetterSpacing = ".0075em"
+                    FontFamily = new[] { "Cormorant Garamond", "Georgia", "serif" },
+                    FontSize = "1.15rem",
+                    FontWeight = "500",
+                    LineHeight = "1.4"
                 },
-                Button = new Button()
+
+                /* ---- BUTTONS (UI Font) ---- */
+                Button = new ButtonTypography()
                 {
-                    FontFamily = new[] { "Lato", "Helvetica", "Arial", "sans-serif" },
-                    FontSize = ".875rem",
-                    FontWeight = 500,
-                    LineHeight = 1.75,
-                    LetterSpacing = ".02857em"
+                    FontFamily = new[] { "Inter", "Helvetica", "Arial", "sans-serif" },
+                    FontSize = ".90rem",
+                    FontWeight = "600",
+                    LetterSpacing = ".028em",
+                    LineHeight = "1.7"
                 },
-                Body1 = new Body1()
+
+                /* ---- BODY TEXT ---- */
+                Body1 = new Body1Typography()
                 {
-                    FontFamily = new[] { "Lato", "Helvetica", "Arial", "sans-serif" },
+                    FontFamily = new[] { "Inter", "Helvetica", "Arial", "sans-serif" },
                     FontSize = "1rem",
-                    FontWeight = 400,
-                    LineHeight = 1.5,
-                    LetterSpacing = ".00938em"
+                    FontWeight = "400",
+                    LineHeight = "1.55"
                 },
-                Body2 = new Body2()
+                Body2 = new Body2Typography()
                 {
-                    FontFamily = new[] { "Lato", "Helvetica", "Arial", "sans-serif" },
+                    FontFamily = new[] { "Inter", "Helvetica", "Arial", "sans-serif" },
                     FontSize = ".875rem",
-                    FontWeight = 400,
-                    LineHeight = 1.43,
-                    LetterSpacing = ".01071em"
+                    FontWeight = "400",
+                    LineHeight = "1.45"
                 },
-                Caption = new Caption()
+
+                Caption = new CaptionTypography()
                 {
-                    FontFamily = new[] { "Lato", "Helvetica", "Arial", "sans-serif" },
+                    FontFamily = new[] { "Inter", "Helvetica", "Arial", "sans-serif" },
                     FontSize = ".75rem",
-                    FontWeight = 400,
-                    LineHeight = 1.66,
-                    LetterSpacing = ".03333em"
+                    FontWeight = "400",
+                    LineHeight = "1.6",
+                    LetterSpacing = ".03em"
                 },
-                Subtitle2 = new Subtitle2()
+
+                Subtitle2 = new Subtitle2Typography()
                 {
-                    FontFamily = new[] { "Lato", "Helvetica", "Arial", "sans-serif" },
-                    FontSize = ".875rem",
-                    FontWeight = 500,
-                    LineHeight = 1.57,
-                    LetterSpacing = ".00714em"
+                    FontFamily = new[] { "Inter", "Helvetica", "Arial", "sans-serif" },
+                    FontSize = ".9rem",
+                    FontWeight = "500",
+                    LineHeight = "1.55"
                 }
             };
         }

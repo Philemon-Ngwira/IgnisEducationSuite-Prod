@@ -1,0 +1,24 @@
+﻿@page "/finance-management"
+
+
+<MudCard Class="mb-4">
+    <MudCardContent>
+        <MudText Typo="Typo.h5" Class="font-weight-bold">
+            Finance Management
+        </MudText>
+    </MudCardContent>
+</MudCard>
+<MudTabs>
+    <MudTabPanel Icon="@MaterialDesignIcons.Normal.Invoice" Text="Invoices">
+        <InvoiceGeneration />
+    </MudTabPanel>
+    <MudTabPanel Icon="@Icons.Material.Filled.Payments" Text="Manage Payments">
+        <PaymentsSection />
+    </MudTabPanel>
+    <MudTabPanel Icon="@MaterialDesignIcons.Normal.PiggyBank" Text="Account Statements">
+        <AccountStatements />
+    </MudTabPanel>
+</MudTabs>
+@code {
+
+}

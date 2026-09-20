@@ -1,51 +1,65 @@
 ﻿@using EDUSphereSharedProject.Models
-<MudDialog>
-    <DialogContent>
-        @if (!isExam)
-        {
-            <MudNumericField T="int"
-            Variant="Variant.Outlined"
-            Value="NumberofOptions"
-            ValueChanged="OnNumberOfOptionsChanged"
-            Margin="Margin.Dense"
-            Label="Enter Number Of Options"
-            Min="1" Max="10">
-            </MudNumericField>
 
-            @if (Options.Count > 0)
-            {
+<MudDialog>
+
+    <DialogContent >
+
+        <!-- Title -->
+        <MudText Typo="Typo.h6" Class="mb-4 font-weight-bold">
+            Add Multiple Choice Options
+        </MudText>
+
+        <!-- Number Picker -->
+        <MudNumericField T="int"
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense"
+                         Label="Number of Options"
+                         Value="NumberofOptions"
+                         ValueChanged="OnNumberOfOptionsChanged"
+                         Min="1" Max="10"
+                         Class="mb-4" />
+
+        <!-- Option Fields -->
+        @if (Options.Count > 0)
+        {
+            <MudGrid GutterSize="2">
                 @for (int i = 0; i < Options.Count; i++)
                 {
-                    var index = i;  // Store `i` in a local variable
-                    <MudTextField T="string"
-                    Variant="Variant.Outlined"
-                    Label=@($"Option {OptionLabels[index]}")
-                    Value="@Options[index].Text"
-                    ValueChanged="@(text => OnOptionTextChanged(index, text))">
-                    </MudTextField>
+                    var index = i;
+
+                    <MudItem xs="12">
+                        <MudTextField T="string"
+                                      Variant="Variant.Outlined"
+                                      Label=@($"Option {OptionLabels[index]}")
+                                      Value="@Options[index].Text"
+                                      ValueChanged="@(text => OnOptionTextChanged(index, text))"
+                                      Margin="Margin.Dense"
+                                      Required="true"
+                                      RequiredError="Option cannot be empty" />
+                    </MudItem>
                 }
-
-            }
-            <MudButton Variant="Variant.Filled"
-            Color="Color.Success"
-            EndIcon="@Icons.Material.Filled.SaveAlt"
-            OnClick="SaveQuestionOptions"
-            Disabled="@(!AllOptionsFilled())">
-                Submit Options
-            </MudButton>
+            </MudGrid>
         }
-        else{
 
-        }
+        <!-- Submit Button -->
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Success"
+                   EndIcon="@Icons.Material.Filled.Check"
+                   OnClick="SaveQuestionOptions"
+                   Disabled="@(!AllOptionsFilled())"
+                   Class="mt-4">
+            Submit Options
+        </MudButton>
+
     </DialogContent>
 
-
 </MudDialog>
+
 
 @code {
     [Parameter] public bool isExam { get; set; } = false;
     [Parameter] public Guid QuestionID { get; set; } = Guid.Empty;
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
     protected int NumberofOptions = 1;
 
     protected List<string> OptionLabels = new() { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
@@ -105,6 +119,27 @@
                         {
                             MultipleChoiceID = Guid.NewGuid(),
                             AssignmentQuestionID = QuestionID,
+                            MultipleChoiceLetter = OptionLabels.ElementAtOrDefault(i) ?? "?", // Prevent out-of-range error
+                            MuiltpleChoiceAnswer = Options[i].Text
+                        };
+
+                    options.Add(newAnswer);
+                }
+            }
+
+            MudDialog?.Close(DialogResult.Ok(options)); // Ensure `MudDialog` is not null
+        }
+        else{
+            List<ExamTestQuizMultipleChoiceAnswer> options = new();
+
+            for (int i = 0; i < Options.Count; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(Options[i].Text)) // Prevent empty options
+                {
+                    ExamTestQuizMultipleChoiceAnswer newAnswer = new()
+                        {
+                            MultipleChoiceID = Guid.NewGuid(),
+                            ExamTestQuizQuestionID = QuestionID,
                             MultipleChoiceLetter = OptionLabels.ElementAtOrDefault(i) ?? "?", // Prevent out-of-range error
                             MuiltpleChoiceAnswer = Options[i].Text
                         };

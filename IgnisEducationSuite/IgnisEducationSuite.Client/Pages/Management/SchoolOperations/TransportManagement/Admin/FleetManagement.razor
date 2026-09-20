@@ -1,0 +1,300 @@
+﻿@page "/fleet"
+@using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.Management.SchoolOperations.TransportManagement.Admin.Dialogs
+@using System.Globalization
+@inherits AppBaseComponent
+@inject IDialogService DialogService
+<MudGrid Spacing="4" Class="pa-6">
+
+    <!-- LEFT: Fleet + Issues -->
+    <MudItem xs="12" lg="8">
+        <MudStack Spacing="4">
+
+            <!-- Open Issues Banner -->
+            <MudPaper Class="pa-5 rounded-xl" Style="background:#FEF2F2;border:1px solid #FECACA">
+                <MudText Typo="Typo.h6" Color="Color.Error" Class="fw-bold mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.ReportProblem" Class="me-1" />
+                    Open Driver Reports (@maintenanceRequests.Count)
+                </MudText>
+
+                <MudGrid Spacing="2">
+                    @if (maintenanceRequests.Any())
+                    {
+                        @foreach (var request in maintenanceRequests)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudPaper Class="pa-4 rounded-lg border">
+                                    <MudStack Spacing="1">
+                                        <MudStack Row Justify="Justify.SpaceBetween">
+                                            <MudText Class="fw-bold">@request.RegistrationNumber</MudText>
+                                            <MudChip T="string"
+                                                     Color="@GetPriorityColor(request.Priority)"
+                                                     Size="Size.Small"
+                                                     Variant="Variant.Filled">
+                                                @request.Priority
+                                            </MudChip>
+
+                                        </MudStack>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            @request.Description
+                                        </MudText>
+                                        <MudDivider Class="my-2" />
+                                        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                            <MudText Typo="Typo.caption">
+                                                Reported: @request.ReportedDate.ToShortDateString() by @($"{request.ReportingStaffFirstName.Substring(0, 1)} {request.ReportingStaffLastName}")
+                                            </MudText>
+                                            <MudButton Size="Size.Small"
+                                                       Color="Color.Warning"
+                                                       Variant="Variant.Filled"
+                                                       StartIcon="@MaterialDesignIcons.Normal.EngineOff">
+                                               Maintenance
+                                            </MudButton>
+                                            <MudButton Size="Size.Small"
+                                                       Color="Color.Success"
+                                                       Variant="Variant.Filled"
+                                                       StartIcon="@Icons.Material.Filled.CheckCircle">
+                                                Resolve
+                                            </MudButton>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+
+                        }
+                    }
+                </MudGrid>
+            </MudPaper>
+
+            <!-- Fleet Registry -->
+            <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h5" Class="fw-bold">
+                    <MudIcon Icon="@Icons.Material.Filled.DirectionsBus" Class="me-1 text-primary" />
+                    Fleet Registry
+                </MudText>
+
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="OpenAddNewBusDialogAsync">
+                    Add New Bus
+                </MudButton>
+            </MudStack>
+
+            <!-- Bus Cards -->
+            <MudGrid Spacing="3">
+                @if (fleet.Any())
+                {
+                    @foreach (var item in fleet)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudPaper Elevation="1" Class="pa-5 rounded-xl">
+
+                                <MudStack Row Justify="Justify.SpaceBetween">
+                                    <div>
+                                        <MudText Typo="Typo.h6" Class="fw-bold">
+                                            @item.RegistrationNumber
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            @item.Model-@item.ModelYear
+                                        </MudText>
+                                    </div>
+
+                                    <MudStack AlignItems="AlignItems.End" Spacing="1">
+                                        @if (item.IsActive == true)
+                                        {
+                                            <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">
+                                                Active
+                                            </MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Color="Color.Dark" Variant="Variant.Outlined">
+                                                Out of Service
+                                            </MudChip>
+                                        }
+
+                                        <MudText Typo="Typo.caption">
+                                            @if (item.FuelType.ToUpper() == "ELECTRIC")
+                                            {
+                                                <MudIcon Icon="@MaterialDesignIcons.Normal.LightningBoltCircle"></MudIcon>
+                                            }
+                                            else
+                                            {
+                                                <MudIcon Icon="@MaterialDesignIcons.Normal.Fuel"></MudIcon>
+
+                                            }
+                                            @item.FuelType
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudGrid Class="mt-3">
+                                    <MudItem xs="6">
+                                        <MudPaper Class="pa-2 d-flex align-center gap-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Small" />
+                                            <MudText Typo="Typo.body2">
+                                                @item.CurrentMileageKm.ToString("N0", CultureInfo.InvariantCulture)
+                                                km
+                                            </MudText>
+                                        </MudPaper>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudPaper Class="pa-2 d-flex align-center gap-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" />
+                                            <MudText Typo="Typo.body2">
+                                                Ins: @(item.LastServiceDate?.ToShortDateString() ?? "-")
+                                            </MudText>
+                                        </MudPaper>
+                                    </MudItem>
+                                </MudGrid>
+
+                                <MudDivider Class="my-3" />
+
+                                <MudStack Row Spacing="2">
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Info"
+                                               StartIcon="@Icons.Material.Filled.QueryStats"
+                                               FullWidth>
+                                        Ignis AI Analysis
+                                    </MudButton>
+
+                                    <MudButton Variant="Variant.Outlined"
+                                               Color="Color.Warning"
+                                               FullWidth>
+                                        Send to Maintenance
+                                    </MudButton>
+                                </MudStack>
+
+                            </MudPaper>
+                        </MudItem>
+                    }
+                }
+                else
+                {
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0"
+                                  Class="pa-10 mt-4 rounded-xl text-center border-dashed"
+                                  Style="border:2px dashed var(--mud-palette-divider)">
+
+                            <MudIcon Icon="@Icons.Material.Filled.BusAlert"
+                                     Size="Size.Large"
+                                     Color="Color.Dark" />
+
+                            <MudText Typo="Typo.h6" Class="mt-2">
+                                No Buses Added yet
+                            </MudText>
+
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                Add Buses to manage Transport operations
+                            </MudText>
+
+                        </MudPaper>
+                    </MudItem>
+
+                }
+            </MudGrid>
+
+
+        </MudStack>
+    </MudItem>
+
+    <!-- RIGHT: AI Maintenance Advisor -->
+    <MudItem xs="12" lg="4">
+        <MudPaper Elevation="4" Class="rounded-xl sticky" Style="top:90px">
+
+            <MudPaper Class="pa-5 rounded-t-xl"
+                      Style="background:linear-gradient(90deg,#7A4DBB,#29104A);color:white">
+
+                <MudText Typo="Typo.h6" Class="fw-bold" Style="color:azure">
+                    <MudIcon Icon="@Icons.Material.Filled.Build" Class="me-1" />
+                    Maintenance Advisor
+                </MudText>
+                <MudText Typo="Typo.caption">
+                    Powered by Open AI
+                </MudText>
+            </MudPaper>
+
+            <MudStack Class="pa-5" Spacing="3">
+
+                <MudText Align="Align.Center" Color="Color.Secondary">
+                    <MudIcon Icon="@Icons.Material.Filled.BuildCircle"
+                             Size="Size.Large"
+                             Class="mb-2 opacity-30" />
+                    Select a bus to analyze maintenance needs
+                </MudText>
+
+            </MudStack>
+
+        </MudPaper>
+    </MudItem>
+
+</MudGrid>
+@code {
+    protected List<Bus> fleet = new();
+    protected List<BusMaintenanceRequest> maintenanceRequests = new();
+    protected List<Task> InitializationTasks = new();
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait while your environment is prepared...");
+        InitializationTasks.Add(GetMaintenanceRequestsAsync());
+        InitializationTasks.Add(GetSchoolFleetAsync());
+        await Task.WhenAll(InitializationTasks);
+        LoaderService.Hide();
+    }
+    protected async Task GetMaintenanceRequestsAsync()
+    {
+        var serv = GenericService.GetService<BusMaintenanceRequest>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetMaintenanceRequestsAsync/{Guid.Parse(AppState.SchoolID)}", true);
+
+        if (result.IsSuccess)
+        {
+            maintenanceRequests = result.Data.ToList();
+            StateHasChanged();
+        }
+    }
+    protected async Task GetSchoolFleetAsync()
+    {
+        var service = GenericService.GetService<Bus>();
+        var result = await service.GetAllAsync($"Api/Dynamic/GetSchoolBusFleet/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            fleet = result.Data.ToList();
+        }
+    }
+    protected async Task<List<FuelType>> GetFuelTypes()
+    {
+        var service = GenericService.GetService<FuelType>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetEntity/{"fueltype"}", true);
+        if (result.IsSuccess)
+        {
+            return result.Data.ToList();
+        }
+
+        return new List<FuelType>();
+
+    }
+    private async Task OpenAddNewBusDialogAsync()
+    {
+        var fuelTypes = await GetFuelTypes();
+        var parameters = new DialogParameters<AddNewBus>
+        {
+            {x=>x.fuelTypes, fuelTypes}
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true, NoHeader = true, Position = DialogPosition.Center };
+
+        var dialog = await DialogService.ShowAsync<AddNewBus>("Register New Bus", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            var data = result.Data;
+            if (data is Bus)
+            {
+                var bus = data as Bus;
+                fleet.Add(bus!);
+                StateHasChanged();
+
+            }
+        }
+    }
+}

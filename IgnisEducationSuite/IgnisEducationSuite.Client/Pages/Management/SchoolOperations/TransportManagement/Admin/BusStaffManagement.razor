@@ -1,0 +1,309 @@
+﻿@page "/BusStaffManagement"
+@using EDUSphereSharedProject.IdentiyModels
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@using IgnisEducationSuite.Client.Pages.Management.Dialog
+@inherits AppBaseComponent
+@inject IDialogService DialogService
+<MudStack Spacing="4">
+
+    <!-- Header -->
+    <MudPaper Elevation="1" Class="pa-6 rounded-xl">
+        <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <div>
+                <MudText Typo="Typo.h5" Class="fw-bold">Staff Management</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Manage drivers, attendants, and compliance certifications.
+                </MudText>
+            </div>
+
+        </MudStack>
+    </MudPaper>
+
+    <!-- Tabs -->
+    <MudTabs Rounded="true" Elevation="0" Color="Color.Primary">
+        <MudTabPanel Text="@DriversCount">
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                       OnClick="() => OpenStaffAddDialog(1)">
+                Add Staff
+            </MudButton>
+            @if (busStaff.Any())
+            {
+
+                <!-- Drivers Grid -->
+                <MudGrid Spacing="3">
+                    @foreach (var item in busStaff.Where(i => i.StaffType == 1))
+                    {
+                        @* Driver Card *@
+                        <MudItem xs="12" sm="6" lg="4">
+                            <MudPaper Elevation="1" Class="rounded-xl overflow-hidden">
+
+                                <!-- Card Header -->
+                                <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="pa-4">
+                                    <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudAvatar Size="Size.Medium" Color="Color.Surface">
+                                            <MudIcon Icon="@Icons.Material.Filled.Person" />
+                                        </MudAvatar>
+
+                                        <div>
+                                            <MudText Class="fw-bold">@item.FirstName @item.LastName</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                Driver
+                                            </MudText>
+                                        </div>
+                                    </MudStack>
+                                    @if (item.IsActive == true)
+                                    {
+                                        <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">
+                                            ACTIVE
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Color="Color.Dark" Variant="Variant.Outlined" Size="Size.Small">
+                                            DE-ACTIVE
+                                        </MudChip>
+                                    }
+                                </MudStack>
+
+                                <!-- Contact Info -->
+                                <MudDivider />
+
+                                <MudStack Spacing="1" Class="pa-4" Style="background:#fafafa">
+                                    <MudText Typo="Typo.body2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="me-1" />
+                                        @item.PhoneNumber
+                                    </MudText>
+
+                                    <MudText Typo="Typo.body2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="me-1" />
+                                        Lic: <span class="mud-typography-caption">@item.LicenseNumber</span>
+                                    </MudText>
+                                </MudStack>
+
+                                <!-- Details -->
+                                <MudStack Spacing="3" Class="pa-4">
+
+                                    <!-- License Expiry -->
+                                    <div>
+                                        <MudStack Row Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.caption" Class="fw-bold">
+                                                <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Class="me-1" />
+                                                License Expiry
+                                            </MudText>
+
+                                            <MudText Typo="Typo.caption" Color="Color.Error" Class="fw-bold">
+                                                @item.LicenseExpiryDate.Value.ToShortDateString()
+                                            </MudText>
+                                        </MudStack>
+                                        @{
+                                            var daysLeft = (item.LicenseExpiryDate.Value.Date - DateTime.Today).Days;
+                                        }
+
+                                        @if (daysLeft < 0)
+                                        {
+                                            <MudAlert Severity="Severity.Error" Dense="true" Class="mt-1">
+                                                <b>License expired</b><br />
+                                                This driver’s license has expired and requires immediate renewal.
+                                            </MudAlert>
+                                        }
+                                        else if (daysLeft <= 30)
+                                        {
+                                            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1">
+                                                <b>License expiring soon</b><br />
+                                                Expires in <b>@daysLeft day@(daysLeft == 1 ? "" : "s")</b>. Please renew to avoid compliance issues.
+                                            </MudAlert>
+                                        }
+                                        else
+                                        {
+                                            <MudAlert Severity="Severity.Success" Dense="true" Class="mt-1">
+                                                <b>License valid</b><br />
+                                                The driver’s license is active and compliant.
+                                            </MudAlert>
+                                        }
+
+                                    </div>
+
+                                    <!-- Certifications -->
+                                    <div>
+                                        <MudText Typo="Typo.caption" Class="fw-bold mb-1">
+                                            Certifications
+                                        </MudText>
+
+                                        <MudStack Row Spacing="1">
+                                            @foreach (var certifcate in item.Certifications)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                                                    <MudIcon Icon="@MaterialDesignIcons.Normal.Certificate" Size="Size.Small" Class="me-1" />
+                                                    @certifcate
+                                                </MudChip>
+                                            }
+                                        </MudStack>
+                                    </div>
+
+                                </MudStack>
+
+                                <!-- Actions -->
+                                <MudDivider />
+
+                                <MudStack Row Spacing="1" Class="pa-2">
+                                    <MudButton FullWidth Variant="Variant.Text" Color="Color.Default" OnClick="() => OpenStaffManageDialog(item)">
+                                        View Profile
+                                    </MudButton>
+                                </MudStack>
+
+                            </MudPaper>
+                        </MudItem>
+
+                    }
+
+
+                </MudGrid>
+            }
+        </MudTabPanel>
+
+        <!-- Attendants Tab -->
+        <MudTabPanel Text="@AttendantsCount">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                       OnClick="() => OpenStaffAddDialog(2)">
+                Add Staff
+            </MudButton>
+            <MudPaper Elevation="1" Class="rounded-xl">
+
+                <MudTable T="BusStaff" Items="@busStaff.Where(x => x.StaffType == 2)" Hover="true" Breakpoint="Breakpoint.Sm"
+                          RowClass="cursor-pointer">
+                    <HeaderContent>
+                        <MudTh>First Name</MudTh>
+                        <MudTh>Last Name</MudTh>
+                        <MudTh>Employee No</MudTh>
+                        <MudTh>Contact</MudTh>
+                        <MudTh>Certifications</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="FirstName">@context.FirstName</MudTd>
+                        <MudTd DataLabel="Surname">@context.LastName</MudTd>
+                        <MudTd DataLabel="EmployeeID">@context.StaffCode</MudTd>
+                        <MudTd DataLabel="Contact">@context.PhoneNumber</MudTd>
+                        <MudTd DataLabel="Certifications">
+                            @foreach (var item in context.Certifications)
+                            {
+                                <MudAlert Icon="@MaterialDesignIcons.Normal.Certificate">@item</MudAlert>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Status">
+                            @if (context.IsActive == true)
+                            {
+                                <MudText Color="Color.Success">Active</MudText>
+                            }
+                            else
+                            {
+                                <MudText Color="Color.Dark">De-Active</MudText>
+
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Action">
+                            <MudButton Color="Color.Primary" Variant="Variant.Filled">Manage</MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+            </MudPaper>
+
+        </MudTabPanel>
+    </MudTabs>
+
+</MudStack>
+@code {
+    protected List<BusStaff> busStaff = new();
+    protected List<BusMaintenanceRequest> maintenanceRequests = new();
+    protected string AttendantsCount = "";
+    protected string DriversCount = "";
+    protected List<Task> InitializationTasks = new();
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Please wait...");
+        InitializationTasks.Add(GetBusStaffAsync());
+        await Task.WhenAll(InitializationTasks);
+        LoaderService.Hide();
+    }
+  
+    protected async Task GetBusStaffAsync()
+    {
+        var serv = GenericService.GetService<BusStaff>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetTransportStaffBySchool/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            busStaff = result.Data.ToList();
+            foreach (var item in busStaff)
+            {
+                item.Certifications = item.Certificates?
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(r => r.Trim())
+                        .ToList() ?? new();
+            }
+
+            DriversCount = $"Drivers ({busStaff.Where(x => x.StaffType == 1).ToList().Count})";
+            AttendantsCount = $"Attendants/Helpers ({busStaff.Where(x => x.StaffType == 2).ToList().Count})";
+            StateHasChanged();
+        }
+    }
+    protected async Task OpenStaffAddDialog(int staffType)
+    {
+        bool Driver = staffType != 2;
+        var parameters = new DialogParameters<CreateGenericStaff>
+    {
+        { x => x.roleName, "TransportStaff" },
+        {x=>x.isDriver ,Driver}
+    };
+
+        var dialog = await DialogService.ShowAsync<CreateGenericStaff>("Create New Staff", parameters, new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is BusStaff newStaff)
+        {
+            Snackbar.Add($"User {newStaff.FirstName} created successfully!", Severity.Success);
+            newStaff.Certifications = newStaff.Certificates?
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(r => r.Trim())
+                        .ToList() ?? new();
+            busStaff.Add(newStaff);
+            DriversCount = $"Drivers ({busStaff.Where(x => x.StaffType == 1).ToList().Count})";
+            AttendantsCount = $"Attendants/Helpers ({busStaff.Where(x => x.StaffType == 2).ToList().Count})";
+            LoaderService.Hide();
+            StateHasChanged();
+
+        }
+    }
+    protected async Task OpenStaffManageDialog(BusStaff staff)
+    {
+        GenericStaffDTO Bstaff = new();
+        ApplicationUser user = new();
+        user = await GetUserInformation(staff.UserID);
+        Bstaff.BusStaff = staff;
+        Bstaff.ActiveType = StaffType.Bus;
+        var parameters = new DialogParameters<ManageGenericStaff>
+    {
+        { x => x.staffDTO, Bstaff },
+        {x=>x.applicationUser ,user},
+        {x=>x.applicationUser, user }
+    };
+
+        var dialog = await DialogService.ShowAsync<ManageGenericStaff>($"Update {staff.FirstName} {staff.LastName} Information", parameters, new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await GetBusStaffAsync();
+            LoaderService.Hide();
+            StateHasChanged();
+
+        }
+    }
+}

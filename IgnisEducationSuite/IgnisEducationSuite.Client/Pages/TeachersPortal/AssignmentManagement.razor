@@ -12,20 +12,7 @@
         </CardHeaderContent>
     </MudCardHeader>
     <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
-
+  
     <MudCardContent Class="mb-3">
         <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Title" Variant="Variant.Filled">Define Assignment</MudAlert>
         <MudGrid Class="mb-3">
@@ -36,7 +23,7 @@
                 <MudTextField Variant="Variant.Outlined" T="string" @bind-Value="newAssignment.Description" Label="Assignment Description" Margin="Margin.Dense"></MudTextField>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeconverter" SearchFunc="@Search"
+                <MudAutocomplete T="Class" Label="Select Class" @bind-Value="selectedClass" Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="ClassTypeConverter" SearchFunc="@Search"
                                  ResetValueOnEmptyText="true"
                                  CoerceText="true" CoerceValue="true"
                                  AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary" />
@@ -84,7 +71,7 @@
                                 <CellTemplate>
                                     <MudStack Row>
                                         <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="() => OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
                                     </MudStack>
                                 </CellTemplate>
                             </TemplateColumn>
@@ -108,7 +95,7 @@
                 <MudPaper Width="100%">
                     @if (assignmentQuestionsCollected)
                     {
-                        <MudDataGrid T="AssignmentQuestion" Items="@assignmentQuestions" ReadOnly="false" EditMode="@(DataGridEditMode.Cell)"
+                        <MudDataGrid Breakpoint="Breakpoint.Sm" T="AssignmentQuestion" Items="@assignmentQuestions" ReadOnly="false" EditMode="@(DataGridEditMode.Form)"
                                      StartedEditingItem="@StartedEditingItem" CanceledEditingItem="@CanceledEditingItem" CommittedItemChanges="@CommittedItemChanges"
                                      Bordered="true" Dense="true" EditTrigger="@(DataGridEditTrigger.OnRowClick)">
                             <Columns>
@@ -119,7 +106,7 @@
                                     <CellTemplate>
                                         <MudStack Row>
                                             <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
-                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="()=>OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
+                                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.List" OnClick="() => OpenMultipleChoiceDialog(context.Item.QuestionID)">Choices</MudIconButton>
                                         </MudStack>
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -248,37 +235,6 @@
         }
 </style>
 @code {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     [Inject] IDialogService DialogService { get; set; }
     protected string GPTQuery = string.Empty;
     protected string ResponseMessage = string.Empty;
@@ -312,10 +268,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+        LoaderService.Show("Please wait....");
         await GetTeachers();
         await GetClasses();
-        isLoading = false;
+        LoaderService.Hide();
     }
 
     #region Get From Database
@@ -323,21 +279,31 @@
     {
         var result = _genericService.GetService<Class>();
         var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{teacher.SchoolID}", true);
-        var classesdata = service.Data.ToList();
-        foreach (var item in classesdata)
+
+        if (service?.Data == null) return; // Null safety check
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // Filter only relevant classes
+        var filteredClasses = service.Data
+            .Where(item => item.TeacherID == teacher.TeacherID)
+            .ToList();
+
+        // Assign teacher before adding
+        foreach (var item in filteredClasses)
         {
-            var authstate = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authstate.User;
-
             item.Teacher = teacher;
-            if (item.Teacher.EmailAddress == user.Identity.Name)
+            if (string.IsNullOrEmpty(item.LevelName))
             {
-                classes.Add(item);
+                item.LevelName = academicLevels.Where(x => x.LevelInt == item.AcademicLevel)
+                                .Select(a => a.LevelName).First();
             }
-
+            classes.Add(item);
+            classes.OrderBy(x => x.LevelName);
         }
-
     }
+
     protected async Task GetTeachers()
     {
 
@@ -369,12 +335,27 @@
 
     #region To String Func
 
-    protected Func<Class, string> ClassTypeconverter = p => p?.ClassName + " " + (p?.Teacher.FirstName + " " + p?.Teacher.LastName);
+    protected Func<Class, string> ClassTypeConverter = p =>
+   {
+       if (p == null)
+       {
+           return "";
+       }
+
+       var className = p.ClassName ?? "";
+       var teacherFirstName = p.Teacher?.FirstName ?? "";
+       var teacherLastName = p.Teacher?.LastName ?? "Teacher";
+       var gradeName = p.LevelName ?? "";
+       var levelSect = p.GradeSection ?? "";
+
+       return $"{className}:{gradeName}:{levelSect}-({teacherFirstName.Substring(0, 1)}.{teacherLastName})";
+   };
+
     #endregion
     protected async Task AddmanualQuestion()
     {
         newAssignmentQuestion.QuestionID = Guid.NewGuid();
-
+        newAssignmentQuestion.QuestionNumber = assignmentQuestions.Count + 1;
         if (newAssignmentQuestion.isMultipleChoice == true)
 
         {
@@ -405,6 +386,7 @@
         isLoading = true;
         if (!string.IsNullOrEmpty(GPTQuery))
         {
+
             ResponseMessage = await ChatClientService.GetChatResponseAsync("api/Chat/AskChatGPT", GPTQuery);
             GPTQuery = string.Empty;
 
@@ -426,68 +408,90 @@
     protected async Task SaveAssignment()
     {
         isLoading = true;
-        if (assignmentQuestions.Any())
+
+        try
         {
-            bool hasUnsetprop = HasUnsetProperty(assignmentQuestions, item => item.MaxMarks == null);
-            if (!hasUnsetprop)
+            if (!assignmentQuestions.Any())
             {
-                #region Save Header
-                newAssignment.AssignmentID = Guid.NewGuid();
-                newAssignment.ClassID = selectedClass.ClassID;
-                newAssignment.TotalMarks = assignmentQuestions.Sum(x => x.MaxMarks);
-                newAssignment.TeacherID = selectedClass.TeacherID;
-
-                var service = _genericService.GetService<Assignment>();
-                var result = await service.PostAsync("api/Dynamic/PostEntity", "assignment", newAssignment);
-                if (result.IsSuccess)
-                {
-                    Snackbar.Add("Phase one done please wait while we complete the process");
-
-                }
-                else
-                {
-                    Snackbar.Add("Phase one Failed, please try again", Severity.Error);
-                    return;
-
-                }
-                #endregion
-                #region Save Details
-                foreach (var item in assignmentQuestions)
-                {
-                    item.AssignmentID = newAssignment.AssignmentID;
-                }
-
-                var service1 = _genericService.GetService<List<AssignmentQuestion>>();
-                var result1 = await service1.PostAsync("api/Dynamic/PostEntities", "assignmentQuestions", assignmentQuestions);
-                if (result1.IsSuccess)
-                {
-                    Snackbar.Add("Assignment Saved Succesfully", Severity.Success);
-                    assignmentQuestions.Clear();
-                    newAssignment = new();
-                    ResponseMessage = string.Empty;
-                    StateHasChanged();
-                }
-                else
-                {
-                    Snackbar.Add("Assignment saving failed please try again", Severity.Error);
-                    return;
-                }
-                #endregion
-            }
-            else
-            {
-                Snackbar.Add("Some Marks to some questions not set, Please set all marks and try again", Severity.Error);
+                Snackbar.Add("Error Saving, No Assignment Questions Found. Please add questions and try again", Severity.Error);
                 return;
             }
-        }
-        else
-        {
-            Snackbar.Add("Error Saving, No Assignment Questions Found. Please add questions and try again", Severity.Error);
-            return;
-        }
-        isLoading = false;
 
+            bool hasUnsetprop = HasUnsetProperty(assignmentQuestions, item => item.MaxMarks == null);
+            if (hasUnsetprop)
+            {
+                Snackbar.Add("Some Marks to some questions not set. Please set all marks and try again", Severity.Error);
+                return;
+            }
+
+            #region Save Header
+            newAssignment.AssignmentID = Guid.NewGuid();
+            newAssignment.ClassID = selectedClass.ClassID;
+            newAssignment.TotalMarks = assignmentQuestions.Sum(x => x.MaxMarks);
+            newAssignment.TeacherID = selectedClass.TeacherID;
+
+            var service = _genericService.GetService<Assignment>();
+            var result = await service.PostAsync("api/Dynamic/PostEntity", "assignment", newAssignment);
+
+            if (!result.IsSuccess)
+            {
+                Snackbar.Add("Phase one Failed, please try again", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add("Phase one done, please wait while we complete the process", Severity.Info);
+            #endregion
+
+            #region Save Questions
+            foreach (var item in assignmentQuestions)
+            {
+                item.AssignmentID = newAssignment.AssignmentID;
+                item.CreatedDate = DateTime.Now;
+                item.StudentAssignmentAnswers = null;
+                item.MultipleChoiceAssignmentAnswers = null;
+            }
+
+            var service1 = _genericService.GetService<List<AssignmentQuestion>>();
+            var result1 = await service1.PostAsync("api/Dynamic/PostEntities", "assignmentquestions", assignmentQuestions);
+
+            if (!result1.IsSuccess)
+            {
+                Snackbar.Add("Assignment saving failed, please try again", Severity.Error);
+                return;
+            }
+            #endregion
+
+            #region Save Multiple Choice Options
+            if (QuestionOptions.Any())
+            {
+                var service3 = _genericService.GetService<List<MultipleChoiceAssignmentAnswer>>();
+                var result3 = await service3.PostAsync("api/Dynamic/PostEntities", "assignmentmultiplechoices", QuestionOptions);
+
+                if (!result3.IsSuccess)
+                {
+                    Snackbar.Add("Error saving multiple-choice options, but the assignment has been saved", Severity.Warning);
+                }
+            }
+            #endregion
+
+            // Final success message
+            Snackbar.Add("Assignment saved successfully", Severity.Success);
+
+            // Reset states
+            assignmentQuestions.Clear();
+            QuestionOptions.Clear();
+            newAssignment = new();
+            ResponseMessage = string.Empty;
+
+            StateHasChanged();
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
+
+
     protected async Task OpenMultipleChoiceDialog(Guid QuestionID)
     {
         var parameters = new DialogParameters<MultipleChoiceManagementDialog>
@@ -504,7 +508,6 @@
         {
             if (QuestionOptions is null)
                 QuestionOptions = new List<MultipleChoiceAssignmentAnswer>();
-
             QuestionOptions.AddRange(questionOptions);
 
 

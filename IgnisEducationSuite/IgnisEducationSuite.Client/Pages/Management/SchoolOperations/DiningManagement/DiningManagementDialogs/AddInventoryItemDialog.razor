@@ -1,0 +1,178 @@
+﻿@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="batch.FoodName"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Disabled="true"
+                              Label="Name"
+                              Placeholder="Name"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudNumericField T="decimal"
+                                 Value="batch.Quantity"
+                                 ValueChanged="(e) => UpdateStock(e)"
+                                 Label="Quantity"
+                                 Placeholder="Quantity">
+                </MudNumericField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="batch.Status"
+                           Margin="Margin.Dense"
+                           Variant="Variant.Outlined"
+                           Label="Status"
+                           Placeholder="--Select Status--">
+                    @foreach (var category in status)
+                    {
+                        <MudSelectItem Value="category">@category</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               @bind-Date="batch.RecievedDateAltered"
+                               Label="Recieved Date"
+                               Placeholder="Recieved Date">
+                </MudDatePicker>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                @if (batch.hasExpiry)
+                {
+                    <MudDatePicker Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   @bind-Date="batch.ExpiryDate"
+                                   Label="Expiry Date"
+                                   Placeholder="Expiry Date">
+                    </MudDatePicker>
+                }
+                else
+                {
+                    <MudTextField @bind-Value="batch.ShelfLifeDays"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Disabled="true"
+                                  Label="Shelf Days"
+                                  Placeholder="Shelf Days"></MudTextField>
+                }
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="batch.StorageLocation"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Label="Storage Location"
+                              Placeholder="e.g fridge, pantry etc"></MudTextField>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="batch.CurrentTemp"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Label="Storage Temp"
+                              Placeholder="e.g 10"></MudTextField>
+            </MudItem>
+        </MudGrid>
+        <MudDivider Class="my-4" />
+
+        <MudExpansionPanels>
+            <MudExpansionPanel Text="Kitchen Measurements">
+                <MudStack Spacing="2">
+
+
+                    <MudGrid>
+                        <MudItem xs="5">
+                            <MudTextField @bind-Value="itemMeasurementStandard.MeasurementName"
+                                          Label="Measurement (e.g Mug)"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense" />
+                        </MudItem>
+
+                        <MudItem xs="5">
+                            <MudNumericField T="decimal"
+                                             @bind-Value="itemMeasurementStandard.QuantityInBaseUnit"
+                                             Label="@MeasurementLable"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense" />
+                        </MudItem>
+
+                    </MudGrid>
+
+                    <MudButton Variant="Variant.Text"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AddMeasurement">
+                        Add Measurement
+                    </MudButton>
+
+                </MudStack>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="() => MudDialog.Cancel()">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddInventory">Add Food Item(s)</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public InventoryBatch batch { get; set; } = new();
+    [Parameter] public KitchenMeasurementStandard itemMeasurementStandard { get; set; } = new();
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    protected string MeasurementLable = string.Empty;
+    public List<string> status = new List<string>
+    {
+        "Fresh",
+        "Use Soon",
+        "Critical",
+        "Expired",
+    };
+
+    protected override void OnParametersSet()
+    {
+        MeasurementLable = $"{batch.Unit} Equivalent";
+        itemMeasurementStandard.BaseUnit = batch.Unit;
+    }
+    private void UpdateStock(decimal value)
+    {
+        batch.Quantity += value;
+
+    }
+
+    private async Task AddInventory()
+    {
+        var serv = GenericService.GetService<InventoryBatch>();
+        var result = await serv.UpdateAsync("api/Dynamic/UpdateEntity", "inventorybatch", batch);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("Stock Updated Successfully", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
+
+    private async Task AddMeasurement()
+    {
+        var serv = GenericService.GetService<KitchenMeasurementStandard>();
+        itemMeasurementStandard.SchoolID = Guid.Parse(AppState.SchoolID);
+        itemMeasurementStandard.FoodItemID = batch.FoodItemID;
+        if (itemMeasurementStandard.KitchenMeasurementID == Guid.Empty)
+        {
+            var result = await serv.PostAsync("api/Dynamic/PostEntity", "kitchenmeasurement", itemMeasurementStandard);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Measurement Standard Successfully Added", Severity.Success);
+            }
+        }
+        else
+        {
+            var result = await serv.UpdateAsync("api/Dynamic/UpdateEntity", "kitchenmeasurement", itemMeasurementStandard);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("Measurement Standard Successfully Update", Severity.Success);
+            }
+        }
+    }
+}

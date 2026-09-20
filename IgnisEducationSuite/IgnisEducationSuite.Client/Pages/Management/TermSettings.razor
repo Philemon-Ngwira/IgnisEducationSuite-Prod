@@ -1,0 +1,149 @@
+﻿@page "/term-settings"
+@using EDUSphereSharedProject.Models
+@using IgnisEducationSuite.Client.Pages.Management.Dialog
+@using MudBlazor
+@inject IDialogService DialogService
+@inherits AppBaseComponent
+<PageTitle>Term Settings</PageTitle>
+
+<MudPaper Class="pa-4">
+
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h5">Term Settings</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenAddDialog">
+            <MudIcon Icon="@Icons.Material.Filled.Add" /> Add Term
+        </MudButton>
+    </MudStack>
+
+    <MudTable Items="@termSettings" Hover="true" Bordered="true" Striped="true" Dense="true">
+        <HeaderContent>
+            <MudTh>Term Name</MudTh>
+            <MudTh>Mid Term Start</MudTh>
+            <MudTh>Mid Term End</MudTh>
+            <MudTh>Final Term Start</MudTh>
+            <MudTh>Final Term End</MudTh>
+            <MudTh>Dean Start</MudTh>
+            <MudTh>Dean End</MudTh>
+            <MudTh>Principal Start</MudTh>
+            <MudTh>Principal End</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Term Name">@context.TermName</MudTd>
+            <MudTd DataLabel="Mid Term Start">@context.MidTermStart.Value.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Mid Term End">@context.MidtermEnd.Value.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Final Term Start">@context.FinalTermStart.Value.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Final Term End">@context.FinalTermEnd.Value.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Dean Start">@context.DeanStart.Value.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Dean End">@context.DeanEnd.Value.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Principal Start">@context.PrincipleStart.Value.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Principal End">@context.PrincipleEnd.Value.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Actions">
+                <MudButton Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled" OnClick="@(() => EditTerm(context))">
+                    Edit
+                </MudButton>
+                <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined" OnClick="@(() => DeleteTerm(context))">
+                    Delete
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+
+</MudPaper>
+
+
+
+@code {
+    private List<TermSetting> termSettings = new();
+    private TermSetting editTerm = new();
+    private bool dialogVisible = false;
+    private MudForm form;
+    private bool isLoading = false;
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Loading Please wait...");
+        await LoadTermSettings();
+        LoaderService.Hide();
+    }
+
+    private async Task LoadTermSettings()
+    {
+        //termSettings = await DbService.GetTermSettingsAsync();
+        var service = GenericService.GetService<TermSetting>();
+        var result = await service.GetAllAsync($"api/Dynamic/GetTermSettings/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            termSettings = result.Data.ToList();
+        }
+    }
+
+    private async Task OpenAddDialog()
+    {
+        editTerm = new TermSetting();
+        var parameters = new DialogParameters<CreateTermDialog> { { x => x.editTerm, editTerm } };
+        var DialogOpt = new DialogOptions { MaxWidth = MaxWidth.Large };
+        var dialog = await DialogService.ShowAsync<CreateTermDialog>("", parameters, DialogOpt);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var dt = result.Data;
+            if (dt is string)
+            {
+                var message = (string)dt;
+                if (message == "Successful")
+                {
+                    Snackbar.Add("Term Saved Successfully", Severity.Success);
+                }
+            }
+        }
+    }
+
+    private async Task EditTerm(TermSetting term)
+    {
+        editTerm = term; // clone to avoid editing the list directly
+        var parameters = new DialogParameters<CreateTermDialog> { { x => x.editTerm, editTerm } };
+        var DialogOpt = new DialogOptions { MaxWidth = MaxWidth.Large };
+        var dialog = await DialogService.ShowAsync<CreateTermDialog>("", parameters, DialogOpt);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var dt = result.Data;
+            if (dt is string)
+            {
+                var message = (string)dt;
+                if (message == "Successful")
+                {
+                    await LoadTermSettings();
+                    Snackbar.Add("Term Updated Successfully", Severity.Success);
+                }
+            }
+        }
+    }
+
+
+
+    private async Task DeleteTerm(TermSetting term)
+    {
+        bool? confirmed = await DialogService.ShowMessageBox(
+            "Confirm Delete",
+            $"Are you sure you want to delete {term.TermName}?",
+            yesText: "Yes", noText: "Cancel"
+        );
+
+        if (confirmed == true)
+        {
+            //await DbService.DeleteTermSettingAsync(term.TermSettingID);
+            await LoadTermSettings();
+        }
+    }
+
+    private void CloseDialog()
+    {
+        dialogVisible = false;
+    }
+}

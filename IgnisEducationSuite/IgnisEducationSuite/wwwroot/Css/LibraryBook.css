@@ -1,126 +1,229 @@
-﻿/* General Page Styling */
-body {
-    background-color: #FFE3D8; /* Background from your palette */
-    font-family: 'Arial', sans-serif;
-    color: #150016; /* Text Primary */
-    margin: 0;
-    padding: 0;
+﻿/* ========== Fonts (include in _Host.cshtml or index.html) ========== 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+==================================================================== */
+
+:root {
+    /* Palette (warm & educational, tweak as needed) */
+    --bg: #FFF6F2; /* soft warm background */
+    --card: #FFFFFF;
+    --accent-900: #29104A; /* deep indigo for spine/header */
+    --accent-700: #5A2B87; /* mid tone */
+    --accent-400: #A86ECF; /* lighter purple */
+    --muted-text: #150016;
+    --shelf: linear-gradient(180deg,#E7D0B8 0%, #DABE9C 100%);
+    --glass: rgba(255,255,255,0.6);
+    --shadow-1: 0 6px 18px rgba(16,8,30,0.12);
+    --shadow-2: 0 10px 30px rgba(16,8,30,0.16);
+    --card-radius: 14px;
+    --spine-width: 14px;
 }
 
-/* Library Page Styling */
+/* Page */
+body {
+    background: var(--bg);
+    font-family: 'Inter', Arial, sans-serif;
+    color: var(--muted-text);
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Container / grid */
 .library-page {
     padding: 2rem;
     display: flex;
     justify-content: center;
-    align-items: center;
 }
 
 .library-grid {
     display: grid;
-    gap: 1.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid for smaller cards */
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
     width: 100%;
     max-width: 1200px;
-}
-
-/* Library Card Styling */
-.library-card {
-    background-color: #FFFFFF; /* White background */
-    border: 1px solid #29104A; /* Primary border */
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), /* Subtle elevation */
-    inset 0 -2px 4px rgba(0, 0, 0, 0.05); /* Inner shadow for depth */
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    max-width: 250px; /* Max width resembling a textbook */
-    transition: transform 0.2s, box-shadow 0.2s;
+    perspective: 1400px; /* allow 3D tilt */
     position: relative;
-    background-image: linear-gradient( to right, #FFFFFF, #F7F7F7 85% ); /* Slight gradient for the "cover" */
+    padding-bottom: 3.2rem; /* room for shelf */
 }
 
-    .library-card:hover {
-        transform: scale(1.05); /* Slight hover scale */
-        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2), inset 0 -2px 6px rgba(0, 0, 0, 0.1); /* Deeper shadow on hover */
+    /* Shelf effect — sits behind cards */
+    .library-grid::after {
+        content: "";
+        position: absolute;
+        left: 2rem;
+        right: 2rem;
+        bottom: 0.5rem;
+        height: 56px;
+        background: var(--shelf);
+        border-radius: 10px;
+        box-shadow: 0 8px 18px rgba(0,0,0,0.08) inset;
+        z-index: 0;
+        transform: translateY(8px);
+        filter: saturate(.98);
     }
 
-    /* Book Spine Effect */
-    .library-card:before {
-        content: '';
+/* Each card */
+.library-card {
+    position: relative;
+    z-index: 2; /* above the shelf */
+    display: flex;
+    flex-direction: column;
+    max-width: 260px;
+    margin: 0 auto;
+    background: linear-gradient(180deg, var(--card) 0%, #FBFBFB 100%);
+    border-radius: var(--card-radius);
+    border: 1px solid rgba(41,16,74,0.06);
+    box-shadow: var(--shadow-1);
+    overflow: visible;
+    transition: transform 320ms cubic-bezier(.2,.9,.3,1), box-shadow 320ms;
+    transform-origin: center;
+    transform-style: preserve-3d;
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
+}
+
+    /* Slight lift + 3D tilt on hover */
+    .library-card:hover {
+        transform: translateY(-12px) rotateX(4deg) rotateY(2deg) scale(1.03);
+        box-shadow: var(--shadow-2);
+    }
+
+    /* Book spine (left) */
+    .library-card .book-spine {
         position: absolute;
         top: 0;
         left: 0;
-        width: 12px; /* Book spine width */
+        width: var(--spine-width);
         height: 100%;
-        background: linear-gradient(to right, #29104A, rgba(41, 16, 74, 0.8));
-        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1); /* Shadow for the spine */
-        z-index: 1;
+        border-top-left-radius: var(--card-radius);
+        border-bottom-left-radius: var(--card-radius);
+        background: linear-gradient(180deg, var(--accent-900), var(--accent-700));
+        box-shadow: 2px 0 6px rgba(0,0,0,0.12);
+        z-index: 3;
+        transform-origin: left center;
+        transform: translateZ(40px) rotateY(-12deg) translateX(-6px);
     }
 
-/* Cover Image */
-.course-cover {
-    width: 100%;
-    height: 150px; /* Fixed height for uniform appearance */
-    object-fit: cover; /* Ensure the image scales correctly */
-    border-bottom: 1px solid #29104A; /* Separate image from the content */
+/* Cover (image) */
+.cover-wrap {
+    border-top-left-radius: calc(var(--card-radius) - 2px);
+    border-top-right-radius: calc(var(--card-radius) - 2px);
+    overflow: hidden;
+    position: relative;
+    z-index: 2;
 }
 
-/* Card Header */
+.course-cover {
+    width: 100%;
+    height: 220px; /* tall textbook-y */
+    object-fit: cover;
+    display: block;
+    transition: transform 420ms;
+    transform-origin: center;
+}
+
+/* subtle parallax on hover */
+.library-card:hover .course-cover {
+    transform: scale(1.06) translateZ(20px);
+}
+
+/* header with accent band (book title strip) */
 .card-header {
-    background-color: #29104A; /* Primary color */
-    color: #FFFFFF; /* White text */
-    padding: 0.5rem 1rem;
+    background: linear-gradient(90deg, rgba(41,16,74,0.95), rgba(90,43,135,0.9));
+    color: #fff;
     text-align: center;
-    z-index: 2; /* Ensure it layers over the spine */
+    padding: 0.6rem 0.75rem;
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
 
     .card-header .course-name {
         margin: 0;
-        font-size: 1.2rem;
-        font-weight: bold;
-        color:aliceblue
+        font-size: 1rem;
+        font-weight: 700;
+        font-family: 'Merriweather', serif;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
     }
 
-/* Card Body */
+/* body */
 .card-body {
     padding: 1rem;
-    flex-grow: 1;
+    z-index: 2;
+    flex: 1 1 auto;
+    min-height: 110px;
 }
 
     .card-body p {
-        margin: 0.5rem 0;
-        font-size: 0.9rem;
-        color: #150016; /* Text Primary */
+        margin: 0.35rem 0;
+        font-size: 0.92rem;
+        color: rgba(21,0,22,0.9);
     }
 
-/* Card Footer */
+/* footer & button */
 .card-footer {
-    padding: 1rem;
+    padding: 0.85rem;
     text-align: center;
+    z-index: 2;
 }
 
 .details-button {
-    background-color: #29104A; /* Primary color */
-    color: #FFFFFF; /* White text */
+    background: linear-gradient(180deg, var(--accent-700), var(--accent-400));
+    color: #fff;
     border: none;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem; /* Smaller button text */
-    border-radius: 5px;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.92rem;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    box-shadow: 0 6px 14px rgba(58,30,100,0.12);
+    transition: transform 160ms, box-shadow 160ms, opacity 160ms;
 }
 
     .details-button:hover {
-        background-color: #3F51B5; /* Info color */
+        transform: translateY(-3px);
+        box-shadow: 0 10px 22px rgba(58,30,100,0.18);
     }
 
-/* Responsive Adjustments */
+/* tiny badge on corner (optional) */
+.library-card .corner-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255,255,255,0.85);
+    color: #29104A;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    z-index: 4;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* Responsive */
+@media (max-width: 880px) {
+    .course-cover {
+        height: 190px;
+    }
+}
+
 @media (max-width: 600px) {
     .library-grid {
-        grid-template-columns: 1fr; /* Single column on small screens */
+        grid-template-columns: 1fr;
+        padding-bottom: 4.2rem;
     }
 
-    .library-card {
-        max-width: 100%; /* Full width on small screens */
+    .course-cover {
+        height: 240px;
+    }
+    /* tall and scrollable on mobile */
+}
+
+/* Accessibility: respects reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .library-card, .course-cover, .details-button {
+        transition: none !important;
+        transform: none !important;
     }
 }

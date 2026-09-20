@@ -1,0 +1,130 @@
+﻿@using EDUSphereSharedProject.Models
+@inherits AppBaseComponent
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Normal" Icon="@MaterialDesignIcons.Normal.BusSign">Bus Infomation</MudAlert>
+            </MudItem>
+            <MudDivider Class="mb-3"></MudDivider>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newBus.RegistrationNumber"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              ShrinkLabel=true
+                              Label="Bus Label"
+                              Placeholder="e.g Bus-001"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newBus.Model"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              ShrinkLabel=true
+                              Label="Bus Model"
+                              Placeholder="Volvo 9700"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newBus.ModelYear"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              ShrinkLabel=true
+                              Label="Model Year"
+                              Placeholder="2010"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newBus.Capacity"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              ShrinkLabel=true
+                              Label="Bus Seating Capacity"
+                              Placeholder="e.g 60"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newBus.LicensePlateNumber"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              ShrinkLabel=true
+                              Label="License Plate #"
+                              Placeholder="e.g ZMB0002"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           @bind-Value="newBus.FuelType"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Label="Fuel Type"
+                           Placeholder="--Select Fuel Type--">
+                    @foreach (var item in fuelTypes)
+                    {
+                        <MudSelectItem Value="item.FuelName">@item.FuelName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudDivider Class="mb-3"></MudDivider>
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Normal" Icon="@MaterialDesignIcons.Normal.MeterGas">Bus Metric Infomation</MudAlert>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newBus.CurrentMileageKm"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              ShrinkLabel=true
+                              Label="Current Mileage in Km"
+                              Placeholder=" e.g 123000"></MudTextField>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="newBus.AverageKmPerLitre"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              ShrinkLabel=true
+                              Label="Average Km Per Litre Fuel"
+                              Placeholder=" e.g 5"></MudTextField>
+            </MudItem>
+
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButtonGroup OverrideStyles="false">
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Cancel"
+                       OnClick="MudDialog.Cancel">
+                Cancel
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       Color="Color.Primary"
+                       OnClick="SaveNewBus">
+                Save
+            </MudButton>
+        </MudButtonGroup>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public List<FuelType> fuelTypes { get; set; } = new();
+    protected Bus newBus = new();
+
+
+    protected async Task SaveNewBus()
+    {
+        LoaderService.Show($"Please wait while {newBus.RegistrationNumber} is Configured");
+        newBus.BusId = Guid.NewGuid();
+        newBus.FuelTypeId = fuelTypes
+                           .Where(x => x.FuelName == newBus.FuelType)
+                           .Select(i => i.FuelTypeId)
+                           .FirstOrDefault();
+        newBus.SchoolId = Guid.Parse(AppState.SchoolID);
+        newBus.IsActive = true;
+
+        var service = GenericService.GetService<Bus>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "bus", newBus);
+        if (result.IsSuccess)
+        {
+            LoaderService.Hide();
+            Snackbar.Add("New Bus Added Succesfully", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(newBus));
+        }
+    }
+
+}

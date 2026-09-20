@@ -16,10 +16,16 @@ namespace IgnisEducationSuite.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
 
-        public AdminController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        private readonly ApplicationDbContext _context;
+
+        public AdminController(
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            ApplicationDbContext context)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _context = context;
         }
 
         // API endpoint to get all users grouped by role
@@ -29,31 +35,49 @@ namespace IgnisEducationSuite.Controllers
             var users = await _userManager.Users.Where(x => x.SchoolID == SchoolID).ToListAsync();
             return Ok(users);
         }
-        [HttpGet("getUsersByRole/{SchoolID}")]
-        public async Task<IActionResult> GetUsersByRole(Guid SchoolID)
+        [HttpGet("getUsersByRole/{schoolId}")]
+        public async Task<IActionResult> GetUsersByRole(Guid schoolId)
         {
-            var users = await _userManager.Users.ToListAsync();
-            var roles = await _roleManager.Roles.ToListAsync();
-            var userRoles = new Dictionary<string, List<ApplicationUser>>();
+            var data = await (
+                from role in _context.Roles.AsNoTracking()
 
-            foreach (var role in roles)
-            {
-                var usersInRole = new List<ApplicationUser>();
+                join ur in _context.UserRoles
+                    on role.Id equals ur.RoleId into roleUsers
+                from ur in roleUsers.DefaultIfEmpty()
 
-                // Collect users in the role asynchronously
-                foreach (var user in users)
+                join user in _context.Users
+                    on ur.UserId equals user.Id into users
+                from user in users.DefaultIfEmpty()
+
+                where user == null || user.SchoolID == schoolId
+
+                select new
                 {
-                    if (await _userManager.IsInRoleAsync(user, role.Name) && user.SchoolID == SchoolID)
+                    RoleName = role.Name,
+                    User = user == null ? null : new
                     {
-                        usersInRole.Add(user);
+                        user.Id,
+                        user.UserName,
+                        user.Email,
+                        user.FirstName,
+                        user.LastName
                     }
                 }
+            ).ToListAsync();
 
-                userRoles[role.Name] = usersInRole;
-            }
+            var result = data
+                .GroupBy(x => x.RoleName)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Where(x => x.User != null)
+                          .Select(x => x.User)
+                          .ToList()
+                );
 
-            return Ok(userRoles);
+            return Ok(result);
         }
+
+
         [HttpGet("getUsersByRoleAdmin/{SchoolID}")]
         public async Task<IActionResult> GetUsersByRoleAdmin(Guid SchoolID)
         {
@@ -77,6 +101,55 @@ namespace IgnisEducationSuite.Controllers
                 return Ok(user);
             }
         }
+        [HttpPost("addrole")]
+        public async Task<IActionResult> AddRoleToUser([FromBody] ModifyUserRoleModel request)
+        {
+            var user = await _userManager.FindByIdAsync(request.UserId);
+            if (user is null)
+                return NotFound("User not found.");
+
+            if (!await _roleManager.RoleExistsAsync(request.Role))
+                return BadRequest($"Role '{request.Role}' does not exist.");
+
+            if (await _userManager.IsInRoleAsync(user, request.Role))
+                return BadRequest("User already has this role.");
+
+            var result = await _userManager.AddToRoleAsync(user, request.Role);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok(new
+            {
+                user.Id,
+                AddedRole = request.Role
+            });
+        }
+        [HttpPost("removerole")]
+        public async Task<IActionResult> RemoveRoleFromUser([FromBody] ModifyUserRoleModel request)
+        {
+            var user = await _userManager.FindByIdAsync(request.UserId);
+            if (user is null)
+                return NotFound("User not found.");
+
+            if (!await _roleManager.RoleExistsAsync(request.Role))
+                return BadRequest($"Role '{request.Role}' does not exist.");
+
+            if (!await _userManager.IsInRoleAsync(user, request.Role))
+                return BadRequest("User does not have this role.");
+
+            var result = await _userManager.RemoveFromRoleAsync(user, request.Role);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok(new
+            {
+                user.Id,
+                RemovedRole = request.Role
+            });
+        }
+
         // API endpoint to create a new user
         [HttpPost("createUser")]
         public async Task<IActionResult> CreateUser(CreateUserModel request)
@@ -92,6 +165,7 @@ namespace IgnisEducationSuite.Controllers
                 AccountActive = true,
                 EmailConfirmed = true,
                 requiresPasswordReset = true,
+                PhoneNumber = request.PhoneNumber ?? "N/A",
 
                 UserID = request.UserID,
             };
@@ -99,7 +173,17 @@ namespace IgnisEducationSuite.Controllers
             {
                 user.isFirstLogin = true;
             }
-            var result = await _userManager.CreateAsync(user, request.Password);
+
+            var password = "";
+            if (string.IsNullOrEmpty(request.Email) || request.Email == "N/A")
+            {
+                password = "P@ssword1";
+            }
+            else
+            {
+                password = request.Password;
+            }
+            var result = await _userManager.CreateAsync(user, password);
 
             if (!result.Succeeded)
             {

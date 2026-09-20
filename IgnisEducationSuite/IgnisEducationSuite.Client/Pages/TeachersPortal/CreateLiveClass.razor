@@ -1,0 +1,305 @@
+﻿@page "/createliveclass"
+@using EDUSphereSharedProject.ChatModels
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.Zoom
+@inherits AppBaseComponent
+<MudCard Elevation="3" Class="pa-4">
+
+    <!-- Header -->
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                <MudIcon Icon="@Icons.Material.Filled.LiveTv" />
+            </MudAvatar>
+        </CardHeaderAvatar>
+
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6"><b>Schedule Live Class Session</b></MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Create and share a live class link with students
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+
+    <MudDivider Class="my-2" />
+
+    <!-- Visual Banner -->
+    <MudCardMedia Image="images/ClassImages/LiveSessionImage.jpg"
+                  Height="220"
+                  Class="rounded mb-4" />
+
+    <MudCardContent>
+
+        <MudGrid Spacing="3">
+
+            <!-- Academic Level -->
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Label="Academic Level (Grade)"
+                           Value="Grade"
+                           ValueChanged="OnGradeChanged"
+                           Required="true">
+                    @foreach (var item in availableAcademicLevels)
+                    {
+                        <MudSelectItem Value="@item">@item</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <!-- Section -->
+            <MudItem xs="12" md="6">
+                <MudTextField T="string"
+                              Label="Class Section"
+                              Placeholder="e.g A, B, C"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Value="gradeSection"
+                              ValueChanged="OnGradeSectionChanged" />
+            </MudItem>
+
+            <!-- Subject -->
+            <MudItem xs="12">
+                <MudSelect T="string"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Label="Subject"
+                           Disabled="!filteredAvailableClasses.Any()"
+                           @bind-Value="Subject"
+                           HelperText="@(!filteredAvailableClasses.Any()
+                                                           ? "Select grade first to load subjects"
+                                                           : null)">
+                    @foreach (var item in filteredAvailableClasses)
+                    {
+                        <MudSelectItem Value="@item.ClassName">
+                            @item.ClassName
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <!-- Create Button -->
+            <MudItem xs="12" Class="d-flex justify-end mt-2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Success"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.VideoCall"
+                           Disabled="string.IsNullOrWhiteSpace(Grade) || string.IsNullOrWhiteSpace(Subject)"
+                           OnClick="CreateMeeting">
+                    Create Live Class
+                </MudButton>
+            </MudItem>
+
+            <!-- Meeting Info -->
+            @if (!string.IsNullOrEmpty(MeetingLink))
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+
+                        <MudText Typo="Typo.subtitle2">
+                            🎉 Live class created successfully
+                        </MudText>
+
+                        <MudText Typo="Typo.body2" Class="mt-1">
+                            Students can join using the link below:
+                        </MudText>
+
+                        <MudLink Href="@MeetingLink" Target="_blank">
+                            @MeetingLink
+                        </MudLink>
+
+                        <MudStack Row Spacing="2" Class="mt-3">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Chat"
+                                       OnClick="ShareViaChat">
+                                Share via Ignis Chat
+                            </MudButton>
+
+                            <MudButton Disabled=true Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Email">
+                                Share via Email
+                            </MudButton>
+                        </MudStack>
+
+                    </MudAlert>
+                </MudItem>
+            }
+
+        </MudGrid>
+
+    </MudCardContent>
+</MudCard>
+
+
+@code {
+    private string Subject { get; set; }
+    private string Grade { get; set; } = "Select Academic Level";
+    private DateTime StartTime { get; set; } = DateTime.Now.AddMinutes(5);
+    private string MeetingLink { get; set; }
+    [Inject] LessonService lessonService { get; set; } = default!;
+    [Inject] NavigationManager navigationManager { get; set; } = default!;
+    protected Teacher teacher = new();
+    protected bool isLoading;
+    protected List<Class> allAvailableClasses = new();
+    protected List<Class> filteredAvailableClasses = new();
+    protected List<string> availableAcademicLevels = new();
+    protected string gradeSection = "";
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Initializing...Pleas wait...");
+        await GetClasses();
+        LoaderService.Hide();
+    }
+    private async Task ShareViaChat()
+    {
+        if (string.IsNullOrEmpty(MeetingLink)) return;
+
+        var request = new ShareLiveClassRequest
+        {
+            Grade = academicLevels.Where(x => x.LevelName == Grade).Select(x => x.LevelName).First(),
+            Subject = Subject,
+            TeacherId = AppState.UserID,
+            MeetingLink = MeetingLink,
+            StartTime = StartTime,
+            GradeSection = gradeSection,
+        };
+
+        var response = await HttpClient.PostAsJsonAsync("api/Zoom/ShareToChat", request);
+        var result = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+
+        // Navigate teacher to chat page with group opened
+        if (result != null && result.ContainsKey("groupName"))
+        {
+            navigationManager.NavigateTo($"/MainChat?openGroup={Uri.EscapeDataString(result["groupName"])}");
+        }
+    }
+    protected async Task GetClasses()
+    {
+        await GetTeachers();
+        var result = GenericService.GetService<Class>();
+        var service = await result.GetAllAsync($"api/Dynamic/GetClassesBySchoolID/{AppState.SchoolID}", true);
+
+        if (service?.Data == null) return; // Null safety check
+        // Filter only relevant classes
+        var filteredClasses = service.Data
+            .Where(item => item.TeacherID == teacher.TeacherID)
+            .ToList();
+        allAvailableClasses = filteredClasses.ToList();
+        foreach (var item in allAvailableClasses)
+        {
+            if (string.IsNullOrEmpty(item.LevelName))
+            {
+                item.LevelName = academicLevels.Where(x => x.LevelInt == item.AcademicLevel).Select(c => c.LevelName).FirstOrDefault();
+            }
+        }
+        availableAcademicLevels = filteredClasses.Select(x => x.LevelName).Distinct().ToList();
+
+    }
+    protected async Task GetTeachers()
+    {
+
+        var UserID = AppState.UserID;
+
+        if (UserID != string.Empty || UserID != null)
+        {
+            var result = GenericService.GetService<Teacher>();
+            var service = await result.GetAllAsync($"api/Dynamic/GetTeacherByUserID/{UserID}", true);
+            var teachers = service.Data.ToList();
+            if (teachers.Any())
+            {
+                teacher = teachers.FirstOrDefault();
+            }
+        }
+
+    }
+    private async Task CreateMeeting()
+    {
+        LoaderService.Show("Creating Live Class Please wait a moment...");
+        var request = new
+        {
+            Topic = $"{Subject} Grade {Grade}",
+            StartTime = StartTime,
+            Duration = 60,
+            Password = "",
+            TeacherEmail = "ngwira.philemon@gmail.com"
+        };
+
+        var response = await HttpClient.PostAsJsonAsync("api/zoom/createmeeting", request);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<ZoomMeetingResponse>();
+
+        // Generate the front-end link for students
+        var LiveMeetingReady = await SaveLiveMeetingMasterData(result);
+        if (LiveMeetingReady)
+            MeetingLink = $"/liveclass/{result.MeetingNumber}/{result.Password}";
+        LoaderService.Hide();
+    }
+    protected async Task<bool> SaveLiveMeetingMasterData(ZoomMeetingResponse zoomMeeting)
+    {
+
+        LiveMeeting newMeeting = new()
+        {
+            MeetingID = Guid.NewGuid(),
+            MeetingNumber = zoomMeeting.MeetingNumber,
+            MeetingPassword = zoomMeeting.Password,
+            CreatedBy = Guid.Parse(AppState.UserID),
+            CreatedDate = DateTime.UtcNow,
+            CreatorEmail = AppState.UserEmail,
+            ScheduledDate = StartTime,
+            isDone = false,
+
+        };
+        var service = GenericService.GetService<LiveMeeting>();
+        var result = await service.PostAsync("api/Dynamic/PostEntity", "livemeeting", newMeeting);
+        if (result.IsSuccess)
+        {
+            Console.WriteLine("Live meeting master data saved successfully.");
+            return true;
+        }
+        else
+        {
+            Console.WriteLine("Failed to save live meeting master data.");
+            return false;
+        }
+    }
+
+
+    private void ApplyClassFilter()
+    {
+        filteredAvailableClasses = allAvailableClasses
+            .Where(x =>
+                x.LevelName == Grade &&
+                (
+                    // Class has no section → available to everyone in the grade
+                    string.IsNullOrWhiteSpace(x.GradeSection) ||
+
+                    // Class has a section → must match selected section
+                    x.GradeSection.Trim()
+                        .Equals(gradeSection?.Trim(), StringComparison.OrdinalIgnoreCase)
+                )
+            )
+            .ToList();
+    }
+
+    private void OnGradeSectionChanged(string value)
+    {
+        gradeSection = value;
+        ApplyClassFilter();
+    }
+
+    private void OnGradeChanged(string value)
+    {
+        Grade = value;
+        ApplyClassFilter();
+    }
+
+    public class CreateMeetingResponse
+    {
+        public string MeetingNumber { get; set; }
+        public string JoinUrl { get; set; }
+    }
+}

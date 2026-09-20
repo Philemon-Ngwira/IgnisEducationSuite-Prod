@@ -1,0 +1,39 @@
+﻿@inject NavigationManager Nav
+
+<div class="init-failed-container">
+    <div class="init-failed-card">
+        <h2>We couldn’t start the application</h2>
+
+        <p>
+            Something went wrong while loading your account or school information.
+            This can happen if your session expired or the server is temporarily unavailable.
+        </p>
+
+        <div class="actions">
+            <button class="btn-primary" @onclick="Reload">
+                Try Again
+            </button>
+
+            <button class="btn-secondary" @onclick="GoToLogin">
+                Sign In Again
+            </button>
+        </div>
+
+        <p class="hint">
+            If this keeps happening, please contact your school administrator.
+        </p>
+    </div>
+</div>
+
+@code {
+    private void Reload()
+    {
+        // full reload clears WASM memory + tokens
+        Nav.NavigateTo(Nav.Uri, forceLoad: true);
+    }
+
+    private void GoToLogin()
+    {
+        Nav.NavigateTo("Account/Login", forceLoad: true);
+    }
+}

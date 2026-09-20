@@ -17,5 +17,9 @@ public partial class TimeSlot
 
     public Guid? SchoolID { get; set; }
 
+    public string SlotType { get; set; }
+
+    public int? MaxOccupancy { get; set; }
+
     public virtual ICollection<ClassSchedule> ClassSchedules { get; set; } = new List<ClassSchedule>();
 }

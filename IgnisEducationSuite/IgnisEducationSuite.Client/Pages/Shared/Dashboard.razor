@@ -10,8 +10,10 @@
 @using IgnisEducationSuite.Client.Pages.Achievements
 @using IgnisEducationSuite.Client.Services
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
 @inject HttpClient httpClient
 @inherits AppBaseComponent
+@attribute [Authorize]
 <MudCard>
     <MudCardHeader Class="mb-3">
         <CardHeaderContent>
@@ -19,37 +21,34 @@
         </CardHeaderContent>
     </MudCardHeader>
 
+    @* The overlay that used to sit here was unreachable: isLoading was only ever assigned by
+       LoadInfomation, which nothing called, so it was permanently false. Loading state comes from
+       LoaderService, which OnInitializedAsync shows and hides. *@
     <MudCardContent Class="mb-3">
-        @if (isLoading)
-        {
-            <div id="loader-overlay" class="loader-overlay">
-                <div class="loader-container">
-                    <!-- Spinner -->
-                    <div class="spinner"></div>
-                    <!-- Loader Icon -->
-                    <div class="loader-icon">🔄</div>
-                    <!-- Loading Text -->
-                    <p class="loading-text">Loading, please wait...</p>
-                </div>
-            </div>
-        }
         <AuthorizeView>
             <Authorized>
-                @if (AppState.IsInitialized)
+                @if (AppState.IsFullyInitialized)
                 {
-                    @if (!AppState.LicenseIsActive)
-                    {
+                    @* An unlicensed school is warned, not shut out.
 
-                        <div class="license-warning-container">
-                            <div class="license-warning">
-                                <p>Your license is not active.</p>
-                                <p>Please contact support or renew your license to continue using this application.</p>
-                            </div>
-                        </div>
-                    }
-                    else
+                       This branch used to replace the entire dashboard, so any wrong verdict took
+                       the whole application away — and until the LicenseService fix, an unreachable
+                       licensing service produced exactly that verdict for schools whose licence was
+                       perfectly valid. Enforcement belongs at the point of action (adding users),
+                       which is where UserManagement applies it.
+
+                       IsConfirmedUnlicensed, not !LicenseIsActive: only a check that succeeded and
+                       said "no" should show this. *@
+                    @if (AppState.LicenseStatus.IsConfirmedUnlicensed)
                     {
-                        <MudAlert Variant="Variant.Filled" Class="mb-3" Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person2">Date and Time: @DateTime.Now</MudAlert>
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-3">
+                            <b>This school's licence is not active.</b>
+                            Everything already recorded stays available and the school continues to work.
+                            New users cannot be added until the licence is renewed.
+                        </MudAlert>
+                    }
+
+                        <MudAlert Variant="MudBlazor.Variant.Filled" Class="mb-3" Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person2">Date and Time: @DateTime.Now</MudAlert>
                         @if (AppState.UserRole == "Student" || AppState.UserRole == "Parent")
                         {
 
@@ -66,7 +65,7 @@
                                                     <MudText Typo="Typo.body2">Check Lessons From Teachers and Study them</MudText>
                                                 </MudCardContent>
                                                 <MudCardActions>
-                                                    <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.NavigateNext" Href="/StudentLessons" Color="Color.Primary">Go</MudButton>
+                                                    <MudButton Variant="MudBlazor.Variant.Filled" EndIcon="@Icons.Material.Filled.NavigateNext" Href="/StudentLessons" Color="Color.Primary">Go</MudButton>
                                                 </MudCardActions>
                                             </MudCard>
                                         </MudItem>
@@ -98,48 +97,14 @@
                                     <MudItem xs="12">
                                         <MudCard>
                                             <MudCardHeader>
-                                                <MudText Align="Align.Left" Typo="Typo.h6"><b>Class Time Table</b></MudText>
+                                                <MudText Align="Align.Left" Typo="Typo.h6" Style="color:aliceblue"><b>Class Time Table</b></MudText>
                                             </MudCardHeader>
                                             <MudCardContent>
                                                 <div class="card-body">
                                                     @if (Currentschedules.Any())
                                                     {
-                                                        <table class="timetable">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Time</th>
-                                                                    @foreach (var day in daysofTheWeek)
-                                                                    {
-                                                                        <th>@day.DayName</th>
-                                                                    }
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                @foreach (var group in groupedSchedules)
-                                                                {
-                                                                    <tr>
-                                                                        <td class="time">@($"{group.Key.StartTime:hh\\:mm}") - @($"{group.Key.EndTime:hh\\:mm}")</td>
-                                                                        @foreach (var day in dayOrder)
-                                                                        {
-                                                                            <td class="@((group.Any(cs => cs.DayName == day) ? "" : "empty"))">
-                                                                                @{
-                                                                                    var schedule = group.FirstOrDefault(cs => cs.DayName == day);
-                                                                                    if (schedule != null)
-                                                                                    {
-                                                                                        <span>@schedule.ClassName</span>
-                                                                                    }
-                                                                                    else
-                                                                                    {
-                                                                                        <span>No Classes</span>
-                                                                                    }
-                                                                                }
-                                                                            </td>
-                                                                        }
-                                                                    </tr>
-                                                                }
-                                                            </tbody>
-
-                                                        </table>
+                                                        <TimeTableViewer TimetableEntries="Currentschedules"
+                                                                         Title="@(Currentschedules.Select(x=>x.LevelName).First())" />
                                                     }
                                                     else
                                                     {
@@ -262,12 +227,12 @@
                                                 <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
                                                     @if (AppState.UserRole == "Parent")
                                                     {
-                                                        <h6 class="mb-2 fw-bold text-lg mb-0">Student Attendance Trends</h6>
+                                                        <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Attendance Trends</h6>
 
                                                     }
                                                     else
                                                     {
-                                                        <h6 class="mb-2 fw-bold text-lg mb-0">Current Pending Lessons</h6>
+                                                        <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Pending Lessons</h6>
                                                         <a href="StudentLessons" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
                                                             Pending Lessons
                                                             <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
@@ -292,6 +257,8 @@
                                                                         </span>
                                                                         <span class="text-sm text-secondary-light fw-normal">
                                                                             Total Number Classes Missed @item.TotalAbsent
+                                                                            <br />
+                                                                            Total Number Of Days Off @item.SickOffDays
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -345,7 +312,7 @@
                                                 <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
                                                     @if (AppState.UserRole == "Student")
                                                     {
-                                                        <h6 class="mb-2 fw-bold text-lg mb-0">Attendance</h6>
+                                                        <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Attendance</h6>
                                                         <a href="StudentLessons" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
                                                             Class Attendance
                                                             <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
@@ -353,7 +320,7 @@
                                                     }
                                                     else
                                                     {
-                                                        <h6 class="mb-2 fw-bold text-lg mb-0">Missed Classes Last 7 Days</h6>
+                                                        <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Missed Classes Last 7 Days</h6>
 
                                                     }
                                                 </div>
@@ -433,61 +400,141 @@
                                         <div class="card">
                                             <div class="card-header">
                                                 <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
-                                                    <h6 class="mb-2 fw-bold text-lg mb-0">Time Table</h6>
+                                                    <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Time Table</h6>
                                                 </div>
                                             </div>
                                             <div class="card-body">
                                                 @if (Currentschedules.Any())
                                                 {
-                                                    <table class="timetable">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Time</th>
-                                                                @foreach (var day in daysofTheWeek)
-                                                                {
-                                                                    <th>@day.DayName</th>
-                                                                }
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach (var group in groupedSchedules)
-                                                            {
-                                                                <tr>
-                                                                    <td class="time">@($"{group.Key.StartTime:hh\\:mm}") - @($"{group.Key.EndTime:hh\\:mm}")</td>
-                                                                    @foreach (var day in dayOrder)
-                                                                    {
-                                                                        <td class="@((group.Any(cs => cs.DayName == day) ? "" : "empty"))">
-                                                                            @{
-                                                                                var schedule = group.FirstOrDefault(cs => cs.DayName == day);
-                                                                                if (schedule != null)
-                                                                                {
-                                                                                    <span>@schedule.ClassName</span>
-                                                                                }
-                                                                                else
-                                                                                {
-                                                                                    <span>No Classes</span>
-                                                                                }
-                                                                            }
-                                                                        </td>
-                                                                    }
-                                                                </tr>
-                                                            }
-                                                        </tbody>
+                                                    <TimeTableViewer TimetableEntries="Currentschedules"
+                                                                     Title="@(Currentschedules?.Where(x => !string.IsNullOrWhiteSpace(x.LevelName)).Select(x => x.LevelName).FirstOrDefault())" />
 
-                                                    </table>
+
                                                 }
                                                 else
                                                 {
-
+                                                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                                        No timetable has been assigned yet.
+                                                    </MudAlert>
                                                 }
                                             </div>
                                         </div>
                                     </div>
+                                    <!--==========================Food Time Table===============================-->
+                                    <div class="col-xxl-12 col-md-12">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+                                                    <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Dining Menu</h6>
+                                                </div>
+                                            </div>
+
+                                            <div class="card-body">
+                                                @if (schoolMenu.Any())
+                                                {
+                                                    <MudTabs @bind-ActivePanelIndex="activeDayIndex">
+                                                        @for (int i = 0; i < dayOrder.Count; i++)
+                                                        {
+                                                            var day = dayOrder[i];
+                                                            <MudTabPanel Text="@day">
+                                                                <MudGrid>
+                                                                    @foreach (var item in schoolMenu.Where(x => x.DayOfWeek == day))
+                                                                    {
+                                                                        <MudItem xs="12" md="4">
+                                                                            <MudCard Class="mb-3">
+                                                                                <MudCardHeader>
+                                                                                    <CardHeaderAvatar>
+                                                                                        <MudIcon Icon="@Icons.Material.Filled.Dining" />
+                                                                                    </CardHeaderAvatar>
+                                                                                    <CardHeaderContent>
+                                                                                        <MudText Typo="Typo.h6"><b>@item.MealName</b></MudText>
+                                                                                    </CardHeaderContent>
+                                                                                </MudCardHeader>
+                                                                                <MudCardContent>
+                                                                                    <MudText Typo="Typo.body2">Main Dish</MudText>
+                                                                                    <MudText Typo="Typo.subtitle1"><b>@item.MainDish</b></MudText>
+                                                                                    <MudGrid>
+                                                                                        <MudItem xs="12" sm="6">
+                                                                                            <MudText Typo="Typo.body2">Side Dish</MudText>
+                                                                                            <MudText Typo="Typo.body1"><b>@item.SideDish</b></MudText>
+                                                                                        </MudItem>
+                                                                                        <MudItem xs="12" sm="6">
+                                                                                            <MudText Typo="Typo.body2">Drink</MudText>
+                                                                                            <MudText Typo="Typo.body1"><b>@item.Drink</b></MudText>
+                                                                                        </MudItem>
+                                                                                    </MudGrid>
+                                                                                </MudCardContent>
+                                                                            </MudCard>
+                                                                        </MudItem>
+                                                                    }
+                                                                </MudGrid>
+                                                            </MudTabPanel>
+                                                        }
+                                                    </MudTabs>
+                                                }
+                                                else
+                                                {
+                                                    <MudAlert Severity="Severity.Info">No menu available this week</MudAlert>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                             }
                         }
                         else if (AppState.UserRole == "Teacher" || AppState.UserRole == "Admin" || AppState.UserRole == "Staff")
                         {
+                            @* Licence entitlement. The layout banner only speaks up when something is
+                               wrong; this answers the question asked beforehand — what is included and
+                               how much is left — and is therefore shown while everything is fine.
+                               Admins only: a teacher cannot act on any of it. *@
+                            @if (AppState.UserRole == "Admin")
+                            {
+                                <IgnisEducationSuite.Client.Pages.Shared.DashboardLayers.LicenseSummaryCard />
+                            }
+
+                            @* Data-quality prompt. A student with no parent on record is invisible to
+                               the parent portal, report card notifications and chat, so it is worth
+                               surfacing here rather than being discovered at the end of term. Only
+                               shown when there is actually something to fix. *@
+                            @if (AppState.UserRole == "Admin" && UnparentedSummary.NeedsWork)
+                            {
+                                <div class="row gy-4 mb-24">
+                                    <div class="col-12">
+                                        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" NoIcon="false"
+                                                  Class="d-flex align-center">
+                                            <div class="d-flex flex-wrap align-center justify-space-between" style="width:100%; gap:12px;">
+                                                <div>
+                                                    <MudText Typo="Typo.subtitle1">
+                                                        <b>@UnparentedSummary.UnparentedCount student@(UnparentedSummary.UnparentedCount == 1 ? "" : "s") have no parent on record</b>
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body2">
+                                                        This needs work — @UnparentedSummary.PercentUnparented% of your
+                                                        @UnparentedSummary.TotalStudents students. They cannot be reached
+                                                        through the parent portal, report cards or chat until a parent is linked.
+                                                        @if (UnparentedSummary.ByLevel.Count > 0)
+                                                        {
+                                                            <text>
+                                                                Most affected:
+                                                                @string.Join(", ", UnparentedSummary.ByLevel.Take(3)
+                                                                    .Select(l => $"{l.LevelName} {l.GradeSection} ({l.UnparentedCount})"))
+                                                            </text>
+                                                        }
+                                                    </MudText>
+                                                </div>
+
+                                                <MudButton Variant="Variant.Filled" Color="Color.Surface"
+                                                           EndIcon="@Icons.Material.Filled.ArrowForward"
+                                                           OnClick="@(() => NavigationManager.NavigateTo("/StudentParentMapping"))">
+                                                    View more
+                                                </MudButton>
+                                            </div>
+                                        </MudAlert>
+                                    </div>
+                                </div>
+                            }
+
                             <div class="row gy-4 mb-24">
                                 <!-- ======================= First Row Cards Start =================== -->
                                 <div class="col-xxl-8">
@@ -573,11 +620,24 @@
                                                         <div id="enrollmentChart" class="apexcharts-tooltip-style-1">
                                                             @if (StudentCountryChartConfig == null)
                                                             {
-                                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No Data found to visualize</MudAlert>
+                                                                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No Data found to visualize</MudAlert>
                                                             }
                                                             else
                                                             {
-                                                                <Chart Config="@StudentCountryChartConfig"></Chart>
+                                                                <div class="rz-p-0 rz-p-md-12">
+                                                                    <Radzen.Blazor.RadzenChart>
+                                                                        <Radzen.Blazor.RadzenColumnSeries Data="@StudentCountryDemographicRadzen"
+                                                                                                          CategoryProperty="Country"
+                                                                                                          ValueProperty="StudentCount"
+                                                                                                          Title="Total Students">
+                                                                            <Radzen.Blazor.RadzenSeriesDataLabels Visible="true" />
+                                                                        </Radzen.Blazor.RadzenColumnSeries>
+
+                                                                        <Radzen.Blazor.RadzenCategoryAxis Title="Countries" />
+                                                                        <Radzen.Blazor.RadzenValueAxis Title="Total Number" />
+                                                                    </Radzen.Blazor.RadzenChart>
+                                                                </div>
+                                                                @* <Chart Config="@StudentCountryChartConfig"></Chart> *@
                                                             }
                                                             @* <MudChart ChartType="ChartType.StackedBar" ChartSeries="@StudentCountryDemographic" @bind-SelectedIndex="Index" LegendPosition="@LegendPosition" XAxisLabels="@CountryNames" Width="100%" Height="550px"></MudChart> *@
 
@@ -601,11 +661,38 @@
                                             <div id="enrollmentChart" class="apexcharts-tooltip-style-1">
                                                 @if (StudentCityChartConfig == null)
                                                 {
-                                                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No Data found to visualize</MudAlert>
+                                                    <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No Data found to visualize</MudAlert>
                                                 }
                                                 else
                                                 {
-                                                    <Chart Config="@StudentCityChartConfig"></Chart>
+                                                    @*  <Chart Config="@StudentCityChartConfig"></Chart> *@
+                                                    <Radzen.Blazor.RadzenStack class="rz-p-0 rz-p-md-6 rz-p-lg-12" AlignItems="Radzen.AlignItems.Center">
+                                                        <Radzen.Blazor.RadzenCard Variant="Radzen.Variant.Outlined" Style="width: 100%;">
+                                                            <Radzen.Blazor.RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="Radzen.AlignItems.Center" Gap="0.5rem" Wrap="Radzen.FlexWrap.Wrap">
+                                                                <Radzen.Blazor.RadzenCheckBox @bind-Value="@showDataLabels" Name="dataLabels"></Radzen.Blazor.RadzenCheckBox>
+                                                                <Radzen.Blazor.RadzenLabel Text="Show Data Labels" Component="dataLabels" />
+                                                                <Radzen.Blazor.RadzenCheckBox @bind-Value="@showTooltipOnLegend" Name="legendTooltip"></Radzen.Blazor.RadzenCheckBox>
+                                                                <Radzen.Blazor.RadzenLabel Text="Show Tooltip On Legend" Component="legendTooltip" />
+                                                            </Radzen.Blazor.RadzenStack>
+                                                        </Radzen.Blazor.RadzenCard>
+
+                                                        <Radzen.Blazor.RadzenStack Style="width: 100%; max-width: 600px;">
+                                                            <Radzen.Blazor.RadzenChart>
+                                                                <Radzen.Blazor.RadzenDonutSeries Data="@StudentCityDemographicRadzen" CategoryProperty="City" ValueProperty="StudentCount"
+                                                                                                 TotalAngle="180" StartAngle="180" ShowTooltipOnLegend="@showTooltipOnLegend">
+                                                                    <ChildContent>
+                                                                        <Radzen.Blazor.RadzenSeriesDataLabels Visible="@showDataLabels" />
+                                                                    </ChildContent>
+                                                                    <TitleTemplate>
+                                                                        <div class="rz-donut-content">
+                                                                            <div>Students</div>
+                                                                            <div>by City</div>
+                                                                        </div>
+                                                                    </TitleTemplate>
+                                                                </Radzen.Blazor.RadzenDonutSeries>
+                                                            </Radzen.Blazor.RadzenChart>
+                                                        </Radzen.Blazor.RadzenStack>
+                                                    </Radzen.Blazor.RadzenStack>
                                                 }
                                                 @* <MudChart ChartType="ChartType.Pie" InputData="@StudentCityDemographic" @bind-SelectedIndex="Index" InputLabels="@CityNames" Width="300px" Height="500px" /> *@
 
@@ -621,7 +708,7 @@
                                     <div class="card">
                                         <div class="card-header">
                                             <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
-                                                <h6 class="mb-2 fw-bold text-lg mb-0">Top Lessons</h6>
+                                                <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Top Lessons</h6>
 
                                             </div>
                                         </div>
@@ -658,7 +745,7 @@
                                             else
                                             {
 
-                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No data found, Please wait for ratings to be submitted</MudAlert>
+                                                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No data found, Please wait for ratings to be submitted</MudAlert>
 
                                             }
 
@@ -672,7 +759,7 @@
                                     <div class="card">
                                         <div class="card-header">
                                             <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
-                                                <h6 class="mb-2 fw-bold text-lg mb-0">Top Instructors</h6>
+                                                <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Top Instructors</h6>
 
                                             </div>
                                         </div>
@@ -714,7 +801,7 @@
                                             }
                                             else
                                             {
-                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No data found</MudAlert>
+                                                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No data found</MudAlert>
                                             }
 
 
@@ -728,7 +815,7 @@
                                     <div class="card">
                                         <div class="card-header">
                                             <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
-                                                <h6 class="mb-2 fw-bold text-lg mb-0">Best Perfoming Students</h6>
+                                                <h6 class="mb-2 fw-bold text-lg mb-0" style="color:aliceblue">Best Perfoming Students</h6>
 
                                             </div>
                                         </div>
@@ -773,7 +860,7 @@
                                             }
                                             else
                                             {
-                                                <MudAlert Severity="Severity.Info" Variant="Variant.Filled">No data found</MudAlert>
+                                                <MudAlert Severity="Severity.Info" Variant="MudBlazor.Variant.Filled">No data found</MudAlert>
 
                                             }
 
@@ -785,7 +872,30 @@
 
                             </div>
                         }
-                    }
+                        else if (AppState.UserRole == "SuperAdmin")
+                        {
+                            @* Previously there was no branch here at all, so a SuperAdmin landed on
+                               an empty dashboard. *@
+                            <IgnisEducationSuite.Client.Pages.Management.SuperAdmin.SuperAdminOverview />
+                        }
+                        else if (AppState.UserRole == "KitchenStaff")
+                        {
+                            @* Was "Chef/Cook" — a string nothing else in the solution uses, so this
+                               branch never matched and kitchen staff landed on a blank dashboard. *@
+                            <IgnisEducationSuite.Client.Pages.Staff.Kitchen></IgnisEducationSuite.Client.Pages.Staff.Kitchen>
+                        }
+                        else if (AppState.UserRole == "Clinic Staff")
+                        {
+                            <IgnisEducationSuite.Client.Pages.Shared.DashboardLayers.ClinicDashboard />
+                        }
+                        else if (AppState.UserRole == "TransportStaff")
+                        {
+                            <IgnisEducationSuite.Client.Pages.Management.SchoolOperations.TransportManagement.Driver.DriverDashboard />
+                        }
+                        else if (AppState.UserRole == "Finance")
+                        {
+                            <IgnisEducationSuite.Client.Pages.Finance.FinanceReport />
+                        }
                 }
 
             </Authorized>
@@ -806,4 +916,3 @@
 
     </MudCardContent>
 </MudCard>
-

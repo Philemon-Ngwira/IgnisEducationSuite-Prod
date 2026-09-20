@@ -1,0 +1,15 @@
+﻿@page "/AcademicStructure"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+
+
+
+<MudTabs Outlined="true">
+    <MudTabPanel Text="Set up Academic Structure" Icon="@Icons.Material.Filled.Architecture">
+        <AcademicStructureSetup />
+    </MudTabPanel>
+    <MudTabPanel Text="Manage Academic Structure" Icon="@Icons.Material.Filled.Build">
+        <AcademicStructureManagement />
+    </MudTabPanel>
+</MudTabs>

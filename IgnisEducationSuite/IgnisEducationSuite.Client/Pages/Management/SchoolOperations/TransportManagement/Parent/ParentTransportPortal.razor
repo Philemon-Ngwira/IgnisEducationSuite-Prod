@@ -1,0 +1,457 @@
+﻿@page "/ParentTransportPortal"
+@using EDUSphereSharedProject.Models
+@using EDUSphereSharedProject.UniversalModels
+@inherits AppBaseComponent
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+
+    <!-- HEADER + STUDENT SELECTOR -->
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-8">
+        <div>
+            <MudText Typo="Typo.h5" Bold="true">Transport Portal</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Track your child’s school transport
+            </MudText>
+        </div>
+
+        @if (Students.Any())
+        {
+            <MudPaper Elevation="2" Class="pa-2 rounded-lg d-flex align-center">
+                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Class="mr-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Person" />
+                </MudAvatar>
+
+                <MudSelect T="Guid"
+                           Dense="true"
+                           Variant="Variant.Text"
+                           Value="selectedStudentId"
+                           ValueChanged="OnStudentChanged">
+                    @foreach (var s in Students)
+                    {
+                        <MudSelectItem Value="@s.StudentId">
+                            @s.StudentName (@s.AcademicLevel)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudPaper>
+        }
+    </MudStack>
+
+    <!-- LIVE / RECENT TRIP -->
+    @if (SelectedTrip != null)
+    {
+        <MudPaper Elevation="4" Class="rounded-xl mb-8 overflow-hidden">
+            <MudDivider Class="mud-background-primary" Style="height:4px" />
+
+            <MudStack Class="pa-6" Spacing="3">
+
+                <MudStack Row="true" JustifyContent="space-between" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.h6" Bold="true">@SelectedTrip.TripName</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Departed @SelectedTrip.DepartureTime?.ToString("HH:mm")
+                        </MudText>
+                    </div>
+
+                    <MudChip T="string" Color="@GetStatusColor()" Variant="Variant.Filled">
+                        @GetStatusText()
+                    </MudChip>
+                </MudStack>
+
+                <!-- STATUS BODY -->
+                @if (SelectedTrip.OffboardTime == null)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        🚍 Your child is currently on the bus.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+                        ✅ Dropped off at <b>@SelectedTrip.OffboardTime?.ToString("HH:mm") hrs</b>
+                        @if (SelectedTrip.OffboardLatitude == null || SelectedTrip.OffboardLongitude == null)
+                        {
+                            <span>
+                                (
+                                @if (OffboardStopName == null)
+                                {
+                                    <em>Loading stop...</em>
+                                }
+                                else
+                                {
+                                    @OffboardStopName
+                                }
+                                )
+                            </span>
+                        }
+                    </MudAlert>
+
+                    @if (SelectedTrip.OffboardLatitude != null && SelectedTrip.OffboardLongitude != null)
+                    {
+                        <div style="height:320px;border-radius:14px" @ref="mapRef"></div>
+                    }
+                }
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+            No trip information available for today.
+        </MudAlert>
+    }
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Class="rounded-xl mb-8 overflow-hidden">
+        <MudTabPanel Text="Available Trips">
+            <MudGrid>
+                @if (availableTrips.Any())
+                {
+                    foreach (var trip in availableTrips)
+                    {
+                        if (trip.isRecurring == true)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudPaper Elevation="2" Class="pa-5 rounded-xl hover-shadow">
+                                    <MudStack Spacing="2">
+
+                                        <MudStack Row="true">
+                                            <MudChip T="string" Color="Color.Secondary" Size="Size.Small">
+                                                RECURRING
+                                            </MudChip>
+
+                                        </MudStack>
+
+                                        <MudText Typo="Typo.h6" Bold="true">
+                                            @trip.TripName
+                                        </MudText>
+
+                                        <MudStack Row="true" Spacing="1">
+                                            @foreach (var item in trip.AssignedDays)
+                                            {
+                                                <MudChip T="string" Size="Size.Small">@item</MudChip>
+                                            }
+                                        </MudStack>
+
+                                        <MudDivider />
+
+                                        <MudStack Row="true" AlignItems="AlignItems.Center">
+
+
+                                            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="() => BookTrip(trip)">
+                                                Book Seat
+                                            </MudButton>
+                                        </MudStack>
+
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                        else
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudPaper Elevation="2" Class="pa-5 rounded-xl hover-shadow">
+                                    <MudStack Spacing="2">
+
+                                        <MudStack Row="true">
+                                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">
+                                                ONE TIME
+                                            </MudChip>
+
+                                        </MudStack>
+
+                                        <MudText Typo="Typo.h6" Bold="true">
+                                            @trip.TripName
+                                        </MudText>
+
+
+                                        <MudChip T="string" Size="Size.Small">
+                                            <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" />
+                                            @trip.TripDate?.ToString("dd MMM yyyy")
+                                        </MudChip>
+
+                                        <MudDivider />
+
+                                        <MudStack Row="true" AlignItems="AlignItems.Center">
+
+                                            <MudButton Color="Color.Primary"
+                                                       Variant="Variant.Filled"
+                                                       OnClick="()=>BookTrip(trip)">
+                                                Book Seat
+                                            </MudButton>
+                                        </MudStack>
+
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    }
+                }
+                else
+                {
+                    <MudItem xs="12">
+                        <!-- EMPTY BOOKINGS STATE -->
+                        <MudPaper Elevation="2" Class="pa-10 mt-8 rounded-xl text-center">
+                            <MudAvatar Size="Size.Large" Color="Color.Default" Class="mb-4">
+                                <MudIcon Icon="@Icons.Material.Filled.EventBusy" />
+                            </MudAvatar>
+
+                            <MudText Typo="Typo.h6" Bold="true">
+                                No active bookings
+                            </MudText>
+
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                You haven’t booked any transport yet.
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+
+                }
+            </MudGrid>
+        </MudTabPanel>
+        <MudTabPanel Text="My Bookings">
+            <MudText>My Bookings Coming Soon</MudText>
+        </MudTabPanel>
+
+    </MudTabs>
+</MudContainer>
+
+@code {
+    protected List<TripAttendance> tripAttendances = new();
+    protected List<AvailableTripsDTO> availableTrips = new();
+    protected Guid selectedStudentId;
+    protected ElementReference mapRef;
+    protected string? OffboardStopName;
+    protected List<Trip> trips = new();
+    protected List<Bus> fleet = new();
+    protected List<BusStaff> busStaff = new();
+    protected override async Task OnInitializedAsync()
+    {
+        LoaderService.Show("Loading transport data...");
+        await LoadStudentTrips();
+        await GetBusStaffAsync();
+        await GetSchoolFleetAsync();
+        await GetAvailableTripsForBooking();
+        LoaderService.Hide();
+
+        selectedStudentId = Students.FirstOrDefault()?.StudentId ?? Guid.Empty;
+    }
+    protected async Task GetAvailableTripsForBooking()
+    {
+        var serv = GenericService.GetService<AvailableTripsDTO>();
+        var result = await serv.GetAllAsync(
+            $"api/Dynamic/AvailableTripsForBooking/{AppState.UserID}",
+            true
+        );
+
+        if (!result.IsSuccess)
+            return;
+
+        availableTrips = result.Data
+            .GroupBy(x => x.TripId)
+            .Select(g =>
+            {
+                var trip = g.First();
+
+                return new AvailableTripsDTO
+                {
+                    TripId = trip.TripId,
+                    TripName = trip.TripName,
+                    isRecurring = trip.isRecurring,
+                    RecurringDays = trip.RecurringDays,
+                    TripDate = trip.TripDate,
+
+                    // 👇 aggregate all eligible students
+                    EligibleStudentIds = g
+                        .Select(x => x.StudentID)
+                        .Distinct()
+                        .ToList()
+                };
+            })
+            .ToList();
+
+        // Parse recurring days once
+        foreach (var item in availableTrips)
+        {
+            if (item.isRecurring == true)
+            {
+                item.AssignedDays = item.RecurringDays?
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(r => r.Trim())
+                    .ToList() ?? new();
+            }
+        }
+    }
+
+    protected async Task GetBusStaffAsync()
+    {
+        var serv = GenericService.GetService<BusStaff>();
+        var result = await serv.GetAllAsync($"api/Dynamic/GetTransportStaffBySchool/{Guid.Parse(AppState.SchoolID)}", true);
+        if (result.IsSuccess)
+        {
+            busStaff = result.Data.ToList();
+            foreach (var item in busStaff)
+            {
+                item.Certifications = item.Certificates?
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(r => r.Trim())
+                        .ToList() ?? new();
+            }
+            StateHasChanged();
+        }
+    }
+    protected async Task GetSchoolFleetAsync()
+    {
+        var service = GenericService.GetService<Bus>();
+        var result = await service.GetAllAsync($"Api/Dynamic/GetSchoolBusFleet/{AppState.SchoolID}", true);
+        if (result.IsSuccess)
+        {
+            fleet = result.Data.ToList();
+        }
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (SelectedTrip?.OffboardTime != null)
+        {
+            // Render map if GPS coordinates exist
+            if (SelectedTrip.OffboardLatitude != null &&
+                SelectedTrip.OffboardLongitude != null)
+            {
+                try
+                {
+                    await JS.InvokeVoidAsync(
+                        "renderParentDropoffMap",
+                        mapRef,
+                        SelectedTrip.OffboardLatitude,
+                        SelectedTrip.OffboardLongitude
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Map render error: {ex.Message}");
+                }
+            }
+            // Fallback: fetch stop name if GPS coords missing
+            else if (SelectedTrip.OffboardStopId != null)
+            {
+                OffboardStopName = await GetOffboardStopName(SelectedTrip.OffboardStopId);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task LoadStudentTrips()
+    {
+        var service = GenericService.GetService<TripAttendance>();
+        var result = await service.GetAllAsync(
+            $"api/Dynamic/GetParentTransportAttendances/{AppState.UserID}",
+            true
+        );
+
+        if (result.IsSuccess)
+            tripAttendances = result.Data.ToList();
+    }
+
+    private void OnStudentChanged(Guid newStudentId)
+    {
+        selectedStudentId = newStudentId;
+        OffboardStopName = null; // reset fallback when student changes
+        StateHasChanged();
+    }
+
+    private async Task<string?> GetOffboardStopName(Guid? stopId)
+    {
+        if (stopId == null)
+            return null;
+
+        try
+        {
+            var service = GenericService.GetService<BusStop>();
+            var result = await service.GetByIdAsync($"api/Dynamic/GetEntityById", stopId.Value);
+
+            if (result.IsSuccess && result.Data != null)
+                return result.Data.Name;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching stop: {ex.Message}");
+        }
+
+        return null;
+    }
+    //Handle Booking
+    protected async Task BookTrip(AvailableTripsDTO trip)
+    {
+        if (trip.EligibleStudentIds == null || !trip.EligibleStudentIds.Any())
+        {
+            Snackbar.Add("No eligible students for this trip.", Severity.Warning);
+            return;
+        }
+
+        var bookings = trip.EligibleStudentIds.Select(studentId => new TripBooking
+        {
+            TripBookingId = Guid.NewGuid(),
+            TripId = trip.TripId,
+            StudentId = studentId,
+            ParentId = Guid.Parse(AppState.UserID),
+            BookingDate = DateTime.UtcNow,
+            IsActive = true
+        }).ToList();
+
+        var service = GenericService.GetService<List<TripBooking>>();
+
+        var result = await service.PostAsync(
+            "api/Dynamic/PostEntities",
+            "booking",
+            bookings
+        );
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add("Booking failed. Please try again.", Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(
+            $"Trip booked for {bookings.Count} student(s).",
+            Severity.Success
+        );
+
+        availableTrips.Remove(trip);
+    }
+
+    // Returns distinct students for the selector
+    protected IEnumerable<TripAttendance> Students =>
+        tripAttendances
+            .GroupBy(x => new { x.StudentId, x.StudentName, x.AcademicLevel })
+            .Select(g => g.First());
+
+    // Returns the latest trip for the selected student
+    protected TripAttendance? SelectedTrip =>
+        tripAttendances
+            .Where(x => x.StudentId == selectedStudentId)
+            .OrderByDescending(x => x.DepartureTime)
+            .FirstOrDefault();
+
+    private string GetStatusText()
+    {
+        if (SelectedTrip?.OffboardTime != null)
+            return "Dropped Off";
+
+        if (SelectedTrip?.OnboardTime != null)
+            return "On Bus";
+
+        return SelectedTrip?.Status ?? "Pending";
+    }
+
+    private Color GetStatusColor()
+    {
+        if (SelectedTrip?.OffboardTime != null)
+            return Color.Success;
+
+        if (SelectedTrip?.OnboardTime != null)
+            return Color.Info;
+
+        return Color.Warning;
+    }
+}

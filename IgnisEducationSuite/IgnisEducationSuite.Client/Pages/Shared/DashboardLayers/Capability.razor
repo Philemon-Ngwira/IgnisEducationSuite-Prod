@@ -1,0 +1,16 @@
+@* One "you can / you cannot" line.
+
+   Both states are always shown rather than hiding what is unavailable: an administrator who cannot
+   enrol a student needs to see that it is the licence stopping them, not a fault. *@
+
+<div class="d-flex align-center gap-1">
+    <MudIcon Icon="@(Allowed ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+             Color="@(Allowed ? Color.Success : Color.Error)"
+             Size="Size.Small" />
+    <MudText Typo="Typo.body2" Class="@(Allowed ? "" : "mud-text-secondary")">@Label</MudText>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public bool Allowed { get; set; }
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+}

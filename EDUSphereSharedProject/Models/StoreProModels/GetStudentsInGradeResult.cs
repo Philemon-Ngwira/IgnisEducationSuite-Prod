@@ -9,5 +9,6 @@ namespace EDUSphereSharedProject.Models.StoreProModels
     {
         public Guid StudentID { get; set; }
         public string GradeSection { get; set; }
+        public string GroupName { get; set; }
     }
 }

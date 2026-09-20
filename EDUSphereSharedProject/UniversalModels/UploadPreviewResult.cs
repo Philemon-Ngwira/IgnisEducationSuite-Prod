@@ -1,0 +1,21 @@
+﻿using EDUSphereSharedProject.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace EDUSphereSharedProject.UniversalModels
+{
+    public class UploadPreviewResult
+    {
+        public List<Teacher> TeacherPreview { get; set; } = new();
+        public List<Student> Preview { get; set; } = new();
+        public List<Parent> ParentPreview { get; set; } = new();
+        public List<RowError> Errors { get; set; } = new();
+        public List<AcademicLevel> academicLevels { get; set; } = new();
+        public List<Class> classes { get; set; } = new();
+        public List<ClinicMedication> Medications { get; set; } = new();
+        public List<FoodItem> foodItems { get; set; } = new();
+    }
+}

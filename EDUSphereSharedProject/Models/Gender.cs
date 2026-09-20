@@ -10,4 +10,8 @@ public partial class Gender
     public Guid GenderId { get; set; }
 
     public string GenderDescription { get; set; }
+
+    public virtual ICollection<Hostel> Hostels { get; set; } = new List<Hostel>();
+
+    public virtual ICollection<Staff> Staff { get; set; } = new List<Staff>();
 }

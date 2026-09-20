@@ -2,91 +2,94 @@
 @using EDUSphereSharedProject.Models
 @using IgnisEducationSuite.Client.Pages.Management.Dialog
 @inherits AppBaseComponent
-<MudCard>
+<MudCard Class="mb-4">
     <MudCardHeader>
         <CardHeaderContent>
             <MudText Align="Align.Center" Typo="Typo.h4"><b>Teacher Management</b></MudText>
         </CardHeaderContent>
     </MudCardHeader>
-    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-    @if (isLoading)
-    {
-        <div id="loader-overlay" class="loader-overlay">
-            <div class="loader-container">
-                <!-- Spinner -->
-                <div class="spinner"></div>
-                <!-- Loader Icon -->
-                <div class="loader-icon">🔄</div>
-                <!-- Loading Text -->
-                <p class="loading-text">Loading, please wait...</p>
-            </div>
-        </div>
-    }
 
+    <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
 
     <MudCardContent>
-        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.Person" Variant="Variant.Filled">Create New Teacher Profile</MudAlert>
-        <MudGrid Class="mb-3">
-            <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newTeacher.FirstName" Label="First Name">
-                </MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newTeacher.LastName" Label="Last Name">
-                </MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newTeacher.Gender">
-                    @foreach (var item in genders)
-                    {
-                        <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newTeacher.ContactNo" Label="Contact #">
-                </MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" Class="custom-textfield" T="string" @bind-Value="newTeacher.EmailAddress" Label="Email Address">
-                </MudTextField>
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Date="newTeacher.DateEngaged" Label="Date Engaged"></MudDatePicker>
-            </MudItem>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled" ButtonType="ButtonType.Submit" Color="Color.Primary" OnClick="AddTeacher">Add Teacher</MudButton>
-            </MudItem>
-        </MudGrid>
+
+        <!-- Section: Add New Teacher -->
+        <MudPaper Class="p-4 mb-4" Elevation="1">
+            <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.Person" Variant="Variant.Filled">
+                Create New Teacher Profile
+            </MudAlert>
+
+            <MudGrid Class="mt-3" GutterSize="3">
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newTeacher.FirstName" Label="First Name" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newTeacher.LastName" Label="Last Name" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string" Variant="Variant.Outlined" Label="Gender" Margin="Margin.Dense" @bind-Value="newTeacher.Gender">
+                        @foreach (var item in genders)
+                        {
+                            <MudSelectItem T="string" Value="item.GenderDescription">@item.GenderDescription</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newTeacher.ContactNo" Label="Contact #" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField Variant="Variant.Outlined" Margin="Margin.Dense" T="string" @bind-Value="newTeacher.EmailAddress" Label="Email Address" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudDatePicker Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Date="newTeacher.DateEngaged" Label="Date Engaged" />
+                </MudItem>
+                <MudItem xs="12" Class="d-flex justify-end">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddTeacher">Add Teacher</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
         <MudDivider Class="border border-secondary border-2 opacity-50 mb-3" />
-        <MudAlert Severity="Severity.Normal" Class="alert alert-dark" Icon="@Icons.Material.Filled.People" Variant="Variant.Filled">All Available Teachers</MudAlert>
-        <MudDataGrid Items="teachers" Filterable="false" SortMode="@SortMode.None" Groupable="false">
-            <Columns>
-                @if (teachers.Any())
-                {
-                    <PropertyColumn Property="x => x.FirstName" />
-                    <PropertyColumn Property="x => x.LastName" />
-                    <PropertyColumn Property="x => x.Gender" Title="Gender" />
-                    <PropertyColumn Property="x => x.ContactNo" />
-                    <PropertyColumn Property="x => x.EmailAddress" />
-                    <TemplateColumn CellClass="d-flex justify-end">
-                        <CellTemplate>
-                            <MudStack Row>
-                             <MudButton Size="@Size.Small" OnClick=" () => OpenTeacherDetails(context.Item)" Variant="@Variant.Filled" Color="@Color.Primary">Manage</MudButton>
-                         </MudStack>
-                     </CellTemplate>
-                 </TemplateColumn>
-                }
-                else
-                {
-                    <MudAlert Severity="Severity.Info" Class="alert alert-dark" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">No Students found</MudAlert>
-                }
-            </Columns>
-        </MudDataGrid>
+
+        <!-- Section: Teacher Table -->
+        <MudPaper Class="p-4 mb-4" Elevation="1">
+            <MudAlert Severity="Severity.Normal" Icon="@Icons.Material.Filled.People" Variant="Variant.Filled">
+                All Available Teachers
+            </MudAlert>
+
+            <MudDataGrid Items="teachers" Filterable="false" SortMode="@SortMode.None" Groupable="false">
+                <Columns>
+                    @if (teachers.Any())
+                    {
+                        <PropertyColumn Property="x => x.FirstName" />
+                        <PropertyColumn Property="x => x.LastName" />
+                        <PropertyColumn Property="x => x.Gender" Title="Gender" />
+                        <PropertyColumn Property="x => x.ContactNo" Title="Contact #" />
+                        <PropertyColumn Property="x => x.EmailAddress" Title="Email" />
+                        <TemplateColumn Title="Actions" CellClass="d-flex justify-end">
+                            <CellTemplate>
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => OpenTeacherDetails(context.Item)">
+                                    Manage
+                                </MudButton>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info" Variant="Variant.Filled">
+                            No Teachers found
+                        </MudAlert>
+                    }
+                </Columns>
+            </MudDataGrid>
+        </MudPaper>
+
     </MudCardContent>
 </MudCard>
 
+
 @code {
+
     protected Teacher newTeacher = new();
     protected Teacher selectedTeacher = new();
     protected ClientAdmin clientAdmin = new();
@@ -102,15 +105,16 @@
     [Inject] AppState _appState { get; set; } = default!;
     [Inject] NavigationManager _navigationManager { get; set; } = default!;
 
-    protected bool isLoading = false;
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
+
+        LoaderService.Show("Initializing Please wait...");
         await GetLoggedInAdmin();
         await GetSubjects();
         await GetTeachers();
         await GetGenders();
-        isLoading = false;
+
+        LoaderService.Hide();
     }
 
 
@@ -118,9 +122,9 @@
     protected async Task GetLoggedInAdmin()
     {
         string UserID = string.Empty;
-       
-            UserID = _appState.UserID;
-        
+
+        UserID = _appState.UserID;
+
         if (UserID != string.Empty || UserID != null)
         {
             var service = _genericService.GetService<ClientAdmin>();
@@ -163,7 +167,8 @@
 
     protected async Task AddTeacher()
     {
-        isLoading = true;
+
+        LoaderService.Show("Please wait saving changes...");
 
         newTeacher.TeacherID = Guid.NewGuid();
 
@@ -175,7 +180,7 @@
             newTeacher = new();
             Snackbar.Add("Student Added Successfully", Severity.Success);
         }
-        isLoading = false;
+        LoaderService.Hide();
     }
     void RowClicked(DataGridRowClickEventArgs<Teacher> args)
     {
