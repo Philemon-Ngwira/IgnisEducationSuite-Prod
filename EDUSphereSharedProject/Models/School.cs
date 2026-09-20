@@ -15,6 +15,13 @@ public partial class School
 
     public bool? HasplagerismEnaabled { get; set; }
 
+    /// <summary>
+    /// When true, admins get a manual "Recalculate positions" control on Report Card Management.
+    /// A SuperAdmin turns this on per school from the tenant console. Null or false means the button
+    /// is hidden and the school keeps whatever automatic recalculation it already had.
+    /// </summary>
+    public bool? ManualPositionRecalculationEnabled { get; set; }
+
     public string SchoolPhoneContact { get; set; }
 
     public string SchoolEmail { get; set; }

@@ -140,6 +140,7 @@ namespace IgnisEducationSuite.ServerServices.SuperAdmin
                     s.CurrencyCode,
                     s.CurrencySymbol,
                     HasLogo = s.SchoolLogo != null,
+                    s.ManualPositionRecalculationEnabled,
                 })
                 .FirstOrDefaultAsync(ct);
 
@@ -155,6 +156,7 @@ namespace IgnisEducationSuite.ServerServices.SuperAdmin
                 CurrencyCode = school.CurrencyCode,
                 CurrencySymbol = school.CurrencySymbol,
                 HasLogo = school.HasLogo,
+                ManualPositionRecalculationEnabled = school.ManualPositionRecalculationEnabled == true,
             };
 
             var counts = await LoadCountsAsync(ct, schoolId);
@@ -288,6 +290,35 @@ namespace IgnisEducationSuite.ServerServices.SuperAdmin
 
                 return TenantActionResult.Fail($"Termination failed: {ex.Message}");
             }
+        }
+
+        // -----------------------------------------------------------------------------
+        // Feature settings
+        // -----------------------------------------------------------------------------
+
+        /// <summary>
+        /// Turns manual position recalculation on or off for one school.
+        ///
+        /// This is the one school-record field the console writes — deliberately: it changes what a
+        /// screen offers, not any student's data, so it stays within the console's remit of running
+        /// schools rather than reaching into them.
+        /// </summary>
+        public async Task<TenantActionResult> SetManualPositionRecalculationAsync(Guid schoolId, bool enabled)
+        {
+            if (schoolId == Guid.Empty)
+                return TenantActionResult.Fail("No school was specified.");
+
+            var school = await _domain.Schools.FirstOrDefaultAsync(s => s.SchoolID == schoolId);
+
+            if (school is null)
+                return TenantActionResult.Fail("That school no longer exists.");
+
+            school.ManualPositionRecalculationEnabled = enabled;
+            await _domain.SaveChangesAsync();
+
+            return TenantActionResult.Ok(enabled
+                ? $"{school.SchoolName} can now recalculate positions manually."
+                : $"Manual position recalculation is off for {school.SchoolName}.");
         }
 
         // -----------------------------------------------------------------------------

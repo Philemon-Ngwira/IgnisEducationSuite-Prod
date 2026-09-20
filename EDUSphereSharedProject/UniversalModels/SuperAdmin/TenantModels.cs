@@ -24,6 +24,13 @@ namespace EDUSphereSharedProject.UniversalModels.SuperAdmin
         public string? CurrencySymbol { get; set; }
         public bool HasLogo { get; set; }
 
+        // ---- Feature settings ----
+
+        /// <summary>Whether this school shows admins the manual "Recalculate positions" controls on
+        /// Report Card Management. Off by default: a school keeps its automatic recalculation until a
+        /// SuperAdmin turns manual mode on here.</summary>
+        public bool ManualPositionRecalculationEnabled { get; set; }
+
         // ---- Size ----
         public int StudentCount { get; set; }
         public int TeacherCount { get; set; }
@@ -256,6 +263,12 @@ namespace EDUSphereSharedProject.UniversalModels.SuperAdmin
     {
         public Guid SchoolId { get; set; }
         public string LicenseKey { get; set; } = "";
+    }
+
+    /// <summary>Turns manual position recalculation on or off for one school.</summary>
+    public class SetManualPositionRecalculationRequest
+    {
+        public bool Enabled { get; set; }
     }
 
     /// <summary>Result of a SuperAdmin action. Always returned with HTTP 200 — the console needs to

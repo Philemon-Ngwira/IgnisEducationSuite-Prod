@@ -118,6 +118,28 @@ namespace IgnisEducationSuite.Controllers
             }
         }
 
+        /// <summary>
+        /// Whether the manual recalculation controls should be offered to the signed-in user's school.
+        ///
+        /// Read on the Report Card Management screen so the buttons only appear where a SuperAdmin has
+        /// turned manual mode on. Fails closed: any problem resolving the school returns "disabled",
+        /// which hides the buttons rather than showing a control that would not work.
+        /// </summary>
+        [HttpGet("settings")]
+        public async Task<IActionResult> GetSettings()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+
+            var scope = await ResolveScopeAsync(userId);
+
+            if (scope.SchoolId is not { } schoolId || schoolId == Guid.Empty)
+                return Ok(new PositionSettingsDto { ManualRecalculationEnabled = false });
+
+            var enabled = await _repository.GetManualPositionRecalculationEnabled(schoolId);
+            return Ok(new PositionSettingsDto { ManualRecalculationEnabled = enabled });
+        }
+
         /// <summary>School and roles for the signed-in user, from the same initialisation data the
         /// rest of the app resolves scope with.</summary>
         private async Task<(Guid? SchoolId, HashSet<string> Roles)> ResolveScopeAsync(string userId)

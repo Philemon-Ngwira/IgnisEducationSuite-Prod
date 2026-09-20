@@ -130,6 +130,19 @@ namespace EduSphereDomain.Repositories
             var courses = await _context.Courses.Where(x => x.TeacherID == TeacherID).ToListAsync();
             return courses;
         }
+        /// <summary>
+        /// Whether a SuperAdmin has switched this school over to manual position recalculation.
+        /// Null (never set) reads as false, so a school defaults to its existing automatic behaviour
+        /// and Report Card Management leaves the manual buttons hidden.
+        /// </summary>
+        public async Task<bool> GetManualPositionRecalculationEnabled(Guid SchoolID)
+        {
+            return await _context.Schools
+                .Where(s => s.SchoolID == SchoolID)
+                .Select(s => s.ManualPositionRecalculationEnabled)
+                .FirstOrDefaultAsync() == true;
+        }
+
         public async Task<bool> GetStudentDashboardState(string SchoolId)
         {
             try

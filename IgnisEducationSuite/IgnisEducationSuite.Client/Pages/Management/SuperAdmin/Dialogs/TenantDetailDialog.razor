@@ -241,6 +241,23 @@
                         </MudTable>
                     }
                 </MudTabPanel>
+
+                @* ---------------- Settings ---------------- *@
+                <MudTabPanel Text="Settings" Icon="@Icons.Material.Filled.Tune">
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">Report cards</MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+                        With manual recalculation on, this school's admins get "Recalculate positions" controls on
+                        Report Card Management, to run after marks are finalised. Off, the button is hidden and the
+                        school keeps its existing automatic behaviour.
+                    </MudText>
+
+                    <MudSwitch T="bool"
+                               Value="Summary.ManualPositionRecalculationEnabled"
+                               ValueChanged="ToggleManualRecalcAsync"
+                               Color="Color.Primary"
+                               Disabled="_working"
+                               Label="Manual position recalculation" />
+                </MudTabPanel>
             </MudTabs>
         }
     </DialogContent>
@@ -456,6 +473,39 @@
             }
 
             await LoadAsync();
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
+    // -------------------------------------------------------------------------------------
+    // Feature settings
+    // -------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Flips manual position recalculation for this school.
+    ///
+    /// The switch is bound to the summary rather than to a local, so a failed save leaves it showing
+    /// the real state: on error the summary is untouched and the control snaps back on the next
+    /// render.
+    /// </summary>
+    private async Task ToggleManualRecalcAsync(bool enabled)
+    {
+        if (Detail is null) return;
+
+        _working = true;
+        try
+        {
+            var result = await Tenants.SetManualPositionRecalculationAsync(SchoolId, enabled);
+            Snackbar.Add(result.Message, result.Succeeded ? Severity.Success : Severity.Error);
+
+            if (result.Succeeded)
+            {
+                Summary.ManualPositionRecalculationEnabled = enabled;
+                _changed = true;
+            }
         }
         finally
         {

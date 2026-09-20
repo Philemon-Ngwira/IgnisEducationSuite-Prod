@@ -24,6 +24,41 @@
 
         @if (IsScoreEntryRole)
         {
+            @* Manual position recalculation is opt-in per school and turned on by a SuperAdmin. When it
+               is on, an admin gets the recalculation controls here, above the class-entry sheet they
+               already use — this is the screen they finalise a term on. Off, nothing shows and the
+               school keeps whatever automatic recalculation it had. *@
+            @if (AppState.UserRole == "Admin" && _manualRecalcEnabled)
+            {
+                <MudPaper Class="p-3 mb-4" Elevation="2">
+                    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                        <MudButton OnClick="UpdatePositionsInClass"
+                                   Color="Color.Primary"
+                                   Variant="Variant.Outlined"
+                                   Disabled="_recalculating"
+                                   StartIcon="@Icons.Material.Filled.Refresh">
+                            Update Positions In Class
+                        </MudButton>
+
+                        <MudButton OnClick="RecalculateSchoolPositionsAsync"
+                                   Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   Disabled="_recalculating"
+                                   StartIcon="@Icons.Material.Filled.Leaderboard">
+                            @if (_recalculating)
+                            {
+                                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                            }
+                            Recalculate School Positions
+                        </MudButton>
+
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            Renumbers every student across the whole school. Run it after marks are finalised.
+                        </MudText>
+                    </MudStack>
+                </MudPaper>
+            }
+
             <ClassResultsEntry />
         }
         else
@@ -79,40 +114,6 @@
                                      FullWidth="true"
                                      Margin="Margin.Dense" />
                 </MudItem>
-                @if (AppState.UserRole == "Admin")
-                {
-                    @* Positions are derived from marks, so a late entry or an amended score leaves
-                       them wrong until something recalculates. Placed here, next to the report-card
-                       filters, because this is the screen an administrator is already on when
-                       finalising a term. *@
-                    <MudItem xs="12">
-                        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
-                            <MudButton OnClick="UpdatePositionsInClass"
-                                       Color="Color.Primary"
-                                       Variant="Variant.Outlined"
-                                       Disabled="_recalculating"
-                                       StartIcon="@Icons.Material.Filled.Refresh">
-                                Update Positions In Class
-                            </MudButton>
-
-                            <MudButton OnClick="RecalculateSchoolPositionsAsync"
-                                       Color="Color.Primary"
-                                       Variant="Variant.Filled"
-                                       Disabled="_recalculating"
-                                       StartIcon="@Icons.Material.Filled.Leaderboard">
-                                @if (_recalculating)
-                                {
-                                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
-                                }
-                                Recalculate School Positions
-                            </MudButton>
-
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                Renumbers every student across the whole school. Run it after marks are finalised.
-                            </MudText>
-                        </MudStack>
-                    </MudItem>
-                }
             </MudGrid>
         </MudPaper>
 
@@ -183,6 +184,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // The recalculation controls are admin-only and gated on a per-school SuperAdmin setting.
+        // Resolve it before the early return below, since admins are a score-entry role and would
+        // otherwise skip all loading here.
+        if (AppState.UserRole == "Admin")
+            await LoadPositionSettingsAsync();
+
         // The per-student list and its supporting lookups are only needed by the review roles;
         // score-entry roles render the class sheet, which loads its own data.
         if (IsScoreEntryRole) return;
@@ -251,6 +258,27 @@
     #region Search
 
     private bool _recalculating;
+
+    /// <summary>Whether a SuperAdmin has turned manual position recalculation on for this school.
+    /// Only then are the recalculation controls shown. Loaded once, for admins, on init.</summary>
+    private bool _manualRecalcEnabled;
+
+    /// <summary>
+    /// Reads whether manual position recalculation is on for this school. Fails closed: any problem
+    /// leaves the controls hidden rather than offering a button the school has not opted into.
+    /// </summary>
+    private async Task LoadPositionSettingsAsync()
+    {
+        try
+        {
+            var settings = await HttpClient.GetFromJsonAsync<PositionSettingsDto>("api/ReportCardPositions/settings");
+            _manualRecalcEnabled = settings?.ManualRecalculationEnabled ?? false;
+        }
+        catch
+        {
+            _manualRecalcEnabled = false;
+        }
+    }
 
     /// <summary>
     /// Renumbers every student across the school.

@@ -16,6 +16,8 @@ namespace IgnisEducationSuite.Client.Services
 
         Task<TenantActionResult> SetAdminActiveAsync(Guid schoolId, string userId, bool active);
         Task<AdminPasswordResetResult> ResetAdminPasswordAsync(Guid schoolId, string userId);
+
+        Task<TenantActionResult> SetManualPositionRecalculationAsync(Guid schoolId, bool enabled);
     }
 
     /// <summary>
@@ -84,6 +86,10 @@ namespace IgnisEducationSuite.Client.Services
         public Task<TenantActionResult> SetAdminActiveAsync(Guid schoolId, string userId, bool active) =>
             PostCoreAsync<object?>(
                 $"api/SuperAdmin/tenants/{schoolId}/admins/{userId}/{(active ? "activate" : "deactivate")}", null);
+
+        public Task<TenantActionResult> SetManualPositionRecalculationAsync(Guid schoolId, bool enabled) =>
+            PostCoreAsync($"api/SuperAdmin/tenants/{schoolId}/settings/manual-position-recalculation",
+                new SetManualPositionRecalculationRequest { Enabled = enabled });
 
         public async Task<AdminPasswordResetResult> ResetAdminPasswordAsync(Guid schoolId, string userId)
         {

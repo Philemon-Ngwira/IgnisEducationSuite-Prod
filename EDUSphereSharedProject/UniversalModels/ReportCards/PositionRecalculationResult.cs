@@ -25,4 +25,16 @@ namespace EDUSphereSharedProject.UniversalModels.ReportCards
         public static PositionRecalculationResult Fail(string message) =>
             new() { Succeeded = false, Message = message };
     }
+
+    /// <summary>
+    /// Position-related settings for the signed-in user's school, read by Report Card Management to
+    /// decide whether to offer the manual recalculation controls at all.
+    /// </summary>
+    public class PositionSettingsDto
+    {
+        /// <summary>True when a SuperAdmin has switched this school over to manual recalculation.
+        /// The recalculate buttons are shown only when this is true; otherwise the school keeps its
+        /// existing automatic behaviour and the buttons stay hidden.</summary>
+        public bool ManualRecalculationEnabled { get; set; }
+    }
 }

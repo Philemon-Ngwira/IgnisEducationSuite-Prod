@@ -90,6 +90,16 @@ namespace IgnisEducationSuite.Controllers
             => Ok(await _tenants.TerminateLicenseAsync(request));
 
         // -----------------------------------------------------------------------------
+        // Feature settings
+        // -----------------------------------------------------------------------------
+
+        /// <summary>Turns the manual "Recalculate positions" controls on or off for a school.</summary>
+        [HttpPost("tenants/{schoolId:guid}/settings/manual-position-recalculation")]
+        public async Task<IActionResult> SetManualPositionRecalculation(
+            Guid schoolId, [FromBody] SetManualPositionRecalculationRequest request)
+            => Ok(await _tenants.SetManualPositionRecalculationAsync(schoolId, request?.Enabled ?? false));
+
+        // -----------------------------------------------------------------------------
         // Administrator accounts
         // -----------------------------------------------------------------------------
 

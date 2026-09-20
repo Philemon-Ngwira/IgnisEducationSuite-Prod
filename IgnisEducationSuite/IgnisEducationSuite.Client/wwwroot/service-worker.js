@@ -12,7 +12,7 @@
 
 // Bump on every deployment. The activate handler deletes every cache that is not this one, so a
 // stale version left serving an old index.html is cleared by changing this line.
-const CACHE_VERSION = 'v1.2.3';
+const CACHE_VERSION = 'v1.2.4';
 const CACHE_NAME = `Ignis-Edu-cache-${CACHE_VERSION}`;
 
 // Paths this worker must never touch.
